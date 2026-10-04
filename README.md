@@ -1,6 +1,6 @@
-# TransReal — Monitoring des infrastructures EPT
+# Trans-DIC1 — Monitoring des infrastructures EPT
 
-TransReal est le nouveau projet de plateforme centralisée de supervision des infrastructures réseau et serveurs de l'École Polytechnique de Thiès (EPT).
+Trans-DIC1 est le nouveau projet de plateforme centralisée de supervision des infrastructures réseau et serveurs de l'École Polytechnique de Thiès (EPT).
 
 Le dépôt est actuellement dans sa phase d'initialisation. La stack applicative n'est pas encore arrêtée : aucune technologie, commande de build ou image Docker n'est annoncée comme opérationnelle avant l'ajout du premier composant exécutable.
 
@@ -49,7 +49,7 @@ Les versions des runtimes applicatifs seront documentées dès que la stack sera
 
 ```powershell
 git clone https://github.com/boubacarsidibe/Trans-DIC1.git
-Set-Location TransReal
+Set-Location Trans-DIC1
 Copy-Item .env.example .env
 pwsh ./scripts/verify-repository.ps1
 ```
