@@ -194,6 +194,7 @@ L'architecture applicative cible est détaillée dans `docs/devops/architecture.
 - [ ] Initialiser le premier parcours vertical avec lint, tests, build et healthcheck.
 - [ ] Ajouter la CI applicative correspondante.
 - [ ] Définir la cible d'hébergement, le gestionnaire de secrets, les RPO/RTO et les SLO.
+- [x] Réserver les environnements GitHub `staging` et `production` sans y ajouter de secret fictif.
 
 ### P2 — Après le premier composant
 

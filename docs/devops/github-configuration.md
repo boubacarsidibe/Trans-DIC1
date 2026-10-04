@@ -6,6 +6,7 @@ Ces opérations nécessitent le repository distant et des droits d'administratio
 
 - Repository privé : `boubacarsidibe/Trans-DIC1`.
 - Issues et Projects activés ; wiki désactivé.
+- Environnements GitHub `staging` et `production` créés sans secret.
 - Squash merge seul, suppression automatique des branches mergées.
 - Labels projet créés.
 - Branch protection refusée par GitHub avec le message demandant GitHub Pro ou une visibilité publique.
