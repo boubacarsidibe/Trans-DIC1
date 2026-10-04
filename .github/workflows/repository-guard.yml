@@ -3,20 +3,10 @@ name: Repository guard
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-      - develop
   pull_request:
-    branches:
-      - main
-      - develop
 
 permissions:
   contents: read
-
-concurrency:
-  group: repository-guard-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   repository-hygiene:
