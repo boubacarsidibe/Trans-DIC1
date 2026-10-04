@@ -4,6 +4,8 @@
 
 `repository-guard.yml` exécute le contrôle d'hygiène sur les push et Pull Requests visant `main` ou `develop`. Il ne simule aucun test applicatif.
 
+Dependabot vérifie chaque semaine les références GitHub Actions. Les gestionnaires de paquets applicatifs seront ajoutés à sa configuration uniquement lorsque leurs manifestes existeront.
+
 ## Ajout d'un composant
 
 Le composant doit exposer des commandes déterministes pour :
@@ -38,4 +40,3 @@ Le choix entre images OCI, paquets ou artefacts statiques dépendra de la stack.
 ## Production
 
 Le déploiement production exige une approbation via un environnement GitHub protégé ou le mécanisme équivalent de la cible. Aucun credential de production ne doit être accessible aux jobs de Pull Request.
-

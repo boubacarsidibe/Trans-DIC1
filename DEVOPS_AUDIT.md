@@ -60,6 +60,7 @@ Il n'existe pas encore d'architecture applicative à auditer.
 | Git | Présent | Dépôt initialisé localement |
 | PowerShell 7 | Utilisé pour l'outillage | `scripts/verify-repository.ps1` |
 | GitHub Actions | Socle présent | `.github/workflows/repository-guard.yml` |
+| Dependabot | GitHub Actions uniquement | `.github/dependabot.yml` |
 | Frontend | Non détecté | Aucun manifeste ou source |
 | Backend | Non détecté | Aucun manifeste ou source |
 | Base de données | Non détectée | Aucune configuration |
@@ -86,7 +87,7 @@ PowerShell n'est pas un choix de runtime applicatif. Il sert uniquement de contr
 ### P2 — Amélioration
 
 - Les labels et le Kanban doivent être créés après création du repository GitHub.
-- Dependabot doit être activé lorsque les premiers manifestes de dépendances existent.
+- Dependabot couvre GitHub Actions ; les écosystèmes applicatifs devront être ajoutés avec leurs premiers manifestes.
 - Les scans SAST, dépendances et conteneurs doivent être ajoutés avec la stack correspondante.
 - Les conventions de logs, métriques et traces doivent être implémentées dans chaque service.
 
@@ -179,6 +180,7 @@ L'architecture applicative cible est détaillée dans `docs/devops/architecture.
 - [x] Créer un modèle de variables sans valeur sensible.
 - [x] Ajouter un contrôle reproductible des fichiers sensibles connus.
 - [x] Documenter la politique de signalement privé.
+- [x] Configurer les mises à jour hebdomadaires de GitHub Actions.
 
 ### P1 — Prochaine étape
 
@@ -193,7 +195,7 @@ L'architecture applicative cible est détaillée dans `docs/devops/architecture.
 ### P2 — Après le premier composant
 
 - [ ] Conteneuriser les services réels et créer Compose pour le développement.
-- [ ] Configurer Dependabot pour les écosystèmes détectés.
+- [ ] Étendre Dependabot aux écosystèmes applicatifs détectés.
 - [ ] Ajouter SAST, scan de dépendances, scan de secrets dédié et scan d'images.
 - [ ] Déployer en staging avec migrations contrôlées et smoke tests.
 - [ ] Implémenter logs structurés, métriques d'exploitation et alertes.
