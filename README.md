@@ -2,7 +2,7 @@
 
 Trans-DIC1 est le nouveau projet de plateforme centralisée de supervision des infrastructures réseau et serveurs de l'École Polytechnique de Thiès (EPT).
 
-Le dépôt est actuellement dans sa phase d'initialisation. La stack applicative n'est pas encore arrêtée : aucune technologie, commande de build ou image Docker n'est annoncée comme opérationnelle avant l'ajout du premier composant exécutable.
+Le dépôt est actuellement dans sa phase d'initialisation. Le product backlog cible Spring Boot, PostgreSQL et React, puis Zabbix, SNMP, Docker Compose et Nginx. Aucun composant applicatif n'est encore présent : aucune commande de build ou image Docker n'est annoncée comme opérationnelle avant son implémentation réelle.
 
 ## Objectifs
 
@@ -25,16 +25,17 @@ Collecte → Détection → Alerte → Notification → Acquittement → Analyse
 | --- | --- |
 | Git et conventions | Initialisé |
 | Documentation de gouvernance | Initialisée |
-| Stack frontend/backend | À décider |
+| Stack frontend/backend | Cible définie, implémentation à démarrer |
 | Tests applicatifs | En attente du code |
 | Docker | En attente de la stack |
 | Déploiement | En attente de l'infrastructure cible |
 
 Consultez [DEVOPS_AUDIT.md](DEVOPS_AUDIT.md) pour l'état détaillé et les priorités.
+Le découpage en sprints et responsabilités est disponible dans [docs/product-backlog.md](docs/product-backlog.md).
 
 ## Architecture cible
 
-L'architecture devra séparer au minimum l'interface utilisateur, l'API, les collecteurs, les traitements asynchrones éventuels et le stockage. La forme exacte sera validée par une décision d'architecture avant création du squelette applicatif.
+L'architecture devra séparer au minimum l'interface React, l'API Spring Boot, les collecteurs, les traitements asynchrones éventuels et PostgreSQL. Les versions et contrats exacts seront validés par une décision d'architecture avant création du squelette applicatif.
 
 Le schéma cible et les critères de décision figurent dans [docs/devops/architecture.md](docs/devops/architecture.md).
 

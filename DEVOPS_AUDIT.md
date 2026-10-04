@@ -66,6 +66,8 @@ Il n'existe pas encore d'architecture applicative à auditer.
 | Base de données | Non détectée | Aucune configuration |
 | Docker | Non détecté | Aucun Dockerfile ou fichier Compose |
 
+Le product backlog reçu après l'audit fixe une stack cible : Spring Boot, Spring Security/JWT, JPA, PostgreSQL, React/Vite, React Router, Axios, Tailwind, Recharts, WebSocket, Zabbix Agent, SNMP, Docker Compose et Nginx. Cette stack est planifiée mais pas encore implémentée dans le repository.
+
 PowerShell n'est pas un choix de runtime applicatif. Il sert uniquement de contrôle portable sur les runners GitHub et les postes Windows.
 
 ## Problèmes et risques détectés
