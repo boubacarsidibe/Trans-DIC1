@@ -62,6 +62,12 @@ Le script est idempotent : il vérifie les titres existants avant de créer une 
 pwsh ./scripts/bootstrap-github-backlog.ps1
 ```
 
+Les plans d'exécution détaillés sont également synchronisés sans dupliquer leur section :
+
+```powershell
+pwsh ./scripts/enrich-github-issues.ps1
+```
+
 ## Prérequis externes
 
 - dates de début et de fin des sprints ;
