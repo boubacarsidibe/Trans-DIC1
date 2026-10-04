@@ -6,11 +6,11 @@ Le backlog GitHub reprend les User Stories, estimations et responsabilités du d
 
 | Responsable prévu | Issues détaillées | Assignation GitHub |
 | --- | ---: | --- |
-| Boubacar | 12 | Assignées à `@boubacarsidibe` |
-| Khadija | 10 | Label `owner:khadija`, en attente de son identifiant GitHub |
-| Équipe | 10 | Label `owner:team` |
+| Boubacar | 12 directes | Assignées à `@boubacarsidibe` |
+| Khadija | 10 directes | Assignées à `@DIJA-04` |
+| Équipe | 10 partagées | Assignées aux deux comptes, avec une checklist séparée pour chacun |
 
-Les quatre Issues du milestone `MVP` servent de cadrage transversal et ne remplacent pas les tâches détaillées.
+Les quatre Issues du milestone `MVP` servent de cadrage transversal et ne remplacent pas les tâches détaillées. L'Issue CI est pilotée par Boubacar ; les trois autres sont assignées aux deux membres.
 
 ## Milestones
 
@@ -64,11 +64,9 @@ pwsh ./scripts/bootstrap-github-backlog.ps1
 
 ## Prérequis externes
 
-- identifiant GitHub exact de Khadija ;
 - dates de début et de fin des sprints ;
 - autorisation du CRI pour les tests réels ;
 - inventaire des cibles Zabbix et SNMP autorisées ;
 - serveur de staging et de production ;
 - stratégie de secrets, SMTP, DNS et TLS ;
 - consignes officielles du rapport et de la soutenance.
-

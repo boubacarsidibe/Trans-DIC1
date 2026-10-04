@@ -145,5 +145,29 @@ foreach ($task in $tasks) {
     [void]$existingTitles.Add($issueTitle)
 }
 
-Write-Host 'Backlog GitHub synchronisé.' -ForegroundColor Green
+$managedIssues = @(Invoke-GhJson -Arguments @('issue','list','--repo',$Repository,'--state','open','--limit','200','--json','number,title,assignees,labels'))
+foreach ($issue in $managedIssues) {
+    $ownerLabels = @($issue.labels.name | Where-Object { $_ -like 'owner:*' })
+    $desiredAssignees = @()
+    if ($ownerLabels -contains 'owner:boubacar') {
+        $desiredAssignees = @('boubacarsidibe')
+    }
+    elseif ($ownerLabels -contains 'owner:khadija') {
+        $desiredAssignees = @('DIJA-04')
+    }
+    elseif ($ownerLabels -contains 'owner:team') {
+        $desiredAssignees = @('boubacarsidibe', 'DIJA-04')
+    }
 
+    $currentAssignees = @($issue.assignees | ForEach-Object { $_.login })
+    foreach ($assignee in $desiredAssignees) {
+        if ($currentAssignees -notcontains $assignee) {
+            & gh issue edit $issue.number --repo $Repository --add-assignee $assignee | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+                throw "Impossible d assigner $assignee à l issue $($issue.number)."
+            }
+        }
+    }
+}
+
+Write-Host 'Backlog GitHub synchronisé.' -ForegroundColor Green
