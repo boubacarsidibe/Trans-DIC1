@@ -15,7 +15,7 @@ La priorité suivante est une décision d'architecture courte et explicite, suiv
 | --- | --- |
 | Arborescence | Dossier vide |
 | Git | Non initialisé |
-| Remote GitHub | Absent |
+| Remote GitHub | `https://github.com/boubacarsidibe/Trans-DIC1.git` |
 | Branches | Absentes |
 | Dernier commit | Aucun |
 | Frontend / backend / agents | Absents |
@@ -78,7 +78,7 @@ PowerShell n'est pas un choix de runtime applicatif. Il sert uniquement de contr
 ### P1 — Important
 
 - La stack applicative, les versions de runtimes et les contrats entre composants ne sont pas définis.
-- Aucun remote GitHub n'est configuré ; protections de branches, secret scanning privé et règles de merge ne peuvent pas être appliqués.
+- Le remote GitHub est configuré ; certaines fonctions de sécurité avancées restent indisponibles pour ce repository privé avec le plan actuel.
 - Aucun propriétaire réel n'est connu ; un `CODEOWNERS` fiable ne peut pas être créé.
 - Aucun test, lint ou build applicatif n'existe.
 - La cible d'hébergement EPT, le registre d'images, les DNS et la gestion des secrets ne sont pas définis.
@@ -184,7 +184,7 @@ L'architecture applicative cible est détaillée dans `docs/devops/architecture.
 
 ### P1 — Prochaine étape
 
-- [ ] Créer le repository GitHub et configurer `origin`.
+- [x] Créer le repository GitHub privé et configurer `origin`.
 - [ ] Créer les équipes ou identifier les propriétaires réels, puis ajouter `CODEOWNERS`.
 - [ ] Protéger `main` et `develop` selon `docs/devops/github-configuration.md`.
 - [ ] Rédiger une ADR de choix de stack et figer les versions de runtime.

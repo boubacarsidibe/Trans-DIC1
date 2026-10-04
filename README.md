@@ -48,13 +48,13 @@ Les versions des runtimes applicatifs seront documentées dès que la stack sera
 ## Démarrage local
 
 ```powershell
-git clone <URL_DU_DEPOT>
+git clone https://github.com/boubacarsidibe/Trans-DIC1.git
 Set-Location TransReal
 Copy-Item .env.example .env
 pwsh ./scripts/verify-repository.ps1
 ```
 
-Remplacez `<URL_DU_DEPOT>` par l'URL réelle une fois le remote GitHub créé. Le fichier `.env` reste local et ne doit jamais être commité.
+Le fichier `.env` reste local et ne doit jamais être commité.
 
 ## Configuration
 
@@ -121,4 +121,3 @@ Si le contrôle local échoue, lisez le message associé, retirez le fichier sen
 ## Auteurs et contributeurs
 
 Le projet est porté par l'EPT. La liste des contributeurs sera dérivée de l'historique Git ; aucun compte ou nom d'équipe fictif n'est déclaré.
-
