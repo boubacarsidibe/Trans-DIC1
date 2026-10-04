@@ -1,0 +1,70 @@
+# Environment files and local secrets
+.env
+.env.*
+!.env.example
+!**/.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+.pgpass
+
+# Operating systems and editors
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs and runtime data
+*.log
+logs/
+tmp/
+temp/
+*.pid
+*.pid.lock
+
+# Java / JVM
+target/
+.gradle/
+build/
+*.class
+
+# JavaScript / TypeScript
+node_modules/
+dist/
+coverage/
+.npm/
+.pnpm-store/
+.yarn/cache/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Local infrastructure state
+.terraform/
+*.tfstate
+*.tfstate.*
+.docker/
+data/
+backups/
+
+# Generated reports and archives
+reports/
+*.zip
+*.tar
+*.tar.gz
+
