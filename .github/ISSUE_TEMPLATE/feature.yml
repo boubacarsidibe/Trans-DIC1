@@ -1,0 +1,44 @@
+name: Demande de fonctionnalité
+description: Proposer une évolution produit ou technique
+title: "[Feature]: "
+labels: ["feature"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Besoin
+      description: Quel problème utilisateur ou opérationnel faut-il résoudre ?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solution proposée
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Domaine
+      options:
+        - Frontend
+        - Backend
+        - Monitoring / SNMP
+        - Base de données
+        - DevOps
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critères d'acceptation
+      placeholder: "- [ ] ..."
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risques et impacts
+      description: Sécurité, performance, migration, exploitation ou compatibilité.
+

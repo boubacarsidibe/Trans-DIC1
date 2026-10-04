@@ -1,0 +1,42 @@
+name: Tâche DevOps
+description: Proposer un changement CI/CD, infrastructure ou exploitation
+title: "[DevOps]: "
+labels: ["devops"]
+body:
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objectif
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priorité
+      options:
+        - P0 - Critique
+        - P1 - Important
+        - P2 - Amélioration
+        - P3 - Optionnel
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: État actuel
+    validations:
+      required: true
+  - type: textarea
+    id: target
+    attributes:
+      label: Résultat attendu
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation et rollback
+      description: Indiquez les commandes de vérification et la procédure de retour arrière.
+    validations:
+      required: true
+

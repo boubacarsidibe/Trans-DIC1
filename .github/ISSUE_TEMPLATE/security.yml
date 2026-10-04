@@ -1,0 +1,28 @@
+name: Amélioration de sécurité non sensible
+description: Proposer du durcissement sans divulguer de vulnérabilité exploitable
+title: "[Security]: "
+labels: ["security"]
+body:
+  - type: markdown
+    attributes:
+      value: "N'utilisez ce formulaire que pour une amélioration générale. Pour une vulnérabilité, suivez SECURITY.md et contactez les mainteneurs en privé."
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      options:
+        - label: Cette demande ne contient ni secret, ni donnée sensible, ni procédure d'exploitation d'une vulnérabilité.
+          required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Amélioration proposée
+    validations:
+      required: true
+  - type: textarea
+    id: benefit
+    attributes:
+      label: Bénéfice attendu
+    validations:
+      required: true
+

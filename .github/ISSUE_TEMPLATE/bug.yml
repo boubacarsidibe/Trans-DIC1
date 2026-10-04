@@ -1,0 +1,47 @@
+name: Rapport de bug
+description: Signaler un comportement reproductible sans inclure de donnée sensible
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Ne publiez aucun secret, identifiant réel, adresse interne sensible ou extrait de topologie."
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Décrivez clairement le problème.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Étapes pour reproduire
+      placeholder: "1. ...\n2. ...\n3. ..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportement attendu
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Comportement observé
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environnement
+      placeholder: Développement, test, staging ou production; version; navigateur/OS
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs ou captures assainis
+      description: Supprimez les tokens, cookies, IP internes, communautés SNMP et credentials.
+
