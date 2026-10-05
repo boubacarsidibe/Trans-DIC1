@@ -2,6 +2,18 @@
 
 Ces opérations nécessitent le repository distant et des droits d'administration.
 
+## État constaté
+
+- Repository privé : `boubacarsidibe/Trans-DIC1`.
+- Issues et Projects activés ; wiki désactivé.
+- Environnements GitHub `staging` et `production` créés sans secret.
+- Squash merge seul, suppression automatique des branches mergées.
+- Labels projet créés.
+- Branch protection refusée par GitHub avec le message demandant GitHub Pro ou une visibilité publique.
+- Secret Scanning et Push Protection indisponibles avec le plan actuel.
+- Private Vulnerability Reporting indisponible sur ce repository.
+- GitHub Actions retourne `startup_failure` avant allocation d'un runner ; le workflow passe pourtant `actionlint` localement.
+
 ## Protection de `main`
 
 Dans **Settings → Rules → Rulesets**, créer une règle ciblant `main` :
@@ -38,4 +50,3 @@ Colonnes recommandées : `Backlog`, `Ready`, `In Progress`, `Review`, `Testing`,
 ## CODEOWNERS
 
 Ne créer ce fichier qu'après identification des comptes ou équipes réels. Couvrir ensuite les futurs dossiers applicatifs, `infra/`, `docs/` et `.github/` sans utiliser de propriétaires fictifs.
-

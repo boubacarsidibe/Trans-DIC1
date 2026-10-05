@@ -1,124 +1,93 @@
-# TransReal — Monitoring des infrastructures EPT
+# Trans-DIC1 — Monitoring des infrastructures EPT
 
-TransReal est le nouveau projet de plateforme centralisée de supervision des infrastructures réseau et serveurs de l'École Polytechnique de Thiès (EPT).
+Trans-DIC1 est la plateforme centralisée de supervision des infrastructures réseau et serveurs de l'École Polytechnique de Thiès (EPT).
 
-Le dépôt est actuellement dans sa phase d'initialisation. La stack applicative n'est pas encore arrêtée : aucune technologie, commande de build ou image Docker n'est annoncée comme opérationnelle avant l'ajout du premier composant exécutable.
+## État du projet
 
-## Objectifs
+Le socle du Sprint 0 est opérationnel : API Spring Boot, interface React, base PostgreSQL locale, migrations Flyway, tests automatisés et workflow CI. Les fonctions métier d'inventaire, de collecte et d'alerting seront livrées dans les user stories suivantes.
 
-- Superviser les routeurs, switches, pare-feu, serveurs et services.
-- Collecter des métriques via SNMP, agents, HTTP, TCP et ICMP.
-- Détecter les anomalies et gérer le cycle de vie des alertes.
-- Fournir tableaux de bord, historique, rapports et journal d'audit.
-- Gérer les rôles Administrateur, Opérateur NOC et Lecture seule.
-- Envoyer des notifications sans exposer les secrets ni la topologie sensible.
-
-## Cycle fonctionnel cible
-
-```text
-Collecte → Détection → Alerte → Notification → Acquittement → Analyse → Résolution
-```
-
-## État actuel
-
-| Domaine | État |
+| Composant | Stack |
 | --- | --- |
-| Git et conventions | Initialisé |
-| Documentation de gouvernance | Initialisée |
-| Stack frontend/backend | À décider |
-| Tests applicatifs | En attente du code |
-| Docker | En attente de la stack |
-| Déploiement | En attente de l'infrastructure cible |
+| Backend | Java 17, Spring Boot 4.1.1, Maven Wrapper |
+| Frontend | Node.js 24, React 19, Vite 8, Tailwind CSS 4 |
+| Données | PostgreSQL 16 natif, Flyway |
+| Tests | JUnit/H2 et Vitest/Testing Library |
 
-Consultez [DEVOPS_AUDIT.md](DEVOPS_AUDIT.md) pour l'état détaillé et les priorités.
+La décision complète est dans [ADR-0001](docs/adr/0001-application-stack.md), le modèle initial dans [docs/architecture/domain-model.md](docs/architecture/domain-model.md) et le backlog dans [docs/product-backlog.md](docs/product-backlog.md).
 
-## Architecture cible
+## Prérequis
 
-L'architecture devra séparer au minimum l'interface utilisateur, l'API, les collecteurs, les traitements asynchrones éventuels et le stockage. La forme exacte sera validée par une décision d'architecture avant création du squelette applicatif.
-
-Le schéma cible et les critères de décision figurent dans [docs/devops/architecture.md](docs/devops/architecture.md).
-
-## Prérequis actuels
-
-- Git 2.28 ou supérieur, afin de prendre en charge `git init -b` et les conventions modernes.
-- PowerShell 7 pour exécuter le contrôle local du dépôt sur Windows, Linux ou macOS.
-
-Les versions des runtimes applicatifs seront documentées dès que la stack sera choisie.
+- Git 2.28+
+- Java 17 ; Maven n'est pas requis car le wrapper est versionné
+- Node.js 24 et npm 11
+- PostgreSQL 16 installé localement
+- PowerShell 7 pour les scripts de contrôle sur Windows, Linux ou macOS
 
 ## Démarrage local
 
 ```powershell
-git clone <URL_DU_DEPOT>
-Set-Location TransReal
+git clone https://github.com/boubacarsidibe/Trans-DIC1.git
+Set-Location Trans-DIC1
 Copy-Item .env.example .env
-pwsh ./scripts/verify-repository.ps1
+# Renseigner DATABASE_PASSWORD dans .env, puis vérifier PostgreSQL local
+pwsh ./scripts/check-local-postgresql.ps1
+
+Set-Location backend
+.\mvnw.cmd spring-boot:run
 ```
 
-Remplacez `<URL_DU_DEPOT>` par l'URL réelle une fois le remote GitHub créé. Le fichier `.env` reste local et ne doit jamais être commité.
+Dans un second terminal :
 
-## Configuration
+```powershell
+Set-Location frontend
+npm ci
+npm run dev
+```
 
-Le contrat initial des variables est documenté dans [docs/devops/environment-variables.md](docs/devops/environment-variables.md). Les secrets de CI/CD devront être stockés dans GitHub Actions Secrets ou dans le gestionnaire de secrets de l'infrastructure cible.
+- Frontend : `http://localhost:5173`
+- API/healthcheck : `http://localhost:8080/actuator/health`
+
+La procédure PostgreSQL native complète est documentée dans [docs/devops/postgresql.md](docs/devops/postgresql.md). Le fichier `.env` reste local et ne doit jamais être commité. Docker n'est pas requis.
 
 ## Tests, lint et build
 
-Aucune commande applicative n'existe encore. Chaque composant devra livrer simultanément :
-
-- une commande de lint ;
-- une commande de tests reproductible ;
-- une commande de build ;
-- un healthcheck ;
-- les étapes CI correspondantes.
-
-Le contrôle actuellement disponible vérifie la structure du dépôt et empêche le suivi de fichiers sensibles connus :
-
 ```powershell
+# Contrôle du dépôt
 pwsh ./scripts/verify-repository.ps1
+
+# Backend
+Set-Location backend
+.\mvnw.cmd verify
+
+# Frontend
+Set-Location ..\frontend
+npm ci
+npm run lint
+npm test
+npm run build
 ```
 
-## Docker et déploiement
+Les tests backend utilisent une base H2 en mémoire, isolée de PostgreSQL local, et appliquent la migration Flyway. Le workflow GitHub Actions exécute les mêmes contrôles sur chaque push et Pull Request dès que GitHub Actions est disponible pour le dépôt.
 
-Aucun Dockerfile ni fichier Compose n'est créé tant que les runtimes, les ports et les dépendances persistantes ne sont pas définis. Cette retenue évite une infrastructure fictive. Les principes de livraison cible sont décrits dans la documentation DevOps.
-
-## Structure du dépôt
+## Structure
 
 ```text
 .
-├── .github/              # collaboration et automatisations GitHub
-├── docs/devops/          # architecture et exploitation
-├── scripts/              # contrôles locaux reproductibles
-├── .env.example          # contrat de configuration sans secret
-├── CONTRIBUTING.md       # règles de contribution
-├── DEVOPS_AUDIT.md       # audit et roadmap priorisée
-├── SECURITY.md           # politique de sécurité
-└── README.md
+├── .github/              # collaboration et CI GitHub
+├── backend/              # API Spring Boot
+├── frontend/             # application React
+├── docs/adr/             # décisions d'architecture
+├── docs/architecture/    # modèle et flux fonctionnels
+├── docs/devops/          # exploitation locale et cible
+├── scripts/              # contrôles reproductibles
+└── .env.example          # contrat de configuration sans secret
 ```
 
-Les dossiers applicatifs seront ajoutés après validation de la stack, sans imposer prématurément des noms tels que `frontend/` ou `backend/`.
+## Contribution et sécurité
 
-## Git et contribution
-
-- `main` représente la version stable.
-- `develop` porte l'intégration de la prochaine version.
-- Le travail se fait via `feature/*`, `fix/*`, `hotfix/*`, `refactor/*`, `docs/*`, `test/*`, `chore/*` ou `ci/*`.
+- `main` représente la version stable et `develop` l'intégration.
+- Le travail passe par des branches `feature/*`, `fix/*`, `docs/*`, `test/*`, `chore/*` ou `ci/*` et des Pull Requests.
 - Les commits suivent Conventional Commits.
-- Les changements rejoignent les branches principales par Pull Request.
+- Aucun secret, communauté SNMP, token, adresse interne ou topologie sensible ne doit être versionné ou journalisé.
 
-Voir [CONTRIBUTING.md](CONTRIBUTING.md) pour la procédure complète.
-
-## CI/CD
-
-Le workflow initial contrôle uniquement la gouvernance et l'absence de fichiers secrets connus. Les jobs applicatifs seront ajoutés avec les composants qu'ils vérifient. Le déploiement restera portable jusqu'à la confirmation de la cible d'hébergement EPT.
-
-## Sécurité
-
-Ne publiez jamais d'adresse interne sensible, communauté SNMP, identifiant équipement, token, clé, mot de passe ou topologie détaillée. Consultez [SECURITY.md](SECURITY.md) avant tout signalement.
-
-## Dépannage
-
-Si le contrôle local échoue, lisez le message associé, retirez le fichier sensible de l'index Git si nécessaire, puis relancez le script. Les procédures applicatives seront ajoutées avec la stack.
-
-## Auteurs et contributeurs
-
-Le projet est porté par l'EPT. La liste des contributeurs sera dérivée de l'historique Git ; aucun compte ou nom d'équipe fictif n'est déclaré.
-
+Consultez [CONTRIBUTING.md](CONTRIBUTING.md) et [SECURITY.md](SECURITY.md) avant toute contribution.

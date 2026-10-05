@@ -1,4 +1,4 @@
-# Contribuer à TransReal
+# Contribuer à Trans-DIC1
 
 Merci de contribuer à la plateforme de monitoring EPT. Les changements doivent rester reproductibles, testables et exempts d'informations sensibles.
 
@@ -61,4 +61,3 @@ Toute commande publiée doit avoir été exécutée. N'annoncez pas de workflow,
 ## Sécurité
 
 N'ajoutez jamais de secret, donnée réseau interne, clé privée ou credential aux commits, logs, captures ou fixtures. Pour une vulnérabilité, suivez [SECURITY.md](SECURITY.md) et n'ouvrez pas d'Issue publique contenant des détails exploitables.
-

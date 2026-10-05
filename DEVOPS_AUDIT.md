@@ -1,11 +1,11 @@
-# Audit DevOps — TransReal
+# Audit DevOps — Trans-DIC1
 
 Date de référence : 4 octobre 2026  
 Périmètre : nouveau dépôt `F:\Real_projects\TransReal`
 
 ## Synthèse exécutive
 
-TransReal démarre dans un dépôt neuf, sans code applicatif, historique distant ni infrastructure. Il n'existe donc pas de dette applicative à corriger, mais aucun build, test, conteneur ou déploiement ne peut encore être validé. Le socle de gouvernance et de sécurité du dépôt a été créé sans présumer de la stack future.
+Trans-DIC1 démarre dans un dépôt neuf, sans code applicatif ni infrastructure. Il n'existe donc pas de dette applicative à corriger, mais aucun build, test, conteneur ou déploiement ne peut encore être validé. Le socle de gouvernance et de sécurité du dépôt a été créé sans présumer de la stack future.
 
 La priorité suivante est une décision d'architecture courte et explicite, suivie de l'initialisation verticale du premier composant avec son lint, ses tests, son build, son healthcheck et sa CI dans la même Pull Request.
 
@@ -15,7 +15,7 @@ La priorité suivante est une décision d'architecture courte et explicite, suiv
 | --- | --- |
 | Arborescence | Dossier vide |
 | Git | Non initialisé |
-| Remote GitHub | Absent |
+| Remote GitHub | `https://github.com/boubacarsidibe/Trans-DIC1.git` |
 | Branches | Absentes |
 | Dernier commit | Aucun |
 | Frontend / backend / agents | Absents |
@@ -32,7 +32,7 @@ La priorité suivante est une décision d'architecture courte et explicite, suiv
 Après initialisation, le dépôt contient uniquement :
 
 ```text
-TransReal/
+Trans-DIC1/
 ├── .github/
 │   ├── ISSUE_TEMPLATE/
 │   ├── workflows/
@@ -60,10 +60,13 @@ Il n'existe pas encore d'architecture applicative à auditer.
 | Git | Présent | Dépôt initialisé localement |
 | PowerShell 7 | Utilisé pour l'outillage | `scripts/verify-repository.ps1` |
 | GitHub Actions | Socle présent | `.github/workflows/repository-guard.yml` |
+| Dependabot | GitHub Actions uniquement | `.github/dependabot.yml` |
 | Frontend | Non détecté | Aucun manifeste ou source |
 | Backend | Non détecté | Aucun manifeste ou source |
 | Base de données | Non détectée | Aucune configuration |
 | Docker | Non détecté | Aucun Dockerfile ou fichier Compose |
+
+Le product backlog reçu après l'audit fixe une stack cible : Spring Boot, Spring Security/JWT, JPA, PostgreSQL, React/Vite, React Router, Axios, Tailwind, Recharts, WebSocket, Zabbix Agent, SNMP, Docker Compose et Nginx. Cette stack est planifiée mais pas encore implémentée dans le repository.
 
 PowerShell n'est pas un choix de runtime applicatif. Il sert uniquement de contrôle portable sur les runners GitHub et les postes Windows.
 
@@ -77,16 +80,17 @@ PowerShell n'est pas un choix de runtime applicatif. Il sert uniquement de contr
 ### P1 — Important
 
 - La stack applicative, les versions de runtimes et les contrats entre composants ne sont pas définis.
-- Aucun remote GitHub n'est configuré ; protections de branches, secret scanning privé et règles de merge ne peuvent pas être appliqués.
+- Le remote GitHub est configuré. Sur le plan actuel, GitHub refuse les protections de branches pour ce repository privé et indique qu'un passage à GitHub Pro ou en visibilité publique est requis.
 - Aucun propriétaire réel n'est connu ; un `CODEOWNERS` fiable ne peut pas être créé.
 - Aucun test, lint ou build applicatif n'existe.
+- GitHub Actions retourne actuellement `startup_failure` avant création des jobs, y compris pour un workflow minimal validé par `actionlint` ; ne pas rendre ce check obligatoire avant résolution côté compte/repository.
 - La cible d'hébergement EPT, le registre d'images, les DNS et la gestion des secrets ne sont pas définis.
 - Les objectifs de disponibilité, rétention, RPO et RTO ne sont pas définis.
 
 ### P2 — Amélioration
 
 - Les labels et le Kanban doivent être créés après création du repository GitHub.
-- Dependabot doit être activé lorsque les premiers manifestes de dépendances existent.
+- Dependabot couvre GitHub Actions ; les écosystèmes applicatifs devront être ajoutés avec leurs premiers manifestes.
 - Les scans SAST, dépendances et conteneurs doivent être ajoutés avec la stack correspondante.
 - Les conventions de logs, métriques et traces doivent être implémentées dans chaque service.
 
@@ -126,7 +130,7 @@ Ces fichiers doivent découler de décisions réelles, non de suppositions.
 
 Le dépôt vide ne contenait aucun secret à l'ouverture. Le contrôle initial bloque les noms de fichiers à haut risque suivis par Git et impose des valeurs sensibles vides dans `.env.example`.
 
-Limite connue : ce contrôle n'est pas un scanner de secrets historique ou entropique. Après création du remote, activer GitHub Secret Scanning si disponible et ajouter un outil dédié, avec une configuration validée et un traitement clair des alertes.
+Limite connue : ce contrôle n'est pas un scanner de secrets historique ou entropique. GitHub Secret Scanning et Push Protection ont été demandés mais ne sont pas disponibles pour ce repository privé avec le plan actuel. Ajouter ultérieurement un outil dédié, avec une configuration validée et un traitement clair des alertes.
 
 ## Tests et scripts de build
 
@@ -146,7 +150,7 @@ Environnements cibles : `development`, `testing`, `staging`, `production`. Les d
 
 ## CI/CD
 
-Le workflow initial exécute le même contrôle de dépôt que les développeurs. La CI évoluera par composant et n'utilisera que des commandes présentes et testées localement.
+Le workflow initial exécute le même contrôle de dépôt que les développeurs. Sa définition passe `actionlint`, mais les premiers runs GitHub échouent avant allocation d'un runner. La CI évoluera par composant et n'utilisera que des commandes présentes et testées localement.
 
 Le CD est reporté jusqu'à confirmation de l'hébergement. La chaîne cible reste portable : artefact ou image immuable, staging, validation, approbation production, healthcheck et rollback.
 
@@ -179,21 +183,23 @@ L'architecture applicative cible est détaillée dans `docs/devops/architecture.
 - [x] Créer un modèle de variables sans valeur sensible.
 - [x] Ajouter un contrôle reproductible des fichiers sensibles connus.
 - [x] Documenter la politique de signalement privé.
+- [x] Configurer les mises à jour hebdomadaires de GitHub Actions.
 
 ### P1 — Prochaine étape
 
-- [ ] Créer le repository GitHub et configurer `origin`.
-- [ ] Créer les équipes ou identifier les propriétaires réels, puis ajouter `CODEOWNERS`.
-- [ ] Protéger `main` et `develop` selon `docs/devops/github-configuration.md`.
+- [x] Créer le repository GitHub privé et configurer `origin`.
+- [x] Ajouter le propriétaire GitHub réel initial dans `CODEOWNERS`.
+- [ ] Protéger `main` et `develop` après passage à GitHub Pro ou décision explicite de rendre le dépôt public.
 - [ ] Rédiger une ADR de choix de stack et figer les versions de runtime.
 - [ ] Initialiser le premier parcours vertical avec lint, tests, build et healthcheck.
 - [ ] Ajouter la CI applicative correspondante.
 - [ ] Définir la cible d'hébergement, le gestionnaire de secrets, les RPO/RTO et les SLO.
+- [x] Réserver les environnements GitHub `staging` et `production` sans y ajouter de secret fictif.
 
 ### P2 — Après le premier composant
 
 - [ ] Conteneuriser les services réels et créer Compose pour le développement.
-- [ ] Configurer Dependabot pour les écosystèmes détectés.
+- [ ] Étendre Dependabot aux écosystèmes applicatifs détectés.
 - [ ] Ajouter SAST, scan de dépendances, scan de secrets dédié et scan d'images.
 - [ ] Déployer en staging avec migrations contrôlées et smoke tests.
 - [ ] Implémenter logs structurés, métriques d'exploitation et alertes.
