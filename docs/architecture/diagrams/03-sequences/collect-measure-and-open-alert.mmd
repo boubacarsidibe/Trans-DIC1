@@ -1,0 +1,32 @@
+sequenceDiagram
+    actor Scheduler as Planificateur
+    participant Collection as Service de collecte
+    participant Adapter as Adaptateur Zabbix/SNMP
+    participant Source as Équipement ou Zabbix
+    participant Metrics as Dépôt de métriques
+    participant Alerting as Service d'alertes
+    participant Alerts as Dépôt d'alertes
+    participant Notify as Service de notification
+
+    Scheduler->>Collection: déclencherCollecte()
+    Collection->>Adapter: collecter(équipement)
+    Adapter->>Source: lire observations autorisées
+    Source-->>Adapter: observations brutes
+    Adapter-->>Collection: métriques normalisées
+
+    loop Pour chaque métrique valide
+        Collection->>Metrics: enregistrer(métrique UTC)
+        Collection->>Alerting: évaluer(métrique)
+        Alerting->>Alerts: rechercher alerte active de même occurrence
+        alt Seuil confirmé et aucune alerte active
+            Alerting->>Alerts: enregistrer alerte OUVERTE
+            Alerting->>Notify: notifier(alerte)
+        else Incident continu déjà représenté
+            Alerting->>Alerts: mettre à jour dernière observation
+        else Seuil non dépassé
+            Alerting-->>Collection: aucune alerte
+        end
+    end
+
+    Note over Collection,Notify: Les secrets et la topologie inutile ne sont jamais journalisés.
+

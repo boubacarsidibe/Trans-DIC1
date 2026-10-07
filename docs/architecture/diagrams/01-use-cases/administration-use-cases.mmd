@@ -1,0 +1,25 @@
+flowchart LR
+    admin["Administrateur"]
+
+    subgraph system["Trans-DIC1 — Administration globale"]
+        users(["Créer, modifier, activer ou désactiver un utilisateur"])
+        roles(["Attribuer les rôles"])
+        scopes(["Affecter les périmètres par site et équipement"])
+        reset(["Réinitialiser le mot de passe d'un utilisateur"])
+        notifications(["Configurer les notifications email"])
+        schedule(["Planifier les rapports automatiques"])
+        recipients(["Choisir les destinataires des rapports"])
+        assignment(["Assigner une alerte à plusieurs NOC"])
+        fullAudit(["Consulter l'intégralité du journal d'audit"])
+    end
+
+    admin --> users
+    admin --> roles
+    admin --> scopes
+    admin --> reset
+    admin --> notifications
+    admin --> schedule
+    admin --> recipients
+    admin --> assignment
+    admin --> fullAudit
+

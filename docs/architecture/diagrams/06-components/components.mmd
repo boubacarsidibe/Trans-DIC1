@@ -1,0 +1,35 @@
+flowchart LR
+    users["Administrateur / NOC / Lecteur"]
+    sources["Équipements réseau et serveurs"]
+    zabbix["Zabbix Agent"]
+    smtp["Service SMTP"]
+
+    subgraph transdic["Système Trans-DIC1"]
+        web["Interface web React"]
+        api["API Spring Boot\nREST + contrôle d'accès"]
+        inventory["Composant Inventaire"]
+        monitoring["Composant Collecte & Métriques"]
+        alerting["Composant Alertes"]
+        notification["Composant Notifications"]
+        reporting["Composant Rapports"]
+        audit["Composant Audit"]
+        db[("PostgreSQL")]
+    end
+
+    users -->|HTTPS| web
+    web -->|REST JSON / WebSocket cible| api
+    api --> inventory
+    api --> monitoring
+    api --> alerting
+    api --> reporting
+    inventory -->|SQL via JPA| db
+    monitoring -->|SQL via JPA| db
+    alerting -->|SQL via JPA| db
+    notification -->|SQL via JPA| db
+    reporting -->|SQL via JPA| db
+    audit -->|SQL via JPA| db
+    monitoring -->|port 10050 cible| zabbix
+    monitoring -->|SNMPv3 cible| sources
+    alerting --> notification
+    notification -->|SMTP cible| smtp
+

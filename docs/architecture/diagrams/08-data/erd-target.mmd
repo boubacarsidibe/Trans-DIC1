@@ -1,0 +1,92 @@
+erDiagram
+    SITES ||--o{ EQUIPMENTS : regroupe
+    EQUIPMENTS ||--o{ SUPERVISED_SERVICES : heberge
+    EQUIPMENTS ||--o{ METRICS : produit
+    EQUIPMENTS ||--o{ EQUIPMENT_ALERT_RULES : affecte
+    ALERT_RULES ||--o{ EQUIPMENT_ALERT_RULES : configure
+    EQUIPMENTS ||--o{ ALERTS : concerne
+    ALERT_RULES ||--o{ ALERTS : declenche
+    ALERTS ||--o{ NOTIFICATIONS : provoque
+    USERS o|--o{ ALERTS : acquitte
+    USERS o|--o{ ALERTS : resout
+    USERS o|--o{ AUDIT_ENTRIES : effectue
+
+    SITES {
+        uuid id PK
+        varchar code UK
+        varchar name
+    }
+    EQUIPMENTS {
+        uuid id PK
+        uuid site_id FK
+        varchar name
+        varchar management_address
+        varchar type
+        boolean monitoring_enabled
+    }
+    SUPERVISED_SERVICES {
+        uuid id PK
+        uuid equipment_id FK
+        varchar name
+        varchar protocol
+        int port
+    }
+    METRICS {
+        uuid id PK
+        uuid equipment_id FK
+        varchar metric_type
+        decimal value
+        varchar unit
+        timestamp collected_at
+    }
+    ALERT_RULES {
+        uuid id PK
+        varchar metric_type
+        varchar comparison_operator
+        decimal threshold
+        varchar unit
+        bigint confirmation_seconds
+        boolean active
+    }
+    EQUIPMENT_ALERT_RULES {
+        uuid equipment_id PK, FK
+        uuid alert_rule_id PK, FK
+    }
+    ALERTS {
+        uuid id PK
+        uuid equipment_id FK
+        uuid alert_rule_id FK
+        uuid acknowledged_by FK
+        uuid resolved_by FK
+        varchar severity
+        varchar status
+        varchar occurrence_key UK
+        timestamp raised_at
+        timestamp acknowledged_at
+        timestamp resolved_at
+    }
+    NOTIFICATIONS {
+        uuid id PK
+        uuid alert_id FK
+        varchar channel
+        varchar delivery_status
+        int attempt_count
+        timestamp sent_at
+    }
+    USERS {
+        uuid id PK
+        varchar username UK
+        varchar password_hash
+        varchar role
+        boolean active
+    }
+    AUDIT_ENTRIES {
+        uuid id PK
+        uuid actor_id FK
+        varchar action
+        varchar target_type
+        uuid target_id
+        varchar correlation_id
+        timestamp occurred_at
+    }
+

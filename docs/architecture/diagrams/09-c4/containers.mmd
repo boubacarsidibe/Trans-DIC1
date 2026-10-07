@@ -1,0 +1,22 @@
+C4Container
+    title Conteneurs cibles de Trans-DIC1
+
+    Person(user, "Utilisateur EPT", "Administrateur, opérateur NOC ou lecteur")
+    System_Ext(monitored, "Infrastructure supervisée", "Équipements, serveurs et Zabbix Agent")
+    System_Ext(smtp, "Service SMTP", "Acheminement des emails")
+
+    System_Boundary(transdic, "Trans-DIC1") {
+        Container(web, "Application web", "React 19, Vite 8", "Dashboard, inventaire, métriques, alertes et rapports")
+        Container(api, "API applicative", "Java 17, Spring Boot 4.1", "REST, autorisation, orchestration métier et WebSocket cible")
+        Container(worker, "Collecteur", "Java / adaptateurs", "Planifie et normalise les collectes simulées, Zabbix et SNMP")
+        ContainerDb(db, "Base de données", "PostgreSQL 16", "Inventaire, métriques, alertes, notifications, rapports et audit")
+    }
+
+    Rel(user, web, "Utilise", "HTTPS")
+    Rel(web, api, "Appelle", "REST JSON / WebSocket cible")
+    Rel(api, db, "Lit et écrit", "SQL via JPA")
+    Rel(api, worker, "Déclenche/coordonne", "Port applicatif")
+    Rel(worker, monitored, "Collecte", "Zabbix port 10050 / SNMPv3")
+    Rel(worker, db, "Persiste les métriques", "SQL via JPA")
+    Rel(api, smtp, "Envoie les notifications", "SMTP")
+

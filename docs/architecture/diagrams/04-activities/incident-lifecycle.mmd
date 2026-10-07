@@ -1,0 +1,28 @@
+flowchart TD
+    start((Début de collecte)) --> read[Interroger une source autorisée]
+    read --> reachable{Source joignable ?}
+    reachable -- Non --> observe[Tracer l'échec sans secret]
+    observe --> retry{Reprise autorisée ?}
+    retry -- Oui --> read
+    retry -- Non --> finish((Fin du cycle))
+
+    reachable -- Oui --> normalize[Normaliser et horodater en UTC]
+    normalize --> valid{Métrique valide ?}
+    valid -- Non --> reject[Rejeter et tracer la cause assainie]
+    reject --> finish
+    valid -- Oui --> persist[Persister la métrique]
+    persist --> threshold{Seuil dépassé pendant la durée requise ?}
+    threshold -- Non --> finish
+    threshold -- Oui --> duplicate{Alerte active pour la même occurrence ?}
+    duplicate -- Oui --> update[Mettre à jour l'observation de l'incident]
+    update --> finish
+    duplicate -- Non --> open[Ouvrir l'alerte]
+    open --> notify[Créer et envoyer la notification]
+    notify --> wait[Attendre la prise en charge]
+    wait --> acknowledge[Acquitter avec auteur et date]
+    acknowledge --> restored{Retour à la normale confirmé ?}
+    restored -- Non --> wait
+    restored -- Oui --> resolve[Résoudre avec auteur et date]
+    resolve --> audit[Conserver la piste d'audit]
+    audit --> finish
+

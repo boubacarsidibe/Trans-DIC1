@@ -1,0 +1,40 @@
+sequenceDiagram
+    actor Operator as Opérateur NOC
+    participant UI as Interface React
+    participant API as AlertController
+    participant Auth as Autorisation
+    participant Service as AlertApplicationService
+    participant Alert as Alerte
+    participant Repo as AlertRepository
+    participant Audit as AuditPort
+
+    Operator->>UI: choisir « Acquitter »
+    UI->>API: acquitter(alerteId, jeton)
+    API->>Auth: vérifier rôle et identité
+    alt Autorisé
+        API->>Service: acquitter(alerteId, utilisateurId)
+        Service->>Repo: charger(alerteId)
+        Repo-->>Service: alerte
+        Service->>Alert: acquitter(utilisateur, instant)
+        alt Transition valide : OUVERTE vers ACQUITTEE
+            Service->>Repo: enregistrer(alerte)
+            Service->>Audit: tracer acquittement
+            Service-->>API: alerte ACQUITTEE
+            API-->>UI: succès
+        else État incompatible
+            Service-->>API: erreur métier de transition
+            API-->>UI: conflit
+        end
+    else Interdit
+        Auth-->>API: accès refusé
+        API-->>UI: erreur 403
+    end
+
+    Operator->>UI: choisir « Résoudre »
+    UI->>API: résoudre(alerteId, jeton)
+    API->>Service: résoudre(alerteId, utilisateurId)
+    Service->>Alert: résoudre(utilisateur, instant)
+    Service->>Repo: enregistrer(alerte)
+    Service->>Audit: tracer résolution
+    Service-->>UI: alerte RESOLUE
+

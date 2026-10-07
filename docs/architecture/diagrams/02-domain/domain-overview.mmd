@@ -1,0 +1,127 @@
+classDiagram
+    direction LR
+
+    class Site {
+        +SiteId id
+        +String code
+        +String nom
+    }
+
+    class Equipement {
+        +EquipementId id
+        +String nom
+        +AdresseGestion adresse
+        +TypeEquipement type
+        +EtatSupervision etat
+        +activerSupervision()
+        +desactiverSupervision()
+    }
+
+    class ServiceSupervise {
+        +ServiceId id
+        +String nom
+        +String protocole
+        +int port
+    }
+
+    class Metrique {
+        +MetriqueId id
+        +TypeMetrique type
+        +Decimal valeur
+        +String unite
+        +Instant collecteeA
+    }
+
+    class RegleAlerte {
+        +RegleId id
+        +TypeMetrique typeMetrique
+        +OperateurComparaison operateur
+        +Decimal seuil
+        +Duration dureeConfirmation
+        +bool active
+        +evaluer(Metrique)
+        +modifierSeuil(Decimal)
+    }
+
+    class Alerte {
+        +AlerteId id
+        +Severite severite
+        +EtatAlerte etat
+        +Instant ouverteA
+        +Instant acquitteeA
+        +Instant resolueA
+        +acquitter(Utilisateur)
+        +resoudre(Utilisateur)
+    }
+
+    class Notification {
+        +NotificationId id
+        +CanalNotification canal
+        +EtatLivraison etat
+        +int tentatives
+        +Instant envoyeeA
+        +marquerEnvoyee()
+        +marquerEchec()
+    }
+
+    class Rapport {
+        +RapportId id
+        +TypeRapport type
+        +Periode periode
+        +Instant genereA
+        +generer()
+    }
+
+    class Utilisateur {
+        +UtilisateurId id
+        +String nomUtilisateur
+        +RoleUtilisateur role
+        +bool actif
+        +changerRole(RoleUtilisateur)
+    }
+
+    class EntreeAudit {
+        +AuditId id
+        +String action
+        +Instant horodatage
+        +String correlationId
+    }
+
+    class TypeEquipement {
+        <<enumeration>>
+        SERVEUR
+        ROUTEUR
+        SWITCH
+        MACHINE_VIRTUELLE
+        POINT_ACCES_WIFI
+    }
+
+    class EtatAlerte {
+        <<enumeration>>
+        OUVERTE
+        ACQUITTEE
+        RESOLUE
+    }
+
+    class RoleUtilisateur {
+        <<enumeration>>
+        ADMIN
+        NOC_OPERATOR
+        VIEWER
+    }
+
+    Site "1" --> "0..*" Equipement : regroupe
+    Equipement "1" *-- "0..*" ServiceSupervise : héberge
+    Equipement "1" --> "0..*" Metrique : produit
+    Equipement "0..*" --> "0..*" RegleAlerte : est surveillé par
+    Equipement "1" --> "0..*" Alerte : concerne
+    RegleAlerte "1" --> "0..*" Alerte : déclenche
+    Alerte "1" --> "0..*" Notification : provoque
+    Utilisateur "0..1" --> "0..*" Alerte : acquitte
+    Utilisateur "0..1" --> "0..*" Alerte : résout
+    Utilisateur "0..1" --> "0..*" EntreeAudit : auteur
+    Rapport "0..*" --> "0..*" Equipement : synthétise
+    Equipement --> TypeEquipement
+    Alerte --> EtatAlerte
+    Utilisateur --> RoleUtilisateur
+

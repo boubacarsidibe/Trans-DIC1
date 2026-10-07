@@ -1,0 +1,43 @@
+flowchart LR
+    admin["Administrateur"]
+
+    subgraph identity["Identités et autorisations"]
+        users(["Créer, modifier, activer ou désactiver un utilisateur"])
+        roles(["Attribuer les rôles"])
+        scopes(["Affecter les périmètres par site et équipement"])
+        reset(["Réinitialiser le mot de passe d'un utilisateur"])
+        sessions(["Révoquer les sessions d'un utilisateur"])
+    end
+
+    subgraph communication["Notifications et rapports"]
+        email(["Configurer et tester l'envoi d'emails"])
+        recipients(["Configurer les destinataires et sévérités notifiées"])
+        failures(["Consulter et relancer les notifications échouées"])
+        schedules(["Planifier les rapports automatiques"])
+        reportRecipients(["Choisir les destinataires des rapports"])
+    end
+
+    subgraph governance["Gouvernance"]
+        assignment(["Assigner une alerte à plusieurs NOC"])
+        globalAudit(["Consulter l'audit global"])
+        settings(["Configurer les paramètres globaux"])
+        retention(["Configurer les durées de conservation"])
+        backup(["Sauvegarder et restaurer la configuration"])
+    end
+
+    admin --> users
+    admin --> roles
+    admin --> scopes
+    admin --> reset
+    admin --> sessions
+    admin --> email
+    admin --> recipients
+    admin --> failures
+    admin --> schedules
+    admin --> reportRecipients
+    admin --> assignment
+    admin --> globalAudit
+    admin --> settings
+    admin --> retention
+    admin --> backup
+

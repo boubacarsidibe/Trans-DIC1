@@ -1,0 +1,37 @@
+flowchart LR
+    noc["Opérateur NOC"]
+    admin["Administrateur"]
+    noc -. "spécialisé par" .-> admin
+
+    subgraph system["Trans-DIC1 — Supervision et incidents"]
+        equipment(["Ajouter ou modifier un équipement"])
+        archive(["Archiver un équipement"])
+        delete(["Supprimer définitivement un équipement et son historique"])
+        snmp(["Configurer la collecte SNMP"])
+        agent(["Gérer le cycle de vie des agents"])
+        collect(["Déclencher une collecte immédiate"])
+        rules(["Configurer les règles et seuils d'alerte"])
+        claim(["Prendre ou libérer une alerte"])
+        acknowledge(["Acquitter une alerte"])
+        resolve(["Résoudre une alerte"])
+        severity(["Modifier la sévérité"])
+        maintenance(["Planifier une maintenance par site ou équipement"])
+        report(["Générer et exporter un rapport PDF"])
+        audit(["Consulter l'audit de son périmètre"])
+    end
+
+    noc --> equipment
+    noc --> archive
+    noc --> delete
+    noc --> snmp
+    noc --> agent
+    noc --> collect
+    noc --> rules
+    noc --> claim
+    noc --> acknowledge
+    noc --> resolve
+    noc --> severity
+    noc --> maintenance
+    noc --> report
+    noc --> audit
+

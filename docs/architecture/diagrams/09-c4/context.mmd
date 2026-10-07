@@ -1,0 +1,17 @@
+C4Context
+    title Contexte système Trans-DIC1
+
+    Person(admin, "Administrateur", "Gère inventaire, utilisateurs, rôles et seuils")
+    Person(operator, "Opérateur NOC", "Surveille, acquitte et résout les alertes")
+    Person(viewer, "Lecteur", "Consulte l'état, les métriques, alertes et rapports")
+
+    System(transdic, "Trans-DIC1", "Supervision centralisée des infrastructures réseau et serveurs de l'EPT")
+    System_Ext(monitored, "Infrastructure supervisée", "Équipements réseau, serveurs, services et agents Zabbix")
+    System_Ext(smtp, "Service SMTP", "Acheminement des notifications email")
+
+    Rel(admin, transdic, "Administre et consulte", "HTTPS")
+    Rel(operator, transdic, "Supervise et traite les alertes", "HTTPS")
+    Rel(viewer, transdic, "Consulte", "HTTPS")
+    Rel(transdic, monitored, "Collecte les observations", "SNMPv3 / Zabbix")
+    Rel(transdic, smtp, "Envoie les notifications", "SMTP")
+

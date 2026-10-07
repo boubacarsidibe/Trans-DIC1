@@ -1,0 +1,36 @@
+flowchart LR
+    reader["Lecteur"]
+    noc["Opérateur NOC"]
+    admin["Administrateur"]
+
+    reader -. "spécialisé par" .-> noc
+    noc -. "spécialisé par" .-> admin
+
+    subgraph system["Frontière du système Trans-DIC1"]
+        account(["Gérer son accès"])
+        consult(["Consulter la supervision"])
+        inventory(["Administrer l'inventaire"])
+        collection(["Piloter la collecte"])
+        incidents(["Gérer les incidents"])
+        maintenance(["Gérer les maintenances"])
+        reporting(["Produire des rapports"])
+        scopedAudit(["Consulter l'audit autorisé"])
+        users(["Administrer utilisateurs et périmètres"])
+        automation(["Configurer notifications et automatisations"])
+        platform(["Administrer la plateforme"])
+    end
+
+    reader --> account
+    reader --> consult
+
+    noc --> inventory
+    noc --> collection
+    noc --> incidents
+    noc --> maintenance
+    noc --> reporting
+    noc --> scopedAudit
+
+    admin --> users
+    admin --> automation
+    admin --> platform
+

@@ -1,0 +1,22 @@
+architecture-beta
+    group client(cloud)[Réseau utilisateurs EPT]
+    group application(cloud)[Hébergement EPT à confirmer]
+    group managed(cloud)[Systèmes supervisés]
+    group external(cloud)[Services externes]
+
+    service browser(internet)[Navigateur] in client
+    service nginx(server)[Nginx reverse proxy] in application
+    service frontend(server)[Artefact React] in application
+    service backend(server)[API Spring Boot] in application
+    service collector(server)[Worker de collecte] in application
+    service postgres(database)[PostgreSQL 16] in application
+    service devices(server)[Équipements et serveurs] in managed
+    service smtp(server)[SMTP] in external
+
+    browser:R -- L:nginx
+    nginx:B -- T:frontend
+    nginx:R -- L:backend
+    backend:B -- T:postgres
+    backend:R -- L:collector
+    collector:R -- L:devices
+    backend:B -- T:smtp

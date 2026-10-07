@@ -1,0 +1,102 @@
+classDiagram
+    direction LR
+
+    class MonitoringController {
+        <<boundary>>
+        +consulterMetriques()
+    }
+    class AlertController {
+        <<boundary>>
+        +listerAlertes()
+        +acquitter()
+        +resoudre()
+    }
+    class CollectionScheduler {
+        <<boundary>>
+        +declencherCollecte()
+    }
+    class CollectionApplicationService {
+        <<application service>>
+        +collecter(EquipementId)
+    }
+    class AlertApplicationService {
+        <<application service>>
+        +evaluer(Metrique)
+        +acquitter(AlerteId, UtilisateurId)
+        +resoudre(AlerteId, UtilisateurId)
+    }
+    class NotificationApplicationService {
+        <<application service>>
+        +notifier(AlerteId)
+    }
+    class Alerte {
+        <<aggregate root>>
+        +acquitter(Utilisateur)
+        +resoudre(Utilisateur)
+    }
+    class RegleAlerte {
+        <<aggregate root>>
+        +evaluer(Metrique)
+    }
+    class Metrique {
+        <<entity>>
+    }
+    class AlertRepository {
+        <<interface>>
+        +findActiveByOccurrence()
+        +save(Alerte)
+    }
+    class MetricRepository {
+        <<interface>>
+        +save(Metrique)
+        +findByEquipmentAndPeriod()
+    }
+    class CollectionPort {
+        <<interface>>
+        +collecter(Equipement)
+    }
+    class NotificationPort {
+        <<interface>>
+        +envoyer(Notification)
+    }
+    class JpaAlertRepository {
+        <<infrastructure>>
+    }
+    class JpaMetricRepository {
+        <<infrastructure>>
+    }
+    class SnmpCollectionAdapter {
+        <<infrastructure>>
+    }
+    class ZabbixCollectionAdapter {
+        <<infrastructure>>
+    }
+    class SimulatedCollectionAdapter {
+        <<infrastructure>>
+    }
+    class SmtpNotificationAdapter {
+        <<infrastructure>>
+    }
+    class AuditPort {
+        <<interface>>
+        +enregistrer(ActionAudit)
+    }
+
+    MonitoringController ..> CollectionApplicationService
+    AlertController ..> AlertApplicationService
+    CollectionScheduler ..> CollectionApplicationService
+    CollectionApplicationService ..> CollectionPort
+    CollectionApplicationService ..> MetricRepository
+    CollectionApplicationService ..> AlertApplicationService
+    AlertApplicationService ..> Alerte
+    AlertApplicationService ..> RegleAlerte
+    AlertApplicationService ..> AlertRepository
+    AlertApplicationService ..> NotificationApplicationService
+    AlertApplicationService ..> AuditPort
+    NotificationApplicationService ..> NotificationPort
+    JpaAlertRepository ..|> AlertRepository
+    JpaMetricRepository ..|> MetricRepository
+    SnmpCollectionAdapter ..|> CollectionPort
+    ZabbixCollectionAdapter ..|> CollectionPort
+    SimulatedCollectionAdapter ..|> CollectionPort
+    SmtpNotificationAdapter ..|> NotificationPort

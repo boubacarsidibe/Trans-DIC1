@@ -1,0 +1,52 @@
+flowchart LR
+    admin["Acteur : Administrateur"]
+    noc["Acteur : Opérateur NOC"]
+    viewer["Acteur : Lecteur"]
+    scheduler["Acteur : Planificateur"]
+    source["Système externe : Équipement / Zabbix"]
+    smtp["Système externe : Service SMTP"]
+
+    subgraph system["Frontière du système Trans-DIC1"]
+        authenticate(["S'authentifier"])
+        inventory(["Gérer l'inventaire"])
+        users(["Gérer utilisateurs et rôles"])
+        thresholds(["Configurer les règles d'alerte"])
+        dashboard(["Consulter l'état global"])
+        metrics(["Analyser les métriques"])
+        alerts(["Consulter les alertes"])
+        acknowledge(["Acquitter une alerte"])
+        resolve(["Résoudre une alerte"])
+        reports(["Consulter et exporter les rapports"])
+        collect(["Collecter les observations"])
+        notify(["Notifier un incident"])
+    end
+
+    admin --> authenticate
+    admin --> inventory
+    admin --> users
+    admin --> thresholds
+    admin --> dashboard
+    admin --> metrics
+    admin --> alerts
+    admin --> acknowledge
+    admin --> resolve
+    admin --> reports
+
+    noc --> authenticate
+    noc --> dashboard
+    noc --> metrics
+    noc --> alerts
+    noc --> acknowledge
+    noc --> resolve
+    noc --> reports
+
+    viewer --> authenticate
+    viewer --> dashboard
+    viewer --> metrics
+    viewer --> alerts
+    viewer --> reports
+
+    scheduler --> collect
+    source --> collect
+    notify --> smtp
+

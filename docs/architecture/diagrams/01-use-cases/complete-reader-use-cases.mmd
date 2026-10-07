@@ -1,0 +1,29 @@
+flowchart LR
+    reader["Lecteur"]
+
+    subgraph system["Trans-DIC1 — Consultation"]
+        login(["Se connecter"])
+        forgot(["Réinitialiser un mot de passe oublié"])
+        profile(["Consulter et modifier son profil"])
+        password(["Modifier son mot de passe"])
+        logout(["Se déconnecter"])
+        dashboard(["Consulter le tableau de bord en temps réel"])
+        sites(["Consulter ses sites et équipements autorisés"])
+        equipment(["Consulter le détail d'un équipement"])
+        metrics(["Analyser les métriques par période"])
+        alerts(["Consulter les alertes et leur historique"])
+        search(["Rechercher et filtrer les informations"])
+    end
+
+    reader --> login
+    reader --> forgot
+    reader --> profile
+    reader --> password
+    reader --> logout
+    reader --> dashboard
+    reader --> sites
+    reader --> equipment
+    reader --> metrics
+    reader --> alerts
+    reader --> search
+

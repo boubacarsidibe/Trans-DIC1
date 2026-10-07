@@ -1,0 +1,13 @@
+architecture-beta
+    group client(cloud)[Poste utilisateur]
+    group host(cloud)[Poste de développement]
+
+    service browser(internet)[Navigateur] in client
+    service vite(server)[Vite React port 5173] in host
+    service spring(server)[Spring Boot port 8080] in host
+    service postgres(database)[PostgreSQL 16 local] in host
+
+    browser:R -- L:vite
+    vite:R -- L:spring
+    spring:R -- L:postgres
+

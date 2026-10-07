@@ -1,0 +1,58 @@
+flowchart LR
+    noc["Opérateur NOC"]
+    admin["Administrateur"]
+    noc -. "spécialisé par" .-> admin
+
+    subgraph inventory["Inventaire"]
+        sites(["Gérer les sites de son périmètre"])
+        equipment(["Créer et modifier les équipements"])
+        archive(["Archiver et restaurer un équipement"])
+        delete(["Supprimer définitivement un équipement et son historique"])
+        bulk(["Importer ou exporter l'inventaire"])
+    end
+
+    subgraph collection["Collecte"]
+        snmp(["Configurer et tester SNMP"])
+        agent(["Installer et enregistrer un agent"])
+        lifecycle(["Configurer, mettre à jour ou désinstaller un agent"])
+        health(["Consulter l'état et la dernière communication des agents"])
+        collect(["Déclencher une collecte immédiate"])
+    end
+
+    subgraph incident["Alertes et interventions"]
+        rules(["Gérer les règles et seuils d'alerte"])
+        claim(["Prendre ou libérer une alerte"])
+        acknowledge(["Acquitter une alerte"])
+        resolve(["Résoudre une alerte"])
+        severity(["Modifier la sévérité"])
+        history(["Consulter la chronologie d'un incident"])
+        maintenance(["Planifier une maintenance par site ou équipement"])
+    end
+
+    subgraph operations["Rapports et contrôle"]
+        report(["Générer un rapport PDF"])
+        audit(["Consulter l'audit de son périmètre"])
+        platformHealth(["Consulter la santé de Trans-DIC1"])
+    end
+
+    noc --> sites
+    noc --> equipment
+    noc --> archive
+    noc --> delete
+    noc --> bulk
+    noc --> snmp
+    noc --> agent
+    noc --> lifecycle
+    noc --> health
+    noc --> collect
+    noc --> rules
+    noc --> claim
+    noc --> acknowledge
+    noc --> resolve
+    noc --> severity
+    noc --> history
+    noc --> maintenance
+    noc --> report
+    noc --> audit
+    noc --> platformHealth
+

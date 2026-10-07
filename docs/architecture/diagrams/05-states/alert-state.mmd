@@ -1,0 +1,17 @@
+stateDiagram-v2
+    [*] --> Ouverte : seuil confirmé / ouvrir()
+    Ouverte --> Acquittee : acquitter(opérateur)
+    Ouverte --> Resolue : résoudre(opérateur) [résolution directe autorisée]
+    Acquittee --> Resolue : résoudre(opérateur)
+    Resolue --> [*]
+
+    note right of Ouverte
+      Une seule alerte non résolue
+      par équipement, règle et occurrence.
+    end note
+
+    note right of Resolue
+      État terminal dans le modèle actuel.
+      Une réapparition crée une nouvelle occurrence.
+    end note
+
