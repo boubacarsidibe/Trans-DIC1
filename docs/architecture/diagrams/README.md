@@ -2,6 +2,22 @@
 
 Ce catalogue complète `../00-overview.md`. Les éléments qualifiés « cible » proviennent de l'ADR et du backlog ; ils ne sont pas encore implémentés au Sprint 0.
 
+## Jeu canonique validé après entretien métier
+
+Les fichiers ci-dessous constituent la version à utiliser pour la suite de la conception. Les autres fichiers du catalogue conservent les propositions antérieures à titre de traçabilité.
+
+- `01-use-cases/trans-dic1-use-cases.mmd` : Administrateur, NOC, agent Trans-DIC1 et service e-mail ; aucun équipement n'est modélisé comme acteur.
+- `02-domain/persistence-model-uml.mmd` : modèle UML des seules classes persistées, sans clés étrangères dupliquées dans les attributs.
+- `03-sequences/collection-and-alert.mmd` : collecte configurable par agent ou SNMP, puis évaluation des alertes.
+- `03-sequences/alert-handling.mmd` : prise en charge par un NOC, assignation par un Administrateur et résolution.
+- `04-activities/metric-collection.mmd` : cycle planifié avec intervalle configurable, reprises, maintenance et résolution automatique.
+- `05-states/alert-lifecycle.mmd` : états `OUVERTE`, `PRISE_EN_CHARGE`, `RESOLUE`, `ARCHIVEE` et `SUPPRIMEE`.
+- `06-components/target-components.mmd` : composants cibles sans dépendance à Zabbix.
+- `07-deployment/trans-dic1-target.mmd` : déploiement cible de la plateforme, de l'agent et des équipements SNMP.
+- `10-packages/packages.mmd` : dépendances entre les paquets fonctionnels et techniques.
+
+Les diagrammes de classes, de séquence et d'états utilisent les syntaxes UML natives de Mermaid. Les cas d'utilisation, activités, composants, déploiement et paquets utilisent `flowchart`, Mermaid ne proposant pas de syntaxe UML native pour ces vues.
+
 ## Métadonnées par diagramme
 
 ### `01-use-cases/global-use-cases.mmd`

@@ -1,0 +1,36 @@
+flowchart TB
+    subgraph CLIENT["«device» Poste Administrateur ou NOC"]
+        BROWSER["«executionEnvironment»<br/>Navigateur Web"]
+    end
+
+    subgraph CENTRAL["«node» Serveur central Trans-DIC1"]
+        FRONTEND["«artifact»<br/>Application Web"]
+        API["«artifact»<br/>API Backend"]
+        WORKER["«artifact»<br/>Workers de collecte"]
+        SCHEDULER["«artifact»<br/>Planificateur"]
+    end
+
+    subgraph DATA["«node» Serveur de données"]
+        DATABASE[("«database»<br/>Base de données")]
+        REPORT_STORAGE[("«storage»<br/>Rapports générés")]
+    end
+
+    subgraph SITE["«node» Site supervisé 1..*"]
+        subgraph HOST["«device» Serveur compatible"]
+            AGENT["«artifact»<br/>Agent Trans-DIC1"]
+        end
+        SNMP_DEVICE["«device»<br/>Équipement réseau SNMP"]
+    end
+
+    SMTP["«node externe»<br/>Serveur e-mail"]
+
+    BROWSER -- HTTPS --> FRONTEND
+    FRONTEND -- "HTTPS / API REST" --> API
+    API -- TLS --> DATABASE
+    API --> REPORT_STORAGE
+    SCHEDULER --> WORKER
+    WORKER -- TLS --> DATABASE
+    WORKER -- "HTTPS ou mTLS" --> AGENT
+    WORKER -- SNMPv3 --> SNMP_DEVICE
+    AGENT -- "Métriques et heartbeat" --> API
+    API -- "SMTP/TLS" --> SMTP

@@ -1,0 +1,28 @@
+flowchart LR
+    PRESENTATION["«package»<br/>Présentation"]
+    IDENTITY["«package»<br/>Identité et accès"]
+    INVENTORY["«package»<br/>Inventaire et collecte"]
+    ALERTS["«package»<br/>Alertes et maintenance"]
+    REPORTS["«package»<br/>Notifications et rapports"]
+    AUDIT["«package»<br/>Audit"]
+    INFRA["«package»<br/>Infrastructure"]
+
+    PRESENTATION -. "«import»" .-> IDENTITY
+    PRESENTATION -. "«import»" .-> INVENTORY
+    PRESENTATION -. "«import»" .-> ALERTS
+    PRESENTATION -. "«import»" .-> REPORTS
+    INVENTORY -. "«access»" .-> IDENTITY
+    ALERTS -. "«import»" .-> INVENTORY
+    ALERTS -. "«access»" .-> IDENTITY
+    REPORTS -. "«import»" .-> INVENTORY
+    REPORTS -. "«import»" .-> ALERTS
+    REPORTS -. "«access»" .-> IDENTITY
+    IDENTITY -. "«import»" .-> AUDIT
+    INVENTORY -. "«import»" .-> AUDIT
+    ALERTS -. "«import»" .-> AUDIT
+    REPORTS -. "«import»" .-> AUDIT
+    INFRA -. "«realize»" .-> IDENTITY
+    INFRA -. "«realize»" .-> INVENTORY
+    INFRA -. "«realize»" .-> ALERTS
+    INFRA -. "«realize»" .-> REPORTS
+    INFRA -. "«realize»" .-> AUDIT

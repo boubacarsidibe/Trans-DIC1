@@ -1,0 +1,56 @@
+sequenceDiagram
+    autonumber
+    actor NOC as Opérateur NOC
+    actor ADMIN as Administrateur
+    participant UI as Interface Web
+    participant API as API Alertes
+    participant DOM as Service métier Alertes
+    participant DB as Base de données
+    participant NOTIF as Service de notification
+    participant AUDIT as Service d'audit
+
+    NOC->>UI: Consulter les alertes
+    UI->>API: GET /alertes
+    API->>DB: Rechercher les alertes autorisées
+    DB-->>API: Liste des alertes
+    API-->>UI: Alertes
+    UI-->>NOC: Afficher les alertes
+
+    alt Prise en charge par le NOC
+        NOC->>UI: Prendre en charge l'alerte
+        UI->>API: POST /alertes/{id}/prise-en-charge
+        API->>DOM: Prendre en charge(alerte, NOC)
+        DOM->>DB: Verrouiller et vérifier l'affectation
+        alt Alerte disponible
+            DOM->>DB: Créer l'affectation
+            DOM->>DB: Ajouter l'événement
+            DOM->>AUDIT: Journaliser l'action
+            DOM-->>API: Prise en charge confirmée
+            API-->>UI: Succès
+        else Déjà affectée
+            DOM-->>API: Conflit d'affectation
+            API-->>UI: Alerte déjà prise en charge
+        end
+    else Assignation par l'administrateur
+        ADMIN->>UI: Choisir un NOC
+        UI->>API: POST /alertes/{id}/assignation
+        API->>DOM: Assigner(alerte, NOC sélectionné)
+        DOM->>DB: Terminer l'ancienne affectation active
+        DOM->>DB: Créer la nouvelle affectation
+        DOM->>DB: Ajouter l'événement
+        DOM->>NOTIF: Notifier le NOC assigné
+        DOM->>AUDIT: Journaliser l'assignation
+        DOM-->>API: Assignation confirmée
+        API-->>UI: Succès
+    end
+
+    NOC->>UI: Résoudre l'alerte
+    UI->>API: POST /alertes/{id}/resolution
+    API->>DOM: Résoudre(alerte, commentaire)
+    DOM->>DB: Modifier l'état en RESOLUE
+    DOM->>DB: Terminer l'affectation active
+    DOM->>DB: Ajouter l'événement de résolution
+    DOM->>NOTIF: Notifier la résolution
+    DOM->>AUDIT: Journaliser la résolution
+    DOM-->>API: Alerte résolue
+    API-->>UI: Confirmation

@@ -1,0 +1,58 @@
+flowchart TD
+    START((Début))
+    LOAD["Charger les configurations<br/>de collecte actives"]
+    DUE{"Une collecte<br/>est-elle arrivée à échéance ?"}
+    WAIT["Attendre la prochaine<br/>échéance planifiée"]
+    MODE{"Mode de collecte"}
+    AGENT["Interroger l'agent de collecte"]
+    SNMP["Exécuter la requête SNMP"]
+    RESULT{"Collecte réussie ?"}
+    FAILURE["Enregistrer l'échec"]
+    RETRY{"Tentatives restantes ?"}
+    TECH_ALERT["Créer ou mettre à jour<br/>une alerte technique"]
+    NORMALIZE["Valider et normaliser<br/>les valeurs"]
+    SAVE["Enregistrer les métriques"]
+    EVALUATE["Évaluer les règles applicables"]
+    EXCEEDED{"Seuil dépassé pendant<br/>la durée configurée ?"}
+    UPSERT_ALERT["Créer ou mettre à jour l'alerte"]
+    MAINTENANCE{"Maintenance active ?"}
+    SUPPRESS["Journaliser l'alerte<br/>sans notification"]
+    NOTIFY["Envoyer les notifications e-mail"]
+    ACTIVE_ALERT{"Une alerte active existe ?"}
+    AUTO_RESOLVE{"Résolution automatique<br/>activée ?"}
+    RESOLVE["Résoudre automatiquement l'alerte"]
+    RESOLUTION_EMAIL["Notifier le retour à la normale"]
+    NEXT["Calculer la prochaine exécution<br/>selon l'intervalle configuré"]
+
+    START --> LOAD
+    LOAD --> DUE
+    DUE -- Non --> WAIT
+    WAIT --> LOAD
+    DUE -- Oui --> MODE
+    MODE -- AGENT --> AGENT
+    MODE -- SNMP --> SNMP
+    AGENT --> RESULT
+    SNMP --> RESULT
+    RESULT -- Non --> FAILURE
+    FAILURE --> RETRY
+    RETRY -- Oui --> MODE
+    RETRY -- Non --> TECH_ALERT
+    TECH_ALERT --> NEXT
+    RESULT -- Oui --> NORMALIZE
+    NORMALIZE --> SAVE
+    SAVE --> EVALUATE
+    EVALUATE --> EXCEEDED
+    EXCEEDED -- Oui --> UPSERT_ALERT
+    UPSERT_ALERT --> MAINTENANCE
+    MAINTENANCE -- Oui --> SUPPRESS
+    MAINTENANCE -- Non --> NOTIFY
+    SUPPRESS --> NEXT
+    NOTIFY --> NEXT
+    EXCEEDED -- Non --> ACTIVE_ALERT
+    ACTIVE_ALERT -- Non --> NEXT
+    ACTIVE_ALERT -- Oui --> AUTO_RESOLVE
+    AUTO_RESOLVE -- Non --> NEXT
+    AUTO_RESOLVE -- Oui --> RESOLVE
+    RESOLVE --> RESOLUTION_EMAIL
+    RESOLUTION_EMAIL --> NEXT
+    NEXT --> LOAD

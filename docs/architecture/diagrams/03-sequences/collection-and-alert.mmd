@@ -1,0 +1,60 @@
+sequenceDiagram
+    autonumber
+    participant P as Planificateur
+    participant C as Configuration de collecte
+    participant O as Orchestrateur de collecte
+    participant A as Agent de collecte
+    participant S as Équipement SNMP
+    participant DB as Base de données
+    participant M as Moteur d'alertes
+    participant N as Service de notification
+    participant E as Serveur e-mail
+
+    P->>C: Rechercher les collectes arrivées à échéance
+    C-->>P: Configurations actives
+
+    loop Pour chaque configuration
+        P->>O: Exécuter la collecte(configuration)
+        alt Mode AGENT
+            O->>A: Demander les valeurs configurées
+            A-->>O: Valeurs, horodatage et qualité
+        else Mode SNMP
+            O->>S: GET des OID configurés
+            S-->>O: Valeurs SNMP
+        end
+
+        alt Collecte réussie
+            O->>O: Valider et normaliser les valeurs
+            O->>DB: Enregistrer les métriques
+            O->>M: Évaluer les nouvelles métriques
+            M->>DB: Lire règles, historique, alerte et maintenance
+            DB-->>M: Contexte d'évaluation
+
+            alt Dépassement confirmé
+                M->>DB: Créer ou mettre à jour l'alerte
+                M->>DB: Ajouter un événement d'alerte
+                opt Aucune maintenance active
+                    M->>N: Demander les notifications
+                    N->>DB: Lire destinataires et préférences
+                    N->>E: Envoyer les e-mails
+                    E-->>N: Résultat de l'envoi
+                    N->>DB: Enregistrer les tentatives
+                end
+            else Retour normal avec alerte active
+                opt Résolution automatique activée
+                    M->>DB: Marquer l'alerte comme résolue
+                    M->>DB: Ajouter un événement de résolution
+                    M->>N: Notifier le retour à la normale
+                end
+            end
+        else Échec de collecte
+            O->>DB: Enregistrer l'échec
+            loop Jusqu'au nombre maximal de tentatives
+                O->>O: Relancer la collecte
+            end
+            O->>M: Signaler l'échec définitif
+            M->>DB: Créer ou actualiser l'alerte technique
+        end
+
+        O->>C: Mettre à jour la prochaine exécution
+    end

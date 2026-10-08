@@ -1,0 +1,27 @@
+stateDiagram-v2
+    [*] --> OUVERTE : seuil confirmé ou panne détectée
+    OUVERTE --> PRISE_EN_CHARGE : prise en charge par un NOC
+    OUVERTE --> PRISE_EN_CHARGE : assignation par un administrateur
+    OUVERTE --> RESOLUE : résolution manuelle directe
+    OUVERTE --> RESOLUE : retour normal automatique
+    PRISE_EN_CHARGE --> PRISE_EN_CHARGE : réassignation
+    PRISE_EN_CHARGE --> RESOLUE : résolution manuelle
+    PRISE_EN_CHARGE --> RESOLUE : retour normal automatique
+    RESOLUE --> OUVERTE : nouvelle anomalie avant archivage
+    RESOLUE --> ARCHIVEE : archivage
+    OUVERTE --> SUPPRIMEE : suppression autorisée
+    PRISE_EN_CHARGE --> SUPPRIMEE : suppression autorisée
+    RESOLUE --> SUPPRIMEE : suppression autorisée
+    ARCHIVEE --> SUPPRIMEE : suppression autorisée
+    SUPPRIMEE --> [*]
+
+    note right of OUVERTE
+        Sévérité indépendante de l'état :
+        INFO, AVERTISSEMENT ou CRITIQUE.
+    end note
+
+    note right of RESOLUE
+        Résolution manuelle : NOC ou Administrateur.
+        Résolution automatique : si elle est activée
+        par l'Administrateur.
+    end note

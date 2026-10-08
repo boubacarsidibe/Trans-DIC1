@@ -1,0 +1,359 @@
+classDiagram
+direction TB
+
+%% Modele de classes persistantes Trans-DIC1.
+%% Les associations portent les relations : aucune cle etrangere n'est dupliquee
+%% dans les attributs. Les compositions sont reservees aux dependances fortes
+%% de cycle de vie.
+
+namespace IdentiteEtAcces {
+  class Utilisateur {
+    <<entity>>
+    -id: UUID
+    -nomUtilisateur: String
+    -email: Email
+    -motDePasseHash: String
+    -role: RoleUtilisateur
+    -actif: Boolean
+    -creeA: DateTime
+    -modifieA: DateTime
+  }
+
+  class SessionUtilisateur {
+    <<entity>>
+    -id: UUID
+    -jetonHash: String
+    -adresseIp: String
+    -creeA: DateTime
+    -expireA: DateTime
+    -revoqueeA: DateTime
+  }
+
+  class JetonReinitialisation {
+    <<entity>>
+    -id: UUID
+    -jetonHash: String
+    -creeA: DateTime
+    -expireA: DateTime
+    -utiliseA: DateTime
+  }
+
+  class AccesSite {
+    <<entityAssociation>>
+    -id: UUID
+    -accordeA: DateTime
+  }
+
+  class AccesEquipement {
+    <<entityAssociation>>
+    -id: UUID
+    -accordeA: DateTime
+  }
+}
+
+namespace InventaireEtCollecte {
+  class Site {
+    <<entity>>
+    -id: UUID
+    -code: String
+    -nom: String
+    -description: Text
+    -adresse: String
+    -statut: StatutSite
+    -creeA: DateTime
+    -modifieA: DateTime
+  }
+
+  class Equipement {
+    <<entity>>
+    -id: UUID
+    -nom: String
+    -adresseGestion: String
+    -type: TypeEquipement
+    -fabricant: String
+    -modele: String
+    -systemeExploitation: String
+    -statut: StatutEquipement
+    -supervisionActive: Boolean
+    -creeA: DateTime
+    -modifieA: DateTime
+  }
+
+  class ServiceSupervise {
+    <<entity>>
+    -id: UUID
+    -nom: String
+    -type: TypeService
+    -protocole: String
+    -port: Integer
+    -pointAcces: String
+    -actif: Boolean
+  }
+
+  class ConfigurationCollecte {
+    <<entity>>
+    -id: UUID
+    -nom: String
+    -mode: ModeCollecte
+    -intervalle: Duration
+    -delaiExpiration: Duration
+    -nombreTentatives: Integer
+    -versionSnmp: VersionSnmp
+    -communauteReference: String
+    -identifiantSecurite: String
+    -secretReference: String
+    -active: Boolean
+    -derniereExecutionA: DateTime
+    -prochaineExecutionA: DateTime
+  }
+
+  class DefinitionMetrique {
+    <<entity>>
+    -id: UUID
+    -nom: String
+    -cleTechnique: String
+    -typeValeur: TypeValeur
+    -unite: String
+    -oidSnmp: String
+    -commandeAgent: String
+    -active: Boolean
+  }
+
+  class AgentCollecte {
+    <<entity>>
+    -id: UUID
+    -identifiant: String
+    -version: String
+    -statut: StatutAgent
+    -adresseIp: String
+    -enregistreA: DateTime
+    -derniereCommunicationA: DateTime
+    -revoqueA: DateTime
+  }
+
+  class Metrique {
+    <<entity>>
+    -id: UUID
+    -valeur: Decimal
+    -unite: String
+    -qualite: QualiteMesure
+    -collecteeA: DateTime
+    -recueA: DateTime
+  }
+}
+
+namespace AlertesEtMaintenance {
+  class RegleAlerte {
+    <<entity>>
+    -id: UUID
+    -nom: String
+    -typeMetrique: String
+    -operateur: OperateurComparaison
+    -seuil: Decimal
+    -unite: String
+    -dureeConfirmation: Duration
+    -severiteInitiale: Severite
+    -active: Boolean
+    -creeA: DateTime
+    -modifieA: DateTime
+  }
+
+  class RegleSite {
+    <<entityAssociation>>
+    -id: UUID
+    -active: Boolean
+  }
+
+  class RegleEquipement {
+    <<entityAssociation>>
+    -id: UUID
+    -active: Boolean
+  }
+
+  class Alerte {
+    <<entity>>
+    -id: UUID
+    -cleOccurrence: String
+    -etat: EtatAlerte
+    -severite: Severite
+    -message: Text
+    -declencheeA: DateTime
+    -priseEnChargeA: DateTime
+    -resolueA: DateTime
+    -archiveeA: DateTime
+    -supprimeeA: DateTime
+    -typeResolution: TypeResolution
+  }
+
+  class AffectationAlerte {
+    <<entityAssociation>>
+    -id: UUID
+    -affecteeA: DateTime
+    -termineeA: DateTime
+  }
+
+  class EvenementAlerte {
+    <<entity>>
+    -id: UUID
+    -type: TypeEvenementAlerte
+    -ancienEtat: EtatAlerte
+    -nouvelEtat: EtatAlerte
+    -commentaire: Text
+    -produitA: DateTime
+  }
+
+  class Maintenance {
+    <<entity>>
+    -id: UUID
+    -debut: DateTime
+    -fin: DateTime
+    -motif: Text
+    -etat: EtatMaintenance
+    -creeA: DateTime
+    -annuleeA: DateTime
+  }
+}
+
+namespace NotificationsEtRapports {
+  class PreferenceNotification {
+    <<entity>>
+    -id: UUID
+    -canal: CanalNotification
+    -severiteMinimale: Severite
+    -active: Boolean
+  }
+
+  class Notification {
+    <<entity>>
+    -id: UUID
+    -canal: CanalNotification
+    -adresseDestination: String
+    -sujet: String
+    -etat: EtatNotification
+    -creeA: DateTime
+    -envoyeeA: DateTime
+  }
+
+  class TentativeNotification {
+    <<entity>>
+    -id: UUID
+    -numero: Integer
+    -resultat: ResultatEnvoi
+    -erreurAssainie: Text
+    -tenteeA: DateTime
+  }
+
+  class Rapport {
+    <<entity>>
+    -id: UUID
+    -type: TypeRapport
+    -periodeDebut: DateTime
+    -periodeFin: DateTime
+    -etat: EtatRapport
+    -format: FormatRapport
+    -emplacementFichier: String
+    -genereA: DateTime
+  }
+
+  class PlanificationRapport {
+    <<entity>>
+    -id: UUID
+    -nom: String
+    -typeRapport: TypeRapport
+    -frequence: FrequenceRapport
+    -heureExecution: Time
+    -active: Boolean
+    -prochaineExecutionA: DateTime
+  }
+
+  class DestinataireRapport {
+    <<entityAssociation>>
+    -id: UUID
+  }
+
+  class PlanificationRapportSite {
+    <<entityAssociation>>
+    -id: UUID
+  }
+
+  class PlanificationRapportEquipement {
+    <<entityAssociation>>
+    -id: UUID
+  }
+}
+
+namespace Audit {
+  class EntreeAudit {
+    <<entity>>
+    -id: UUID
+    -action: String
+    -typeCible: String
+    -cibleId: UUID
+    -correlationId: String
+    -detailsAssainis: Text
+    -effectueeA: DateTime
+  }
+}
+
+Utilisateur "1" *-- "0..*" SessionUtilisateur : possede
+Utilisateur "1" *-- "0..*" JetonReinitialisation : demande
+
+Utilisateur "1" -- "0..*" AccesSite : recoit
+Site "1" -- "0..*" AccesSite : autorise
+Utilisateur "1" -- "0..*" AccesEquipement : recoit
+Equipement "1" -- "0..*" AccesEquipement : autorise
+
+Site "1" -- "0..*" Equipement : contient
+Equipement "1" *-- "0..*" ServiceSupervise : expose
+Equipement "1" *-- "0..*" ConfigurationCollecte : configure
+ConfigurationCollecte "1" *-- "1..*" DefinitionMetrique : definit
+Equipement "1" -- "0..*" AgentCollecte : accueille
+
+Equipement "1" -- "0..*" Metrique : produit
+DefinitionMetrique "1" -- "0..*" Metrique : caracterise
+ServiceSupervise "0..1" -- "0..*" Metrique : contextualise
+AgentCollecte "0..1" -- "0..*" Metrique : collecte
+
+RegleAlerte "1" -- "0..*" RegleSite : estAppliqueePar
+Site "1" -- "0..*" RegleSite : recoit
+RegleAlerte "1" -- "0..*" RegleEquipement : estAppliqueePar
+Equipement "1" -- "0..*" RegleEquipement : recoit
+
+Equipement "1" -- "0..*" Alerte : concerne
+ServiceSupervise "0..1" -- "0..*" Alerte : contextualise
+RegleAlerte "1" -- "0..*" Alerte : declenche
+Alerte "1" *-- "1..*" EvenementAlerte : conserveHistorique
+Utilisateur "0..1" -- "0..*" EvenementAlerte : effectue
+
+Alerte "1" -- "0..*" AffectationAlerte : possede
+Utilisateur "1" -- "0..*" AffectationAlerte : estAffecte
+
+Utilisateur "1" -- "0..*" Maintenance : planifie
+Site "0..1" -- "0..*" Maintenance : cibleSite
+Equipement "0..1" -- "0..*" Maintenance : cibleEquipement
+
+Utilisateur "1" *-- "0..1" PreferenceNotification : configure
+Utilisateur "1" -- "0..*" Notification : recoit
+Alerte "0..1" -- "0..*" Notification : origineAlerte
+Rapport "0..1" -- "0..*" Notification : origineRapport
+Notification "1" *-- "1..*" TentativeNotification : tenteEnvoi
+
+Utilisateur "1" -- "0..*" Rapport : demande
+PlanificationRapport "0..1" -- "0..*" Rapport : genere
+Utilisateur "1" -- "0..*" PlanificationRapport : cree
+
+PlanificationRapport "1" -- "1..*" DestinataireRapport : distribueA
+Utilisateur "1" -- "0..*" DestinataireRapport : designe
+PlanificationRapport "1" -- "0..*" PlanificationRapportSite : couvre
+Site "1" -- "0..*" PlanificationRapportSite : estCouvert
+PlanificationRapport "1" -- "0..*" PlanificationRapportEquipement : couvre
+Equipement "1" -- "0..*" PlanificationRapportEquipement : estCouvert
+
+Utilisateur "0..1" -- "0..*" EntreeAudit : auteur
+
+note for ConfigurationCollecte "Les parametres applicables dependent du mode AGENT ou SNMP. Les secrets ne sont jamais stockes en clair."
+note for AgentCollecte "Contrainte metier : au plus un agent actif par equipement."
+note for Alerte "Une seule alerte active par couple equipement-regle. Une affectation au plus est active a un instant donne."
+note for Maintenance "Contrainte XOR : une maintenance cible exactement un site ou un equipement."
+note for Notification "Une notification provient d'une alerte ou d'un rapport, jamais des deux. Canal actuel : EMAIL."
+note for PlanificationRapport "La portee contient au moins un site ou un equipement. La planification est configuree par un administrateur."

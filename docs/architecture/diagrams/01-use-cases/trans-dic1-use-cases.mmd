@@ -1,0 +1,76 @@
+flowchart LR
+    NOC["«actor»<br/>Opérateur NOC"]
+    ADMIN["«actor»<br/>Administrateur"]
+    AGENT["«système externe»<br/>Agent de collecte"]
+    EMAIL["«système externe»<br/>Service e-mail"]
+
+    subgraph SYSTEME["«system» Trans-DIC1"]
+        direction TB
+        UC_AUTH(["S'authentifier"])
+        UC_DASHBOARD(["Consulter le tableau de bord"])
+        UC_SUPERVISION(["Consulter sites, équipements<br/>et services"])
+        UC_METRICS(["Consulter les métriques<br/>et leur historique"])
+        UC_ALERTS(["Gérer les alertes"])
+        UC_TAKE(["Prendre en charge une alerte"])
+        UC_ASSIGN(["Assigner une alerte"])
+        UC_RESOLVE(["Résoudre une alerte"])
+        UC_ARCHIVE(["Archiver une alerte"])
+        UC_DELETE(["Supprimer une alerte"])
+        UC_MAINTENANCE(["Gérer les maintenances"])
+        UC_REPORT(["Générer un rapport"])
+        UC_PREFS(["Configurer ses préférences<br/>de notification"])
+        UC_USERS(["Gérer les utilisateurs<br/>et leurs accès"])
+        UC_INVENTORY(["Gérer les sites, équipements<br/>et services"])
+        UC_COLLECTION(["Configurer la collecte<br/>par site ou équipement"])
+        UC_AGENT_CONFIG(["Gérer les agents de collecte"])
+        UC_RULES(["Configurer les règles d'alerte"])
+        UC_AUTO_RESOLVE(["Configurer la résolution automatique"])
+        UC_REPORT_PLAN(["Planifier les rapports"])
+        UC_NOTIFICATION_CONFIG(["Configurer les notifications"])
+        UC_REGISTER_AGENT(["Enregistrer un agent"])
+        UC_SEND_METRICS(["Transmettre les métriques"])
+        UC_EVALUATE(["Évaluer les règles d'alerte"])
+        UC_UPDATE_ALERT(["Créer ou mettre à jour une alerte"])
+        UC_SEND_EMAIL(["Envoyer une notification e-mail"])
+    end
+
+    ADMIN -. "généralisation" .-> NOC
+
+    NOC --- UC_AUTH
+    NOC --- UC_DASHBOARD
+    NOC --- UC_SUPERVISION
+    NOC --- UC_METRICS
+    NOC --- UC_ALERTS
+    NOC --- UC_MAINTENANCE
+    NOC --- UC_REPORT
+    NOC --- UC_PREFS
+
+    ADMIN --- UC_USERS
+    ADMIN --- UC_INVENTORY
+    ADMIN --- UC_COLLECTION
+    ADMIN --- UC_AGENT_CONFIG
+    ADMIN --- UC_RULES
+    ADMIN --- UC_AUTO_RESOLVE
+    ADMIN --- UC_REPORT_PLAN
+    ADMIN --- UC_NOTIFICATION_CONFIG
+    ADMIN --- UC_ASSIGN
+
+    UC_TAKE -. "«extend»" .-> UC_ALERTS
+    UC_ASSIGN -. "«extend»" .-> UC_ALERTS
+    UC_RESOLVE -. "«extend»" .-> UC_ALERTS
+    UC_ARCHIVE -. "«extend»" .-> UC_ALERTS
+    UC_DELETE -. "«extend»" .-> UC_ALERTS
+
+    NOC --- UC_TAKE
+    NOC --- UC_RESOLVE
+    NOC --- UC_ARCHIVE
+    NOC --- UC_DELETE
+
+    AGENT --- UC_REGISTER_AGENT
+    AGENT --- UC_SEND_METRICS
+    UC_SEND_METRICS -. "«include»" .-> UC_EVALUATE
+    UC_UPDATE_ALERT -. "«extend»" .-> UC_EVALUATE
+    UC_SEND_EMAIL -. "«extend»" .-> UC_UPDATE_ALERT
+
+    EMAIL --- UC_SEND_EMAIL
+    EMAIL --- UC_REPORT

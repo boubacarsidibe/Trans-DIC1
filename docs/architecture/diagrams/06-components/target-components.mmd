@@ -1,0 +1,57 @@
+flowchart LR
+    WEB["«component»<br/>Application Web"]
+
+    subgraph BACKEND["Plateforme centrale Trans-DIC1"]
+        API["«component»<br/>API"]
+        AUTH["«component»<br/>Identité et accès"]
+        INVENTORY["«component»<br/>Inventaire"]
+        CONFIG["«component»<br/>Configuration de collecte"]
+        MONITORING["«component»<br/>Supervision et métriques"]
+        ALERTS["«component»<br/>Alertes et maintenance"]
+        REPORTS["«component»<br/>Rapports"]
+        NOTIFICATIONS["«component»<br/>Notifications"]
+        AUDIT["«component»<br/>Audit"]
+        SCHEDULER["«component»<br/>Planificateur"]
+        COLLECTOR["«component»<br/>Orchestrateur de collecte"]
+        SNMP_ADAPTER["«component»<br/>Adaptateur SNMP"]
+        AGENT_API["«component»<br/>Passerelle des agents"]
+    end
+
+    AGENT["«component externe»<br/>Agent Trans-DIC1"]
+    SNMP_DEVICE["«endpoint externe»<br/>Équipement SNMP"]
+    SMTP["«service externe»<br/>Serveur e-mail"]
+    DATABASE[("«database»<br/>Base de données")]
+    FILES[("«storage»<br/>Stockage des rapports")]
+
+    WEB --> API
+    API --> AUTH
+    API --> INVENTORY
+    API --> CONFIG
+    API --> MONITORING
+    API --> ALERTS
+    API --> REPORTS
+    SCHEDULER --> CONFIG
+    SCHEDULER --> COLLECTOR
+    COLLECTOR --> AGENT_API
+    COLLECTOR --> SNMP_ADAPTER
+    AGENT_API <--> AGENT
+    SNMP_ADAPTER --> SNMP_DEVICE
+    COLLECTOR --> MONITORING
+    MONITORING --> ALERTS
+    ALERTS --> NOTIFICATIONS
+    REPORTS --> NOTIFICATIONS
+    NOTIFICATIONS --> SMTP
+    AUTH --> DATABASE
+    INVENTORY --> DATABASE
+    CONFIG --> DATABASE
+    MONITORING --> DATABASE
+    ALERTS --> DATABASE
+    REPORTS --> DATABASE
+    NOTIFICATIONS --> DATABASE
+    AUDIT --> DATABASE
+    REPORTS --> FILES
+    AUTH --> AUDIT
+    INVENTORY --> AUDIT
+    CONFIG --> AUDIT
+    ALERTS --> AUDIT
+    REPORTS --> AUDIT
