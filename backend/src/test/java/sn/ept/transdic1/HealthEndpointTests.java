@@ -16,13 +16,13 @@ import org.springframework.test.web.servlet.MockMvc;
 @ActiveProfiles("test")
 class HealthEndpointTests {
 
-	@Autowired
-	private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-	@Test
-	void healthEndpointReportsApplicationAndDatabaseStatus() throws Exception {
-		mockMvc.perform(get("/actuator/health"))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.status").value("UP"));
-	}
+  @Test
+  void healthEndpointReportsApplicationAndDatabaseStatus() throws Exception {
+    mockMvc
+        .perform(get("/actuator/health"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("UP"));
+  }
 }

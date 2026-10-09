@@ -1,12 +1,12 @@
 # ADR-0001 — Stack applicative Trans-DIC1
 
-- Statut : proposée pour revue de Boubacar et Khadija
-- Date : 2026-10-04
+- Statut : acceptée
+- Date : 2026-10-09
 - Décision liée : #2
 
 ## Contexte
 
-Trans-DIC1 supervise les équipements réseau et serveurs de l'EPT. Le socle doit rester exploitable dans un réseau interne, éviter l'exposition de la topologie, supporter la collecte SNMP/Zabbix et fournir des builds reproductibles.
+Trans-DIC1 supervise les équipements réseau et serveurs de l'EPT. Le socle doit rester exploitable dans un réseau interne, éviter l'exposition de la topologie, supporter la collecte par agent Trans-DIC1 ou SNMP et fournir des builds reproductibles.
 
 ## Décision
 
@@ -19,7 +19,7 @@ Trans-DIC1 supervise les équipements réseau et serveurs de l'EPT. Le socle doi
 | Tests | JUnit/Spring Boot Test et H2 isolé ; Vitest/Testing Library |
 | Exécution locale | Services natifs Java, Node.js et PostgreSQL, sans virtualisation |
 
-Le dépôt reste un monorepo : `backend/` porte l'API et le domaine, `frontend/` l'interface, et les futurs adaptateurs de collecte restent derrière des ports applicatifs afin de ne pas coupler le métier à SNMP ou Zabbix.
+Le dépôt reste un monorepo : `backend/` porte l'API et les modules métier, `frontend/` l'interface, et les adaptateurs de collecte restent derrière des ports applicatifs afin de ne pas coupler le métier à l'agent Trans-DIC1 ou à SNMP. Chaque module backend sépare `controller`, `service`, `repository`, `domain` et `dto`.
 
 ## Contrats
 
@@ -39,11 +39,11 @@ PostgreSQL constitue le stockage initial. Les métriques brutes sont conservées
 ## Contraintes d'exploitation
 
 - Les collectes SNMP privilégient SNMPv3 ; SNMPv2c reste une compatibilité explicitement autorisée par équipement.
-- Les appels Zabbix sont effectués côté serveur avec délais, reprises bornées et limitation de débit.
+- Les appels à l'agent Trans-DIC1 sont effectués côté serveur avec authentification, délais, reprises bornées et limitation de débit.
 - Les collecteurs doivent fonctionner sans accès Internet et ne publier aucune donnée de topologie.
 - Les images et dépendances doivent pouvoir être mises en cache dans l'infrastructure EPT.
 - Le développement local ne dépend pas de Docker. Le mode de déploiement cible sera fixé après validation de l'hébergement EPT.
 
 ## Conséquences
 
-Les versions et frontières sont désormais explicites. La revue croisée Boubacar/Khadija reste nécessaire avant de passer le statut de cette ADR à « acceptée » et de fermer #2.
+Les versions et frontières sont désormais explicites. Cette ADR constitue la décision de référence ; toute modification structurante devra être portée par une nouvelle ADR.

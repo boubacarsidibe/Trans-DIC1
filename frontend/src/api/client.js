@@ -1,19 +1,19 @@
-import axios from 'axios'
+import axios from "axios";
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1',
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api/v1",
   headers: {
-    Accept: 'application/json',
+    Accept: "application/json",
   },
   timeout: 10_000,
-})
+});
 
 apiClient.interceptors.request.use((config) => {
-  const token = globalThis.localStorage?.getItem('trans-dic1.access-token')
+  const token = globalThis.localStorage?.getItem("trans-dic1.access-token");
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+    config.headers.Authorization = `Bearer ${token}`;
   }
-  return config
-})
+  return config;
+});
 
-export default apiClient
+export default apiClient;

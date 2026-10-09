@@ -4,7 +4,7 @@ Trans-DIC1 est la plateforme centralisée de supervision des infrastructures ré
 
 ## État du projet
 
-Le socle du Sprint 0 est opérationnel : API Spring Boot, interface React, base PostgreSQL locale, migrations Flyway, tests automatisés et workflow CI. Les fonctions métier d'inventaire, de collecte et d'alerting seront livrées dans les user stories suivantes.
+Le socle du Sprint 0 est opérationnel : API Spring Boot, interface React, base PostgreSQL locale, migrations Flyway, cinq équipements fictifs, tests automatisés et workflow CI. Les fonctions métier d'inventaire, de collecte et d'alerting seront livrées dans les user stories suivantes.
 
 | Composant | Stack |
 | --- | --- |

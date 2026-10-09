@@ -39,3 +39,22 @@ Le healthcheck applicatif `GET http://localhost:8080/actuator/health` vérifie n
 ## Base de tests
 
 Les tests backend utilisent H2 en mémoire, en mode de compatibilité PostgreSQL. Cette base isolée est recréée à chaque exécution et applique les migrations Flyway.
+
+## Jeu de données du Sprint 0
+
+Flyway crée automatiquement cinq équipements de démonstration dans la table
+`equipment`. Ils couvrent cinq types et cinq états différents. Leurs codes
+commencent par `DEMO-`, leurs sites par `LAB-FICTIF-` et leurs adresses utilisent
+exclusivement les réseaux documentaires RFC 5737 (`192.0.2.0/24`,
+`198.51.100.0/24` et `203.0.113.0/24`) : aucune cible EPT réelle n'est incluse.
+
+Le chargement est reproductible et idempotent. Flyway n'exécute une migration
+versionnée qu'une fois et chaque insertion vérifie également le code inventaire
+avant d'ajouter la ligne. Pour contrôler le résultat :
+
+```sql
+SELECT inventory_code, name, equipment_type, management_address,
+       operational_status, site
+FROM equipment
+ORDER BY inventory_code;
+```

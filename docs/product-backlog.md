@@ -35,7 +35,7 @@ Aucune date d'échéance n'est inventée. Elles seront ajoutées lorsque la date
 - Temps réel : WebSocket.
 - Livraison : Docker Compose et Nginx.
 
-Ces technologies sont des décisions de backlog, mais aucun composant applicatif n'est encore présent dans le repository.
+Ces technologies guidaient le backlog initial. Le socle applicatif du Sprint 0 est désormais présent dans le repository ; les fonctions métier restent planifiées dans les sprints suivants.
 
 ## Workflow du tableau
 

@@ -22,7 +22,7 @@ $plans = [ordered]@{
         'Définir le contrat API, la stratégie d erreurs et la version initiale des endpoints.',
         'Définir authentification, rôles, durée des tokens et exigences du journal d audit.',
         'Décider la rétention et l agrégation des métriques dans PostgreSQL.',
-        'Documenter les contraintes Zabbix, SNMP, réseau EPT et déploiement.',
+        'Documenter les contraintes de l agent Trans-DIC1, de SNMP, du réseau EPT et du déploiement.',
         'Faire approuver l ADR par Boubacar et Khadija avant le scaffolding.'
     )
     3 = @(
@@ -47,11 +47,11 @@ $plans = [ordered]@{
     )
     5 = @(
         'Inventorier toutes les entités du backlog et leurs responsabilités.',
-        'Définir relations, cardinalités, héritage éventuel et contraintes métier.',
-        'Modéliser les acteurs Administrateur, Opérateur NOC et Lecture seule.',
-        'Décrire les cas connexion, équipements, collecte, alertes, rapports et administration.',
-        'Ajouter un diagramme de séquence du cycle métrique vers résolution d alerte.',
-        'Exporter les sources éditables et les rendus dans docs/architecture.',
+        'Valider Site, Equipement typé, ServiceSupervise, Metrique, RegleAlerte, Alerte, Notification, Rapport, Utilisateur et EntreeAudit.',
+        'Valider les acteurs Administrateur, NOC, agent Trans-DIC1 et service e-mail.',
+        'Vérifier les cardinalités sans créer d héritage artificiel entre les types d équipement.',
+        'Aligner collecte, traitement d alerte et cycle OUVERTE, PRISE_EN_CHARGE, RESOLUE, ARCHIVEE, SUPPRIMEE entre toutes les vues.',
+        'Désigner les sources Mermaid canoniques dans le catalogue d architecture.',
         'Effectuer une relecture croisée Boubacar et Khadija.'
     )
     6 = @(
@@ -83,11 +83,11 @@ $plans = [ordered]@{
         'Ajouter les commandes backend au workflow CI.'
     )
     9 = @(
-        'Créer la liste définitive des entités et enums depuis le diagramme validé.',
+        'Créer Site, Equipement, ServiceSupervise, Metrique, RegleAlerte, AffectationRegle, Alerte, Notification, Rapport, Utilisateur et EntreeAudit.',
         'Ajouter les champs d identité, dates de création et modification nécessaires.',
-        'Implémenter relations JPA, cardinalités et règles de cascade explicitement.',
+        'Implémenter les relations JPA et cardinalités du modèle persistant canonique, sans sous-classe par type d équipement.',
         'Ajouter contraintes de nullité, unicité, longueur et index utiles.',
-        'Modéliser les types et états avec des enums stables.',
+        'Modéliser TypeEquipement et les états OUVERTE, PRISE_EN_CHARGE, RESOLUE, ARCHIVEE et SUPPRIMEE avec des enums stables.',
         'Empêcher la sérialisation et le logging des credentials de monitoring.',
         'Créer des tests de persistance pour les relations critiques.',
         'Générer et relire la migration correspondante.'
@@ -152,9 +152,10 @@ $plans = [ordered]@{
         'Tester liste, formulaire, modification, erreur et suppression.'
     )
     16 = @(
-        'Créer une propriété permettant d activer ou désactiver la simulation.',
+        'Définir un port de collecte indépendant de tout protocole ou fournisseur.',
+        'Créer une propriété permettant de sélectionner et désactiver l adaptateur simulé.',
         'Isoler l horloge et la fréquence du scheduler pour rendre les tests rapides.',
-        'Générer CPU, RAM, disque et disponibilité dans des plages réalistes.',
+        'Générer CPU, RAM, disque et disponibilité avec unités et horodatages UTC normalisés.',
         'Associer chaque métrique aux équipements fictifs actifs.',
         'Persister les valeurs par lot dans une transaction maîtrisée.',
         'Empêcher le chevauchement de deux exécutions de collecte.',
@@ -192,10 +193,10 @@ $plans = [ordered]@{
         'Tester transformations, changement de période et états vides.'
     )
     20 = @(
-        'Externaliser les seuils initiaux CPU, RAM et disque.',
-        'Créer un évaluateur pur par métrique et niveau de sévérité.',
-        'Définir la règle de création, maintien et retour à la normale.',
-        'Éviter les doublons pendant un dépassement continu.',
+        'Persister les RegleAlerte et leurs AffectationRegle aux équipements.',
+        'Créer un évaluateur pur par métrique, opérateur, seuil, unité et sévérité.',
+        'Définir ouverture, maintien et résolution automatique au retour à la normale.',
+        'Garantir une seule alerte non résolue par équipement, règle et occurrence continue.',
         'Définir une hystérésis ou temporisation pour limiter les oscillations.',
         'Relier l évaluateur au flux de métriques.',
         'Ajouter logs structurés et compteurs d alertes générées.',
@@ -203,11 +204,11 @@ $plans = [ordered]@{
     )
     21 = @(
         'Créer les DTO de liste et détail d alerte.',
-        'Créer la liste paginée avec filtres actif, sévérité et équipement.',
-        'Créer l endpoint de consultation des alertes actives.',
-        'Créer l action de résolution avec commentaire optionnel.',
-        'Valider les transitions et empêcher une résolution répétée.',
-        'Enregistrer auteur et date de chaque acquittement ou résolution.',
+        'Créer la liste paginée avec filtres état, sévérité, équipement et période.',
+        'Créer les actions de prise en charge, assignation, résolution et archivage.',
+        'Valider strictement OUVERTE, PRISE_EN_CHARGE, RESOLUE, ARCHIVEE et SUPPRIMEE.',
+        'Empêcher toute transition absente de la machine à états.',
+        'Enregistrer auteur et date de chaque transition métier.',
         'Appliquer les rôles côté serveur.',
         'Tester filtres, permissions, transitions et erreurs.'
     )
@@ -216,10 +217,10 @@ $plans = [ordered]@{
         'Afficher une liste avec équipement, métrique, sévérité, date et état.',
         'Ajouter filtres de statut, sévérité et équipement.',
         'Afficher la sévérité avec texte, couleur et icône.',
-        'Ajouter la résolution avec confirmation et retour utilisateur.',
+        'Ajouter prise en charge, assignation, résolution et archivage avec confirmation adaptée.',
         'Masquer l action pour les rôles non autorisés.',
         'Préparer l actualisation par WebSocket tout en gardant un rafraîchissement manuel.',
-        'Tester filtre, erreur, permission et résolution.'
+        'Tester filtres, erreurs, permissions et transitions autorisées.'
     )
     23 = @(
         'Définir les variables SMTP et les documenter sans valeur réelle.',
@@ -272,14 +273,14 @@ $plans = [ordered]@{
         'Tester connexion, autorisation, diffusion, reconnexion et doublons.'
     )
     28 = @(
-        'Documenter le protocole et les clés Zabbix Agent réellement nécessaires.',
-        'Valider avec le CRI les hôtes et le port 10050 autorisés.',
-        'Créer un client TCP avec timeout, taille maximale et fermeture garantie.',
+        'Définir et versionner le contrat d échange avec l agent Trans-DIC1.',
+        'Valider avec le CRI les serveurs, ports et mécanismes d authentification autorisés.',
+        'Créer l adaptateur du port de collecte avec timeout, taille maximale et fermeture garantie.',
         'Valider et parser strictement les réponses reçues.',
-        'Mapper les valeurs Zabbix vers les métriques internes.',
+        'Mapper les mesures agent vers les Metrique normalisées.',
         'Ajouter retry borné et isolation des équipements en erreur.',
         'Conserver le mode simulé sélectionnable par environnement.',
-        'Tester avec un agent de test autorisé et des réponses invalides.'
+        'Tester avec un faux agent puis un agent Trans-DIC1 explicitement autorisé.'
     )
     29 = @(
         'Définir les profils SNMPv3 et interdire tout secret dans Git.',
@@ -298,6 +299,7 @@ $plans = [ordered]@{
         'Créer Compose avec réseaux, volumes PostgreSQL et variables externes.',
         'Configurer Nginx pour le frontend, API et WebSocket.',
         'Ajouter healthchecks backend, frontend et base.',
+        'Créer le paquet et la procédure de déploiement séparée de l agent Trans-DIC1.',
         'Vérifier qu aucun secret ne se trouve dans les images ou le build context.',
         'Exécuter un smoke test depuis un environnement propre.',
         'Documenter sauvegarde, mise à jour, logs et rollback.'
@@ -316,7 +318,7 @@ $plans = [ordered]@{
         'Obtenir une autorisation écrite, la liste des cibles et la fenêtre de test.',
         'Préparer un plan de test et des critères de succès sans donnée sensible.',
         'Sauvegarder les données et valider le rollback avant intervention.',
-        'Tester connectivité Zabbix et SNMP uniquement sur les cibles autorisées.',
+        'Tester la connectivité agent Trans-DIC1 et SNMP uniquement sur les cibles autorisées.',
         'Vérifier collecte, stockage, dashboard, alerte, notification et résolution.',
         'Capturer des preuves assainies sans IP, hostname ou credential réel.',
         'Créer une Issue séparée pour chaque anomalie trouvée.',
@@ -366,6 +368,14 @@ $plans = [ordered]@{
 
 $startMarker = '<!-- detailed-plan:start -->'
 $endMarker = '<!-- detailed-plan:end -->'
+$planningStartMarker = '<!-- planning:start -->'
+$planningEndMarker = '<!-- planning:end -->'
+$planning = @{
+    1 = @{ Owner = 'Boubacar'; Estimate = '2h'; Dependencies = 'Disponibilité de GitHub Actions et droits administrateur du dépôt.' }
+    2 = @{ Owner = 'Équipe'; Estimate = '3h'; Dependencies = 'Contraintes réseau et exploitation EPT.' }
+    3 = @{ Owner = 'Équipe'; Estimate = '6h'; Dependencies = 'US01, US04, S0-DATA et authentification minimale.' }
+    4 = @{ Owner = 'Équipe'; Estimate = '4h'; Dependencies = 'Validation des contraintes d hébergement et d exploitation par l EPT.' }
+}
 
 foreach ($entry in $plans.GetEnumerator()) {
     $issueNumber = [int]$entry.Key
@@ -388,6 +398,27 @@ foreach ($entry in $plans.GetEnumerator()) {
     ) -join [Environment]::NewLine
 
     $body = [string]$issue.body
+    if ($planning.ContainsKey($issueNumber)) {
+        $metadata = $planning[$issueNumber]
+        $planningBlock = @(
+            $planningStartMarker,
+            '## Planification',
+            '',
+            "- Responsable : $($metadata.Owner)",
+            "- Estimation : $($metadata.Estimate)",
+            "- Dépendances : $($metadata.Dependencies)",
+            $planningEndMarker
+        ) -join [Environment]::NewLine
+        $planningStartIndex = $body.IndexOf($planningStartMarker, [System.StringComparison]::Ordinal)
+        $planningEndIndex = $body.IndexOf($planningEndMarker, [System.StringComparison]::Ordinal)
+        if ($planningStartIndex -ge 0 -and $planningEndIndex -gt $planningStartIndex) {
+            $planningAfterIndex = $planningEndIndex + $planningEndMarker.Length
+            $body = $body.Substring(0, $planningStartIndex).TrimEnd() + [Environment]::NewLine + [Environment]::NewLine + $planningBlock + $body.Substring($planningAfterIndex)
+        }
+        else {
+            $body = $body.TrimEnd() + [Environment]::NewLine + [Environment]::NewLine + $planningBlock
+        }
+    }
     $startIndex = $body.IndexOf($startMarker, [System.StringComparison]::Ordinal)
     $endIndex = $body.IndexOf($endMarker, [System.StringComparison]::Ordinal)
     if ($startIndex -ge 0 -and $endIndex -gt $startIndex) {
@@ -406,4 +437,3 @@ foreach ($entry in $plans.GetEnumerator()) {
 }
 
 Write-Host 'Plans détaillés synchronisés.' -ForegroundColor Green
-

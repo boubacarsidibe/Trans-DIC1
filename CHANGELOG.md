@@ -7,6 +7,8 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 ### Added
 
 - Socle initial de gouvernance et d'industrialisation du dépôt.
+- Migration Flyway créant cinq équipements fictifs et test automatisé de leur chargement.
+- Premier parcours vertical MVP avec métrique CPU synthétique persistée, API protégée et affichage React.
 
 ### Changed
 
@@ -15,4 +17,3 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 ### Security
 
 - Modèle de configuration sans secret et garde-fous contre le suivi de fichiers sensibles.
-

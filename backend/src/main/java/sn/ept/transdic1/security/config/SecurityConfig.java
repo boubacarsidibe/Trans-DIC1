@@ -1,0 +1,34 @@
+package sn.ept.transdic1.security.config;
+
+import org.springframework.context.annotation.*;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+@Configuration
+@EnableMethodSecurity
+public class SecurityConfig {
+  @Bean
+  PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
+  }
+
+  @Bean
+  SecurityFilterChain chain(HttpSecurity h, JwtFilter f) throws Exception {
+    return h.csrf(c -> c.disable())
+        .cors(c -> {})
+        .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(
+            a ->
+                a.requestMatchers("/actuator/health", "/api/v1/auth/login")
+                    .permitAll()
+                    .anyRequest()
+                    .authenticated())
+        .addFilterBefore(f, UsernamePasswordAuthenticationFilter.class)
+        .build();
+  }
+}
