@@ -174,6 +174,7 @@ namespace AlertesEtMaintenance {
     <<entity>>
     -id: UUID
     -cleOccurrence: String
+    -type: TypeAlerte
     -etat: EtatAlerte
     -severite: Severite
     -message: Text
@@ -321,7 +322,7 @@ Equipement "1" -- "0..*" RegleEquipement : recoit
 
 Equipement "1" -- "0..*" Alerte : concerne
 ServiceSupervise "0..1" -- "0..*" Alerte : contextualise
-RegleAlerte "1" -- "0..*" Alerte : declenche
+RegleAlerte "0..1" -- "0..*" Alerte : declenche
 Alerte "1" *-- "1..*" EvenementAlerte : conserveHistorique
 Utilisateur "0..1" -- "0..*" EvenementAlerte : effectue
 
@@ -353,7 +354,7 @@ Utilisateur "0..1" -- "0..*" EntreeAudit : auteur
 
 note for ConfigurationCollecte "Les parametres applicables dependent du mode AGENT ou SNMP. Les secrets ne sont jamais stockes en clair."
 note for AgentCollecte "Contrainte metier : au plus un agent actif par equipement."
-note for Alerte "Une seule alerte active par couple equipement-regle. Une affectation au plus est active a un instant donne."
+note for Alerte "TypeAlerte vaut SEUIL (regle obligatoire) ou COLLECTE (echec definitif de collecte, sans regle). Une seule alerte active par couple equipement-regle, ou par equipement pour une alerte COLLECTE.Une affectation au plus est active a un instant donne."
 note for Maintenance "Contrainte XOR : une maintenance cible exactement un site ou un equipement."
 note for Notification "Une notification provient d'une alerte ou d'un rapport, jamais des deux. Canal actuel : EMAIL."
 note for PlanificationRapport "La portee contient au moins un site ou un equipement. La planification est configuree par un administrateur."

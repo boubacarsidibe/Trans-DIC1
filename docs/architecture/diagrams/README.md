@@ -16,6 +16,8 @@ Les fichiers ci-dessous constituent la version à utiliser pour la suite de la c
 - `07-deployment/trans-dic1-target.mmd` : déploiement cible de la plateforme, de l'agent et des équipements SNMP.
 - `10-packages/packages.mmd` : dépendances entre les paquets fonctionnels et techniques.
 
+Le relevé de validation de l'issue #5 est dans [`VALIDATION-S0.md`](VALIDATION-S0.md).
+
 Les diagrammes de classes, de séquence et d'états utilisent les syntaxes UML natives de Mermaid. Les cas d'utilisation, activités, composants, déploiement et paquets utilisent `flowchart`, Mermaid ne proposant pas de syntaxe UML native pour ces vues.
 
 ## Métadonnées par diagramme

@@ -1,5 +1,7 @@
 # Architecture et modélisation UML de Trans-DIC1
 
+> **Document antérieur à la validation métier du 6 octobre 2026.** Les états d'alerte (`OUVERTE`, `ACQUITTEE`, `RESOLUE`), le rôle Lecteur, l'acteur Planificateur et la collecte Zabbix décrits ici sont remplacés par le jeu canonique listé dans [`diagrams/README.md`](diagrams/README.md) (cycle `OUVERTE`, `PRISE_EN_CHARGE`, `RESOLUE`, `ARCHIVEE`, `SUPPRIMEE`). Ce fichier est conservé pour la traçabilité de l'audit initial.
+
 Date de l'audit : 5 octobre 2026  
 Périmètre : état local du dépôt au Sprint 0  
 Statut documentaire : modèle actuel vérifié et modèle cible de conception

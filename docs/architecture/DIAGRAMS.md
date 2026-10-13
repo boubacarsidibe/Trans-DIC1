@@ -1,5 +1,7 @@
 # Galerie des diagrammes — Trans-DIC1
 
+> **Galerie historique (propositions initiales).** Elle contient l'ancien cycle d'alerte `Ouverte / Acquittée / Résolue` et des vues avec Zabbix. Les diagrammes de référence sont ceux du jeu canonique listé dans [`diagrams/README.md`](diagrams/README.md).
+
 > Les vues métier et d'architecture ci-dessous représentent la cible recommandée, sauf le déploiement local explicitement indiqué comme actuel.
 
 Les explications détaillées de chaque acteur, cas d'utilisation et classe sont disponibles dans [`EXPLICATIONS.md`](EXPLICATIONS.md).
