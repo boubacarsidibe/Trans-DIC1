@@ -8,7 +8,7 @@ Preuves de vérification des critères d'acceptation. Les sources vérifiées so
 | --- | --- | --- |
 | Le catalogue désigne explicitement les diagrammes canoniques | Validé | Section « Jeu canonique validé » de `README.md` ; `00-overview.md` et `DIAGRAMS.md` portent un bandeau « antérieur / historique » |
 | Le modèle persistant couvre les 10 entités sans héritage par type d'équipement | Validé | `02-domain/persistence-model-uml.mmd` : `Site`, `Equipement` (type par énumération `TypeEquipement`), `ServiceSupervise`, `Metrique`, `RegleAlerte`, `Alerte`, `Notification`, `Rapport`, `Utilisateur`, `EntreeAudit` ; aucune relation de généralisation |
-| Les cas d'utilisation distinguent Administrateur, NOC, agent et service e-mail | Validé | `01-use-cases/trans-dic1-use-cases.mmd` : 2 acteurs humains, 2 systèmes externes, aucun équipement acteur |
+| Les cas d'utilisation distinguent Administrateur, NOC, agent et service e-mail | Validé | `01-use-cases/trans-dic1-use-cases.mmd` : 3 rôles humains (Lecteur <- NOC <- Administrateur), 2 systèmes externes, aucun équipement acteur |
 | Le cycle d'alerte est cohérent entre les vues | Validé après correction | Voir ci-dessous |
 | Diagrammes versionnés dans `docs/architecture` et relus par les deux membres | Partiel | Versionnés : oui. **Relecture croisée Boubacar / Khadija : à faire** |
 
@@ -28,6 +28,6 @@ Une alerte technique d'échec de collecte (séquence et activité) n'a pas de r�
 
 ## Points à trancher à la relecture
 
-1. **Rôle Lecteur.** `../USE-CASES-VALIDES.md` retient trois rôles humains (Lecteur, NOC, Administrateur). Le diagramme canonique n'en montre que deux. À confirmer : le Lecteur est-il supprimé ou simplement omis du diagramme ?
+1. ~~Rôle Lecteur~~ : décision du porteur, les trois rôles humains sont conservés ; le diagramme canonique inclut désormais le Lecteur.
 2. **Droits NOC sur archivage et suppression.** Le diagramme canonique les attribue au NOC ; à confirmer avec l'entretien métier.
 3. **Syntaxe Mermaid.** Les fichiers n'ont pas été rendus automatiquement : vérifier l'affichage dans l'aperçu Mermaid ou StarUML.

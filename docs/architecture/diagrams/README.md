@@ -6,7 +6,7 @@ Ce catalogue complète `../00-overview.md`. Les éléments qualifiés « cible �
 
 Les fichiers ci-dessous constituent la version à utiliser pour la suite de la conception. Les autres fichiers du catalogue conservent les propositions antérieures à titre de traçabilité.
 
-- `01-use-cases/trans-dic1-use-cases.mmd` : Administrateur, NOC, agent Trans-DIC1 et service e-mail ; aucun équipement n'est modélisé comme acteur.
+- `01-use-cases/trans-dic1-use-cases.mmd` : trois rôles humains (Lecteur, NOC, Administrateur, par généralisation) ; agent Trans-DIC1 et service e-mail comme systèmes externes ; aucun équipement n'est modélisé comme acteur.
 - `02-domain/persistence-model-uml.mmd` : modèle UML des seules classes persistées, sans clés étrangères dupliquées dans les attributs.
 - `03-sequences/collection-and-alert.mmd` : collecte configurable par agent ou SNMP, puis évaluation des alertes.
 - `03-sequences/alert-handling.mmd` : prise en charge par un NOC, assignation par un Administrateur et résolution.
