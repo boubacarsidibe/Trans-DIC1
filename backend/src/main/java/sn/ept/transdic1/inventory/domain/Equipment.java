@@ -51,6 +51,7 @@ public class Equipment {
     this.type = type;
     this.status = status;
     this.site = site;
+    fictitious = true; // la contrainte fictitious_equipment_only_check l'impose (MVP)
     createdAt = Instant.now();
   }
 

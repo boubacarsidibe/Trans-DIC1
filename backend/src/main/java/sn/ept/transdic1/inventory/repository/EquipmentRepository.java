@@ -6,4 +6,6 @@ import sn.ept.transdic1.inventory.domain.Equipment;
 
 public interface EquipmentRepository extends JpaRepository<Equipment, UUID> {
   boolean existsByInventoryCodeOrManagementAddress(String code, String address);
+
+  boolean existsByManagementAddressAndIdNot(String address, UUID id);
 }

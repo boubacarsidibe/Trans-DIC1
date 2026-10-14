@@ -48,6 +48,8 @@ public class EquipmentService {
 
   public EquipmentResponse update(UUID id, EquipmentRequest r) {
     var e = find(id);
+    if (equipment.existsByManagementAddressAndIdNot(r.managementAddress(), id))
+      throw new ResponseStatusException(HttpStatus.CONFLICT, "Code ou adresse déjà utilisé");
     e.update(r.name(), r.managementAddress(), r.type(), r.status(), site(r.siteId()));
     return EquipmentResponse.from(e);
   }
