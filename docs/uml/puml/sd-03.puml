@@ -1,0 +1,40 @@
+@startuml
+title SD-03 Créer un équipement (API, rôle ADMIN)
+autonumber
+actor "Client API (Administrateur)" as C
+participant "EquipmentController" as EC
+participant "EquipmentService" as ES
+participant "EquipmentRepository" as ER
+participant "SiteRepository" as SR
+database "PostgreSQL" as DB
+C -> EC : POST /api/v1/equipements {EquipmentRequest} + jeton validé par JwtFilter
+alt [hasRole('ADMIN')]
+EC -> ES : create(request)
+ES -> ER : existsByInventoryCodeOrManagementAddress(code, adresse)
+ER -> DB : SELECT 1 … WHERE inventory_code OR management_address
+DB --> ER : résultat
+ER --> ES : boolean
+alt [code ou adresse déjà utilisé]
+ES --> EC : ResponseStatusException 409 « Code ou adresse déjà utilisé »
+EC --> C : 409 Conflict
+else [disponible]
+ES -> SR : findById(siteId)
+SR -> DB : SELECT site
+DB --> SR : ligne site
+SR --> ES : Optional<Site>
+alt [site inconnu]
+ES --> EC : ResponseStatusException 400 « Site inconnu »
+EC --> C : 400 Bad Request
+else [site trouvé]
+ES -> ER : save(new Equipment(...))
+ER -> DB : INSERT equipment
+DB --> ER : ok
+ER --> ES : Equipment
+ES --> EC : EquipmentResponse
+EC --> C : 201 Created + Location /api/v1/equipements/{id}
+end
+end
+else [rôle insuffisant]
+EC --> C : 403 Forbidden (accès refusé)
+end
+@enduml

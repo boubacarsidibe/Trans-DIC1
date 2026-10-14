@@ -1,0 +1,35 @@
+@startuml
+title SD-02 Consulter la liste des équipements
+autonumber
+actor "Utilisateur" as U
+participant "EquipmentPage" as EP
+participant "apiClient" as API
+participant "JwtFilter" as JF
+participant "JwtService" as JS
+participant "EquipmentController" as EC
+participant "EquipmentService" as ES
+participant "EquipmentRepository" as ER
+database "PostgreSQL" as DB
+U -> EP : ouvrir /equipements
+EP -> API : get('/equipements')
+API -> JF : GET /api/v1/equipements (Authorization: Bearer jeton)
+JF -> JS : verify(jeton)
+alt [jeton valide et non expiré]
+JS --> JF : Claims(username, role)
+JF -> EC : list(pageable) — utilisateur authentifié
+EC -> ES : list(pageable)
+ES -> ER : findAll(pageable)
+ER -> DB : SELECT equipment JOIN site (page, tri par name)
+DB --> ER : lignes
+ER --> ES : Page<Equipment>
+ES --> EC : Page<EquipmentResponse> (map from)
+EC --> API : 200 Page<EquipmentResponse>
+API --> EP : data.content
+EP --> U : affiche la liste
+else [jeton absent ou invalide]
+JS --> JF : IllegalArgumentException (ignorée)
+JF --> API : requête non authentifiée : accès refusé (401/403)
+API --> EP : erreur
+EP --> U : « Impossible de charger les équipements. »
+end
+@enduml

@@ -1,0 +1,33 @@
+@startuml
+title UC-01 Cas d'utilisation — Trans-DIC1 (état implémenté)
+left to right direction
+actor "Utilisateur authentifié\n(VIEWER / NOC_OPERATOR)" as U
+actor "Administrateur (ADMIN)" as A
+actor "Démarrage de l'application" as S
+A --|> U
+rectangle "Trans-DIC1 (API Spring Boot + SPA React)" {
+  usecase "S'authentifier" as auth
+  usecase "Consulter le tableau de bord" as dash
+  usecase "Consulter les métriques récentes" as met
+  usecase "Lister les équipements (paginé)" as list
+  usecase "Consulter un équipement" as get
+  usecase "Créer un équipement" as create
+  usecase "Modifier un équipement" as update
+  usecase "Supprimer un équipement" as delete
+  usecase "Vérifier l'unicité du code et de l'adresse" as uniq
+  usecase "Valider le site" as site
+  usecase "Créer l'administrateur initial" as boot
+}
+U --> auth
+U --> dash
+U --> list
+U --> get
+A --> create
+A --> update
+A --> delete
+S --> boot
+dash ..> met : <<include>>
+create ..> uniq : <<include>>
+create ..> site : <<include>>
+update ..> site : <<include>>
+@enduml

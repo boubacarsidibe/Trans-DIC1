@@ -1,0 +1,89 @@
+@startuml
+title CD-02 Module inventory (couches)
+skinparam classAttributeIconSize 0
+left to right direction
+class EquipmentController <<RestController>> {
+  -service : EquipmentService
+  +list(p : Pageable) : Page<EquipmentResponse>
+  +get(id : UUID) : EquipmentResponse
+  +create(r : EquipmentRequest) : ResponseEntity<EquipmentResponse>
+  +update(id : UUID, r : EquipmentRequest) : EquipmentResponse
+  +delete(id : UUID)
+}
+class EquipmentService <<Service>> {
+  -equipment : EquipmentRepository
+  -sites : SiteRepository
+  +list(p : Pageable) : Page<EquipmentResponse>
+  +get(id : UUID) : EquipmentResponse
+  +create(r : EquipmentRequest) : EquipmentResponse
+  +update(id : UUID, r : EquipmentRequest) : EquipmentResponse
+  +delete(id : UUID)
+  -find(id : UUID) : Equipment
+  -site(id : UUID) : Site
+}
+interface EquipmentRepository {
+  +existsByInventoryCodeOrManagementAddress(code : String, address : String) : boolean
+}
+interface SiteRepository {
+}
+interface JpaRepository <<Spring Data>> {
+}
+class Equipment <<Entity>> {
+  -id : UUID
+  -inventoryCode : String
+  -name : String
+  -managementAddress : String
+  -type : EquipmentType
+  -status : EquipmentStatus
+  -fictitious : boolean
+  -createdAt : Instant
+  +update(name : String, address : String, type : EquipmentType, status : EquipmentStatus, site : Site)
+  +getId() : UUID
+  +getInventoryCode() : String
+  +getName() : String
+  +getManagementAddress() : String
+  +getType() : EquipmentType
+  +getStatus() : EquipmentStatus
+  +getSite() : Site
+}
+class Site <<Entity>> {
+  -id : UUID
+  -code : String
+  -name : String
+  -status : String
+  -createdAt : Instant
+  +getId() : UUID
+  +getName() : String
+}
+class EquipmentRequest <<record>> {
+  +inventoryCode : String
+  +name : String
+  +managementAddress : String
+  +type : EquipmentType
+  +status : EquipmentStatus
+  +siteId : UUID
+}
+class EquipmentResponse <<record>> {
+  +id : UUID
+  +inventoryCode : String
+  +name : String
+  +managementAddress : String
+  +type : EquipmentType
+  +status : EquipmentStatus
+  +siteId : UUID
+  +site : String
+  +from(e : Equipment) : EquipmentResponse
+}
+EquipmentController "0..*" --> "1" EquipmentService : service
+EquipmentService "0..*" --> "1" EquipmentRepository : equipment
+EquipmentService "0..*" --> "1" SiteRepository : sites
+EquipmentController ..> EquipmentRequest : «use»
+EquipmentController ..> EquipmentResponse : «use»
+EquipmentService ..> EquipmentRequest : «use»
+EquipmentService ..> EquipmentResponse : «create»
+EquipmentRepository --|> JpaRepository : <Equipment, UUID>
+SiteRepository --|> JpaRepository : <Site, UUID>
+EquipmentRepository ..> Equipment : gère
+SiteRepository ..> Site : gère
+Equipment "0..*" --> "1" Site : site
+@enduml

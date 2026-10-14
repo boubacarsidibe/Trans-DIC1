@@ -1,0 +1,27 @@
+@startuml
+title SD-05 Supprimer un équipement (API, rôle ADMIN)
+autonumber
+actor "Client API (Administrateur)" as C
+participant "EquipmentController" as EC
+participant "EquipmentService" as ES
+participant "EquipmentRepository" as ER
+database "PostgreSQL" as DB
+C -> EC : DELETE /api/v1/equipements/{id}
+alt [hasRole('ADMIN')]
+EC -> ES : delete(id)
+ES -> ER : findById(id)
+ER -> DB : SELECT equipment
+DB --> ER : ligne
+ER --> ES : Optional<Equipment>
+alt [équipement introuvable]
+ES --> EC : ResponseStatusException 404
+EC --> C : 404 Not Found
+else [équipement trouvé]
+ES -> ER : delete(equipment)
+ER -> DB : DELETE equipment
+EC --> C : 204 No Content
+end
+else [rôle insuffisant]
+EC --> C : 403 Forbidden
+end
+@enduml

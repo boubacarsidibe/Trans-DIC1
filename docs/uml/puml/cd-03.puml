@@ -1,0 +1,104 @@
+@startuml
+title CD-03 Module security (authentification JWT)
+skinparam classAttributeIconSize 0
+left to right direction
+class AuthController <<RestController>> {
+  -service : AuthService
+  ~login(request : LoginRequest) : TokenResponse
+}
+class AuthService <<Service>> {
+  -users : UserRepository
+  -passwords : PasswordEncoder
+  -jwt : JwtService
+  +login(r : LoginRequest) : TokenResponse
+}
+interface UserRepository {
+  +findByUsername(username : String) : Optional<AppUser>
+}
+class JwtService <<Service>> {
+  -secret : byte[]
+  -json : ObjectMapper
+  +issue(u : AppUser) : String
+  +verify(t : String) : Claims
+  -sign(v : String) : byte[]
+  -enc(v : byte[]) : String
+}
+class Claims <<record>> {
+  +username : String
+  +role : Role
+}
+interface PasswordEncoder <<Spring Security>> {
+  +encode(raw : CharSequence) : String
+  +matches(raw : CharSequence, hash : String) : boolean
+}
+class AppUser <<Entity>> {
+  -id : UUID
+  -username : String
+  -email : String
+  -passwordHash : String
+  -role : Role
+  -active : boolean
+  -createdAt : Instant
+  +getUsername() : String
+  +getPasswordHash() : String
+  +getRole() : Role
+  +isActive() : boolean
+}
+enum Role {
+  ADMIN
+  NOC_OPERATOR
+  VIEWER
+}
+class LoginRequest <<record>> {
+  +username : String
+  +password : String
+}
+class TokenResponse <<record>> {
+  +accessToken : String
+  +tokenType : String
+  +expiresIn : long
+  +role : String
+}
+class JwtFilter <<Component>> {
+  -jwt : JwtService
+  #doFilterInternal(r : HttpServletRequest, s : HttpServletResponse, c : FilterChain)
+}
+abstract class OncePerRequestFilter <<Spring Web>> {
+}
+class SecurityConfig <<Configuration>> {
+  ~passwordEncoder() : PasswordEncoder
+  ~chain(h : HttpSecurity, f : JwtFilter) : SecurityFilterChain
+}
+class AdminBootstrap <<Component>> {
+  -users : UserRepository
+  -encoder : PasswordEncoder
+  -username : String
+  -email : String
+  -password : String
+  +run(args : ApplicationArguments)
+}
+interface ApplicationRunner <<Spring Boot>> {
+  +run(args : ApplicationArguments)
+}
+class JsonConfig <<Configuration>> {
+  ~objectMapper() : ObjectMapper
+}
+AuthController "0..*" --> "1" AuthService : service
+AuthService "0..*" --> "1" UserRepository : users
+AuthService "0..*" --> "1" PasswordEncoder : passwords
+AuthService "0..*" --> "1" JwtService : jwt
+AuthService ..> LoginRequest : «use»
+AuthService ..> TokenResponse : «create»
+JwtService ..> AppUser : «use»
+JwtService ..> Claims : «create»
+Claims "0..*" --> "1" Role : role
+AppUser "0..*" --> "1" Role : role
+UserRepository ..> AppUser : gère
+JwtFilter "0..*" --> "1" JwtService : jwt
+JwtFilter --|> OncePerRequestFilter
+SecurityConfig ..> JwtFilter : «use»
+SecurityConfig ..> PasswordEncoder : «create»
+AdminBootstrap ..|> ApplicationRunner
+AdminBootstrap "0..*" --> "1" UserRepository : users
+AdminBootstrap "0..*" --> "1" PasswordEncoder : encoder
+@enduml

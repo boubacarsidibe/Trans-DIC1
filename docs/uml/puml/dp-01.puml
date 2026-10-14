@@ -1,0 +1,16 @@
+@startuml
+title DP-01 Déploiement — environnement local de développement
+node "Navigateur web\nlocalhost:5173" <<executionEnvironment>> as BR
+node "Vite (Node.js 24)\nport 5173" <<executionEnvironment>> as VITE
+node "JVM 17 — Spring Boot 4\nport 8080" <<executionEnvironment>> as JVM
+node "PostgreSQL 16\nport 5432" <<executionEnvironment>> as PG
+artifact "frontend (React 19, Vite 8)" as FE
+artifact "trans-dic1-backend (JAR)" as BE
+artifact "base trans_dic1" as DB
+FE ..> VITE : <<deploy>>
+BE ..> JVM : <<deploy>>
+DB ..> PG : <<deploy>>
+BR -- VITE : HTTP
+BR -- JVM : HTTP/JSON /api/v1
+JVM -- PG : JDBC
+@enduml

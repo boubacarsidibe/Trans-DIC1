@@ -1,0 +1,61 @@
+@startuml
+title CD-04 Module monitoring et filtre transverse
+skinparam classAttributeIconSize 0
+left to right direction
+class MetricController <<RestController>> {
+  -service : MetricService
+  +latest() : List<MetricResponse>
+}
+class MetricService <<Service>> {
+  -repository : MetricRepository
+  +latest() : List<MetricResponse>
+}
+interface MetricRepository {
+  +findTop20ByOrderByCollectedAtDesc() : List<Metric>
+}
+interface JpaRepository <<Spring Data>> {
+}
+class Metric <<Entity>> {
+  -id : UUID
+  -equipment : Equipment
+  -key : String
+  -value : BigDecimal
+  -unit : String
+  -quality : String
+  -collectedAt : Instant
+  -receivedAt : Instant
+  +getId() : UUID
+  +getEquipment() : Equipment
+  +getKey() : String
+  +getValue() : BigDecimal
+  +getUnit() : String
+  +getQuality() : String
+  +getCollectedAt() : Instant
+}
+class MetricResponse <<record>> {
+  +id : UUID
+  +equipmentId : UUID
+  +equipmentName : String
+  +key : String
+  +value : BigDecimal
+  +unit : String
+  +quality : String
+  +collectedAt : Instant
+  +from(metric : Metric) : MetricResponse
+}
+class CorrelationIdFilter <<Component>> {
+  +HEADER_NAME : String
+  -MDC_KEY : String
+  #doFilterInternal(request : HttpServletRequest, response : HttpServletResponse, filterChain : FilterChain)
+}
+abstract class OncePerRequestFilter <<Spring Web>> {
+}
+MetricController "0..*" --> "1" MetricService : service
+MetricService "0..*" --> "1" MetricRepository : repository
+MetricService ..> MetricResponse : «create»
+MetricController ..> MetricResponse : «use»
+MetricRepository --|> JpaRepository : <Metric, UUID>
+MetricRepository ..> Metric : gère
+MetricResponse ..> Metric : «use»
+CorrelationIdFilter --|> OncePerRequestFilter
+@enduml

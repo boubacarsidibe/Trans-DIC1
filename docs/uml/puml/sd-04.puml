@@ -1,0 +1,36 @@
+@startuml
+title SD-04 Modifier un équipement (API, rôle ADMIN)
+autonumber
+actor "Client API (Administrateur)" as C
+participant "EquipmentController" as EC
+participant "EquipmentService" as ES
+participant "EquipmentRepository" as ER
+participant "SiteRepository" as SR
+database "PostgreSQL" as DB
+C -> EC : PUT /api/v1/equipements/{id} {EquipmentRequest}
+alt [hasRole('ADMIN')]
+EC -> ES : update(id, request)
+ES -> ER : findById(id)
+ER -> DB : SELECT equipment
+DB --> ER : ligne
+ER --> ES : Optional<Equipment>
+alt [équipement introuvable]
+ES --> EC : ResponseStatusException 404 « Équipement introuvable »
+EC --> C : 404 Not Found
+else [équipement trouvé]
+ES -> SR : findById(siteId)
+SR --> ES : Optional<Site>
+alt [site inconnu]
+ES --> EC : ResponseStatusException 400 « Site inconnu »
+EC --> C : 400 Bad Request
+else [site trouvé]
+ES -> ES : equipment.update(name, adresse, type, statut, site)
+ES -> DB : UPDATE equipment (flush à la fin de la transaction)
+ES --> EC : EquipmentResponse
+EC --> C : 200 OK EquipmentResponse
+end
+end
+else [rôle insuffisant]
+EC --> C : 403 Forbidden
+end
+@enduml

@@ -1,0 +1,36 @@
+@startuml
+title SD-01 S'authentifier
+autonumber
+actor "Utilisateur" as U
+participant "LoginPage" as LP
+participant "apiClient" as API
+participant "AuthController" as AC
+participant "AuthService" as AS
+participant "UserRepository" as UR
+participant "PasswordEncoder" as PE
+participant "JwtService" as JS
+database "PostgreSQL" as DB
+U -> LP : saisir identifiants et valider
+LP -> API : post('/auth/login', {username, password})
+API -> AC : POST /api/v1/auth/login
+AC -> AS : login(request)
+AS -> UR : findByUsername(username)
+UR -> DB : SELECT app_user WHERE username
+DB --> UR : ligne app_user
+UR --> AS : Optional<AppUser>
+AS -> PE : matches(password, passwordHash)
+PE --> AS : boolean
+alt [compte actif et mot de passe valide]
+AS -> JS : issue(user)
+JS --> AS : jeton JWT (HS256, 15 min)
+AS --> AC : TokenResponse
+AC --> API : 200 {accessToken, tokenType, expiresIn, role}
+API --> LP : data
+LP --> U : stocke le jeton, affiche le tableau de bord
+else [sinon]
+AS --> AC : ResponseStatusException 401 « Identifiants invalides »
+AC --> API : 401
+API --> LP : erreur
+LP --> U : message « Identifiants invalides… »
+end
+@enduml

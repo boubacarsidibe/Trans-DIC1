@@ -1,0 +1,32 @@
+@startuml
+title SD-06 Consulter les métriques récentes (tableau de bord)
+autonumber
+actor "Utilisateur" as U
+participant "DashboardPage" as DP
+participant "apiClient" as API
+participant "JwtFilter" as JF
+participant "MetricController" as MC
+participant "MetricService" as MS
+participant "MetricRepository" as MR
+database "PostgreSQL" as DB
+U -> DP : ouvrir /tableau-de-bord
+opt [jeton présent dans localStorage]
+DP -> API : get('/metrics/latest')
+API -> JF : GET /api/v1/metrics/latest (Bearer)
+JF -> MC : latest() — utilisateur authentifié
+MC -> MS : latest()
+MS -> MR : findTop20ByOrderByCollectedAtDesc()
+MR -> DB : SELECT metric ORDER BY collected_at DESC LIMIT 20
+DB --> MR : lignes
+MR --> MS : List<Metric>
+MS --> MC : List<MetricResponse> (map from)
+alt [succès]
+MC --> API : 200 List<MetricResponse>
+API --> DP : data → setMetrics
+DP --> U : affiche la dernière métrique et les compteurs
+else [échec]
+API --> DP : erreur
+DP --> U : « Les métriques sont temporairement indisponibles. »
+end
+end
+@enduml
