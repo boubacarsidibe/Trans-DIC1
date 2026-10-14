@@ -29,6 +29,6 @@ public class AuthService {
             .orElseThrow(
                 () ->
                     new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Identifiants invalides"));
-    return new TokenResponse(jwt.issue(u), "Bearer", 900, u.getRole().name());
+    return new TokenResponse(jwt.issue(u), "Bearer", jwt.expirationSeconds(), u.getRole().name());
   }
 }

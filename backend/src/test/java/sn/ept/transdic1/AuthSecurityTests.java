@@ -5,10 +5,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
@@ -20,6 +22,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import sn.ept.transdic1.security.domain.AppUser;
 import sn.ept.transdic1.security.domain.Role;
 import sn.ept.transdic1.security.repository.UserRepository;
+import sn.ept.transdic1.security.service.JwtService;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -35,6 +38,7 @@ class AuthSecurityTests {
     @Autowired private MockMvc mockMvc;
     @Autowired private UserRepository users;
     @Autowired private PasswordEncoder encoder;
+    @Value("${JWT_SECRET}") private String jwtSecret;
 
     @BeforeEach
     void prepareUsers() {
@@ -93,6 +97,15 @@ class AuthSecurityTests {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(NEW_EQUIPMENT))
             .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void tokenExpireRetourne401() throws Exception {
+        var expiredIssuer = new JwtService(jwtSecret, new ObjectMapper(), -60);
+        String token = expiredIssuer.issue(users.findByUsername("viewer-test").orElseThrow());
+        mockMvc
+            .perform(get("/api/v1/equipements").header("Authorization", "Bearer " + token))
+            .andExpect(status().isUnauthorized());
     }
 
     private MockHttpServletRequestBuilder loginRequest(String username, String password) {
