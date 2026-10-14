@@ -2,6 +2,7 @@ package sn.ept.transdic1.inventory.service;
 
 import java.util.UUID;
 import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,8 +23,15 @@ public class EquipmentService {
   }
 
   @Transactional(readOnly = true)
-  public Page<EquipmentResponse> list(Pageable p) {
-    return equipment.findAll(p).map(EquipmentResponse::from);
+  public Page<EquipmentResponse> list(
+      UUID siteId, EquipmentType type, EquipmentStatus status, Pageable p) {
+    Specification<Equipment> spec = (root, query, cb) -> cb.conjunction();
+    if (siteId != null)
+      spec = spec.and((root, query, cb) -> cb.equal(root.get("site").get("id"), siteId));
+    if (type != null) spec = spec.and((root, query, cb) -> cb.equal(root.get("type"), type));
+    if (status != null)
+      spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
+    return equipment.findAll(spec, p).map(EquipmentResponse::from);
   }
 
   @Transactional(readOnly = true)
@@ -48,6 +56,8 @@ public class EquipmentService {
 
   public EquipmentResponse update(UUID id, EquipmentRequest r) {
     var e = find(id);
+    if (equipment.existsByManagementAddressAndIdNot(r.managementAddress(), id))
+      throw new ResponseStatusException(HttpStatus.CONFLICT, "Adresse déjà utilisée");
     e.update(r.name(), r.managementAddress(), r.type(), r.status(), site(r.siteId()));
     return EquipmentResponse.from(e);
   }

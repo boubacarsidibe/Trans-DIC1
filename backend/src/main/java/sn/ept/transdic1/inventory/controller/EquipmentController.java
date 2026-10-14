@@ -8,6 +8,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import sn.ept.transdic1.inventory.domain.*;
 import sn.ept.transdic1.inventory.dto.*;
 import sn.ept.transdic1.inventory.service.EquipmentService;
 
@@ -21,8 +22,12 @@ public class EquipmentController {
   }
 
   @GetMapping
-  public Page<EquipmentResponse> list(@PageableDefault(size = 20, sort = "name") Pageable p) {
-    return service.list(p);
+  public Page<EquipmentResponse> list(
+      @RequestParam(required = false) UUID siteId,
+      @RequestParam(required = false) EquipmentType type,
+      @RequestParam(required = false) EquipmentStatus status,
+      @PageableDefault(size = 20, sort = "name") Pageable p) {
+    return service.list(siteId, type, status, p);
   }
 
   @GetMapping("/{id}")
@@ -31,7 +36,7 @@ public class EquipmentController {
   }
 
   @PostMapping
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")
   public ResponseEntity<EquipmentResponse> create(@Valid @RequestBody EquipmentRequest r) {
     var response = service.create(r);
     return ResponseEntity.created(URI.create("/api/v1/equipements/" + response.id()))
@@ -39,14 +44,14 @@ public class EquipmentController {
   }
 
   @PutMapping("/{id}")
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")
   public EquipmentResponse update(@PathVariable UUID id, @Valid @RequestBody EquipmentRequest r) {
     return service.update(id, r);
   }
 
   @DeleteMapping("/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")
   public void delete(@PathVariable UUID id) {
     service.delete(id);
   }
