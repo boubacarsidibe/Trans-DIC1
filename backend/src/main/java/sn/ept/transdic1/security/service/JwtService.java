@@ -15,12 +15,21 @@ import sn.ept.transdic1.security.domain.*;
 public class JwtService {
   private final byte[] secret;
   private final ObjectMapper json;
+  private final long expirationSeconds;
 
-  public JwtService(@Value("${JWT_SECRET}") String s, ObjectMapper j) {
+  public JwtService(
+      @Value("${JWT_SECRET}") String s,
+      ObjectMapper j,
+      @Value("${JWT_EXPIRATION_SECONDS:900}") long expirationSeconds) {
     if (s.length() < 32)
       throw new IllegalStateException("JWT_SECRET doit contenir au moins 32 caractères");
     secret = s.getBytes(StandardCharsets.UTF_8);
     json = j;
+    this.expirationSeconds = expirationSeconds;
+  }
+
+  public long expirationSeconds() {
+    return expirationSeconds;
   }
 
   public String issue(AppUser u) {
@@ -35,7 +44,7 @@ public class JwtService {
                       "role",
                       u.getRole().name(),
                       "exp",
-                      Instant.now().plusSeconds(900).getEpochSecond())));
+                      Instant.now().plusSeconds(expirationSeconds).getEpochSecond())));
       return h + "." + p + "." + enc(sign(h + "." + p));
     } catch (Exception e) {
       throw new IllegalStateException(e);
