@@ -49,6 +49,27 @@ npm run dev
 
 La procédure PostgreSQL native complète est documentée dans [docs/devops/postgresql.md](docs/devops/postgresql.md). Le fichier `.env` reste local et ne doit jamais être commité. Docker n'est pas requis.
 
+### Démarrage avec Docker Compose
+
+Une alternative sans installation de PostgreSQL, Java ni Node :
+
+```powershell
+Copy-Item .env.example .env
+# Dans .env, renseigner DATABASE_PASSWORD, JWT_SECRET (32 caractères minimum,
+# par exemple : openssl rand -hex 32) et, pour créer un premier compte,
+# BOOTSTRAP_ADMIN_USERNAME, BOOTSTRAP_ADMIN_EMAIL et BOOTSTRAP_ADMIN_PASSWORD.
+docker compose up --build
+```
+
+| Service | URL | Remarque |
+|---|---|---|
+| Frontend | `http://localhost:5173` | nginx sans privilèges |
+| API | `http://localhost:8080/actuator/health` | image JRE 17, utilisateur non-root |
+| Mailpit | `http://localhost:8025` | boîte mail de test, SMTP sur le port 1025 |
+| PostgreSQL | `127.0.0.1:5433` | volume `postgres-data` ; 5433 évite le conflit avec un PostgreSQL local |
+
+Si `DATABASE_PASSWORD` ou `JWT_SECRET` manque, `docker compose` s'arrête avec un message explicite. `docker compose down -v` supprime aussi la base.
+
 ## Tests, lint et build
 
 ```powershell

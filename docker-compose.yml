@@ -1,0 +1,71 @@
+# Environnement local complet : PostgreSQL, backend, frontend et Mailpit.
+#   docker compose up --build
+# Les variables sont lues dans le fichier .env à la racine (voir .env.example).
+
+name: trans-dic1
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-trans_dic1}
+      POSTGRES_USER: ${DATABASE_USER:-trans_dic1}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD est obligatoire dans .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      # Port 5433 côté hôte pour ne pas entrer en conflit avec un PostgreSQL local.
+      - "127.0.0.1:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8025:8025" # interface web
+      - "127.0.0.1:1025:1025" # SMTP de test
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_PORT: 8080
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${DATABASE_NAME:-trans_dic1}
+      DATABASE_USER: ${DATABASE_USER:-trans_dic1}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD est obligatoire dans .env}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET est obligatoire dans .env (32 caractères minimum, ex. openssl rand -hex 32)}
+      JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-900}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+      BOOTSTRAP_ADMIN_USERNAME: ${BOOTSTRAP_ADMIN_USERNAME:-}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080/api/v1}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "5173:8080"
+
+volumes:
+  postgres-data:
