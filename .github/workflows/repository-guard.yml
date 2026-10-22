@@ -22,15 +22,18 @@ jobs:
         run: ./scripts/verify-repository.ps1
 
   backend:
-    name: Backend tests and build
+    name: Backend tests, coverage and format
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: backend
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # Spotless compare les fichiers modifies a origin/develop : il faut l'historique.
+          fetch-depth: 0
 
       - name: Set up Java 17
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
@@ -39,11 +42,40 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Test and package backend
+      # verify enchaine tests, format Spotless (fichiers modifies) et seuils JaCoCo.
+      - name: Test, check format and coverage, package backend
         run: ./mvnw --batch-mode verify
 
+      - name: Publish coverage summary
+        if: always()
+        run: |
+          if [ -f target/site/jacoco/jacoco.csv ]; then
+            python3 - >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          import csv
+          rows = list(csv.DictReader(open('target/site/jacoco/jacoco.csv', encoding='utf-8')))
+          print('### Couverture backend (JaCoCo)\n')
+          print('| Compteur | Couvert | Total | Taux |\n|---|---|---|---|')
+          for key, label in (('LINE', 'Lignes'), ('BRANCH', 'Branches'), ('INSTRUCTION', 'Instructions')):
+              covered = sum(int(r[key + '_COVERED']) for r in rows)
+              missed = sum(int(r[key + '_MISSED']) for r in rows)
+              total = covered + missed
+              print(f'| {label} | {covered} | {total} | {100 * covered / total:.1f} % |')
+          PY
+          fi
+
+      - name: Upload backend reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: backend-reports
+          path: |
+            backend/target/site/jacoco
+            backend/target/surefire-reports
+          if-no-files-found: ignore
+          retention-days: 14
+
   frontend:
-    name: Frontend lint, tests and build
+    name: Frontend lint, tests, coverage and audit
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -66,8 +98,68 @@ jobs:
       - name: Lint frontend
         run: npm run lint
 
-      - name: Test frontend
-        run: npm test
+      # Echoue si la couverture passe sous les seuils de vite.config.js.
+      - name: Test frontend with coverage
+        run: npm run test:coverage
+
+      - name: Audit npm dependencies
+        run: npm audit --audit-level=high
 
       - name: Build frontend
         run: npm run build
+
+      - name: Publish coverage summary
+        if: always()
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            node -e "
+              const t = JSON.parse(require('fs').readFileSync('coverage/coverage-summary.json', 'utf8')).total;
+              const row = (label, k) => '| ' + label + ' | ' + t[k].covered + ' | ' + t[k].total + ' | ' + t[k].pct + ' % |';
+              console.log('### Couverture frontend (Vitest)\n');
+              console.log('| Compteur | Couvert | Total | Taux |\n|---|---|---|---|');
+              console.log(row('Lignes', 'lines'));
+              console.log(row('Branches', 'branches'));
+              console.log(row('Fonctions', 'functions'));
+              console.log(row('Instructions', 'statements'));
+            " >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload frontend coverage
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+          if-no-files-found: ignore
+          retention-days: 14
+
+  security-scan:
+    name: Secrets and dependency vulnerabilities
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      # Detecte les secrets commites, y compris dans l'historique.
+      - name: Scan for committed secrets
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Dependances Java (pom.xml) et npm (package-lock.json) : echoue sur HIGH ou CRITICAL corrigeables.
+      - name: Scan dependencies for vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          skip-dirs: node_modules,docs,output,.codex-ppt
