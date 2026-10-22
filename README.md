@@ -54,12 +54,13 @@ La procédure PostgreSQL native complète est documentée dans [docs/devops/post
 Une alternative sans installation de PostgreSQL, Java ni Node :
 
 ```powershell
-Copy-Item .env.example .env
-# Dans .env, renseigner DATABASE_PASSWORD, JWT_SECRET (32 caractères minimum,
-# par exemple : openssl rand -hex 32) et, pour créer un premier compte,
-# BOOTSTRAP_ADMIN_USERNAME, BOOTSTRAP_ADMIN_EMAIL et BOOTSTRAP_ADMIN_PASSWORD.
+# Crée .env et génère les valeurs vides : mot de passe PostgreSQL, JWT_SECRET
+# et compte administrateur initial (une valeur déjà renseignée n'est jamais modifiée).
+pwsh ./scripts/init-dev-env.ps1
 docker compose up --build
 ```
+
+Le compte administrateur initial (`BOOTSTRAP_ADMIN_USERNAME` et `BOOTSTRAP_ADMIN_PASSWORD`) se lit dans `.env`, qui reste local et ignoré par git.
 
 | Service | URL | Remarque |
 |---|---|---|
