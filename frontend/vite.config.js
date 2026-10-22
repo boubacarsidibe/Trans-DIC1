@@ -7,5 +7,19 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: './src/test/setup.js',
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{js,jsx}'],
+      // Types générés, point d'entrée et fichiers de test ne sont pas du code à couvrir.
+      exclude: ['src/types/**', 'src/main.jsx', 'src/**/*.test.{js,jsx}', 'src/test/**'],
+      reporter: ['text', 'json-summary', 'lcov'],
+      // Seuils bloquants : le build échoue si la couverture passe en dessous.
+      thresholds: {
+        statements: 75,
+        branches: 65,
+        functions: 75,
+        lines: 75,
+      },
+    },
   },
 })
