@@ -29,6 +29,9 @@ public class AppUser {
   @Column(name = "created_at", nullable = false)
   private Instant createdAt;
 
+  @Column(name = "updated_at", nullable = false)
+  private Instant updatedAt;
+
   @Column(name = "failed_login_attempts", nullable = false)
   private int failedLoginAttempts;
 
@@ -45,6 +48,7 @@ public class AppUser {
     role = r;
     active = true;
     createdAt = Instant.now();
+    updatedAt = createdAt;
   }
 
   public String getUsername() {
@@ -84,5 +88,26 @@ public class AppUser {
   public void registerSuccessfulLogin() {
     failedLoginAttempts = 0;
     lockedUntil = null;
+  }
+
+  public UUID getId() {
+    return id;
+  }
+
+  public String getEmail() {
+    return email;
+  }
+
+  public Instant getCreatedAt() {
+    return createdAt;
+  }
+
+  public Instant getUpdatedAt() {
+    return updatedAt;
+  }
+
+  @PreUpdate
+  void touch() {
+    updatedAt = Instant.now();
   }
 }

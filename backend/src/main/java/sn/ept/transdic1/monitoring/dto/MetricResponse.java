@@ -23,7 +23,7 @@ public record MetricResponse(
         metric.getKey(),
         metric.getValue(),
         metric.getUnit(),
-        metric.getQuality(),
+        metric.getQuality().name(),
         metric.getCollectedAt());
   }
 }

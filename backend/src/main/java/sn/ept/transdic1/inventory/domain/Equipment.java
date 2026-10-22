@@ -32,8 +32,23 @@ public class Equipment {
   @JoinColumn(name = "site_id")
   private Site site;
 
+  @Column(length = 120)
+  private String manufacturer;
+
+  @Column(length = 120)
+  private String model;
+
+  @Column(name = "operating_system", length = 120)
+  private String operatingSystem;
+
+  @Column(name = "monitoring_enabled", nullable = false)
+  private boolean monitoringEnabled = true;
+
   @Column(name = "created_at", nullable = false)
   private Instant createdAt;
+
+  @Column(name = "updated_at", nullable = false)
+  private Instant updatedAt;
 
   protected Equipment() {}
 
@@ -52,6 +67,12 @@ public class Equipment {
     this.status = status;
     this.site = site;
     createdAt = Instant.now();
+    updatedAt = createdAt;
+  }
+
+  @PreUpdate
+  void touch() {
+    updatedAt = Instant.now();
   }
 
   public void update(
@@ -89,5 +110,49 @@ public class Equipment {
 
   public Site getSite() {
     return site;
+  }
+
+  public String getManufacturer() {
+    return manufacturer;
+  }
+
+  public void setManufacturer(String manufacturer) {
+    this.manufacturer = manufacturer;
+  }
+
+  public String getModel() {
+    return model;
+  }
+
+  public void setModel(String model) {
+    this.model = model;
+  }
+
+  public String getOperatingSystem() {
+    return operatingSystem;
+  }
+
+  public void setOperatingSystem(String operatingSystem) {
+    this.operatingSystem = operatingSystem;
+  }
+
+  public boolean isMonitoringEnabled() {
+    return monitoringEnabled;
+  }
+
+  public void setMonitoringEnabled(boolean monitoringEnabled) {
+    this.monitoringEnabled = monitoringEnabled;
+  }
+
+  public boolean isFictitious() {
+    return fictitious;
+  }
+
+  public Instant getCreatedAt() {
+    return createdAt;
+  }
+
+  public Instant getUpdatedAt() {
+    return updatedAt;
   }
 }
