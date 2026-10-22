@@ -144,6 +144,22 @@
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>0.8.15</version>
+				<configuration>
+					<!-- Entites passives du modele persistant (champs et accesseurs generes, sans logique) :
+					     leur mapping est verifie par PersistenceModelTests, pas par la couverture de lignes. -->
+					<excludes>
+						<exclude>sn/ept/transdic1/alerting/domain/**</exclude>
+						<exclude>sn/ept/transdic1/reporting/domain/**</exclude>
+						<exclude>sn/ept/transdic1/access/domain/**</exclude>
+						<exclude>sn/ept/transdic1/audit/domain/**</exclude>
+						<exclude>sn/ept/transdic1/inventory/domain/MonitoredService.class</exclude>
+						<exclude>sn/ept/transdic1/inventory/domain/CollectionConfiguration.class</exclude>
+						<exclude>sn/ept/transdic1/inventory/domain/MetricDefinition.class</exclude>
+						<exclude>sn/ept/transdic1/inventory/domain/CollectionAgent.class</exclude>
+						<exclude>sn/ept/transdic1/security/domain/UserSession.class</exclude>
+						<exclude>sn/ept/transdic1/security/domain/PasswordResetToken.class</exclude>
+					</excludes>
+				</configuration>
 				<executions>
 					<execution>
 						<id>prepare-agent</id>

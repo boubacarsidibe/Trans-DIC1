@@ -55,7 +55,7 @@ Chaque push et chaque Pull Request exécutent ces contrôles. Reproduisez-les en
 | Secrets (Gitleaks) | un secret apparaît dans le code ou l'historique | — | retirer le secret, **le révoquer et en générer un nouveau** : le supprimer d'un commit ne suffit pas |
 | Vulnérabilités (Trivy) | une dépendance Java ou npm a une faille HIGH ou CRITICAL corrigeable | — | mettre à jour la dépendance vers la version corrigée |
 
-Spotless ne contrôle que les fichiers que vous modifiez : le code existant n'est pas reformaté d'un coup. Les seuils de couverture sont dans `backend/pom.xml` (JaCoCo) et `frontend/vite.config.js` ; ils ne doivent jamais être baissés pour faire passer une Pull Request. Les rapports de couverture sont téléchargeables dans les artefacts du run GitHub Actions.
+Spotless ne contrôle que les fichiers que vous modifiez : le code existant n'est pas reformaté d'un coup. Les seuils de couverture sont dans `backend/pom.xml` (JaCoCo) et `frontend/vite.config.js` ; ils ne doivent jamais être baissés pour faire passer une Pull Request. Seules les entités passives du modèle persistant (champs et accesseurs sans logique) sont exclues de la mesure JaCoCo, la liste est dans `backend/pom.xml` et leur mapping est testé par `PersistenceModelTests`. Les rapports de couverture sont téléchargeables dans les artefacts du run GitHub Actions.
 
 Une nouvelle fonctionnalité doit inclure des tests proportionnés au risque. Une correction doit, si possible, contenir un test qui reproduit la régression.
 
