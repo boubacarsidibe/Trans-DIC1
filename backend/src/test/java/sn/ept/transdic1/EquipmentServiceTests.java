@@ -25,7 +25,7 @@ class EquipmentServiceTests {
   @Autowired private JdbcTemplate jdbc;
 
   @Test
-  void createPersistsAFictitiousEquipmentOnAnExistingSite() {
+  void createPersistsARealEquipmentOnAnExistingSite() {
     var created =
         service.create(
             new EquipmentRequest(
@@ -40,7 +40,7 @@ class EquipmentServiceTests {
     assertThat(
             jdbc.queryForObject(
                 "SELECT is_fictitious FROM equipment WHERE id = ?", Boolean.class, created.id()))
-        .isTrue();
+        .isFalse();
   }
 
   @Test
