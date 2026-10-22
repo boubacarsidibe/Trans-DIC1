@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import sn.ept.transdic1.audit.service.AuditService;
 import sn.ept.transdic1.inventory.domain.*;
 import sn.ept.transdic1.inventory.dto.*;
 import sn.ept.transdic1.inventory.repository.*;
@@ -14,12 +15,15 @@ import sn.ept.transdic1.inventory.repository.*;
 @Service
 @Transactional
 public class EquipmentService {
+  private static final String AUDIT_TARGET = "EQUIPMENT";
   private final EquipmentRepository equipment;
   private final SiteRepository sites;
+  private final AuditService audit;
 
-  public EquipmentService(EquipmentRepository e, SiteRepository s) {
+  public EquipmentService(EquipmentRepository e, SiteRepository s, AuditService audit) {
     equipment = e;
     sites = s;
+    this.audit = audit;
   }
 
   @Transactional(readOnly = true)
@@ -29,8 +33,7 @@ public class EquipmentService {
     if (siteId != null)
       spec = spec.and((root, query, cb) -> cb.equal(root.get("site").get("id"), siteId));
     if (type != null) spec = spec.and((root, query, cb) -> cb.equal(root.get("type"), type));
-    if (status != null)
-      spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
+    if (status != null) spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
     return equipment.findAll(spec, p).map(EquipmentResponse::from);
   }
 
@@ -43,7 +46,7 @@ public class EquipmentService {
     if (equipment.existsByInventoryCodeOrManagementAddress(
         r.inventoryCode(), r.managementAddress()))
       throw new ResponseStatusException(HttpStatus.CONFLICT, "Code ou adresse déjà utilisé");
-    return EquipmentResponse.from(
+    var created =
         equipment.save(
             new Equipment(
                 r.inventoryCode(),
@@ -51,7 +54,13 @@ public class EquipmentService {
                 r.managementAddress(),
                 r.type(),
                 r.status(),
-                site(r.siteId()))));
+                site(r.siteId())));
+    audit.record(
+        "EQUIPMENT_CREATED",
+        AUDIT_TARGET,
+        created.getId(),
+        "code=" + created.getInventoryCode() + " type=" + created.getType());
+    return EquipmentResponse.from(created);
   }
 
   public EquipmentResponse update(UUID id, EquipmentRequest r) {
@@ -59,11 +68,18 @@ public class EquipmentService {
     if (equipment.existsByManagementAddressAndIdNot(r.managementAddress(), id))
       throw new ResponseStatusException(HttpStatus.CONFLICT, "Adresse déjà utilisée");
     e.update(r.name(), r.managementAddress(), r.type(), r.status(), site(r.siteId()));
+    audit.record(
+        "EQUIPMENT_UPDATED",
+        AUDIT_TARGET,
+        id,
+        "code=" + e.getInventoryCode() + " status=" + e.getStatus());
     return EquipmentResponse.from(e);
   }
 
   public void delete(UUID id) {
-    equipment.delete(find(id));
+    var e = find(id);
+    equipment.delete(e);
+    audit.record("EQUIPMENT_DELETED", AUDIT_TARGET, id, "code=" + e.getInventoryCode());
   }
 
   private Equipment find(UUID id) {
