@@ -1,0 +1,70 @@
+import apiClient from "./client.js";
+
+export const EQUIPMENT_TYPES = [
+  "SERVER",
+  "ROUTER",
+  "SWITCH",
+  "VIRTUAL_MACHINE",
+  "WIFI_ACCESS_POINT",
+];
+
+export const EQUIPMENT_STATUSES = [
+  "UP",
+  "DOWN",
+  "DEGRADED",
+  "MAINTENANCE",
+  "UNKNOWN",
+];
+
+export const PAGE_SIZE = 10;
+
+export async function listEquipment({ page = 0, size = PAGE_SIZE } = {}) {
+  const { data } = await apiClient.get("/equipements", {
+    params: { page, size },
+  });
+  return data;
+}
+
+// L'API n'expose pas encore /sites : on déduit les sites des équipements.
+export async function listSites() {
+  const { content } = await listEquipment({ page: 0, size: 200 });
+  const sites = new Map();
+  content.forEach((e) => sites.set(e.siteId, e.site));
+  return [...sites].map(([id, name]) => ({ id, name }));
+}
+
+export async function createEquipment(payload) {
+  const { data } = await apiClient.post("/equipements", payload);
+  return data;
+}
+
+export async function updateEquipment(id, payload) {
+  const { data } = await apiClient.put(`/equipements/${id}`, payload);
+  return data;
+}
+
+export async function deleteEquipment(id) {
+  await apiClient.delete(`/equipements/${id}`);
+}
+
+const LIMITS = { inventoryCode: 64, name: 120, managementAddress: 45 };
+const LABELS = {
+  inventoryCode: "Le code d'inventaire",
+  name: "Le nom",
+  managementAddress: "L'adresse de gestion",
+};
+
+// Règles alignées sur EquipmentRequest côté backend.
+export function validateEquipment(values) {
+  const errors = {};
+  Object.entries(LIMITS).forEach(([field, max]) => {
+    const value = (values[field] ?? "").trim();
+    if (!value) errors[field] = `${LABELS[field]} est obligatoire.`;
+    else if (value.length > max)
+      errors[field] = `${LABELS[field]} ne doit pas dépasser ${max} caractères.`;
+  });
+  if (!values.type) errors.type = "Le type est obligatoire.";
+  if (!values.status) errors.status = "Le statut est obligatoire.";
+  if (!values.siteId) errors.siteId = "Le site est obligatoire.";
+  return errors;
+}
