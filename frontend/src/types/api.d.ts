@@ -447,8 +447,17 @@ export interface operations {
                     "*/*": components["schemas"]["TokenResponse"];
                 };
             };
-            /** @description Identifiants invalides */
+            /** @description Identifiants invalides ou compte verrouillé (réponse identique par sécurité) */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Trop de tentatives depuis cette adresse, voir l'en-tête Retry-After */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
