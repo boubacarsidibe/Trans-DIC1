@@ -7,4 +7,8 @@ import sn.ept.transdic1.security.domain.AppUser;
 
 public interface UserRepository extends JpaRepository<AppUser, UUID> {
   Optional<AppUser> findByUsername(String username);
+
+  boolean existsByEmail(String email);
+
+  boolean existsByUsername(String username);
 }
