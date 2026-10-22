@@ -1,0 +1,467 @@
+openapi: 3.1.0
+info:
+  title: API Trans-DIC1
+  description: "API de supervision des infrastructures réseau et serveurs de l'EPT.\
+    \ Obtenez un jeton avec POST /api/v1/auth/login, puis cliquez sur « Authorize\
+    \ » et collez-le sans le préfixe Bearer."
+  version: v1
+servers:
+- url: http://localhost:8080
+  description: Generated server url
+security:
+- bearerAuth: []
+tags:
+- name: Métriques
+  description: Mesures collectées sur les équipements.
+- name: Authentification
+  description: Obtention du jeton d'accès.
+- name: Équipements
+  description: Inventaire des équipements supervisés. Écriture réservée aux rôles
+    ADMIN et NOC_OPERATOR.
+paths:
+  /api/v1/equipements/{id}:
+    get:
+      tags:
+      - Équipements
+      summary: Consulter un équipement
+      operationId: get
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Équipement introuvable
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EquipmentResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    put:
+      tags:
+      - Équipements
+      summary: Modifier un équipement
+      operationId: update
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EquipmentRequest"
+        required: true
+      responses:
+        "400":
+          description: Données invalides
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EquipmentResponse"
+        "404":
+          description: Équipement introuvable
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EquipmentResponse"
+        "409":
+          description: Code d'inventaire déjà utilisé
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EquipmentResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      tags:
+      - Équipements
+      summary: Supprimer un équipement
+      operationId: delete
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: Équipement supprimé
+        "404":
+          description: Équipement introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/equipements:
+    get:
+      tags:
+      - Équipements
+      summary: Lister les équipements
+      description: "Liste paginée (20 par page, tri par nom), filtrable par site,\
+        \ type et statut."
+      operationId: list
+      parameters:
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: type
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - SERVER
+          - ROUTER
+          - SWITCH
+          - VIRTUAL_MACHINE
+          - WIFI_ACCESS_POINT
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - UP
+          - DOWN
+          - DEGRADED
+          - MAINTENANCE
+          - UNKNOWN
+      - name: p
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/Pageable"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PagedModelEquipmentResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      tags:
+      - Équipements
+      summary: Créer un équipement
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EquipmentRequest"
+        required: true
+      responses:
+        "201":
+          description: Équipement créé
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EquipmentResponse"
+        "400":
+          description: Données invalides
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EquipmentResponse"
+        "409":
+          description: Code d'inventaire déjà utilisé
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EquipmentResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/auth/login:
+    post:
+      tags:
+      - Authentification
+      summary: Se connecter
+      description: "Retourne un jeton JWT à envoyer ensuite dans l'en-tête Authorization:\
+        \ Bearer."
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+        required: true
+      responses:
+        "400":
+          description: Requête invalide
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          description: Identifiants invalides
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+      security: []
+  /api/v1/metrics/latest:
+    get:
+      tags:
+      - Métriques
+      summary: Dernières métriques
+      description: Dernière mesure connue par équipement et par indicateur.
+      operationId: latest
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MetricResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+components:
+  schemas:
+    EquipmentRequest:
+      type: object
+      properties:
+        inventoryCode:
+          type: string
+          maxLength: 64
+          minLength: 0
+        name:
+          type: string
+          maxLength: 120
+          minLength: 0
+        managementAddress:
+          type: string
+          maxLength: 45
+          minLength: 0
+        type:
+          type: string
+          enum:
+          - SERVER
+          - ROUTER
+          - SWITCH
+          - VIRTUAL_MACHINE
+          - WIFI_ACCESS_POINT
+        status:
+          type: string
+          enum:
+          - UP
+          - DOWN
+          - DEGRADED
+          - MAINTENANCE
+          - UNKNOWN
+        siteId:
+          type: string
+          format: uuid
+      required:
+      - inventoryCode
+      - managementAddress
+      - name
+      - siteId
+      - status
+      - type
+    EquipmentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        inventoryCode:
+          type: string
+        name:
+          type: string
+        managementAddress:
+          type: string
+        type:
+          type: string
+          enum:
+          - SERVER
+          - ROUTER
+          - SWITCH
+          - VIRTUAL_MACHINE
+          - WIFI_ACCESS_POINT
+        status:
+          type: string
+          enum:
+          - UP
+          - DOWN
+          - DEGRADED
+          - MAINTENANCE
+          - UNKNOWN
+        siteId:
+          type: string
+          format: uuid
+        site:
+          type: string
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+      required:
+      - password
+      - username
+    TokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        tokenType:
+          type: string
+        expiresIn:
+          type: integer
+          format: int64
+        role:
+          type: string
+    MetricResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        equipmentId:
+          type: string
+          format: uuid
+        equipmentName:
+          type: string
+        key:
+          type: string
+        value:
+          type: number
+        unit:
+          type: string
+        quality:
+          type: string
+        collectedAt:
+          type: string
+          format: date-time
+    Pageable:
+      type: object
+      properties:
+        page:
+          type: integer
+          format: int32
+          minimum: 0
+        size:
+          type: integer
+          format: int32
+          minimum: 1
+        sort:
+          type: array
+          items:
+            type: string
+    PageMetadata:
+      type: object
+      properties:
+        size:
+          type: integer
+          format: int64
+        number:
+          type: integer
+          format: int64
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int64
+    PagedModelEquipmentResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/EquipmentResponse"
+        page:
+          $ref: "#/components/schemas/PageMetadata"
+    ApiError:
+      properties:
+        status:
+          type: integer
+          format: int32
+        error:
+          type: string
+        fields:
+          type: object
+          additionalProperties:
+            type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

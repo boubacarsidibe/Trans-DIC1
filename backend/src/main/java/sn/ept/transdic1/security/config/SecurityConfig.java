@@ -56,7 +56,14 @@ public class SecurityConfig {
                                 write(response, HttpStatus.FORBIDDEN, "Accès refusé")))
             .authorizeHttpRequests(
                 a ->
-                    a.requestMatchers("/actuator/health", "/api/v1/auth/login")
+                    a.requestMatchers(
+                            "/actuator/health",
+                            "/api/v1/auth/login",
+                            "/v3/api-docs",
+                            "/v3/api-docs.yaml",
+                            "/v3/api-docs/**",
+                            "/swagger-ui/**",
+                            "/swagger-ui.html")
                         .permitAll()
                         .anyRequest()
                         .authenticated())

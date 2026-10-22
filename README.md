@@ -70,6 +70,16 @@ docker compose up --build
 
 Si `DATABASE_PASSWORD` ou `JWT_SECRET` manque, `docker compose` s'arrête avec un message explicite. `docker compose down -v` supprime aussi la base.
 
+## Documentation de l'API (OpenAPI / Swagger)
+
+Avec le backend démarré :
+
+- Swagger UI : `http://localhost:8080/swagger-ui.html` (« Authorize », puis coller le jeton obtenu par `POST /api/v1/auth/login`)
+- Contrat : `http://localhost:8080/v3/api-docs` (JSON) et `/v3/api-docs.yaml`
+- Copie versionnée : [docs/api/openapi.yaml](docs/api/openapi.yaml), d'où sont générés les types du frontend (`npm run api:types`)
+
+La documentation est active par défaut. Elle est désactivée avec `OPENAPI_ENABLED=false` ou avec le profil Spring `prod`.
+
 ## Tests, lint et build
 
 ```powershell
