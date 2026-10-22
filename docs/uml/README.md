@@ -47,19 +47,45 @@ Le diagramme d'activité n'a pas été produit : aucun processus métier à plus
 2. **Table `audit_entry`.** Créée par V3 mais sans entité ni usage dans le code.
 3. **Données de démonstration.** Les cinq équipements fictifs pointent tous vers le seul site `LAB-DEMO` (V3), alors que V2 leur attribuait trois sites distincts.
 
-## Modèle cible (jeu canonique d'architecture)
+## Modèle cible : tous les diagrammes d'architecture
 
-`modele_uml_cible.mdj` reproduit dans StarUML les neuf diagrammes canoniques de `../architecture/diagrams/README.md` (architecture **cible**, pas l'état implémenté). Il est généré par `tools/generate_cible_mdj.py` à partir des fichiers Mermaid : `python docs/uml/tools/generate_cible_mdj.py`.
+`modele_uml_cible.mdj` reproduit dans StarUML **tous** les diagrammes Mermaid de `../architecture/diagrams/` (33 diagrammes). Il est généré par `tools/generate_cible_mdj.py` (avec `tools/mdj_extra.py`) : `python docs/uml/tools/generate_cible_mdj.py`.
+
+### 1. Jeu canonique (validé)
 
 | Réf. | Source Mermaid | Contenu |
 | --- | --- | --- |
-| UC-C01 | `01-use-cases/trans-dic1-use-cases` | Trois rôles humains par généralisation, agent et service e-mail |
-| CD-C01 à CD-C05 | `02-domain/persistence-model-uml` | Classes persistantes, un diagramme par domaine ; les classes voisines apparaissent repliées |
-| SD-C01, SD-C02 | `03-sequences/*` | Collecte et alertes ; prise en charge, assignation, résolution |
-| AD-C01 | `04-activities/metric-collection` | Les questions des décisions sont portées par des notes liées |
+| UC-C01 | `01-use-cases/trans-dic1-use-cases` | Trois rôles humains par généralisation, agent (principal) et service e-mail (secondaire) |
+| CD-C01 à CD-C05 | `02-domain/persistence-model-uml` | Classes persistantes, un diagramme par domaine ; classes voisines repliées |
+| SD-C01, SD-C02 | `03-sequences/collection-and-alert`, `alert-handling` | Collecte et alertes ; prise en charge, assignation, résolution |
+| AD-C01 | `04-activities/metric-collection` | Collecte planifiée |
 | SM-C01 | `05-states/alert-lifecycle` | Cycle de vie d'une alerte |
 | CP-C01 | `06-components/target-components` | Composants cibles |
 | DP-C01 | `07-deployment/trans-dic1-target` | Déploiement cible |
 | PK-C01 | `10-packages/packages` | Dépendances entre paquets |
 
-Limites connues : mise en page automatique (à réorganiser dans StarUML) ; dans les fragments `alt`, StarUML répartit la hauteur des opérandes à parts égales, d'où des séparateurs à déplacer à la main.
+### 2. Variantes antérieures (traçabilité)
+
+| Réf. | Source Mermaid |
+| --- | --- |
+| UC-V01 à UC-V08 | `global`, `validated-global`, `complete-global`, `complete-reader`, `monitoring`, `complete-noc`, `administration`, `complete-admin` |
+| CD-V01, CD-V02 | `domain-overview`, `design-model` |
+| SD-V01, SD-V02 | `collect-measure-and-open-alert`, `acknowledge-and-resolve-alert` |
+| AD-V01 | `incident-lifecycle` |
+| SM-V01 | `alert-state` |
+| CP-V01 | `components` |
+| DP-V01, DP-V02 | `deployment-current`, `deployment-target` |
+| C4-01, C4-02 | `context`, `containers` (notation C4 rendue en composants UML stéréotypés) |
+| ER-01 | `erd-target` (diagramme entité-association natif StarUML, hors modèle UML) |
+
+### Règles UML appliquées
+
+- **Acteurs principaux** (ils initient le cas) à gauche, reliés par une association simple ; **acteurs secondaires** (sollicités par le système : service e-mail, SMTP, équipement interrogé) à droite, avec une association orientée du cas vers l'acteur et le stéréotype « acteur secondaire » ou « système externe ». Le rôle est rappelé dans la documentation de chaque acteur.
+- Généralisation d'acteurs (« spécialisé par » dans les sources Mermaid), `«include»` et `«extend»` orientés de la source vers la cible.
+- Classes : visibilités, types, multiplicités, composition, association navigable (`-->`), dépendance, réalisation d'interface, énumérations ; interfaces en `UMLInterface`.
+- Séquences : lignes de vie d'acteurs stéréotypées, messages synchrones et retours, fragments `loop` / `alt` / `opt` avec gardes et hauteurs d'opérandes calculées, notes.
+- Activités : nœud initial, nœud final d'activité, décisions avec gardes ; la question de chaque décision est portée par une note liée.
+- États : pseudo-état initial, état final, déclencheur, garde (`[...]`) et effet (`/ ...`) séparés.
+- Déploiement : nœuds `«device»` / `«node»`, environnement d'exécution, artefacts, chemins de communication.
+
+La mise en page est automatique : certains diagrammes denses (UC-V01, CD-C03) gagnent à être réorganisés à la main dans StarUML.

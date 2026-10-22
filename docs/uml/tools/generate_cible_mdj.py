@@ -7,6 +7,7 @@ Usage : python docs/uml/tools/generate_cible_mdj.py
 import json
 import math
 import re
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -118,70 +119,6 @@ def package(parent, name):
     return add(parent, "ownedElements", B.el("UMLPackage", parent, name=name))
 
 
-# ------------------------------------------------------------------------ 1. UC
-ACTORS = {
-    "LECTEUR": ("Lecteur", None),
-    "NOC": ("Opérateur NOC", None),
-    "ADMIN": ("Administrateur", None),
-    "AGENT": ("Agent de collecte", "système externe"),
-    "EMAIL": ("Service e-mail", "système externe"),
-}
-
-UC_LAYOUT = [  # colonnes : Lecteur/NOC | système externe | Administrateur
-    ["UC_AUTH", "UC_DASHBOARD", "UC_SUPERVISION", "UC_METRICS", "UC_VIEW_ALERTS", "UC_ALERTS",
-     "UC_TAKE", "UC_RESOLVE", "UC_ARCHIVE", "UC_DELETE", "UC_MAINTENANCE", "UC_PREFS", "UC_REPORT"],
-    ["UC_REGISTER_AGENT", "UC_SEND_METRICS", "UC_EVALUATE", "UC_UPDATE_ALERT", "UC_SEND_EMAIL"],
-    ["UC_ASSIGN", "UC_USERS", "UC_INVENTORY", "UC_COLLECTION", "UC_AGENT_CONFIG", "UC_RULES",
-     "UC_AUTO_RESOLVE", "UC_REPORT_PLAN", "UC_NOTIFICATION_CONFIG"],
-]
-
-
-def build_usecase(pkg):
-    txt = (SRC / "01-use-cases/trans-dic1-use-cases.mmd").read_text(encoding="utf8")
-    ucs = {m.group(1): m.group(2).replace("<br/>", " ")
-           for m in re.finditer(r'(UC_\w+)\(\["([^"]+)"\]\)', txt)}
-    links = re.findall(r"^\s*(\w+) --- (\w+)", txt, re.M)
-    rel = re.findall(r'^\s*(\w+) -\. "(.+?)" \.-> (\w+)', txt, re.M)
-
-    p = package(pkg, "Vue des cas d'utilisation")
-    d = add(p, "ownedElements", B.el("UMLUseCaseDiagram", p,
-                                      name="UC-C01 Cas d'utilisation — Trans-DIC1 (cible)"))
-    subj = add(p, "ownedElements", B.el("UMLUseCaseSubject", p, name="Trans-DIC1"))
-    view("UMLUseCaseSubjectView", d, subj, 260, 120, 980, 1010)
-    pos = {"LECTEUR": (60, 250), "NOC": (60, 750), "ADMIN": (1320, 450),
-           "AGENT": (640, 10), "EMAIL": (540, 1170)}
-    allm, allv, ucv = {}, {}, set()
-    for k, (name, ster) in ACTORS.items():
-        m = add(p, "ownedElements", B.el("UMLActor", p, name=name))
-        if ster:
-            m["stereotype"] = ster
-        allm[k] = m
-        allv[k] = view("UMLActorView", d, m, pos[k][0], pos[k][1], 110, 95, **SUP)
-    for ci, col in enumerate(UC_LAYOUT):
-        for ri, key in enumerate(col):
-            m = add(p, "ownedElements", B.el("UMLUseCase", p, name=ucs[key]))
-            allm[key] = m
-            allv[key] = view("UMLUseCaseView", d, m, 290 + ci * 330, 170 + ri * 72, 260, 52, **SUP)
-            ucv.add(key)
-
-    for a, b in links:
-        as_ = add(p, "ownedElements", B.el("UMLAssociation", p, name=""))
-        as_["end1"] = B.el("UMLAssociationEnd", as_, reference=ref(allm[a]), navigable="unspecified")
-        as_["end2"] = B.el("UMLAssociationEnd", as_, reference=ref(allm[b]), navigable="unspecified")
-        edge_view("UMLAssociationView", d, as_, allv[a], allv[b], a in ucv, b in ucv)
-    for s, label, t in rel:
-        if label == "généralisation":
-            g = add(p, "ownedElements", B.el("UMLGeneralization", p, name="",
-                                              source=ref(allm[s]), target=ref(allm[t])))
-            edge_view("UMLGeneralizationView", d, g, allv[s], allv[t])
-        else:
-            typ = "UMLInclude" if "include" in label else "UMLExtend"
-            m = add(allm[s], "ownedElements", B.el(typ, allm[s], name="",
-                                                    source=ref(allm[s]), target=ref(allm[t])))
-            edge_view(typ + "View", d, m, allv[s], allv[t], True, True)
-    d["defaultDiagram"] = True
-
-
 # ---------------------------------------------------------------------- 2. classes
 NS_TITLES = {
     "IdentiteEtAcces": "Identité et accès",
@@ -275,7 +212,11 @@ def parse_sequence(path):
             continue
         m = re.match(r"(participant|actor) (\w+) as (.+)", s)
         if m:
-            parts.append((m.group(2), m.group(3)))
+            parts.append((m.group(2), m.group(3), m.group(1)))
+            continue
+        m = re.match(r"Note over (\w+)(?:,(\w+))?: (.*)", s)
+        if m:
+            sink().append(("note", m.group(1), m.group(2) or m.group(1), m.group(3)))
             continue
         m = re.match(r"(loop|alt|opt)\b ?(.*)", s)
         if m:
@@ -304,10 +245,12 @@ def build_sequence(pkg, path, title):
                                          showActivation=False, showSequenceNumber=True))
     SP, W, STEP, TOP0 = 200, 160, 40, 110
     life_m, xs = {}, {}
-    for i, (pid, label) in enumerate(parts):
+    for i, (pid, label, kind) in enumerate(parts):
         life_m[pid] = add(inter, "participants", B.el("UMLLifeline", inter, name=label))
+        if kind == "actor":
+            life_m[pid]["stereotype"] = "actor"
         xs[pid] = 60 + i * SP + W // 2
-    st = {"slot": 0, "msgs": [], "frags": [], "n": 0}
+    st = {"slot": 0, "msgs": [], "frags": [], "notes": [], "n": 0}
 
     def walk(its, depth):
         for it in its:
@@ -315,6 +258,10 @@ def build_sequence(pkg, path, title):
                 _, a, b, text, reply = it
                 st["msgs"].append((a, b, text, reply, TOP0 + st["slot"] * STEP))
                 st["slot"] += 2 if a == b else 1
+                continue
+            if it[0] == "note":
+                st["notes"].append((it[1], it[2], it[3], TOP0 + st["slot"] * STEP - 12))
+                st["slot"] += 2
                 continue
             f = it[1]
             top = TOP0 + st["slot"] * STEP - 14
@@ -325,18 +272,17 @@ def build_sequence(pkg, path, title):
                                               interactionOperator=f["kind"]))
             bounds = []
             for op in f["ops"]:
-                om = add(fm, "operands", B.el("UMLInteractionOperand", fm, name=op["guard"],
-                                              guard=op["guard"]))
-                start = TOP0 + st["slot"] * STEP - 14
+                om = add(fm, "operands", B.el("UMLInteractionOperand", fm, name=op["guard"], guard=op["guard"]))
+                start = TOP0 + st["slot"] * STEP - 32  # séparateur à mi-chemin du message précédent
                 walk(op["items"], depth + 1)
                 st["slot"] += 1
-                bounds.append((om, start, TOP0 + st["slot"] * STEP - 24))
-            st["frags"].append((fm, depth, top, TOP0 + st["slot"] * STEP - 24, bounds))
+                bounds.append((om, op["guard"], start))
+            st["frags"].append((fm, depth, top, TOP0 + st["slot"] * STEP - 24, bounds, f["kind"]))
 
     walk(items, 0)
     total = TOP0 + st["slot"] * STEP + 40
     lps = {}
-    for i, (pid, _) in enumerate(parts):
+    for i, (pid, _, _) in enumerate(parts):
         lv = view("UMLSeqLifelineView", d, life_m[pid], 60 + i * SP, 40, W, total - 40)
         lp = B.el("UMLLinePartView", lv, model=ref(life_m[pid]), font=FONT,
                   left=xs[pid], top=75, width=1, height=total - 75)
@@ -344,9 +290,34 @@ def build_sequence(pkg, path, title):
         lv["linePart"] = ref(lp)
         lps[pid] = lp
     right = 60 + (len(parts) - 1) * SP + W
-    for fm, depth, top, bottom, _bounds in sorted(st["frags"], key=lambda t: t[1]):
+    for fm, depth, top, bottom, bounds, kind in sorted(st["frags"], key=lambda t: t[1]):
         fx, fw = 30 + depth * 12, right - 2 * depth * 12
-        view("UMLCombinedFragmentView", d, fm, fx, int(top), fw, int(bottom - top))
+        top, bottom = int(top), int(bottom)
+        fv = view("UMLCombinedFragmentView", d, fm, fx, top, fw, bottom - top, parentStyle=False)
+        # structure attendue par StarUML : étiquettes + compartiment d'opérandes à hauteurs explicites,
+        # sinon il recrée des opérandes de hauteur minimale et les séparateurs tombent au mauvais endroit
+        name_l = B.el("LabelView", fv, font=FONT, parentStyle=True, left=fx + 34, top=top + 5, width=60,
+                      height=13, text=fm["name"])
+        kind_l = B.el("LabelView", fv, font="Arial;13;1", parentStyle=True, left=fx + 5, top=top + 5, width=25,
+                      height=13, text=kind)
+        ctop = top + 23
+        comp = B.el("UMLInteractionOperandCompartmentView", fv, model=ref(fm), font=FONT, parentStyle=True,
+                    left=fx, top=ctop, width=fw, height=bottom - ctop)
+        edges_y = [ctop] + [int(b[2]) for b in bounds[1:]] + [bottom]
+        comp["subViews"] = []
+        for i, (om, guard, _) in enumerate(bounds):
+            ov = B.el("UMLInteractionOperandView", comp, model=ref(om), font=FONT, parentStyle=True,
+                      left=fx, top=edges_y[i], width=fw, height=edges_y[i + 1] - edges_y[i])
+            gl = B.el("LabelView", ov, font=FONT, parentStyle=True, left=fx + 20, top=edges_y[i] + 8,
+                      width=200, height=13, text="[%s]" % guard if guard else "")
+            ov["subViews"] = [gl]
+            ov["guardLabel"] = ref(gl)
+            comp["subViews"].append(ov)
+        fv["subViews"] = [name_l, kind_l, comp]
+        fv["nameLabel"], fv["frameTypeLabel"], fv["operandCompartment"] = ref(name_l), ref(kind_l), ref(comp)
+    for a, b, text, y in st["notes"]:
+        x0, x1 = min(xs[a], xs[b]) - 80, max(xs[a], xs[b]) + 80
+        note(d, text, x0, y, x1 - x0, 40)
     for a, b, text, reply, y in st["msgs"]:
         m = add(inter, "messages", B.el("UMLMessage", inter, name=text, source=ref(life_m[a]),
                                         target=ref(life_m[b]),
@@ -358,62 +329,6 @@ def build_sequence(pkg, path, title):
             pts = "%d:%d;%d:%d" % (xs[a], y, xs[b], y)
         d["ownedViews"].append(B.el("UMLSeqMessageView", d, model=ref(m), tail=ref(lps[a]),
                                     head=ref(lps[b]), font=FONT, points=pts))
-    return d
-
-
-# ---------------------------------------------------------------------- 4. activité
-ACT = {  # id: (type, libellé, x, y)
-    "START": ("init", "", 700, 20),
-    "LOAD": ("act", "Charger les configurations de collecte actives", 590, 80),
-    "DUE": ("dec", "Collecte à échéance ?", 600, 160),
-    "WAIT": ("act", "Attendre la prochaine échéance planifiée", 150, 175),
-    "MODE": ("dec", "Mode de collecte ?", 620, 290),
-    "AGENT": ("act", "Interroger l'agent de collecte", 420, 400),
-    "SNMP": ("act", "Exécuter la requête SNMP", 760, 400),
-    "RESULT": ("dec", "Collecte réussie ?", 620, 500),
-    "FAILURE": ("act", "Enregistrer l'échec", 200, 520),
-    "RETRY": ("dec", "Tentatives restantes ?", 190, 400),
-    "TECH_ALERT": ("act", "Créer ou mettre à jour une alerte technique", 130, 650),
-    "NORMALIZE": ("act", "Valider et normaliser les valeurs", 940, 520),
-    "SAVE": ("act", "Enregistrer les métriques", 940, 600),
-    "EVALUATE": ("act", "Évaluer les règles applicables", 940, 680),
-    "EXCEEDED": ("dec", "Seuil dépassé pendant la durée configurée ?", 940, 760),
-    "UPSERT_ALERT": ("act", "Créer ou mettre à jour l'alerte", 1260, 780),
-    "MAINTENANCE": ("dec", "Maintenance active ?", 1260, 880),
-    "SUPPRESS": ("act", "Journaliser l'alerte sans notification", 1100, 1010),
-    "NOTIFY": ("act", "Envoyer les notifications e-mail", 1420, 1010),
-    "ACTIVE_ALERT": ("dec", "Une alerte active existe ?", 700, 880),
-    "AUTO_RESOLVE": ("dec", "Résolution automatique activée ?", 700, 1010),
-    "RESOLVE": ("act", "Résoudre automatiquement l'alerte", 420, 1110),
-    "RESOLUTION_EMAIL": ("act", "Notifier le retour à la normale", 420, 1190),
-    "NEXT": ("act", "Calculer la prochaine exécution selon l'intervalle configuré", 740, 1280),
-}
-
-
-def build_activity(pkg):
-    txt = (SRC / "04-activities/metric-collection.mmd").read_text(encoding="utf8")
-    edges = [(m.group(1), m.group(3), m.group(2) or "")
-             for m in re.finditer(r"^\s*(\w+) (?:-- (\w+) )?--> (\w+)\s*$", txt, re.M)]
-    act = add(pkg, "ownedElements", B.el("UMLActivity", pkg, name="Collecte des métriques"))
-    d = add(act, "ownedElements", B.el("UMLActivityDiagram", act,
-                                         name="AD-C01 Collecte planifiée des métriques"))
-    nodes, views = {}, {}
-    for k, (t, label, x, y) in ACT.items():
-        if t == "init":
-            n = add(act, "nodes", B.el("UMLInitialNode", act, name=""))
-            views[k] = view("UMLControlNodeView", d, n, x, y, 20, 20)
-        elif t == "dec":
-            n = add(act, "nodes", B.el("UMLDecisionNode", act, name=label))
-            views[k] = view("UMLControlNodeView", d, n, x, y, 150, 60)
-            note(d, label, x - 175, y - 8, 160, 44, views[k])
-        else:
-            n = add(act, "nodes", B.el("UMLAction", act, name=label))
-            views[k] = view("UMLActionView", d, n, x, y, 230, 50)
-        nodes[k] = n
-    for s, t, g in edges:
-        f = add(act, "edges", B.el("UMLControlFlow", act, name="", source=ref(nodes[s]),
-                                   target=ref(nodes[t]), guard=g))
-        edge_view("UMLControlFlowView", d, f, views[s], views[t])
     return d
 
 
@@ -523,7 +438,9 @@ def build_deployment(pkg):
         views[key] = view("UMLNodeView", d, nodes[key], x, y, w, h, **SUP)
 
     def art(key, name, ster, x, y, w=210, h=50):
-        nodes[key] = add(p, "ownedElements", B.el("UMLArtifact", p, name=name, stereotype=ster))
+        nodes[key] = add(p, "ownedElements", B.el("UMLArtifact", p, name=name))
+        if ster != "artifact":
+            nodes[key]["stereotype"] = ster
         views[key] = view("UMLArtifactView", d, nodes[key], x, y, w, h, **SUP)
 
     node("CLIENT", "Poste Administrateur ou NOC", "device", 20, 40, 300, 160)
@@ -532,7 +449,7 @@ def build_deployment(pkg):
     node("SITE", "Site supervisé 1..*", "node", 1130, 40, 380, 560)
     node("HOST", "Serveur compatible", "device", 1160, 100, 320, 160)
     node("SMTP", "Serveur e-mail", "node externe", 1130, 700, 380, 100)
-    art("BROWSER", "Navigateur Web", "executionEnvironment", 65, 110)
+    node("BROWSER", "Navigateur Web", "executionEnvironment", 50, 95, 240, 80)
     art("FRONTEND", "Application Web", "artifact", 450, 100)
     art("API", "API Backend", "artifact", 740, 100)
     art("WORKER", "Workers de collecte", "artifact", 740, 270)
@@ -575,22 +492,88 @@ def build_packages(pkg):
 
 
 # ---------------------------------------------------------------------------- main
+VARIANTES = [  # (dossier, constructeur, source Mermaid, identifiant, titre, options)
+    ("Cas d'utilisation", "uc", "01-use-cases/global-use-cases.mmd", "UC-V01",
+     "Cas d'utilisation global (proposition initiale)", {"secondary": {"source", "smtp"}}),
+    ("Cas d'utilisation", "uc", "01-use-cases/validated-global-use-cases.mmd", "UC-V02",
+     "Cas d'utilisation global validé", {}),
+    ("Cas d'utilisation", "uc", "01-use-cases/complete-global-use-cases.mmd", "UC-V03",
+     "Cas d'utilisation global complet", {}),
+    ("Cas d'utilisation", "uc", "01-use-cases/complete-reader-use-cases.mmd", "UC-V04",
+     "Lecteur — consultation", {}),
+    ("Cas d'utilisation", "uc", "01-use-cases/monitoring-use-cases.mmd", "UC-V05",
+     "Opérateur NOC — supervision et incidents", {}),
+    ("Cas d'utilisation", "uc", "01-use-cases/complete-noc-use-cases.mmd", "UC-V06",
+     "Opérateur NOC — cas complets", {}),
+    ("Cas d'utilisation", "uc", "01-use-cases/administration-use-cases.mmd", "UC-V07",
+     "Administrateur — administration globale", {}),
+    ("Cas d'utilisation", "uc", "01-use-cases/complete-admin-use-cases.mmd", "UC-V08",
+     "Administrateur — cas complets", {}),
+    ("Classes", "class", "02-domain/domain-overview.mmd", "CD-V01", "Modèle conceptuel métier", {}),
+    ("Classes", "class", "02-domain/design-model.mmd", "CD-V02", "Modèle de conception (ports et adaptateurs)", {}),
+    ("Séquences", "seq", "03-sequences/collect-measure-and-open-alert.mmd", "SD-V01",
+     "Collecter une mesure et ouvrir une alerte", {}),
+    ("Séquences", "seq", "03-sequences/acknowledge-and-resolve-alert.mmd", "SD-V02",
+     "Acquitter et résoudre une alerte", {}),
+    ("Activités", "act", "04-activities/incident-lifecycle.mmd", "AD-V01", "Cycle de vie d'un incident", {}),
+    ("États", "state", "05-states/alert-state.mmd", "SM-V01", "États d'une alerte (proposition initiale)", {}),
+    ("Composants", "comp", "06-components/components.mmd", "CP-V01", "Composants (proposition initiale)", {}),
+    ("Déploiement", "deploy", "07-deployment/deployment-current.mmd", "DP-V01", "Déploiement actuel (développement)", {}),
+    ("Déploiement", "deploy", "07-deployment/deployment-target.mmd", "DP-V02", "Déploiement cible (proposition initiale)", {}),
+    ("C4", "c4", "09-c4/context.mmd", "C4-01", "Contexte système", {}),
+    ("C4", "c4", "09-c4/containers.mmd", "C4-02", "Conteneurs", {}),
+]
+
+
 def main():
-    proj = B.el("Project", None, name="Trans-DIC1 — modèle cible (jeu canonique)")
+    sys.modules.setdefault("generate_cible_mdj", sys.modules[__name__])  # un seul compteur d'identifiants
+    import mdj_extra as X
+
+    proj = B.el("Project", None, name="Trans-DIC1 — modèles UML")
     model = add(proj, "ownedElements", B.el("UMLModel", proj, name="Trans-DIC1 — architecture cible"))
-    build_usecase(model)
-    build_classes(model)
-    seq = package(model, "Vue dynamique (séquences)")
+    canon = package(model, "1. Jeu canonique (validé)")
+    X.build_uc_generic(package(canon, "Vue des cas d'utilisation"), "01-use-cases/trans-dic1-use-cases.mmd",
+                       "UC-C01", "Cas d'utilisation — Trans-DIC1 (cible)", secondary={"EMAIL"})
+    build_classes(canon)
+    seq = package(canon, "Vue dynamique (séquences)")
     build_sequence(seq, "03-sequences/collection-and-alert.mmd",
                    "SD-C01 Collecte configurable et évaluation des alertes")
     build_sequence(seq, "03-sequences/alert-handling.mmd",
                    "SD-C02 Prise en charge, assignation et résolution d'une alerte")
-    dyn = package(model, "Vue dynamique (activités et états)")
-    build_activity(dyn)
+    dyn = package(canon, "Vue dynamique (activités et états)")
+    X.build_activity_generic(dyn, "04-activities/metric-collection.mmd", "AD-C01",
+                             "Collecte planifiée des métriques")
     build_states(dyn)
-    build_components(model)
-    build_deployment(model)
-    build_packages(model)
+    build_components(canon)
+    build_deployment(canon)
+    build_packages(canon)
+
+    var = package(model, "2. Variantes antérieures (traçabilité)")
+    folders = {}
+    for folder, kind, path, did, title, opts in VARIANTES:
+        f = folders.get(folder) or folders.setdefault(folder, package(var, folder))
+        if kind == "uc":
+            X.build_uc_generic(f, path, did, title, **opts)
+        elif kind == "class":
+            X.build_classes_generic(f, path, did, title)
+        elif kind == "seq":
+            build_sequence(f, path, "%s %s" % (did, title))
+        elif kind == "act":
+            X.build_activity_generic(f, path, did, title)
+        elif kind == "state":
+            X.build_states_generic(f, path, did, title)
+        elif kind == "comp":
+            X.build_components_generic(f, path, did, title)
+        elif kind == "deploy":
+            X.build_deployment_beta(f, path, did, title)
+        elif kind == "c4":
+            X.build_c4(f, path, did, title)
+    X.build_erd(proj, "08-data/erd-target.mmd", "ER-01", "Modèle de données cible")
+
+    first = [e for e in canon["ownedElements"][0]["ownedElements"][0]["ownedElements"]
+             if e["_type"] == "UMLUseCaseDiagram"]
+    if first:
+        first[0]["defaultDiagram"] = True
     OUT.write_text(json.dumps(proj, ensure_ascii=False, indent=2), encoding="utf8")
     print("écrit", OUT, "-", B.n, "objets")
 
