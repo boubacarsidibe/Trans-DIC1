@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import apiClient from "../api/client.js";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext.jsx";
 
 function LoginPage() {
   const [username, setUsername] = useState("");
@@ -8,19 +8,21 @@ function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated, login } = useAuth();
+  const destination = location.state?.from?.pathname ?? "/tableau-de-bord";
+
+  if (isAuthenticated) {
+    return <Navigate to={destination} replace />;
+  }
 
   async function submit(event) {
     event.preventDefault();
     setLoading(true);
     setError("");
     try {
-      const { data } = await apiClient.post("/auth/login", {
-        username,
-        password,
-      });
-      localStorage.setItem("trans-dic1.access-token", data.accessToken);
-      localStorage.setItem("trans-dic1.role", data.role);
-      navigate("/tableau-de-bord");
+      await login(username.trim(), password);
+      navigate(destination, { replace: true });
     } catch {
       setError("Identifiants invalides ou service indisponible.");
     } finally {

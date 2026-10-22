@@ -1,4 +1,9 @@
 import axios from "axios";
+import {
+  SESSION_EXPIRED_EVENT,
+  clearSession,
+  readSession,
+} from "../auth/session.js";
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api/v1",
@@ -9,11 +14,23 @@ const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
-  const token = globalThis.localStorage?.getItem("trans-dic1.access-token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const session = readSession();
+  if (session) {
+    config.headers.Authorization = `Bearer ${session.accessToken}`;
   }
   return config;
 });
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const isLogin = error.config?.url?.endsWith("/auth/login");
+    if (error.response?.status === 401 && !isLogin) {
+      clearSession();
+      globalThis.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    }
+    return Promise.reject(error);
+  },
+);
 
 export default apiClient;

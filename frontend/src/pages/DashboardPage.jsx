@@ -6,7 +6,6 @@ function DashboardPage() {
   const [metricError, setMetricError] = useState("");
 
   useEffect(() => {
-    if (!localStorage.getItem("trans-dic1.access-token")) return;
     apiClient
       .get("/metrics/latest")
       .then(({ data }) => setMetrics(data))

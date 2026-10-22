@@ -1,11 +1,22 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { useAuth } from "./AuthContext.jsx";
 
-function ProtectedRoute() {
-  const authenticationRequired = import.meta.env.VITE_AUTH_REQUIRED === "true";
-  const token = globalThis.localStorage?.getItem("trans-dic1.access-token");
+function ProtectedRoute({ roles }) {
+  const { isAuthenticated, role } = useAuth();
+  const location = useLocation();
 
-  if (authenticationRequired && !token) {
-    return <Navigate to="/connexion" replace />;
+  if (!isAuthenticated) {
+    return <Navigate to="/connexion" replace state={{ from: location }} />;
+  }
+
+  if (roles && !roles.includes(role)) {
+    return (
+      <main className="app-shell grid min-h-screen place-items-center px-6">
+        <p role="alert" className="text-slate-200">
+          Accès interdit : votre rôle ne permet pas de consulter cette page.
+        </p>
+      </main>
+    );
   }
 
   return <Outlet />;
