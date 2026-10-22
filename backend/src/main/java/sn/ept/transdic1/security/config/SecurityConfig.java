@@ -12,6 +12,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.DelegatingRequestMatcherHeaderWriter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
+import org.springframework.security.web.header.writers.StaticHeadersWriter;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
 
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,8 +48,37 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain chain(HttpSecurity h, JwtFilter f) throws Exception {
+    SecurityFilterChain chain(HttpSecurity h, JwtFilter f, LoginRateLimitFilter rateLimit)
+        throws Exception {
+        var docs =
+            new OrRequestMatcher(
+                PathPatternRequestMatcher.withDefaults().matcher("/swagger-ui/**"),
+                PathPatternRequestMatcher.withDefaults().matcher("/swagger-ui.html"));
         return h.csrf(c -> c.disable())
+            .headers(
+                headers ->
+                    headers
+                        .frameOptions(frame -> frame.deny())
+                        .httpStrictTransportSecurity(
+                            hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31_536_000))
+                        .referrerPolicy(r -> r.policy(ReferrerPolicy.NO_REFERRER))
+                        .permissionsPolicyHeader(p -> p.policy("camera=(), microphone=(), geolocation=()"))
+                        // API : aucune ressource n'est chargeable. Swagger UI (hors production)
+                        // a besoin de ses propres scripts et styles.
+                        .addHeaderWriter(
+                            new DelegatingRequestMatcherHeaderWriter(
+                                new NegatedRequestMatcher(docs),
+                                new StaticHeadersWriter(
+                                    "Content-Security-Policy",
+                                    "default-src 'none'; frame-ancestors 'none'; base-uri 'none'")))
+                        .addHeaderWriter(
+                            new DelegatingRequestMatcherHeaderWriter(
+                                docs,
+                                new StaticHeadersWriter(
+                                    "Content-Security-Policy",
+                                    "default-src 'self'; script-src 'self' 'unsafe-inline'; "
+                                        + "style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+                                        + "frame-ancestors 'none'"))))
             .cors(c -> {})
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(
@@ -67,6 +102,7 @@ public class SecurityConfig {
                         .permitAll()
                         .anyRequest()
                         .authenticated())
+            .addFilterBefore(rateLimit, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(f, UsernamePasswordAuthenticationFilter.class)
             .build();
     }

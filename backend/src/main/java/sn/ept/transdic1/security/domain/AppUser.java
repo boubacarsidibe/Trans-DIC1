@@ -1,6 +1,7 @@
 package sn.ept.transdic1.security.domain;
 
 import jakarta.persistence.*;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -28,6 +29,12 @@ public class AppUser {
   @Column(name = "created_at", nullable = false)
   private Instant createdAt;
 
+  @Column(name = "failed_login_attempts", nullable = false)
+  private int failedLoginAttempts;
+
+  @Column(name = "locked_until")
+  private Instant lockedUntil;
+
   protected AppUser() {}
 
   public AppUser(String u, String e, String p, Role r) {
@@ -54,5 +61,28 @@ public class AppUser {
 
   public boolean isActive() {
     return active;
+  }
+
+  public int getFailedLoginAttempts() {
+    return failedLoginAttempts;
+  }
+
+  public boolean isLocked(Instant now) {
+    return lockedUntil != null && now.isBefore(lockedUntil);
+  }
+
+  /** Enregistre un échec ; verrouille le compte dès le seuil atteint, de plus en plus longtemps. */
+  public void registerFailedLogin(Instant now, int threshold, Duration baseLock, Duration maxLock) {
+    failedLoginAttempts++;
+    if (failedLoginAttempts >= threshold) {
+      int doublings = Math.min(failedLoginAttempts - threshold, 20);
+      Duration lock = baseLock.multipliedBy(1L << doublings);
+      lockedUntil = now.plus(lock.compareTo(maxLock) > 0 ? maxLock : lock);
+    }
+  }
+
+  public void registerSuccessfulLogin() {
+    failedLoginAttempts = 0;
+    lockedUntil = null;
   }
 }

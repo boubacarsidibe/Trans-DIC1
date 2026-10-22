@@ -22,7 +22,8 @@ public class AuthController {
   @Operation(summary = "Se connecter", description = "Retourne un jeton JWT à envoyer ensuite dans l'en-tête Authorization: Bearer.")
   @SecurityRequirements
   @ApiResponse(responseCode = "400", description = "Requête invalide")
-  @ApiResponse(responseCode = "401", description = "Identifiants invalides")
+  @ApiResponse(responseCode = "401", description = "Identifiants invalides ou compte verrouillé (réponse identique par sécurité)")
+  @ApiResponse(responseCode = "429", description = "Trop de tentatives depuis cette adresse, voir l'en-tête Retry-After")
   @PostMapping("/login")
   TokenResponse login(@Valid @RequestBody LoginRequest request) {
     return service.login(request);
