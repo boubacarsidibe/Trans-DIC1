@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   createEquipment,
   deleteEquipment,
@@ -162,6 +163,15 @@ function EquipmentPage() {
                   >
                     Supprimer
                   </button>
+                  {role === "ADMIN" && (
+                    <Link
+                      to={`/equipements/${e.id}/collecte`}
+                      aria-label={`Configurer la collecte de ${e.name}`}
+                      className="rounded-lg border border-teal-400/60 px-3 py-1 text-sm text-teal-200"
+                    >
+                      Collecte
+                    </Link>
+                  )}
                 </div>
               )}
             </article>

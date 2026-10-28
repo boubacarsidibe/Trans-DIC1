@@ -21,6 +21,9 @@ function AppLayout() {
         <NavLink to="/equipements" className={linkClass}>
           Équipements
         </NavLink>
+        <NavLink to="/sites" className={linkClass}>
+          Sites
+        </NavLink>
         <NavLink to="/alertes" className={linkClass}>
           Alertes
         </NavLink>

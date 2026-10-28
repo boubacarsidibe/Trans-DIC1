@@ -7,8 +7,10 @@ import MaintenancesPage from "./pages/MaintenancesPage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
 import ReportsPage from "./pages/ReportsPage.jsx";
 import RulesPage from "./pages/RulesPage.jsx";
+import SitesPage from "./pages/SitesPage.jsx";
 import UsersPage from "./pages/UsersPage.jsx";
 import AlertsPage from "./pages/AlertsPage.jsx";
+import CollectionPage from "./pages/CollectionPage.jsx";
 import EquipmentPage from "./pages/EquipmentPage.jsx";
 
 function App() {
@@ -19,6 +21,7 @@ function App() {
         <Route element={<AppLayout />}>
           <Route path="/tableau-de-bord" element={<DashboardPage />} />
           <Route path="/equipements" element={<EquipmentPage />} />
+          <Route path="/sites" element={<SitesPage />} />
           <Route path="/alertes" element={<AlertsPage />} />
           <Route path="/maintenances" element={<MaintenancesPage />} />
           <Route path="/rapports" element={<ReportsPage />} />
@@ -26,6 +29,7 @@ function App() {
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route element={<ProtectedRoute roles={["ADMIN"]} />}>
             <Route path="/utilisateurs" element={<UsersPage />} />
+            <Route path="/equipements/:id/collecte" element={<CollectionPage />} />
           </Route>
         </Route>
       </Route>
