@@ -103,14 +103,16 @@ Source : historique git (`develop`, 41 commits d'avance sur `main`), code et doc
 | Collecte | Surveillance des agents silencieux : alerte de collecte critique, résolue seule à la prochaine mesure, réouverture avant archivage | ✅ | `AgentWatchdogService`, `CollectionAlertService`, `AgentWatchdogTests` |
 | Collecte | Collecte SNMP v2c et v3 planifiée (SNMP4J) : lecture des OID, stockage, évaluation des alertes, panne et reprise | ✅ | `SnmpCollectionService`, `Snmp4jClient`, `SnmpCollectionTests` (faux équipement UDP réel) |
 | Collecte | Configuration SNMP par équipement, secrets par référence `env:NOM` | ✅ | `SnmpConfigController`, `SnmpConfigApiTests` |
-| Collecte | Écran de configuration de la collecte | ⚪ | API prête, pas d'écran |
+| Collecte | Écran de configuration de la collecte SNMP et des agents | ⚪ | API prête, pas d'écran |
+| Équipements | Écran de gestion des sites | ⚪ | API prête (le formulaire d'équipement les utilise), pas d'écran dédié |
 | Alertes | Évaluation des seuils : confirmation, hystérésis, déduplication, réouverture, maintenance | ✅ | `AlertEvaluationService`, `AlertEvaluationTests` |
 | Alertes | API du cycle de vie : liste, détail et historique, prise en charge, assignation, résolution manuelle, archivage, suppression logique, audit | ✅ | `AlertController`, `AlertWorkflowService`, `AlertApiTests` |
 | Alertes | Écran des alertes (liste filtrable, actions selon le rôle, historique) | ✅ | `AlertsPage.jsx` |
 | Alertes | Administration des règles : seuil, durée de confirmation, hystérésis, portée (sites et équipements), audit | ✅ | `AlertRuleController`, `AlertRuleService`, `AlertRuleApiTests` |
 | Alertes | Maintenances : planification sur un site ou un équipement, annulation, état calculé, notifications supprimées pendant la fenêtre | ✅ | `MaintenanceController`, `MaintenanceService`, `MaintenanceApiTests` |
-| Alertes | Écran d'administration des règles | ⚪ | API prête, pas d'écran |
-| Utilisateurs | Écran d'administration des comptes | ⚪ | API prête, pas d'écran |
+| Alertes | Écran des règles (liste pour tous, création, modification, suppression pour les administrateurs, validation identique à l'API) | ✅ | `RulesPage.jsx` |
+| Alertes | Écran des maintenances (liste filtrable, planification, annulation) | ✅ | `MaintenancesPage.jsx` |
+| Utilisateurs | Écran d'administration des comptes (réservé aux administrateurs) | ✅ | `UsersPage.jsx` |
 | Notifications | E-mails à l'ouverture et à la résolution d'une alerte : événement, file en base, envoi différé, reprises bornées, préférences par utilisateur, aucun envoi pendant une maintenance | ✅ | `NotificationQueueService`, `NotificationDispatchService`, `NotificationTests` (serveur SMTP réel en mémoire) |
 | Notifications | Écran « Mes notifications » | ✅ | `NotificationsPage.jsx` |
 | Rapports | Rapports planifiés et exportés | ⚪ | entités créées, aucun service |
@@ -119,7 +121,7 @@ Source : historique git (`develop`, 41 commits d'avance sur `main`), code et doc
 | Temps réel | Flux SSE vers le tableau de bord | 🟡 | ADR-0006 |
 | Déploiement | Nginx, TLS, staging, production | ⚪ | prérequis externes ouverts |
 
-**Vérification faite pour ce dossier** : `./mvnw verify` sous Java 21 se termine par `BUILD SUCCESS` avec 234 tests backend sans échec (PostgreSQL 16 embarqué, sans Docker), seuils JaCoCo et Spotless passés. Côté frontend : 33 tests, couverture 92 %, lint sans erreur, build et audit des dépendances sans faille. La CI distante n'a pas été relancée.
+**Vérification faite pour ce dossier** : `./mvnw verify` sous Java 21 se termine par `BUILD SUCCESS` avec 234 tests backend sans échec (PostgreSQL 16 embarqué, sans Docker), seuils JaCoCo et Spotless passés. Côté frontend : 62 tests, couverture 92 %, lint sans erreur, build et audit des dépendances sans faille. La CI distante n'a pas été relancée.
 
 ### 3.2 Chronologie
 
@@ -503,7 +505,10 @@ Sévérité indépendante de l'état : `INFO`, `WARNING`, `CRITICAL`. Le code de
 | `/tableau-de-bord` | Tableau de bord : chiffres clés, statuts, alertes par sévérité, dernière mesure | ✅ |
 | `/equipements` | Liste, création, modification, suppression | ✅ |
 | `/alertes` | Alertes : liste, filtre par état, prise en charge, résolution, archivage, historique | ✅ |
+| `/regles` | Règles d'alerte : liste, création, modification, suppression | ✅ |
+| `/maintenances` | Maintenances : liste filtrable, planification, annulation | ✅ |
 | `/notifications` | Mes notifications : activation, sévérité minimale | ✅ |
+| `/utilisateurs` | Comptes : création, rôle, activation, mot de passe (administrateurs) | ✅ |
 | Métriques, rapports, administration | — | ⚪ maquettes dans `docs/design` |
 
 Les types TypeScript de l'API sont générés depuis `openapi.yaml`, pour éviter les écarts de contrat.

@@ -22,6 +22,7 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 - Module de collecte : enregistrement et révocation des agents par jeton, réception des mesures `POST /api/v1/agent/measures`, stockage puis évaluation.
 - Test de contrat qui vérifie que `docs/api/openapi.yaml` correspond à l'API réelle.
 - API du cycle de vie des alertes (`/api/v1/alertes`) : liste filtrable, détail avec historique, prise en charge, assignation, résolution manuelle, archivage, suppression logique, avec droits par rôle, transitions vérifiées et audit.
+- Écrans d'administration : règles d'alerte, maintenances et utilisateurs (réservé aux administrateurs), avec la même validation que l'API.
 - Écran des alertes dans l'interface : liste, filtre par état, actions selon le rôle, historique.
 - API d'administration des règles d'alerte (`/api/v1/regles-alertes`) : création, modification, suppression, portée par site ou équipement, validation du seuil de retour, audit.
 - API de gestion des sites (`/api/v1/sites`) : création, modification avec code immuable, suppression d'un site vide, audit. Le formulaire d'équipement liste les vrais sites au lieu de les déduire des équipements, ce qui permettait de choisir seulement des sites déjà occupés.
