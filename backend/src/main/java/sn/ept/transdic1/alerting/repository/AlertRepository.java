@@ -23,6 +23,16 @@ public interface AlertRepository
 
   boolean existsByRuleId(UUID ruleId);
 
+  /** Alerte de collecte active (sans règle) d'un équipement. */
+  Optional<Alert> findFirstByEquipmentIdAndTypeAndStateIn(
+      UUID equipmentId, AlertType type, Collection<AlertState> states);
+
+  /**
+   * Dernière alerte de collecte résolue, rouverte si l'agent se tait de nouveau avant archivage.
+   */
+  Optional<Alert> findFirstByEquipmentIdAndTypeAndStateOrderByResolvedAtDesc(
+      UUID equipmentId, AlertType type, AlertState state);
+
   /** Alertes dans ces états, par sévérité : {sévérité, total}. */
   @org.springframework.data.jpa.repository.Query(
       "select a.severity, count(a) from Alert a where a.state in :states group by a.severity")

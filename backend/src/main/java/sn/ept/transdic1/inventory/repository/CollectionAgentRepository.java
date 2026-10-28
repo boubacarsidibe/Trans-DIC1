@@ -10,6 +10,8 @@ public interface CollectionAgentRepository extends JpaRepository<CollectionAgent
 
   long countByStatus(AgentStatus status);
 
+  java.util.List<CollectionAgent> findByStatus(AgentStatus status);
+
   Optional<CollectionAgent> findByEquipmentIdAndStatus(UUID equipmentId, AgentStatus status);
 
   /** Agent actif présentant ce jeton (par empreinte) : authentification des envois de mesures. */

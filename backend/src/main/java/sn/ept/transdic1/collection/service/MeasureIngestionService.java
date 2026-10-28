@@ -12,6 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 import sn.ept.transdic1.alerting.domain.AlertEventType;
 import sn.ept.transdic1.alerting.service.AlertChange;
 import sn.ept.transdic1.alerting.service.AlertEvaluationService;
+import sn.ept.transdic1.alerting.service.CollectionAlertService;
 import sn.ept.transdic1.collection.dto.IngestionResult;
 import sn.ept.transdic1.collection.dto.MeasureInput;
 import sn.ept.transdic1.inventory.repository.EquipmentRepository;
@@ -34,16 +35,19 @@ public class MeasureIngestionService {
   private final EquipmentRepository equipments;
   private final MetricRepository metrics;
   private final AlertEvaluationService evaluation;
+  private final CollectionAlertService collectionAlerts;
   private final Clock clock;
 
   public MeasureIngestionService(
       EquipmentRepository equipments,
       MetricRepository metrics,
       AlertEvaluationService evaluation,
+      CollectionAlertService collectionAlerts,
       Clock clock) {
     this.equipments = equipments;
     this.metrics = metrics;
     this.evaluation = evaluation;
+    this.collectionAlerts = collectionAlerts;
     this.clock = clock;
   }
 
@@ -98,6 +102,11 @@ public class MeasureIngestionService {
           resolved++;
         }
       }
+    }
+    // Une mesure exploitable prouve que la source répond : l'alerte de collecte éventuelle se
+    // résout.
+    if (evaluated > 0 && collectionAlerts.reportRecovery(equipment, clock.instant()).isPresent()) {
+      resolved++;
     }
     return new IngestionResult(ordered.size(), evaluated, opened, resolved);
   }
