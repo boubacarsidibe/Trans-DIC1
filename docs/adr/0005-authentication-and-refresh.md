@@ -32,5 +32,6 @@ Les sources consultées convergent : jeton d'accès de courte durée gardé en m
 - Le flux est décrit dans [token-refresh.mmd](../architecture/diagrams/03-sequences/token-refresh.mmd).
 - Mise en œuvre : endpoints `POST /api/v1/auth/refresh` et `/logout` ; CORS avec identifiants pour les seules origines configurées ; côté navigateur, un renouvellement à la fois (`refresh.js`) pour ne pas déclencher la détection de réutilisation, relance unique d'une requête après un 401, renouvellement 30 secondes avant l'expiration.
 - Limite connue : deux onglets qui renouvellent exactement au même instant peuvent faire détecter une réutilisation et fermer la session. Une courte période de grâce pourra être ajoutée si cela gêne le NOC.
-- Non fait : nettoyage des sessions expirées, nombre maximal de sessions par utilisateur, limitation de débit de `/refresh`.
+- Fait aussi : limitation de débit de `/refresh` (trois fois le seuil de connexion, par adresse) et suppression quotidienne des sessions expirées depuis plus de 7 jours (`SessionCleanupService`).
+- Non fait : nombre maximal de sessions par utilisateur.
 - Sources : [OpenReplay — cookies vs localStorage](https://blog.openreplay.com/cookies-vs-localstorage-jwt-auth/), [checklist de stockage des jetons](https://frontendchecklist.io/rules/security/token-storage-security), [gestion de session et révocation](https://guptadeepak.com/ciam-compass/best-practices/session-management/).

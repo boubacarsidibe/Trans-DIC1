@@ -16,4 +16,11 @@ public interface UserSessionRepository extends JpaRepository<UserSession, UUID> 
   java.util.List<UserSession> findByFamilyIdAndRevokedAtIsNull(UUID familyId);
 
   long countByUserIdAndRevokedAtIsNull(UUID userId);
+
+  /** Supprime les sessions expirées avant la date donnée (nettoyage quotidien). */
+  @org.springframework.data.jpa.repository.Modifying
+  @org.springframework.data.jpa.repository.Query(
+      "delete from UserSession s where s.expiresAt < :before")
+  int deleteExpiredBefore(
+      @org.springframework.data.repository.query.Param("before") java.time.Instant before);
 }
