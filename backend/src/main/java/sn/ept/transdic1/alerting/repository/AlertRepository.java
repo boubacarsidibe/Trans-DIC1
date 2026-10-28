@@ -21,6 +21,14 @@ public interface AlertRepository
   Optional<Alert> findFirstByEquipmentIdAndRuleIdAndStateOrderByResolvedAtDesc(
       UUID equipmentId, UUID ruleId, AlertState state);
 
+  boolean existsByRuleId(UUID ruleId);
+
+  /** Alertes dans ces états, par sévérité : {sévérité, total}. */
+  @org.springframework.data.jpa.repository.Query(
+      "select a.severity, count(a) from Alert a where a.state in :states group by a.severity")
+  java.util.List<Object[]> countBySeverityForStates(
+      @org.springframework.data.repository.query.Param("states") Collection<AlertState> states);
+
   Page<Alert> findByState(AlertState state, Pageable pageable);
 
   Page<Alert> findByEquipmentIdOrderByTriggeredAtDesc(UUID equipmentId, Pageable pageable);

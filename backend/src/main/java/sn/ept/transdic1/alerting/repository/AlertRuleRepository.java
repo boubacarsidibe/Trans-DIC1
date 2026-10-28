@@ -8,6 +8,10 @@ import sn.ept.transdic1.alerting.domain.*;
 public interface AlertRuleRepository extends JpaRepository<AlertRule, UUID> {
   List<AlertRule> findByActiveTrue();
 
+  boolean existsByName(String name);
+
+  boolean existsByNameAndIdNot(String name, java.util.UUID id);
+
   /** Règles actives sur cet indicateur qui visent l'équipement lui-même ou son site. */
   @org.springframework.data.jpa.repository.Query(
       "select r from AlertRule r where r.active = true and r.metricType = :metricType and ("
