@@ -197,6 +197,34 @@ class AgentWatchdogTests {
   }
 
   @Test
+  void aSilentAgentMarksTheEquipmentDownAndAMeasureBringsItBackUp() {
+    lastSpokeAgo(Duration.ofMinutes(20));
+
+    watchdog.checkAgents();
+    assertThat(equipments.findById(equipment.getId()).orElseThrow().getStatus())
+        .isEqualTo(EquipmentStatus.DOWN);
+
+    sendMeasure();
+    assertThat(equipments.findById(equipment.getId()).orElseThrow().getStatus())
+        .isEqualTo(EquipmentStatus.UP);
+  }
+
+  @Test
+  void anEquipmentInMaintenanceKeepsItsStatusWhateverHappens() {
+    em.flush();
+    jdbc.update(
+        "UPDATE equipment SET operational_status = 'MAINTENANCE' WHERE id = ?", equipment.getId());
+    em.clear();
+    lastSpokeAgo(Duration.ofMinutes(20));
+
+    watchdog.checkAgents();
+    sendMeasure();
+
+    assertThat(equipments.findById(equipment.getId()).orElseThrow().getStatus())
+        .isEqualTo(EquipmentStatus.MAINTENANCE);
+  }
+
+  @Test
   void aMeasureWithoutAnyAlertChangesNothing() {
     sendMeasure();
     assertThat(alertsOf()).isEmpty();

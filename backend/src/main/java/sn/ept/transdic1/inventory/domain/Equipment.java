@@ -84,6 +84,30 @@ public class Equipment {
     this.site = site;
   }
 
+  /**
+   * La collecte ne répond plus : l'équipement passe hors service, sauf s'il est déjà en maintenance
+   * ou déjà hors service. Retourne vrai si le statut a changé.
+   */
+  public boolean markUnreachable() {
+    if (status == EquipmentStatus.MAINTENANCE || status == EquipmentStatus.DOWN) {
+      return false;
+    }
+    status = EquipmentStatus.DOWN;
+    return true;
+  }
+
+  /**
+   * Une mesure vient d'arriver : un équipement donné hors service ou de statut inconnu repasse en
+   * service. Un statut dégradé ou de maintenance, décidé ailleurs, n'est pas touché.
+   */
+  public boolean markReachable() {
+    if (status != EquipmentStatus.DOWN && status != EquipmentStatus.UNKNOWN) {
+      return false;
+    }
+    status = EquipmentStatus.UP;
+    return true;
+  }
+
   public UUID getId() {
     return id;
   }

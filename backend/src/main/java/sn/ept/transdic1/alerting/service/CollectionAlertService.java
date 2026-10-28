@@ -50,6 +50,7 @@ public class CollectionAlertService {
   /** Ouvre l'alerte de collecte, ou la rouvre si elle vient d'être résolue. Idempotent. */
   @Transactional
   public Optional<AlertChange> reportFailure(Equipment equipment, String message, Instant at) {
+    equipment.markUnreachable();
     if (alerts
         .findFirstByEquipmentIdAndTypeAndStateIn(equipment.getId(), AlertType.COLLECTION, ACTIVE)
         .isPresent()) {

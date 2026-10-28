@@ -103,10 +103,13 @@ public class MeasureIngestionService {
         }
       }
     }
-    // Une mesure exploitable prouve que la source répond : l'alerte de collecte éventuelle se
-    // résout.
-    if (evaluated > 0 && collectionAlerts.reportRecovery(equipment, clock.instant()).isPresent()) {
-      resolved++;
+    // Une mesure exploitable prouve que la source répond : l'équipement repasse en service et
+    // l'alerte de collecte éventuelle se résout.
+    if (evaluated > 0) {
+      equipment.markReachable();
+      if (collectionAlerts.reportRecovery(equipment, clock.instant()).isPresent()) {
+        resolved++;
+      }
     }
     return new IngestionResult(ordered.size(), evaluated, opened, resolved);
   }
