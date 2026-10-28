@@ -24,6 +24,9 @@ function AppLayout() {
         <NavLink to="/alertes" className={linkClass}>
           Alertes
         </NavLink>
+        <NavLink to="/notifications" className={linkClass}>
+          Mes notifications
+        </NavLink>
         <span className="ml-auto text-xs text-slate-400">Rôle : {role}</span>
         <button
           type="button"
