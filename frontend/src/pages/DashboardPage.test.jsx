@@ -1,14 +1,16 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App.jsx";
 import apiClient from "../api/client.js";
+import { subscribe } from "../api/live.js";
 import { AuthProvider } from "../auth/AuthContext.jsx";
 import { clearSession, saveSession } from "../auth/session.js";
 
 vi.mock("../api/client.js", () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
 }));
+vi.mock("../api/live.js", () => ({ subscribe: vi.fn(() => () => {}) }));
 vi.mock("../auth/refresh.js", () => ({ refreshSession: vi.fn() }));
 
 const overview = {
@@ -83,5 +85,23 @@ describe("tableau de bord", () => {
       "chiffres clés sont temporairement indisponibles",
     );
     expect(screen.getByRole("heading", { name: "Trans-DIC1" })).toBeInTheDocument();
+  });
+
+  it("met les chiffres à jour quand une alerte change", async () => {
+    let active = 4;
+    apiClient.get.mockImplementation(async (url) =>
+      url === "/vue-ensemble"
+        ? { data: { ...overview, alerts: { ...overview.alerts, active } } }
+        : { data: [] },
+    );
+    renderDashboard();
+    expect((await screen.findByText("Alertes actives")).nextSibling).toHaveTextContent("4");
+
+    active = 5;
+    subscribe.mock.calls.at(-1)[0]({ name: "alerts", data: "{}" });
+
+    await waitFor(() =>
+      expect(screen.getByText("Alertes actives").nextSibling).toHaveTextContent("5"),
+    );
   });
 });

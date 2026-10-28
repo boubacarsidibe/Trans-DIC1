@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import apiClient from "../api/client.js";
+import { useLiveUpdates } from "../hooks/useLiveUpdates.js";
 
 const STATUS_LABELS = {
   UP: "En service",
@@ -23,7 +24,7 @@ function DashboardPage() {
   const [overview, setOverview] = useState(null);
   const [overviewError, setOverviewError] = useState("");
 
-  useEffect(() => {
+  const load = useCallback(() => {
     apiClient
       .get("/metrics/latest")
       .then(({ data }) => setMetrics(Array.isArray(data) ? data : []))
@@ -32,11 +33,26 @@ function DashboardPage() {
       );
     apiClient
       .get("/vue-ensemble")
-      .then(({ data }) => setOverview(data?.equipments ? data : null))
+      .then(({ data }) => {
+        setOverview(data?.equipments ? data : null);
+        setOverviewError("");
+      })
       .catch(() =>
         setOverviewError("Les chiffres clés sont temporairement indisponibles."),
       );
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // Les chiffres suivent les alertes en direct ; un rafraîchissement régulier couvre le reste
+  // (statuts d'équipements, mesures) et un flux coupé.
+  const live = useLiveUpdates(load);
+  useEffect(() => {
+    const timer = setInterval(load, 60_000);
+    return () => clearInterval(timer);
+  }, [load]);
 
   const equipments = overview?.equipments;
   const alerts = overview?.alerts;
@@ -76,6 +92,9 @@ function DashboardPage() {
             </h1>
             <p className="mt-3 max-w-2xl text-slate-400">
               Centre de supervision des infrastructures réseau et serveurs.
+              <span className={`ml-3 text-xs ${live ? "text-emerald-300" : "text-slate-500"}`}>
+                ● {live ? "En direct" : "Hors ligne"}
+              </span>
             </p>
           </div>
           {alerts && (

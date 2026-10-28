@@ -12,6 +12,7 @@ import {
 } from "../api/alerts.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { canAdministerAlerts, canHandleAlerts } from "../auth/permissions.js";
+import { useLiveUpdates } from "../hooks/useLiveUpdates.js";
 
 const severityClass = {
   CRITICAL: "bg-red-500/20 text-red-200",
@@ -49,6 +50,20 @@ function AlertsPage() {
   useEffect(() => {
     load(page, state);
   }, [load, page, state]);
+
+  // Une alerte change ailleurs : la liste et l'historique ouvert se rechargent sans action.
+  const live = useLiveUpdates(
+    useCallback(async () => {
+      await load(page, state);
+      if (detail) {
+        try {
+          setDetail(await getAlert(detail.alert.id));
+        } catch {
+          setDetail(null);
+        }
+      }
+    }, [load, page, state, detail]),
+  );
 
   async function act(action, alert, success) {
     setNotice("");
@@ -90,6 +105,12 @@ function AlertsPage() {
         <h1 className="text-3xl font-semibold text-white">Alertes</h1>
         <p className="mt-2 text-slate-400">
           Incidents détectés sur les équipements, du plus récent au plus ancien.
+          <span
+            className={`ml-3 text-xs ${live ? "text-emerald-300" : "text-slate-500"}`}
+            title={live ? "Mise à jour en direct" : "Reconnexion au flux en direct…"}
+          >
+            ● {live ? "En direct" : "Hors ligne"}
+          </span>
         </p>
 
         <label className="mt-6 block text-sm text-slate-300">

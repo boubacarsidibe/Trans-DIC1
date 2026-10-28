@@ -12,6 +12,7 @@ vi.mock("./api/client.js", () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
 }));
 
+vi.mock("./api/live.js", () => ({ subscribe: vi.fn(() => () => {}) }));
 vi.mock("./auth/refresh.js", () => ({ refreshSession: vi.fn() }));
 
 function renderApp(path = "/") {

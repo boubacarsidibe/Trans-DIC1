@@ -4,12 +4,14 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App.jsx";
 import apiClient from "../api/client.js";
+import { subscribe } from "../api/live.js";
 import { AuthProvider } from "../auth/AuthContext.jsx";
 import { clearSession, saveSession } from "../auth/session.js";
 
 vi.mock("../api/client.js", () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
 }));
+vi.mock("../api/live.js", () => ({ subscribe: vi.fn(() => () => {}) }));
 vi.mock("../auth/refresh.js", () => ({ refreshSession: vi.fn() }));
 
 const alert = (overrides = {}) => ({
@@ -190,5 +192,36 @@ describe("page des alertes", () => {
     });
     expect(history).toHaveTextContent("Ouverte (automatique)");
     expect(history).toHaveTextContent("Prise en charge par khadija : Je regarde");
+  });
+
+  it("se recharge quand le serveur signale un changement d'alerte", async () => {
+    signIn("VIEWER");
+    apiClient.get.mockResolvedValue(pageOf([alert()]));
+    renderAlerts();
+    await screen.findByText("Routeur cœur");
+    const before = apiClient.get.mock.calls.length;
+
+    apiClient.get.mockResolvedValue(pageOf([alert(), alert({ id: "a2", equipmentName: "Switch campus" })]));
+    // Le dernier abonnement est celui de la page ; plusieurs signaux rapprochés n'en font qu'un.
+    const onEvent = subscribe.mock.calls.at(-1)[0];
+    onEvent({ name: "ready", data: "{}" });
+    onEvent({ name: "alerts", data: "{}" });
+    onEvent({ name: "alerts", data: "{}" });
+
+    expect(await screen.findByText("Switch campus")).toBeInTheDocument();
+    expect(apiClient.get.mock.calls.length - before).toBe(1);
+  });
+
+  it("indique si le flux en direct est connecté", async () => {
+    signIn("VIEWER");
+    apiClient.get.mockResolvedValue(pageOf([]));
+    renderAlerts();
+    await screen.findByText("Aucune alerte.");
+    expect(screen.getByText(/Hors ligne/)).toBeInTheDocument();
+
+    const options = subscribe.mock.calls.at(-1)[1];
+    await waitFor(() => options.onStatus(true));
+
+    expect(await screen.findByText(/En direct/)).toBeInTheDocument();
   });
 });
