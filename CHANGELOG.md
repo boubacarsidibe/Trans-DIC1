@@ -18,6 +18,9 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 - Renouvellement de jeton par cookie `HttpOnly` avec rotation, détection de réutilisation, déconnexion et nettoyage des sessions expirées (ADR-0005).
 - Table des métriques partitionnée par mois, agrégats horaires et purge des partitions expirées (ADR-0004).
 - Seuil de retour à la normale (hystérésis) sur les règles d'alerte.
+- Moteur d'évaluation des alertes : confirmation du dépassement, hystérésis, déduplication, réouverture avant archivage, trace en maintenance.
+- Module de collecte : enregistrement et révocation des agents par jeton, réception des mesures `POST /api/v1/agent/measures`, stockage puis évaluation.
+- Test de contrat qui vérifie que `docs/api/openapi.yaml` correspond à l'API réelle.
 - ADR 0002 à 0006 et dossier d'architecture complet (`docs/ARCHITECTURE-COMPLETE.md`, version PDF).
 
 ### Changed

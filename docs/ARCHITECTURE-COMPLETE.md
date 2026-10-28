@@ -97,13 +97,15 @@ Source : historique git (`develop`, 41 commits d'avance sur `main`), code et doc
 | Qualité | Règles ArchUnit (18 contrôles), JaCoCo ≥ 80 % lignes / 60 % branches, Spotless, Vitest ≥ 75 %, ESLint | ✅ | `pom.xml`, `vite.config.js` |
 | CI | Hygiène du dépôt, backend, frontend, gitleaks, Trivy, actions épinglées par empreinte | ✅ | `repository-guard.yml` |
 | Documentation | 6 ADR, ~40 diagrammes Mermaid, modèle StarUML, maquettes, 2 présentations | ✅ | `docs/`, `deliverables/` |
-| Collecte | Planificateur, adaptateur SNMP, réception des mesures d'agent | 🟡 | ADR-0006, diagrammes |
-| Alertes | Évaluation des seuils, déduplication, cycle de vie, maintenance | 🟡 | modèle et index prêts, pas de service |
+| Collecte | Enregistrement des agents (jeton), réception des mesures `POST /api/v1/agent/measures`, stockage et évaluation | ✅ | `AgentController`, `MeasureIngestionService`, `AgentApiTests` |
+| Collecte | Planificateur et adaptateur SNMP4J | 🟡 | ADR-0006, diagrammes |
+| Alertes | Évaluation des seuils : confirmation, hystérésis, déduplication, réouverture, maintenance | ✅ | `AlertEvaluationService`, `AlertEvaluationTests` |
+| Alertes | Prise en charge, assignation, résolution manuelle, archivage, API et écrans | ⚪ | modèle prêt, pas d'API |
 | Notifications / rapports | Envoi e-mail, tentatives, rapports planifiés | ⚪ | entités créées, aucun service |
 | Temps réel | Flux SSE vers le tableau de bord | 🟡 | ADR-0006 |
 | Déploiement | Nginx, TLS, staging, production | ⚪ | prérequis externes ouverts |
 
-**Vérification faite pour ce dossier** : `./mvnw verify` sous Java 21 se termine par `BUILD SUCCESS` avec 121 tests backend sans échec (PostgreSQL 16 embarqué, sans Docker), seuils JaCoCo et Spotless passés. Côté frontend : 20 tests, couverture 91 %, lint sans erreur, build et audit des dépendances sans faille. La CI distante n'a pas été relancée.
+**Vérification faite pour ce dossier** : `./mvnw verify` sous Java 21 se termine par `BUILD SUCCESS` avec 157 tests backend sans échec (PostgreSQL 16 embarqué, sans Docker), seuils JaCoCo et Spotless passés. Côté frontend : 20 tests, couverture 91 %, lint sans erreur, build et audit des dépendances sans faille. La CI distante n'a pas été relancée.
 
 ### 3.2 Chronologie
 
@@ -201,6 +203,7 @@ flowchart TD
     access["access<br/>SiteAccess · EquipmentAccess"]
     alerting["alerting<br/>Alert · AlertRule · Maintenance"]
     reporting["reporting<br/>Notification · Report"]
+    collection["collection<br/>réception des mesures · agents"]
     common["common<br/>erreurs · corrélation · config"]
 
     audit --> security
@@ -213,9 +216,12 @@ flowchart TD
     reporting --> security
     reporting --> inventory
     reporting --> alerting
+    collection --> inventory
+    collection --> monitoring
+    collection --> alerting
 ```
 
-**Donc** : `access` est un module à part pour éviter un cycle `security` ↔ `inventory`. Les modules du bas (`security`, `audit`, `inventory`) ne connaissent jamais `alerting` ni `reporting`.
+**Donc** : `access` est un module à part pour éviter un cycle `security` ↔ `inventory`. `collection` orchestre : elle reçoit les mesures, les stocke via `monitoring` et les fait évaluer par `alerting`, que personne d'autre ne rappelle (aucun cycle). Le moteur d'alertes lit l'historique par un port (`MetricHistory`) que `collection` implémente. Les modules du bas (`security`, `audit`, `inventory`) ne connaissent jamais `alerting` ni `reporting`.
 
 ### 5.2 Règles automatiques (ArchUnit)
 
@@ -240,6 +246,9 @@ flowchart TD
 | `PUT /api/v1/equipements/{id}` | `ADMIN`, `NOC_OPERATOR` | Modification |
 | `DELETE /api/v1/equipements/{id}` | `ADMIN`, `NOC_OPERATOR` | Suppression |
 | `GET /api/v1/metrics/latest` | authentifié | Dernières mesures |
+| `POST /api/v1/auth/refresh` · `/logout` | cookie de renouvellement | Renouvelle le jeton d'accès (rotation) · révoque la connexion |
+| `POST` · `DELETE /api/v1/equipements/{id}/agent` | `ADMIN` | Enregistre un agent (jeton affiché une fois) · le révoque |
+| `POST /api/v1/agent/measures` | jeton d'agent | Reçoit un lot de mesures (500 au plus), les stocke et évalue les alertes |
 | `GET /actuator/health` | public | Santé, sans détail |
 
 Cible (chemins recommandés, 🟡) : `/api/v1/regles-alertes`, `/api/v1/alertes/{id}/prise-en-charge`, `/resolution`, `/api/v1/rapports`, réception des mesures d'agent, flux SSE.
@@ -306,8 +315,9 @@ erDiagram
 | V10 | Sessions : `family_id`, `replaced_by_id` (rotation des jetons de renouvellement) |
 | V11 | `alert_rule.recovery_threshold` (hystérésis) avec contrainte de cohérence |
 | V12 | `metric_hourly` (agrégats horaires) et fonction `drop_expired_metric_partitions` |
+| V13 | `collection_agent.token_hash` (empreinte du jeton d'agent) |
 
-La prochaine migration est la V13. Un seul dossier de migrations.
+La prochaine migration est la V14. Un seul dossier de migrations.
 
 ### 6.4 Stockage des métriques (cible, ADR-0004)
 

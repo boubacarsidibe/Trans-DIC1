@@ -30,6 +30,7 @@ Quatre choix techniques restaient implicites ou contradictoires entre le backlog
 - Aussi : les pare-feu des sites n'ont à autoriser que la sortie vers l'API, ce qui convient à l'ADR-0001 (pas d'exposition de la topologie).
 - Le backend **scrute** uniquement les équipements SNMP, qui ne peuvent pas pousser.
 - Conséquence sur les diagrammes : `collection-and-alert.mmd` ne montre plus l'orchestrateur appelant l'agent ; la passerelle des agents reçoit les mesures.
+- Mis en œuvre : un administrateur enregistre l'agent (`POST /api/v1/equipements/{id}/agent`) et reçoit un jeton affiché une seule fois (seule son empreinte SHA-256 est stockée) ; l'agent envoie ses lots à `POST /api/v1/agent/measures` avec ce jeton. Une chaîne de sécurité dédiée (`/api/v1/agent/**`) n'accepte que les jetons d'agent : un JWT d'utilisateur n'ouvre pas cette API, et un jeton d'agent n'ouvre pas l'API des utilisateurs. Enregistrer un nouvel agent révoque le précédent.
 
 ### 4. Temps réel : SSE (Server-Sent Events), pas WebSocket
 
