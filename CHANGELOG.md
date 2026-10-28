@@ -21,6 +21,8 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 - Moteur d'évaluation des alertes : confirmation du dépassement, hystérésis, déduplication, réouverture avant archivage, trace en maintenance.
 - Module de collecte : enregistrement et révocation des agents par jeton, réception des mesures `POST /api/v1/agent/measures`, stockage puis évaluation.
 - Test de contrat qui vérifie que `docs/api/openapi.yaml` correspond à l'API réelle.
+- API du cycle de vie des alertes (`/api/v1/alertes`) : liste filtrable, détail avec historique, prise en charge, assignation, résolution manuelle, archivage, suppression logique, avec droits par rôle, transitions vérifiées et audit.
+- Écran des alertes dans l'interface : liste, filtre par état, actions selon le rôle, historique.
 - ADR 0002 à 0006 et dossier d'architecture complet (`docs/ARCHITECTURE-COMPLETE.md`, version PDF).
 
 ### Changed
@@ -33,6 +35,7 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 
 ### Fixed
 
+- La pagination de la page des équipements ne s'affichait pas avec la vraie API : le frontend lisait `totalPages` à la racine alors que l'API le renvoie dans `page`.
 - Dépendance indirecte `undici` mise à jour pour corriger une faille de sévérité haute.
 
 ### Security
