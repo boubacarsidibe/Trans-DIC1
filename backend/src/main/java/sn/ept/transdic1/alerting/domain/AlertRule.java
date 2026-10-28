@@ -25,6 +25,14 @@ public class AlertRule {
   @Column(name = "threshold", nullable = false, precision = 12, scale = 4)
   private BigDecimal threshold;
 
+  /**
+   * Seuil de retour à la normale, distinct du seuil d'ouverture (hystérésis) : entre les deux,
+   * l'état de l'alerte ne change pas, ce qui évite les alertes qui s'ouvrent et se ferment en
+   * boucle. Nul : l'alerte se résout dès que la valeur repasse sous le seuil d'ouverture.
+   */
+  @Column(name = "recovery_threshold", precision = 12, scale = 4)
+  private BigDecimal recoveryThreshold;
+
   @Column(name = "unit", length = 24)
   private String unit;
 
@@ -105,6 +113,31 @@ public class AlertRule {
 
   public void setThreshold(BigDecimal threshold) {
     this.threshold = threshold;
+  }
+
+  public BigDecimal getRecoveryThreshold() {
+    return recoveryThreshold;
+  }
+
+  public void setRecoveryThreshold(BigDecimal recoveryThreshold) {
+    this.recoveryThreshold = recoveryThreshold;
+  }
+
+  /** La valeur franchit le seuil d'ouverture. */
+  public boolean isBreachedBy(BigDecimal value) {
+    return operator.test(value, threshold);
+  }
+
+  /** La valeur est revenue assez loin du seuil pour résoudre l'alerte. */
+  public boolean isRecoveredBy(BigDecimal value) {
+    if (recoveryThreshold == null) {
+      return !isBreachedBy(value);
+    }
+    return switch (operator) {
+      case GREATER_THAN, GREATER_OR_EQUAL -> value.compareTo(recoveryThreshold) <= 0;
+      case LESS_THAN, LESS_OR_EQUAL -> value.compareTo(recoveryThreshold) >= 0;
+      case EQUAL -> value.compareTo(threshold) != 0;
+    };
   }
 
   public String getUnit() {
