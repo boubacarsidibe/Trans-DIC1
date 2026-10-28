@@ -98,6 +98,7 @@ Source : historique git (`develop`, 41 commits d'avance sur `main`), code et doc
 | CI | Hygiène du dépôt, backend, frontend, gitleaks, Trivy, actions épinglées par empreinte | ✅ | `repository-guard.yml` |
 | Documentation | 6 ADR, ~40 diagrammes Mermaid, modèle StarUML, maquettes, 2 présentations | ✅ | `docs/`, `deliverables/` |
 | Collecte | Enregistrement des agents (jeton), réception des mesures `POST /api/v1/agent/measures`, stockage et évaluation | ✅ | `AgentController`, `MeasureIngestionService`, `AgentApiTests` |
+| Collecte | Surveillance des agents silencieux : alerte de collecte critique, résolue seule à la prochaine mesure, réouverture avant archivage | ✅ | `AgentWatchdogService`, `CollectionAlertService`, `AgentWatchdogTests` |
 | Collecte | Planificateur et adaptateur SNMP4J | 🟡 | ADR-0006, diagrammes |
 | Alertes | Évaluation des seuils : confirmation, hystérésis, déduplication, réouverture, maintenance | ✅ | `AlertEvaluationService`, `AlertEvaluationTests` |
 | Alertes | API du cycle de vie : liste, détail et historique, prise en charge, assignation, résolution manuelle, archivage, suppression logique, audit | ✅ | `AlertController`, `AlertWorkflowService`, `AlertApiTests` |
@@ -109,7 +110,7 @@ Source : historique git (`develop`, 41 commits d'avance sur `main`), code et doc
 | Temps réel | Flux SSE vers le tableau de bord | 🟡 | ADR-0006 |
 | Déploiement | Nginx, TLS, staging, production | ⚪ | prérequis externes ouverts |
 
-**Vérification faite pour ce dossier** : `./mvnw verify` sous Java 21 se termine par `BUILD SUCCESS` avec 180 tests backend sans échec (PostgreSQL 16 embarqué, sans Docker), seuils JaCoCo et Spotless passés. Côté frontend : 30 tests, couverture 92 %, lint sans erreur, build et audit des dépendances sans faille. La CI distante n'a pas été relancée.
+**Vérification faite pour ce dossier** : `./mvnw verify` sous Java 21 se termine par `BUILD SUCCESS` avec 187 tests backend sans échec (PostgreSQL 16 embarqué, sans Docker), seuils JaCoCo et Spotless passés. Côté frontend : 30 tests, couverture 92 %, lint sans erreur, build et audit des dépendances sans faille. La CI distante n'a pas été relancée.
 
 ### 3.2 Chronologie
 

@@ -24,6 +24,7 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 - API du cycle de vie des alertes (`/api/v1/alertes`) : liste filtrable, détail avec historique, prise en charge, assignation, résolution manuelle, archivage, suppression logique, avec droits par rôle, transitions vérifiées et audit.
 - Écran des alertes dans l'interface : liste, filtre par état, actions selon le rôle, historique.
 - API d'administration des règles d'alerte (`/api/v1/regles-alertes`) : création, modification, suppression, portée par site ou équipement, validation du seuil de retour, audit.
+- Surveillance des agents silencieux : une alerte de collecte critique s'ouvre après 5 minutes sans nouvelle de l'agent et se résout seule à la prochaine mesure.
 - Vue d'ensemble (`/api/v1/vue-ensemble`) et tableau de bord alimenté par de vrais chiffres : équipements par statut, alertes actives par sévérité, agents actifs.
 - ADR 0002 à 0006 et dossier d'architecture complet (`docs/ARCHITECTURE-COMPLETE.md`, version PDF).
 
