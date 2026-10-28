@@ -116,13 +116,15 @@ Source : historique git (`develop`, 41 commits d'avance sur `main`), code et doc
 | Utilisateurs | Écran d'administration des comptes (réservé aux administrateurs) | ✅ | `UsersPage.jsx` |
 | Notifications | E-mails à l'ouverture et à la résolution d'une alerte : événement, file en base, envoi différé, reprises bornées, préférences par utilisateur, aucun envoi pendant une maintenance | ✅ | `NotificationQueueService`, `NotificationDispatchService`, `NotificationTests` (serveur SMTP réel en mémoire) |
 | Notifications | Écran « Mes notifications » | ✅ | `NotificationsPage.jsx` |
-| Rapports | Rapports planifiés et exportés | ⚪ | entités créées, aucun service |
+| Rapports | Rapports à la demande : disponibilité par équipement (coupures reconstituées depuis l'historique des alertes, rognées à la période) et incidents (volumes, sévérités, délai moyen de résolution, équipements les plus touchés), JSON et CSV sûr pour tableur | ✅ | `ReportService`, `ReportCsvService`, `ReportApiTests` |
+| Rapports | Écran des rapports : période, site, tableau, export CSV, impression | ✅ | `ReportsPage.jsx` |
+| Rapports | Rapports planifiés envoyés par e-mail, export PDF | ⚪ | entités créées, aucun service |
 | Tableau de bord | Chiffres clés réels : équipements par statut, alertes actives par sévérité, agents actifs | ✅ | `OverviewController`, `DashboardPage.jsx` |
 | Notifications / rapports | Envoi e-mail, tentatives, rapports planifiés | ⚪ | entités créées, aucun service |
 | Temps réel | Flux SSE vers le tableau de bord | 🟡 | ADR-0006 |
 | Déploiement | Nginx, TLS, staging, production | ⚪ | prérequis externes ouverts |
 
-**Vérification faite pour ce dossier** : `./mvnw verify` sous Java 21 se termine par `BUILD SUCCESS` avec 236 tests backend sans échec (PostgreSQL 16 embarqué, sans Docker), seuils JaCoCo et Spotless passés. Côté frontend : 62 tests, couverture 92 %, lint sans erreur, build et audit des dépendances sans faille. La CI distante n'a pas été relancée.
+**Vérification faite pour ce dossier** : `./mvnw verify` sous Java 21 se termine par `BUILD SUCCESS` avec 245 tests backend sans échec (PostgreSQL 16 embarqué, sans Docker), seuils JaCoCo et Spotless passés. Côté frontend : 70 tests, couverture 92 %, lint sans erreur, build et audit des dépendances sans faille. La CI distante n'a pas été relancée.
 
 ### 3.2 Chronologie
 
@@ -274,6 +276,7 @@ flowchart TD
 | `GET` · `PUT` · `DELETE /api/v1/equipements/{id}/collecte-snmp` | `ADMIN` | Consulte · crée ou remplace · arrête la collecte SNMP d'un équipement (secrets par référence) |
 | `GET /api/v1/maintenances` | authentifié | Liste paginée filtrable (état, site, équipement) |
 | `POST /api/v1/maintenances` · `/{id}/annulation` | `ADMIN`, `NOC_OPERATOR` | Planifie une maintenance · l'annule |
+| `GET /api/v1/rapports/disponibilite` · `/incidents` | authentifié | Rapports sur une période (400 jours au plus), filtre par site, `format=csv` pour un fichier de tableur |
 | `GET /api/v1/vue-ensemble` | authentifié | Chiffres clés du tableau de bord |
 | `GET` · `PUT /api/v1/mes-preferences` | authentifié | Préférences de notification de l'utilisateur connecté (inactives par défaut) |
 | `GET /api/v1/sites` · `/{id}` | authentifié | Liste paginée (filtre par statut) · détail avec nombre d'équipements |
@@ -508,9 +511,10 @@ Sévérité indépendante de l'état : `INFO`, `WARNING`, `CRITICAL`. Le code de
 | `/alertes` | Alertes : liste, filtre par état, prise en charge, résolution, archivage, historique | ✅ |
 | `/regles` | Règles d'alerte : liste, création, modification, suppression | ✅ |
 | `/maintenances` | Maintenances : liste filtrable, planification, annulation | ✅ |
+| `/rapports` | Rapports : disponibilité et incidents, export CSV, impression | ✅ |
 | `/notifications` | Mes notifications : activation, sévérité minimale | ✅ |
 | `/utilisateurs` | Comptes : création, rôle, activation, mot de passe (administrateurs) | ✅ |
-| Métriques, rapports, administration | — | ⚪ maquettes dans `docs/design` |
+| Métriques (graphiques d'historique), administration de la collecte | — | ⚪ maquettes dans `docs/design` |
 
 Les types TypeScript de l'API sont générés depuis `openapi.yaml`, pour éviter les écarts de contrat.
 
