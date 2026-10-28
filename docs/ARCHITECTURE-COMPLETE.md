@@ -108,6 +108,7 @@ Source : historique git (`develop`, 41 commits d'avance sur `main`), code et doc
 | Alertes | API du cycle de vie : liste, détail et historique, prise en charge, assignation, résolution manuelle, archivage, suppression logique, audit | ✅ | `AlertController`, `AlertWorkflowService`, `AlertApiTests` |
 | Alertes | Écran des alertes (liste filtrable, actions selon le rôle, historique) | ✅ | `AlertsPage.jsx` |
 | Alertes | Administration des règles : seuil, durée de confirmation, hystérésis, portée (sites et équipements), audit | ✅ | `AlertRuleController`, `AlertRuleService`, `AlertRuleApiTests` |
+| Alertes | Maintenances : planification sur un site ou un équipement, annulation, état calculé, notifications supprimées pendant la fenêtre | ✅ | `MaintenanceController`, `MaintenanceService`, `MaintenanceApiTests` |
 | Alertes | Écran d'administration des règles | ⚪ | API prête, pas d'écran |
 | Utilisateurs | Écran d'administration des comptes | ⚪ | API prête, pas d'écran |
 | Notifications | E-mails à l'ouverture et à la résolution d'une alerte : événement, file en base, envoi différé, reprises bornées, préférences par utilisateur, aucun envoi pendant une maintenance | ✅ | `NotificationQueueService`, `NotificationDispatchService`, `NotificationTests` (serveur SMTP réel en mémoire) |
@@ -118,7 +119,7 @@ Source : historique git (`develop`, 41 commits d'avance sur `main`), code et doc
 | Temps réel | Flux SSE vers le tableau de bord | 🟡 | ADR-0006 |
 | Déploiement | Nginx, TLS, staging, production | ⚪ | prérequis externes ouverts |
 
-**Vérification faite pour ce dossier** : `./mvnw verify` sous Java 21 se termine par `BUILD SUCCESS` avec 227 tests backend sans échec (PostgreSQL 16 embarqué, sans Docker), seuils JaCoCo et Spotless passés. Côté frontend : 33 tests, couverture 92 %, lint sans erreur, build et audit des dépendances sans faille. La CI distante n'a pas été relancée.
+**Vérification faite pour ce dossier** : `./mvnw verify` sous Java 21 se termine par `BUILD SUCCESS` avec 234 tests backend sans échec (PostgreSQL 16 embarqué, sans Docker), seuils JaCoCo et Spotless passés. Côté frontend : 33 tests, couverture 92 %, lint sans erreur, build et audit des dépendances sans faille. La CI distante n'a pas été relancée.
 
 ### 3.2 Chronologie
 
@@ -268,6 +269,8 @@ flowchart TD
 | `GET /api/v1/regles-alertes` · `/{id}` | authentifié | Liste paginée · détail d'une règle et de sa portée |
 | `POST` · `PUT /{id}` · `DELETE /{id}` `/api/v1/regles-alertes` | `ADMIN` | Crée · remplace règle et portée · supprime (refusé si la règle a produit des alertes) |
 | `GET` · `PUT` · `DELETE /api/v1/equipements/{id}/collecte-snmp` | `ADMIN` | Consulte · crée ou remplace · arrête la collecte SNMP d'un équipement (secrets par référence) |
+| `GET /api/v1/maintenances` | authentifié | Liste paginée filtrable (état, site, équipement) |
+| `POST /api/v1/maintenances` · `/{id}/annulation` | `ADMIN`, `NOC_OPERATOR` | Planifie une maintenance · l'annule |
 | `GET /api/v1/vue-ensemble` | authentifié | Chiffres clés du tableau de bord |
 | `GET` · `PUT /api/v1/mes-preferences` | authentifié | Préférences de notification de l'utilisateur connecté (inactives par défaut) |
 | `GET /api/v1/sites` · `/{id}` | authentifié | Liste paginée (filtre par statut) · détail avec nombre d'équipements |
