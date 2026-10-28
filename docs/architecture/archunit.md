@@ -32,6 +32,8 @@ collection       → inventory (domain, repository), monitoring (domain, reposit
                    alerting (service, domain, repository), audit.service
 ```
 
+`overview` agrège les chiffres clés du tableau de bord à partir de `inventory` et `alerting` (repositories) : aucun autre module ne la connaît.
+
 `collection` orchestre la réception des mesures : aucun autre module ne la connaît. Le moteur d'alertes lit l'historique des mesures par le port `MetricHistory`, implémenté par `collection`, ce qui évite tout cycle avec `monitoring`.
 
 Les modules de base (`inventory`, `monitoring`, `security`, `audit`) ne dépendent jamais de `alerting`, `reporting` ni `access`. Le détail du modèle est dans [persistence-mapping.md](persistence-mapping.md).

@@ -102,11 +102,14 @@ Source : historique git (`develop`, 41 commits d'avance sur `main`), code et doc
 | Alertes | Évaluation des seuils : confirmation, hystérésis, déduplication, réouverture, maintenance | ✅ | `AlertEvaluationService`, `AlertEvaluationTests` |
 | Alertes | API du cycle de vie : liste, détail et historique, prise en charge, assignation, résolution manuelle, archivage, suppression logique, audit | ✅ | `AlertController`, `AlertWorkflowService`, `AlertApiTests` |
 | Alertes | Écran des alertes (liste filtrable, actions selon le rôle, historique) | ✅ | `AlertsPage.jsx` |
+| Alertes | Administration des règles : seuil, durée de confirmation, hystérésis, portée (sites et équipements), audit | ✅ | `AlertRuleController`, `AlertRuleService`, `AlertRuleApiTests` |
+| Alertes | Écran d'administration des règles | ⚪ | API prête, pas d'écran |
+| Tableau de bord | Chiffres clés réels : équipements par statut, alertes actives par sévérité, agents actifs | ✅ | `OverviewController`, `DashboardPage.jsx` |
 | Notifications / rapports | Envoi e-mail, tentatives, rapports planifiés | ⚪ | entités créées, aucun service |
 | Temps réel | Flux SSE vers le tableau de bord | 🟡 | ADR-0006 |
 | Déploiement | Nginx, TLS, staging, production | ⚪ | prérequis externes ouverts |
 
-**Vérification faite pour ce dossier** : `./mvnw verify` sous Java 21 se termine par `BUILD SUCCESS` avec 168 tests backend sans échec (PostgreSQL 16 embarqué, sans Docker), seuils JaCoCo et Spotless passés. Côté frontend : 27 tests, couverture 92 %, lint sans erreur, build et audit des dépendances sans faille. La CI distante n'a pas été relancée.
+**Vérification faite pour ce dossier** : `./mvnw verify` sous Java 21 se termine par `BUILD SUCCESS` avec 180 tests backend sans échec (PostgreSQL 16 embarqué, sans Docker), seuils JaCoCo et Spotless passés. Côté frontend : 30 tests, couverture 92 %, lint sans erreur, build et audit des dépendances sans faille. La CI distante n'a pas été relancée.
 
 ### 3.2 Chronologie
 
@@ -205,6 +208,7 @@ flowchart TD
     alerting["alerting<br/>Alert · AlertRule · Maintenance"]
     reporting["reporting<br/>Notification · Report"]
     collection["collection<br/>réception des mesures · agents"]
+    overview["overview<br/>chiffres clés du tableau de bord"]
     common["common<br/>erreurs · corrélation · config"]
 
     audit --> security
@@ -220,6 +224,8 @@ flowchart TD
     collection --> inventory
     collection --> monitoring
     collection --> alerting
+    overview --> inventory
+    overview --> alerting
 ```
 
 **Donc** : `access` est un module à part pour éviter un cycle `security` ↔ `inventory`. `alerting` peut tracer ses actions dans `audit` (acquitter, résoudre, assigner sont audités, ADR-0001). `collection` orchestre : elle reçoit les mesures, les stocke via `monitoring` et les fait évaluer par `alerting`, que personne d'autre ne rappelle (aucun cycle). Le moteur d'alertes lit l'historique par un port (`MetricHistory`) que `collection` implémente. Les modules du bas (`security`, `audit`, `inventory`) ne connaissent jamais `alerting` ni `reporting`.
@@ -250,6 +256,9 @@ flowchart TD
 | `GET /api/v1/alertes` · `/{id}` | authentifié | Liste paginée filtrable (état, équipement) · détail et historique |
 | `POST /api/v1/alertes/{id}/prise-en-charge` · `/resolution` | `ADMIN`, `NOC_OPERATOR` | Prend en charge une alerte ouverte · la résout |
 | `POST /api/v1/alertes/{id}/assignation` · `/archivage` · `DELETE /{id}` | `ADMIN` | Assigne ou réassigne · archive une alerte résolue · supprime (logique) |
+| `GET /api/v1/regles-alertes` · `/{id}` | authentifié | Liste paginée · détail d'une règle et de sa portée |
+| `POST` · `PUT /{id}` · `DELETE /{id}` `/api/v1/regles-alertes` | `ADMIN` | Crée · remplace règle et portée · supprime (refusé si la règle a produit des alertes) |
+| `GET /api/v1/vue-ensemble` | authentifié | Chiffres clés du tableau de bord |
 | `POST /api/v1/auth/refresh` · `/logout` | cookie de renouvellement | Renouvelle le jeton d'accès (rotation) · révoque la connexion |
 | `POST` · `DELETE /api/v1/equipements/{id}/agent` | `ADMIN` | Enregistre un agent (jeton affiché une fois) · le révoque |
 | `POST /api/v1/agent/measures` | jeton d'agent | Reçoit un lot de mesures (500 au plus), les stocke et évalue les alertes |
@@ -473,7 +482,7 @@ Sévérité indépendante de l'état : `INFO`, `WARNING`, `CRITICAL`. Le code de
 | Route | Page | État |
 |---|---|---|
 | `/connexion` | Connexion | ✅ |
-| `/tableau-de-bord` | Tableau de bord (mesure CPU synthétique) | ✅ minimal |
+| `/tableau-de-bord` | Tableau de bord : chiffres clés, statuts, alertes par sévérité, dernière mesure | ✅ |
 | `/equipements` | Liste, création, modification, suppression | ✅ |
 | `/alertes` | Alertes : liste, filtre par état, prise en charge, résolution, archivage, historique | ✅ |
 | Métriques, rapports, administration | — | ⚪ maquettes dans `docs/design` |
