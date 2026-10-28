@@ -44,6 +44,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/equipements/{equipmentId}/agent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enregistrer l'agent d'un équipement
+         * @description Crée un agent actif et retourne son jeton, affiché une seule fois. Un agent déjà actif sur l'équipement est révoqué.
+         */
+        post: operations["register"];
+        /** Révoquer l'agent d'un équipement */
+        delete: operations["revoke"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Renouveler le jeton d'accès
+         * @description Lit le cookie de renouvellement, le remplace par un nouveau (rotation) et retourne un nouveau jeton d'accès. Un jeton déjà utilisé révoque toute la connexion.
+         */
+        post: operations["refresh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Se déconnecter
+         * @description Révoque la connexion et efface le cookie. Sans effet si le cookie est absent.
+         */
+        post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -55,9 +116,29 @@ export interface paths {
         put?: never;
         /**
          * Se connecter
-         * @description Retourne un jeton JWT à envoyer ensuite dans l'en-tête Authorization: Bearer.
+         * @description Retourne un jeton JWT court à envoyer dans l'en-tête Authorization: Bearer et dépose le jeton de renouvellement dans un cookie HttpOnly.
          */
         post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/measures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Envoyer des mesures (agent)
+         * @description Authentifié par le jeton de l'agent dans l'en-tête Authorization: Bearer. Les mesures sont stockées puis évaluées contre les règles d'alerte.
+         */
+        post: operations["receive"];
         delete?: never;
         options?: never;
         head?: never;
@@ -113,9 +194,11 @@ export interface components {
             siteId?: string;
             site?: string;
         };
-        LoginRequest: {
-            username: string;
-            password: string;
+        AgentRegistrationResponse: {
+            /** Format: uuid */
+            agentId?: string;
+            identifier?: string;
+            token?: string;
         };
         TokenResponse: {
             accessToken?: string;
@@ -123,6 +206,21 @@ export interface components {
             /** Format: int64 */
             expiresIn?: number;
             role?: string;
+        };
+        LoginRequest: {
+            username: string;
+            password: string;
+        };
+        AgentMeasuresRequest: {
+            measures: components["schemas"]["MeasureInput"][];
+        };
+        MeasureInput: {
+            key: string;
+            value: number;
+            unit: string;
+            quality?: string;
+            /** Format: date-time */
+            collectedAt: string;
         };
         MetricResponse: {
             /** Format: int64 */
@@ -425,6 +523,156 @@ export interface operations {
             };
         };
     };
+    register: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AgentRegistrationResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Équipement introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Aucun agent actif */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    refresh: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                trans_dic1_refresh?: string;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cookie absent, expiré, révoqué ou déjà utilisé */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Origine de la requête non autorisée */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TokenResponse"];
+                };
+            };
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                trans_dic1_refresh?: string;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Déconnecté */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Origine de la requête non autorisée */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     login: {
         parameters: {
             query?: never;
@@ -463,6 +711,46 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TokenResponse"];
+                };
+            };
+        };
+    };
+    receive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentMeasuresRequest"];
+            };
+        };
+        responses: {
+            /** @description Lot invalide ou horodatage dans le futur */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
                 };
             };
         };

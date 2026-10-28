@@ -45,6 +45,7 @@ class MetricRetentionTests {
 
   @BeforeEach
   void equipment() {
+    jdbc.update("DELETE FROM metric_hourly");
     String unique = UUID.randomUUID().toString();
     Site site = sites.save(new Site("RET-" + unique.substring(0, 8), "Site de rétention"));
     equipment =
