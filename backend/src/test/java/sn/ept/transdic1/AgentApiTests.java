@@ -2,6 +2,7 @@ package sn.ept.transdic1;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -153,6 +154,36 @@ class AgentApiTests {
       request = request.header("Authorization", "Bearer " + token);
     }
     return mockMvc.perform(request);
+  }
+
+  @Test
+  void anAdministratorReadsTheAgentStatusWithoutTheToken() throws Exception {
+    String path = "/api/v1/equipements/" + equipment.getId() + "/agent";
+    mockMvc
+        .perform(get(path).header("Authorization", "Bearer " + adminJwt))
+        .andExpect(status().isNotFound());
+
+    String token = register();
+    var body =
+        mockMvc
+            .perform(get(path).header("Authorization", "Bearer " + adminJwt))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("ACTIVE"))
+            .andExpect(jsonPath("$.identifier").value(org.hamcrest.Matchers.startsWith("agent-")))
+            .andExpect(jsonPath("$.lastCommunicationAt").doesNotExist())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    assertThat(body).doesNotContain(token).doesNotContain("token");
+
+    send(token, measures("1", Instant.now().minus(1, ChronoUnit.MINUTES)))
+        .andExpect(status().isOk());
+    mockMvc
+        .perform(get(path).header("Authorization", "Bearer " + adminJwt))
+        .andExpect(jsonPath("$.lastCommunicationAt").isNotEmpty());
+    mockMvc
+        .perform(get(path).header("Authorization", "Bearer " + viewerJwt))
+        .andExpect(status().isForbidden());
   }
 
   @Test

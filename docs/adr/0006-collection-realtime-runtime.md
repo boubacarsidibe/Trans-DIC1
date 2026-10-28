@@ -1,6 +1,6 @@
 # ADR-0006 — Exécution, collecte et temps réel : Java 21, SNMP4J, agent actif, SSE
 
-- Statut : acceptée ; Java 21, agent actif et SNMP4J implémentés (le flux SSE reste à faire)
+- Statut : acceptée ; Java 21, agent actif, SNMP4J et flux SSE implémentés
 - Date : 2026-10-28
 - Précise : ADR-0001 (backend, collecte) ; remplace WebSocket du backlog
 

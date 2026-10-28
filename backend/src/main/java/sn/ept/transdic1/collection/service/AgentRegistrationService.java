@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import sn.ept.transdic1.audit.service.AuditService;
 import sn.ept.transdic1.collection.dto.AgentRegistrationResponse;
+import sn.ept.transdic1.collection.dto.AgentStatusResponse;
 import sn.ept.transdic1.inventory.domain.AgentStatus;
 import sn.ept.transdic1.inventory.domain.CollectionAgent;
 import sn.ept.transdic1.inventory.repository.CollectionAgentRepository;
@@ -66,6 +67,25 @@ public class AgentRegistrationService {
     agents.save(agent);
     audit.record("AGENT_REGISTERED", "EQUIPMENT", equipmentId, "agent=" + identifier);
     return new AgentRegistrationResponse(agent.getId(), identifier, token);
+  }
+
+  /** L'agent actif de l'équipement, ou 404 s'il n'y en a pas. */
+  @Transactional(readOnly = true)
+  public AgentStatusResponse current(UUID equipmentId) {
+    var agent =
+        agents
+            .findByEquipmentIdAndStatus(equipmentId, AgentStatus.ACTIVE)
+            .orElseThrow(
+                () ->
+                    new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Aucun agent actif pour cet équipement"));
+    return new AgentStatusResponse(
+        agent.getId(),
+        agent.getIdentifier(),
+        agent.getStatus(),
+        agent.getRegisteredAt(),
+        agent.getLastCommunicationAt(),
+        agent.getIpAddress());
   }
 
   @Transactional

@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import sn.ept.transdic1.collection.dto.AgentMeasuresRequest;
 import sn.ept.transdic1.collection.dto.AgentPrincipal;
 import sn.ept.transdic1.collection.dto.AgentRegistrationResponse;
+import sn.ept.transdic1.collection.dto.AgentStatusResponse;
 import sn.ept.transdic1.collection.dto.IngestionResult;
 import sn.ept.transdic1.collection.service.AgentAuthService;
 import sn.ept.transdic1.collection.service.AgentRegistrationService;
@@ -58,6 +60,19 @@ public class AgentController {
   @ResponseStatus(HttpStatus.CREATED)
   AgentRegistrationResponse register(@PathVariable UUID equipmentId) {
     return registration.register(equipmentId);
+  }
+
+  @Operation(
+      summary = "Consulter l'agent actif d'un équipement",
+      description = "État et dernière communication ; le jeton n'est jamais renvoyé.")
+  @ApiResponse(
+      responseCode = "404",
+      description = "Aucun agent actif",
+      content = @io.swagger.v3.oas.annotations.media.Content)
+  @GetMapping("/equipements/{equipmentId}/agent")
+  @PreAuthorize("hasRole('ADMIN')")
+  AgentStatusResponse current(@PathVariable UUID equipmentId) {
+    return registration.current(equipmentId);
   }
 
   @Operation(summary = "Révoquer l'agent d'un équipement")

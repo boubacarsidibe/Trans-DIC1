@@ -7,6 +7,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.ept.transdic1.alerting.domain.Alert;
+import sn.ept.transdic1.alerting.domain.AlertActivityEvent;
 import sn.ept.transdic1.alerting.domain.AlertChangedEvent;
 import sn.ept.transdic1.alerting.domain.AlertEvent;
 import sn.ept.transdic1.alerting.domain.AlertEventType;
@@ -95,6 +96,7 @@ public class CollectionAlertService {
     if (notify) {
       publisher.publishEvent(new AlertChangedEvent(alert.getId(), AlertEventType.OPENED));
     }
+    publisher.publishEvent(new AlertActivityEvent(alert.getId(), AlertEventType.OPENED));
     return Optional.of(new AlertChange(alert.getId(), AlertEventType.OPENED, notify));
   }
 
@@ -118,6 +120,8 @@ public class CollectionAlertService {
               alerts.save(alert);
               events.save(event);
               publisher.publishEvent(new AlertChangedEvent(alert.getId(), AlertEventType.RESOLVED));
+              publisher.publishEvent(
+                  new AlertActivityEvent(alert.getId(), AlertEventType.RESOLVED));
               return new AlertChange(alert.getId(), AlertEventType.RESOLVED, true);
             });
   }

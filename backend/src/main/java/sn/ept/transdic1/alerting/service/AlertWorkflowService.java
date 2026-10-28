@@ -4,6 +4,7 @@ import jakarta.persistence.criteria.Predicate;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import sn.ept.transdic1.alerting.domain.Alert;
+import sn.ept.transdic1.alerting.domain.AlertActivityEvent;
 import sn.ept.transdic1.alerting.domain.AlertAssignment;
 import sn.ept.transdic1.alerting.domain.AlertEvent;
 import sn.ept.transdic1.alerting.domain.AlertEventType;
@@ -41,6 +43,7 @@ public class AlertWorkflowService {
   private final UserRepository users;
   private final AuditService audit;
   private final Clock clock;
+  private final ApplicationEventPublisher publisher;
 
   public AlertWorkflowService(
       AlertRepository alerts,
@@ -48,13 +51,15 @@ public class AlertWorkflowService {
       AlertAssignmentRepository assignments,
       UserRepository users,
       AuditService audit,
-      Clock clock) {
+      Clock clock,
+      ApplicationEventPublisher publisher) {
     this.alerts = alerts;
     this.events = events;
     this.assignments = assignments;
     this.users = users;
     this.audit = audit;
     this.clock = clock;
+    this.publisher = publisher;
   }
 
   // ------------------------------------------------------------------ lecture
@@ -143,6 +148,7 @@ public class AlertWorkflowService {
     }
     alerts.save(alert);
     events.save(event);
+    publisher.publishEvent(new AlertActivityEvent(alert.getId(), AlertEventType.ASSIGNED));
     audit.record(
         "ALERT_ASSIGNED", "ALERT", id, "a=" + assignee.getUsername() + " par=" + byUsername);
     return AlertResponse.from(alert, assignee.getUsername());
@@ -226,6 +232,7 @@ public class AlertWorkflowService {
     event.setComment(comment);
     alerts.save(alert);
     events.save(event);
+    publisher.publishEvent(new AlertActivityEvent(alert.getId(), type));
   }
 
   private Alert find(UUID id) {
