@@ -11,6 +11,9 @@ servers:
 security:
 - bearerAuth: []
 tags:
+- name: Alertes
+  description: "Consultation pour tous les rôles ; prise en charge et résolution pour\
+    \ NOC_OPERATOR et ADMIN ; assignation, archivage et suppression pour ADMIN."
 - name: Métriques
   description: Mesures collectées sur les équipements.
 - name: Agents de collecte
@@ -385,6 +388,136 @@ paths:
               schema:
                 $ref: "#/components/schemas/TokenResponse"
       security: []
+  /api/v1/alertes/{id}/resolution:
+    post:
+      tags:
+      - Alertes
+      summary: Résoudre manuellement une alerte
+      operationId: resolve
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentRequest"
+      responses:
+        "409":
+          description: Transition impossible depuis l'état actuel de l'alerte
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/alertes/{id}/prise-en-charge:
+    post:
+      tags:
+      - Alertes
+      summary: Prendre en charge une alerte ouverte
+      operationId: take
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentRequest"
+      responses:
+        "409":
+          description: Transition impossible depuis l'état actuel de l'alerte
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/alertes/{id}/assignation:
+    post:
+      tags:
+      - Alertes
+      summary: Assigner ou réassigner une alerte à un opérateur
+      operationId: assign
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignmentRequest"
+        required: true
+      responses:
+        "400":
+          description: Assigné invalide
+        "409":
+          description: Transition impossible depuis l'état actuel de l'alerte
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/alertes/{id}/archivage:
+    post:
+      tags:
+      - Alertes
+      summary: Archiver une alerte résolue
+      operationId: archive
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "409":
+          description: Transition impossible depuis l'état actuel de l'alerte
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/agent/measures:
     post:
       tags:
@@ -430,6 +563,114 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/MetricResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/alertes:
+    get:
+      tags:
+      - Alertes
+      summary: Lister les alertes
+      description: "Liste paginée (20 par page, plus récentes d'abord), filtrable\
+        \ par état et par équipement. Les alertes supprimées sont masquées."
+      operationId: list_1
+      parameters:
+      - name: state
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - OPEN
+          - IN_PROGRESS
+          - RESOLVED
+          - ARCHIVED
+          - DELETED
+      - name: equipmentId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: pageable
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/Pageable"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PagedModelAlertResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/alertes/{id}:
+    get:
+      tags:
+      - Alertes
+      summary: Consulter une alerte et son historique
+      operationId: get_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Alerte introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      tags:
+      - Alertes
+      summary: Supprimer une alerte
+      description: "Suppression logique : l'alerte et son historique restent en base."
+      operationId: delete_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "409":
+          description: Transition impossible depuis l'état actuel de l'alerte
+        "204":
+          description: No Content
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -552,6 +793,25 @@ components:
       required:
       - password
       - username
+    CommentRequest:
+      type: object
+      properties:
+        comment:
+          type: string
+          maxLength: 1000
+          minLength: 0
+    AssignmentRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        comment:
+          type: string
+          maxLength: 1000
+          minLength: 0
+      required:
+      - userId
     AgentMeasuresRequest:
       type: object
       properties:
@@ -645,6 +905,60 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/EquipmentResponse"
+        page:
+          $ref: "#/components/schemas/PageMetadata"
+    AlertResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        equipmentId:
+          type: string
+          format: uuid
+        equipmentName:
+          type: string
+        ruleName:
+          type: string
+        type:
+          type: string
+          enum:
+          - THRESHOLD
+          - COLLECTION
+        state:
+          type: string
+          enum:
+          - OPEN
+          - IN_PROGRESS
+          - RESOLVED
+          - ARCHIVED
+          - DELETED
+        severity:
+          type: string
+          enum:
+          - INFO
+          - WARNING
+          - CRITICAL
+        message:
+          type: string
+        triggeredAt:
+          type: string
+          format: date-time
+        takenAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+        assignee:
+          type: string
+    PagedModelAlertResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlertResponse"
         page:
           $ref: "#/components/schemas/PageMetadata"
     ApiError:

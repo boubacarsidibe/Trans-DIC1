@@ -8,7 +8,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import sn.ept.transdic1.alerting.domain.*;
 
-public interface AlertRepository extends JpaRepository<Alert, UUID> {
+public interface AlertRepository
+    extends JpaRepository<Alert, UUID>,
+        org.springframework.data.jpa.repository.JpaSpecificationExecutor<Alert> {
   Optional<Alert> findByOccurrenceKey(String occurrenceKey);
 
   /** Alerte déjà active pour un couple équipement-règle : évite d'ouvrir un doublon. */

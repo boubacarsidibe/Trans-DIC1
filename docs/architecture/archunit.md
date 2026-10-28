@@ -26,7 +26,7 @@ audit            → security
 inventory        → audit
 monitoring       → inventory.domain
 access           → security.domain, inventory.domain
-alerting         → security.domain, inventory.domain
+alerting         → security.domain, security.repository, inventory.domain, audit.service
 reporting        → security.domain, inventory.domain, alerting.domain
 collection       → inventory (domain, repository), monitoring (domain, repository),
                    alerting (service, domain, repository), audit.service

@@ -179,7 +179,6 @@ class ArchitectureTests {
           .dependOnClassesThat()
           .resideInAnyPackage(
               ROOT + ".monitoring..",
-              ROOT + ".audit..",
               ROOT + ".access..",
               ROOT + ".reporting..",
               ROOT + ".security.service..",
