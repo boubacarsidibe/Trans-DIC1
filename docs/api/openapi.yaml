@@ -35,6 +35,10 @@ tags:
 - name: Sites
   description: Emplacements regroupant les équipements. Écriture réservée à ADMIN
     et NOC_OPERATOR.
+- name: Maintenances
+  description: "Fenêtres pendant lesquelles les alertes d'un site ou d'un équipement\
+    \ sont tracées sans notification. Lecture pour tous, planification et annulation\
+    \ pour ADMIN et NOC_OPERATOR."
 - name: Vue d'ensemble
   description: Chiffres clés du tableau de bord.
 - name: Authentification
@@ -820,6 +824,123 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/maintenances:
+    get:
+      tags:
+      - Maintenances
+      summary: Lister les maintenances
+      description: "Liste paginée (20 par page, début le plus récent d'abord), filtrable\
+        \ par état, site et équipement."
+      operationId: list_3
+      parameters:
+      - name: state
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - PLANNED
+          - IN_PROGRESS
+          - COMPLETED
+          - CANCELLED
+      - name: equipmentId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: pageable
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/Pageable"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PagedModelMaintenanceResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      tags:
+      - Maintenances
+      summary: Planifier une maintenance
+      operationId: create_3
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MaintenanceRequest"
+        required: true
+      responses:
+        "400":
+          description: "Cible, dates ou motif invalides"
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/MaintenanceResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/maintenances/{id}/annulation:
+    post:
+      tags:
+      - Maintenances
+      summary: Annuler une maintenance à venir ou en cours
+      operationId: cancel
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Maintenance introuvable
+        "409":
+          description: Déjà annulée ou terminée
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/equipements:
     get:
       tags:
@@ -827,7 +948,7 @@ paths:
       summary: Lister les équipements
       description: "Liste paginée (20 par page, tri par nom), filtrable par site,\
         \ type et statut."
-      operationId: list_3
+      operationId: list_4
       parameters:
       - name: siteId
         in: query
@@ -885,7 +1006,7 @@ paths:
       tags:
       - Équipements
       summary: Créer un équipement
-      operationId: create_3
+      operationId: create_4
       requestBody:
         content:
           application/json:
@@ -1292,7 +1413,7 @@ paths:
       summary: Lister les alertes
       description: "Liste paginée (20 par page, plus récentes d'abord), filtrable\
         \ par état et par équipement. Les alertes supprimées sont masquées."
-      operationId: list_4
+      operationId: list_5
       parameters:
       - name: state
         in: query
@@ -1825,6 +1946,68 @@ components:
         updatedAt:
           type: string
           format: date-time
+    MaintenanceRequest:
+      type: object
+      properties:
+        siteId:
+          type: string
+          format: uuid
+        equipmentId:
+          type: string
+          format: uuid
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        reason:
+          type: string
+          maxLength: 2000
+          minLength: 0
+      required:
+      - endAt
+      - reason
+      - startAt
+    MaintenanceResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        siteId:
+          type: string
+          format: uuid
+        siteName:
+          type: string
+        equipmentId:
+          type: string
+          format: uuid
+        equipmentName:
+          type: string
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        reason:
+          type: string
+        state:
+          type: string
+          enum:
+          - PLANNED
+          - IN_PROGRESS
+          - COMPLETED
+          - CANCELLED
+        planner:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        cancelledAt:
+          type: string
+          format: date-time
     AgentRegistrationResponse:
       type: object
       properties:
@@ -2032,6 +2215,15 @@ components:
         collectedAt:
           type: string
           format: date-time
+    PagedModelMaintenanceResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/MaintenanceResponse"
+        page:
+          $ref: "#/components/schemas/PageMetadata"
     PagedModelEquipmentResponse:
       type: object
       properties:

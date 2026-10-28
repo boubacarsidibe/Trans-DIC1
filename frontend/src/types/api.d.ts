@@ -239,6 +239,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/maintenances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lister les maintenances
+         * @description Liste paginée (20 par page, début le plus récent d'abord), filtrable par état, site et équipement.
+         */
+        get: operations["list_3"];
+        put?: never;
+        /** Planifier une maintenance */
+        post: operations["create_3"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/maintenances/{id}/annulation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Annuler une maintenance à venir ou en cours */
+        post: operations["cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/equipements": {
         parameters: {
             query?: never;
@@ -250,10 +288,10 @@ export interface paths {
          * Lister les équipements
          * @description Liste paginée (20 par page, tri par nom), filtrable par site, type et statut.
          */
-        get: operations["list_3"];
+        get: operations["list_4"];
         put?: never;
         /** Créer un équipement */
-        post: operations["create_3"];
+        post: operations["create_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -480,7 +518,7 @@ export interface paths {
          * Lister les alertes
          * @description Liste paginée (20 par page, plus récentes d'abord), filtrable par état et par équipement. Les alertes supprimées sont masquées.
          */
-        get: operations["list_4"];
+        get: operations["list_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -665,6 +703,39 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        MaintenanceRequest: {
+            /** Format: uuid */
+            siteId?: string;
+            /** Format: uuid */
+            equipmentId?: string;
+            /** Format: date-time */
+            startAt: string;
+            /** Format: date-time */
+            endAt: string;
+            reason: string;
+        };
+        MaintenanceResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            siteId?: string;
+            siteName?: string;
+            /** Format: uuid */
+            equipmentId?: string;
+            equipmentName?: string;
+            /** Format: date-time */
+            startAt?: string;
+            /** Format: date-time */
+            endAt?: string;
+            reason?: string;
+            /** @enum {string} */
+            state?: "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+            planner?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            cancelledAt?: string;
+        };
         AgentRegistrationResponse: {
             /** Format: uuid */
             agentId?: string;
@@ -768,6 +839,10 @@ export interface components {
             quality?: string;
             /** Format: date-time */
             collectedAt?: string;
+        };
+        PagedModelMaintenanceResponse: {
+            content?: components["schemas"]["MaintenanceResponse"][];
+            page?: components["schemas"]["PageMetadata"];
         };
         PagedModelEquipmentResponse: {
             content?: components["schemas"]["EquipmentResponse"][];
@@ -1906,6 +1981,143 @@ export interface operations {
     list_3: {
         parameters: {
             query: {
+                state?: "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+                equipmentId?: string;
+                siteId?: string;
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelMaintenanceResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    create_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaintenanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MaintenanceResponse"];
+                };
+            };
+            /** @description Cible, dates ou motif invalides */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Maintenance introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Déjà annulée ou terminée */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_4: {
+        parameters: {
+            query: {
                 siteId?: string;
                 type?: "SERVER" | "ROUTER" | "SWITCH" | "VIRTUAL_MACHINE" | "WIFI_ACCESS_POINT";
                 status?: "UP" | "DOWN" | "DEGRADED" | "MAINTENANCE" | "UNKNOWN";
@@ -1946,7 +2158,7 @@ export interface operations {
             };
         };
     };
-    create_3: {
+    create_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -2485,7 +2697,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_5: {
         parameters: {
             query: {
                 state?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ARCHIVED" | "DELETED";

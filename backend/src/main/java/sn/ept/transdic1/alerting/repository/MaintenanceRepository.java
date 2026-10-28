@@ -9,7 +9,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import sn.ept.transdic1.alerting.domain.*;
 
-public interface MaintenanceRepository extends JpaRepository<Maintenance, UUID> {
+public interface MaintenanceRepository
+    extends JpaRepository<Maintenance, UUID>,
+        org.springframework.data.jpa.repository.JpaSpecificationExecutor<Maintenance> {
   /** Maintenances en cours à un instant donné pour un équipement ou pour son site. */
   @Query(
       "select m from Maintenance m where m.state in :states and m.startAt <= :at and m.endAt > :at "
