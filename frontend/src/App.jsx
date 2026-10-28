@@ -6,6 +6,7 @@ import LoginPage from "./pages/LoginPage.jsx";
 import MaintenancesPage from "./pages/MaintenancesPage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
 import RulesPage from "./pages/RulesPage.jsx";
+import UsersPage from "./pages/UsersPage.jsx";
 import AlertsPage from "./pages/AlertsPage.jsx";
 import EquipmentPage from "./pages/EquipmentPage.jsx";
 
@@ -21,6 +22,9 @@ function App() {
           <Route path="/maintenances" element={<MaintenancesPage />} />
           <Route path="/regles" element={<RulesPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
+          <Route element={<ProtectedRoute roles={["ADMIN"]} />}>
+            <Route path="/utilisateurs" element={<UsersPage />} />
+          </Route>
         </Route>
       </Route>
       <Route path="/" element={<Navigate to="/tableau-de-bord" replace />} />

@@ -33,6 +33,11 @@ function AppLayout() {
         <NavLink to="/notifications" className={linkClass}>
           Mes notifications
         </NavLink>
+        {role === "ADMIN" && (
+          <NavLink to="/utilisateurs" className={linkClass}>
+            Utilisateurs
+          </NavLink>
+        )}
         <span className="ml-auto text-xs text-slate-400">Rôle : {role}</span>
         <button
           type="button"
