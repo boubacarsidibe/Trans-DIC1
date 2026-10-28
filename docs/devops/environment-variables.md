@@ -28,7 +28,9 @@
 | `SNMPV3_USERNAME` | Oui | Selon collecte | Identité SNMPv3 |
 | `SNMPV3_AUTH_PASSWORD` | Oui | Selon collecte | Secret d'authentification SNMPv3 |
 | `SNMPV3_PRIV_PASSWORD` | Oui | Selon collecte | Secret de chiffrement SNMPv3 |
-| `SMTP_*` | Variable | Selon notification | Configuration email |
+| `SMTP_*` | Variable | Selon notification | Serveur SMTP interne : `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_AUTH`, `SMTP_STARTTLS` (Mailpit en développement) |
+| `NOTIFICATION_FROM` | Non | Tous | Adresse d'expéditeur des e-mails d'alerte |
+| `PUBLIC_URL` | Non | Tous | Adresse de l'application, citée dans les e-mails |
 | `WEBHOOK_URL` | Oui | Selon notification | URL de notification signée ou secrète |
 
 Les variables non retenues par la stack devront être supprimées du contrat plutôt que laissées inactives.

@@ -54,6 +54,8 @@ services:
       BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
+      NOTIFICATION_FROM: ${NOTIFICATION_FROM:-trans-dic1@ept.sn}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:5173}
     ports:
       - "8080:8080"
 

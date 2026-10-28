@@ -33,7 +33,7 @@ Trans-DIC1 est une plateforme interne de supervision des équipements réseau et
 
 **Où en est le projet** : le socle technique et la qualité sont solides (API sécurisée, inventaire, modèle de données complet, CI exigeante, Docker). Le cœur fonctionnel de la supervision (collecte, évaluation des seuils, alertes, notifications, rapports, temps réel) est **modélisé mais pas encore codé**.
 
-**Principaux choix** : monolithe modulaire Spring Boot + React, PostgreSQL, JWT court, modèle de domaine riche vérifié par ArchUnit. Six ADR documentent les décisions. Les six sont acceptées ou proposées ; les quatre dernières (0003 à 0006) ont été rédigées après une revue critique appuyée sur des recherches (section 11).
+**Principaux choix** : monolithe modulaire Spring Boot + React, PostgreSQL, JWT court, modèle de domaine riche vérifié par ArchUnit. Sept ADR documentent les décisions. Les six sont acceptées ou proposées ; les quatre dernières (0003 à 0006) ont été rédigées après une revue critique appuyée sur des recherches (section 11).
 
 ---
 
@@ -108,12 +108,15 @@ Source : historique git (`develop`, 41 commits d'avance sur `main`), code et doc
 | Alertes | Administration des règles : seuil, durée de confirmation, hystérésis, portée (sites et équipements), audit | ✅ | `AlertRuleController`, `AlertRuleService`, `AlertRuleApiTests` |
 | Alertes | Écran d'administration des règles | ⚪ | API prête, pas d'écran |
 | Utilisateurs | Écran d'administration des comptes | ⚪ | API prête, pas d'écran |
+| Notifications | E-mails à l'ouverture et à la résolution d'une alerte : événement, file en base, envoi différé, reprises bornées, préférences par utilisateur, aucun envoi pendant une maintenance | ✅ | `NotificationQueueService`, `NotificationDispatchService`, `NotificationTests` (serveur SMTP réel en mémoire) |
+| Notifications | Écran « Mes notifications » | ✅ | `NotificationsPage.jsx` |
+| Rapports | Rapports planifiés et exportés | ⚪ | entités créées, aucun service |
 | Tableau de bord | Chiffres clés réels : équipements par statut, alertes actives par sévérité, agents actifs | ✅ | `OverviewController`, `DashboardPage.jsx` |
 | Notifications / rapports | Envoi e-mail, tentatives, rapports planifiés | ⚪ | entités créées, aucun service |
 | Temps réel | Flux SSE vers le tableau de bord | 🟡 | ADR-0006 |
 | Déploiement | Nginx, TLS, staging, production | ⚪ | prérequis externes ouverts |
 
-**Vérification faite pour ce dossier** : `./mvnw verify` sous Java 21 se termine par `BUILD SUCCESS` avec 203 tests backend sans échec (PostgreSQL 16 embarqué, sans Docker), seuils JaCoCo et Spotless passés. Côté frontend : 30 tests, couverture 92 %, lint sans erreur, build et audit des dépendances sans faille. La CI distante n'a pas été relancée.
+**Vérification faite pour ce dossier** : `./mvnw verify` sous Java 21 se termine par `BUILD SUCCESS` avec 210 tests backend sans échec (PostgreSQL 16 embarqué, sans Docker), seuils JaCoCo et Spotless passés. Côté frontend : 33 tests, couverture 92 %, lint sans erreur, build et audit des dépendances sans faille. La CI distante n'a pas été relancée.
 
 ### 3.2 Chronologie
 
@@ -263,6 +266,7 @@ flowchart TD
 | `GET /api/v1/regles-alertes` · `/{id}` | authentifié | Liste paginée · détail d'une règle et de sa portée |
 | `POST` · `PUT /{id}` · `DELETE /{id}` `/api/v1/regles-alertes` | `ADMIN` | Crée · remplace règle et portée · supprime (refusé si la règle a produit des alertes) |
 | `GET /api/v1/vue-ensemble` | authentifié | Chiffres clés du tableau de bord |
+| `GET` · `PUT /api/v1/mes-preferences` | authentifié | Préférences de notification de l'utilisateur connecté (inactives par défaut) |
 | `GET /api/v1/sites` · `/{id}` | authentifié | Liste paginée (filtre par statut) · détail avec nombre d'équipements |
 | `POST` · `PUT /{id}` · `DELETE /{id}` `/api/v1/sites` | `ADMIN`, `NOC_OPERATOR` | Crée · modifie (code immuable) · supprime un site vide |
 | `GET` · `POST /api/v1/utilisateurs` | `ADMIN` | Liste des comptes · création |
@@ -493,6 +497,7 @@ Sévérité indépendante de l'état : `INFO`, `WARNING`, `CRITICAL`. Le code de
 | `/tableau-de-bord` | Tableau de bord : chiffres clés, statuts, alertes par sévérité, dernière mesure | ✅ |
 | `/equipements` | Liste, création, modification, suppression | ✅ |
 | `/alertes` | Alertes : liste, filtre par état, prise en charge, résolution, archivage, historique | ✅ |
+| `/notifications` | Mes notifications : activation, sévérité minimale | ✅ |
 | Métriques, rapports, administration | — | ⚪ maquettes dans `docs/design` |
 
 Les types TypeScript de l'API sont générés depuis `openapi.yaml`, pour éviter les écarts de contrat.
@@ -536,7 +541,8 @@ flowchart LR
 | [0003](adr/0003-integration-tests-on-real-postgresql.md) | Tests sur un vrai PostgreSQL embarqué (sans Docker) au lieu de H2 | acceptée, implémentée |
 | [0004](adr/0004-metrics-storage.md) | Métriques : partitionnement natif, clé entière, BRIN | acceptée, implémentée (hors purge) |
 | [0005](adr/0005-authentication-and-refresh.md) | Jeton en mémoire + renouvellement par cookie avec rotation | acceptée, implémentée |
-| [0006](adr/0006-collection-realtime-runtime.md) | Java 21, SNMP4J, agent actif, SSE | proposée |
+| [0006](adr/0006-collection-realtime-runtime.md) | Java 21, SNMP4J, agent actif, SSE | proposée (Java 21 et agent actif implémentés) |
+| [0007](adr/0007-email-notifications.md) | Notifications par e-mail : événement, file en base, envoi différé | acceptée, implémentée |
 
 ### 11.2 Pourquoi / comment / donc, décision par décision
 
