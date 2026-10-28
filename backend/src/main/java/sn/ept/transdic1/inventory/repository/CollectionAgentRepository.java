@@ -9,4 +9,7 @@ public interface CollectionAgentRepository extends JpaRepository<CollectionAgent
   Optional<CollectionAgent> findByIdentifier(String identifier);
 
   Optional<CollectionAgent> findByEquipmentIdAndStatus(UUID equipmentId, AgentStatus status);
+
+  /** Agent actif présentant ce jeton (par empreinte) : authentification des envois de mesures. */
+  Optional<CollectionAgent> findByTokenHashAndStatus(String tokenHash, AgentStatus status);
 }

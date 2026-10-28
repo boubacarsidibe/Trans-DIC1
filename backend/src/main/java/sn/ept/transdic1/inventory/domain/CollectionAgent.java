@@ -35,6 +35,10 @@ public class CollectionAgent {
   @Column(name = "revoked_at")
   private Instant revokedAt;
 
+  /** Empreinte SHA-256 du jeton de l'agent ; le jeton lui-même n'est jamais stocké. */
+  @Column(name = "token_hash", length = 128)
+  private String tokenHash;
+
   protected CollectionAgent() {}
 
   public CollectionAgent(
@@ -100,6 +104,14 @@ public class CollectionAgent {
 
   public void setLastCommunicationAt(Instant lastCommunicationAt) {
     this.lastCommunicationAt = lastCommunicationAt;
+  }
+
+  public String getTokenHash() {
+    return tokenHash;
+  }
+
+  public void setTokenHash(String tokenHash) {
+    this.tokenHash = tokenHash;
   }
 
   public Instant getRevokedAt() {
