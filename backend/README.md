@@ -1,11 +1,11 @@
 # Backend Trans-DIC1
 
-API Spring Boot 4.1, Java 17 et PostgreSQL. Le Maven Wrapper versionné rend le build indépendant d'une installation Maven globale.
+API Spring Boot 4.1, Java 21 et PostgreSQL. Le Maven Wrapper versionné rend le build indépendant d'une installation Maven globale.
 
 ## Commandes
 
 ```powershell
-# Tests isolés sur H2 en mode PostgreSQL
+# Tests sur un vrai PostgreSQL 16 embarqué (aucun Docker requis)
 .\mvnw.cmd test
 
 # Build reproductible

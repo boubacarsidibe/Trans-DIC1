@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # --- Étape 1 : compilation ---------------------------------------------------
-FROM maven:3.9-eclipse-temurin-17 AS build
+FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /workspace
 
 # Les dépendances sont téléchargées avant les sources pour profiter du cache.
@@ -12,7 +12,7 @@ COPY src ./src
 RUN --mount=type=cache,target=/root/.m2 mvn -B -q -DskipTests package
 
 # --- Étape 2 : exécution -----------------------------------------------------
-FROM eclipse-temurin:17-jre-alpine AS runtime
+FROM eclipse-temurin:21-jre-alpine AS runtime
 
 RUN addgroup -S -g 10001 app && adduser -S -u 10001 -G app app
 WORKDIR /app

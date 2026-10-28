@@ -8,7 +8,7 @@ Le socle du Sprint 0 est opérationnel : API Spring Boot, interface React, base 
 
 | Composant | Stack |
 | --- | --- |
-| Backend | Java 17, Spring Boot 4.1.1, Maven Wrapper |
+| Backend | Java 21, Spring Boot 4.1.1, Maven Wrapper |
 | Frontend | Node.js 24, React 19, Vite 8, Tailwind CSS 4 |
 | Données | PostgreSQL 16 natif, Flyway |
 | Tests | JUnit/H2 et Vitest/Testing Library |
@@ -18,7 +18,7 @@ La décision complète est dans [ADR-0001](docs/adr/0001-application-stack.md), 
 ## Prérequis
 
 - Git 2.28+
-- Java 17 ; Maven n'est pas requis car le wrapper est versionné
+- Java 21 ; Maven n'est pas requis car le wrapper est versionné
 - Node.js 24 et npm 11
 - PostgreSQL 16 installé localement
 - PowerShell 7 pour les scripts de contrôle sur Windows, Linux ou macOS
