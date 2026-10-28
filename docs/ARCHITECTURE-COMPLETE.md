@@ -88,6 +88,7 @@ Source : historique git (`develop`, 41 commits d'avance sur `main`), code et doc
 | Inventaire | CRUD équipements `/api/v1/equipements`, DTO validés, erreurs `problem+json` | ✅ | `EquipmentController`, `ApiExceptionHandler` |
 | Inventaire | Audit des mutations d'inventaire (US07) | ✅ | `AuditService`, `EquipmentAuditTests` |
 | Métriques | Lecture des dernières mesures `/api/v1/metrics/latest`, mesure CPU synthétique | ✅ | `MetricController`, V4 |
+| Métriques | Partitions mensuelles, agrégats horaires, purge sans perte d'historique | ✅ | V9, V12, `MetricRetentionService`, `MetricRetentionTests` |
 | Modèle | 28 entités JPA, 28 tables, contraintes `CHECK`, index uniques partiels (US02) | ✅ | V7, V8, `PersistenceModelTests` |
 | Modèle | Repositories du domaine et leurs tests (US03) | ✅ | `*Repository` |
 | API | Contrat OpenAPI + Swagger UI (désactivés en prod), types TypeScript générés | ✅ | `OpenApiConfig`, `docs/api/openapi.yaml` |
@@ -303,8 +304,10 @@ erDiagram
 | V8 | Index uniques partiels |
 | V9 | Table `metric` partitionnée par mois, clé `(collected_at, id)`, fonction `ensure_metric_partition` |
 | V10 | Sessions : `family_id`, `replaced_by_id` (rotation des jetons de renouvellement) |
+| V11 | `alert_rule.recovery_threshold` (hystérésis) avec contrainte de cohérence |
+| V12 | `metric_hourly` (agrégats horaires) et fonction `drop_expired_metric_partitions` |
 
-La prochaine migration est la V11. Un seul dossier de migrations.
+La prochaine migration est la V13. Un seul dossier de migrations.
 
 ### 6.4 Stockage des métriques (cible, ADR-0004)
 
@@ -532,7 +535,7 @@ Monolithe modulaire vérifié par ArchUnit, ports pour la collecte, énumératio
 | 1 | ~~Tests sur H2 : index partiels non testés~~ | Haute | **Corrigé** : ADR-0003, PostgreSQL embarqué ; 4 index partiels et partitionnement prouvés par des tests |
 | 2 | ~~`metric` non partitionnée, clé UUID~~ | Haute | **Corrigé** : migration V9 (partitions mensuelles, clé `bigint`). Reste la purge des partitions expirées, à faire avec les agrégats |
 | 3 | ~~Jeton en `sessionStorage`~~ | Moyenne | **Corrigé** : ADR-0005 implémenté. Limite connue : deux onglets qui renouvellent exactement en même temps peuvent déclencher la détection de réutilisation et fermer la session |
-| 4 | Pas de seuil de retour à la normale (hystérésis) dans `AlertRule` | Moyenne | à ajouter : champ `seuilRetour`, non décidé en ADR |
+| 4 | ~~Pas de seuil de retour à la normale (hystérésis)~~ | Moyenne | **Corrigé** : `recovery_threshold` (V11) et méthodes `isBreachedBy` / `isRecoveredBy` testées |
 | 5 | Pas de regroupement ni d'inhibition des alertes (un routeur en panne = 40 alertes) | Moyenne | à concevoir au Sprint 3 |
 | 6 | Collecteur « séparé » dans certains diagrammes, intégré dans l'ADR | Faible | décision : intégré au monolithe d'abord ; mise à jour des diagrammes de déploiement faite en partie |
 | 7 | Anciens diagrammes et `00-overview.md` périmés conservés | Faible | marqués obsolètes dans le README des diagrammes |
@@ -553,7 +556,7 @@ flowchart LR
     S4 --> S5["Sprint 5<br/>rapport · soutenance"]
 ```
 
-Corrections faites : tests sur PostgreSQL embarqué, migration `metric` (V9), renouvellement de jeton (V10). Restent : passage à Java 25, hystérésis et regroupement des alertes, purge des partitions expirées (après les agrégats).
+Corrections faites : tests sur PostgreSQL embarqué, migration `metric` (V9), renouvellement de jeton (V10). Aussi faits : hystérésis des règles d'alerte (V11), agrégats horaires et purge des partitions expirées (V12), limitation de débit de `/auth/refresh` et nettoyage des sessions expirées. Restent : passage à Java 25, regroupement des alertes, agrégats journaliers.
 
 ---
 

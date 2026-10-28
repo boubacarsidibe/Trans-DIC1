@@ -100,4 +100,4 @@ Les autres énumérations (`ServiceType`, `ValueType`, `ComparisonOperator`, `Al
 
 - `db/migration/V7__persistent_model.sql` : tables, clés, `CHECK` et index, plus l'évolution additive des tables existantes (aucune donnée supprimée).
 - `db/migration/V8__partial_unique_indexes.sql` : index uniques partiels (PostgreSQL). Depuis l'ADR-0003, un seul dossier de migrations est appliqué en développement, en test (Testcontainers) et en production.
-- V9 partitionne la table `metric` (ADR-0004). La prochaine migration est la V10.
+- V9 partitionne la table `metric` par mois (ADR-0004) ; V10 ajoute `family_id` et `replaced_by_id` aux sessions (ADR-0005) ; V11 ajoute `alert_rule.recovery_threshold` (hystérésis) ; V12 ajoute `metric_hourly` et la fonction de purge des partitions expirées. La prochaine migration est la V13.
