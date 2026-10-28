@@ -7,4 +7,6 @@ import sn.ept.transdic1.inventory.domain.*;
 
 public interface MetricDefinitionRepository extends JpaRepository<MetricDefinition, UUID> {
   List<MetricDefinition> findByConfigurationIdAndActiveTrue(UUID configurationId);
+
+  List<MetricDefinition> findByConfigurationId(UUID configurationId);
 }
