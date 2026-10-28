@@ -24,6 +24,9 @@ function AppLayout() {
         <NavLink to="/alertes" className={linkClass}>
           Alertes
         </NavLink>
+        <NavLink to="/regles" className={linkClass}>
+          Règles
+        </NavLink>
         <NavLink to="/notifications" className={linkClass}>
           Mes notifications
         </NavLink>
