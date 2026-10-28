@@ -16,19 +16,15 @@ tags:
     \ NOC_OPERATOR et ADMIN ; assignation, archivage et suppression pour ADMIN."
 - name: Utilisateurs
   description: "Gestion des comptes, réservée aux administrateurs."
+- name: Rapports
+  description: "Disponibilité des équipements et incidents sur une période (400 jours\
+    \ au plus), en JSON ou en CSV."
 - name: Collecte SNMP
   description: Configuration de la lecture SNMP d'un équipement. Secrets par référence
     (env:NOM) uniquement.
-- name: Métriques
-  description: Mesures collectées sur les équipements.
-- name: Agents de collecte
-  description: Enregistrement des agents par un administrateur et réception de leurs
-    mesures (jeton d'agent).
 - name: Équipements
   description: Inventaire des équipements supervisés. Écriture réservée aux rôles
     ADMIN et NOC_OPERATOR.
-- name: Notifications
-  description: Préférences de notification de l'utilisateur connecté.
 - name: Règles d'alerte
   description: "Seuils, durée de confirmation, seuil de retour et portée. Lecture\
     \ pour tous les rôles, écriture réservée aux administrateurs."
@@ -39,11 +35,18 @@ tags:
   description: "Fenêtres pendant lesquelles les alertes d'un site ou d'un équipement\
     \ sont tracées sans notification. Lecture pour tous, planification et annulation\
     \ pour ADMIN et NOC_OPERATOR."
-- name: Vue d'ensemble
-  description: Chiffres clés du tableau de bord.
 - name: Authentification
   description: Jeton d'accès (corps de la réponse) et jeton de renouvellement (cookie
     HttpOnly).
+- name: Métriques
+  description: Mesures collectées sur les équipements.
+- name: Agents de collecte
+  description: Enregistrement des agents par un administrateur et réception de leurs
+    mesures (jeton d'agent).
+- name: Notifications
+  description: Préférences de notification de l'utilisateur connecté.
+- name: Vue d'ensemble
+  description: Chiffres clés du tableau de bord.
 paths:
   /api/v1/sites/{id}:
     get:
@@ -1366,6 +1369,103 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/OverviewResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/rapports/incidents:
+    get:
+      tags:
+      - Rapports
+      summary: Rapport d'incidents
+      description: "Alertes déclenchées pendant la période : volumes par sévérité\
+        , délai moyen de résolution, équipements les plus touchés. format=csv pour\
+        \ un fichier de tableur."
+      operationId: incidents
+      parameters:
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: format
+        in: query
+        required: false
+        schema:
+          type: string
+          default: json
+      responses:
+        "400":
+          description: Période invalide
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/rapports/disponibilite:
+    get:
+      tags:
+      - Rapports
+      summary: Rapport de disponibilité
+      description: Temps d'indisponibilité (alerte de collecte ouverte) et disponibilité
+        en pourcentage par équipement supervisé. format=csv pour un fichier de tableur.
+      operationId: availability
+      parameters:
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: format
+        in: query
+        required: false
+        schema:
+          type: string
+          default: json
+      responses:
+        "400":
+          description: Période invalide
         "401":
           description: Authentification requise ou jeton expiré
           content:

@@ -23,6 +23,11 @@ public interface AlertRepository
 
   boolean existsByRuleId(UUID ruleId);
 
+  /** Alertes déclenchées pendant la période [from, to[, les plus récentes d'abord. */
+  java.util.List<Alert>
+      findByTriggeredAtGreaterThanEqualAndTriggeredAtLessThanOrderByTriggeredAtDesc(
+          java.time.Instant from, java.time.Instant to);
+
   /** Alerte de collecte active (sans règle) d'un équipement. */
   Optional<Alert> findFirstByEquipmentIdAndTypeAndStateIn(
       UUID equipmentId, AlertType type, Collection<AlertState> states);
