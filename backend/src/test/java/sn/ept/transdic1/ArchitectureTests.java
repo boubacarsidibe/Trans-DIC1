@@ -235,6 +235,18 @@ class ArchitectureTests {
                   + " évite tout cycle");
 
   @ArchTest
+  static final ArchRule noModuleDependsOnOverview =
+      noClasses()
+          .that()
+          .resideOutsideOfPackage(ROOT + ".overview..")
+          .and()
+          .resideInAPackage(ROOT + "..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage(ROOT + ".overview..")
+          .because("overview ne fait que lire inventory et alerting : personne ne dépend d'elle");
+
+  @ArchTest
   static final ArchRule collectionOnlyUsesDomainsAndServicesOfOtherModules =
       noClasses()
           .that()
