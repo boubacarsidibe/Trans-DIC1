@@ -14,6 +14,8 @@ tags:
 - name: Alertes
   description: "Consultation pour tous les rôles ; prise en charge et résolution pour\
     \ NOC_OPERATOR et ADMIN ; assignation, archivage et suppression pour ADMIN."
+- name: Utilisateurs
+  description: "Gestion des comptes, réservée aux administrateurs."
 - name: Métriques
   description: Mesures collectées sur les équipements.
 - name: Agents de collecte
@@ -25,18 +27,116 @@ tags:
 - name: Règles d'alerte
   description: "Seuils, durée de confirmation, seuil de retour et portée. Lecture\
     \ pour tous les rôles, écriture réservée aux administrateurs."
+- name: Sites
+  description: Emplacements regroupant les équipements. Écriture réservée à ADMIN
+    et NOC_OPERATOR.
 - name: Vue d'ensemble
   description: Chiffres clés du tableau de bord.
 - name: Authentification
   description: Jeton d'accès (corps de la réponse) et jeton de renouvellement (cookie
     HttpOnly).
 paths:
+  /api/v1/sites/{id}:
+    get:
+      tags:
+      - Sites
+      summary: Consulter un site
+      operationId: get
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Site introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    put:
+      tags:
+      - Sites
+      summary: Modifier un site
+      description: Le code ne peut pas changer.
+      operationId: update
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SiteRequest"
+        required: true
+      responses:
+        "400":
+          description: Données invalides
+        "404":
+          description: Site introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      tags:
+      - Sites
+      summary: Supprimer un site vide
+      operationId: delete
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Site introuvable
+        "409":
+          description: Le site contient des équipements
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/regles-alertes/{id}:
     get:
       tags:
       - Règles d'alerte
       summary: Consulter une règle
-      operationId: get
+      operationId: get_1
       parameters:
       - name: id
         in: path
@@ -63,7 +163,7 @@ paths:
       tags:
       - Règles d'alerte
       summary: Remplacer une règle et sa portée
-      operationId: update
+      operationId: update_1
       parameters:
       - name: id
         in: path
@@ -101,7 +201,7 @@ paths:
       - Règles d'alerte
       summary: Supprimer une règle
       description: "Refusé si la règle a déjà produit des alertes : désactivez-la."
-      operationId: delete
+      operationId: delete_1
       parameters:
       - name: id
         in: path
@@ -133,7 +233,7 @@ paths:
       tags:
       - Équipements
       summary: Consulter un équipement
-      operationId: get_1
+      operationId: get_2
       parameters:
       - name: id
         in: path
@@ -164,7 +264,7 @@ paths:
       tags:
       - Équipements
       summary: Modifier un équipement
-      operationId: update_1
+      operationId: update_2
       parameters:
       - name: id
         in: path
@@ -213,7 +313,7 @@ paths:
       tags:
       - Équipements
       summary: Supprimer un équipement
-      operationId: delete_1
+      operationId: delete_2
       parameters:
       - name: id
         in: path
@@ -238,13 +338,269 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/utilisateurs:
+    get:
+      tags:
+      - Utilisateurs
+      summary: Lister les comptes
+      description: "Liste paginée (20 par page, tri par nom)."
+      operationId: list
+      parameters:
+      - name: pageable
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/Pageable"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PagedModelUserResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      tags:
+      - Utilisateurs
+      summary: Créer un compte
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreateRequest"
+        required: true
+      responses:
+        "400":
+          description: Données invalides
+        "409":
+          description: Nom ou e-mail déjà utilisé
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/utilisateurs/{id}/role:
+    post:
+      tags:
+      - Utilisateurs
+      summary: Changer le rôle d'un compte
+      description: Révoque les connexions du compte. Refusé sur soi-même ou sur le
+        dernier administrateur.
+      operationId: changeRole
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleChangeRequest"
+        required: true
+      responses:
+        "404":
+          description: Utilisateur introuvable
+        "409":
+          description: "Garde-fou : soi-même ou dernier administrateur"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/utilisateurs/{id}/mot-de-passe:
+    post:
+      tags:
+      - Utilisateurs
+      summary: Réinitialiser le mot de passe
+      description: "Fixe un nouveau mot de passe, lève le verrouillage et révoque\
+        \ les connexions."
+      operationId: resetPassword
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetRequest"
+        required: true
+      responses:
+        "400":
+          description: Mot de passe invalide
+        "404":
+          description: Utilisateur introuvable
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/utilisateurs/{id}/activation:
+    post:
+      tags:
+      - Utilisateurs
+      summary: Activer ou désactiver un compte
+      description: Désactiver révoque les connexions. Refusé sur soi-même ou sur le
+        dernier administrateur.
+      operationId: setActive
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivationRequest"
+        required: true
+      responses:
+        "404":
+          description: Utilisateur introuvable
+        "409":
+          description: "Garde-fou : soi-même ou dernier administrateur"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/sites:
+    get:
+      tags:
+      - Sites
+      summary: Lister les sites
+      description: "Liste paginée (20 par page, tri par nom), filtrable par statut."
+      operationId: list_1
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - ACTIVE
+          - INACTIVE
+      - name: pageable
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/Pageable"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PagedModelSiteResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      tags:
+      - Sites
+      summary: Créer un site
+      operationId: create_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SiteRequest"
+        required: true
+      responses:
+        "400":
+          description: Données invalides
+        "409":
+          description: Code déjà utilisé
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SiteResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/regles-alertes:
     get:
       tags:
       - Règles d'alerte
       summary: Lister les règles
       description: "Liste paginée (20 par page, tri par nom)."
-      operationId: list
+      operationId: list_2
       parameters:
       - name: pageable
         in: query
@@ -274,7 +630,7 @@ paths:
       tags:
       - Règles d'alerte
       summary: Créer une règle
-      operationId: create
+      operationId: create_2
       requestBody:
         content:
           application/json:
@@ -311,7 +667,7 @@ paths:
       summary: Lister les équipements
       description: "Liste paginée (20 par page, tri par nom), filtrable par site,\
         \ type et statut."
-      operationId: list_1
+      operationId: list_3
       parameters:
       - name: siteId
         in: query
@@ -369,7 +725,7 @@ paths:
       tags:
       - Équipements
       summary: Créer un équipement
-      operationId: create_1
+      operationId: create_3
       requestBody:
         content:
           application/json:
@@ -776,7 +1132,7 @@ paths:
       summary: Lister les alertes
       description: "Liste paginée (20 par page, plus récentes d'abord), filtrable\
         \ par état et par équipement. Les alertes supprimées sont masquées."
-      operationId: list_2
+      operationId: list_4
       parameters:
       - name: state
         in: query
@@ -824,7 +1180,7 @@ paths:
       tags:
       - Alertes
       summary: Consulter une alerte et son historique
-      operationId: get_2
+      operationId: get_3
       parameters:
       - name: id
         in: path
@@ -852,7 +1208,7 @@ paths:
       - Alertes
       summary: Supprimer une alerte
       description: "Suppression logique : l'alerte et son historique restent en base."
-      operationId: delete_2
+      operationId: delete_3
       parameters:
       - name: id
         in: path
@@ -879,6 +1235,33 @@ paths:
                 $ref: "#/components/schemas/ApiError"
 components:
   schemas:
+    SiteRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          maxLength: 32
+          minLength: 0
+          pattern: "[A-Za-z0-9._-]*"
+        name:
+          type: string
+          maxLength: 120
+          minLength: 0
+        description:
+          type: string
+          maxLength: 1000
+          minLength: 0
+        address:
+          type: string
+          maxLength: 255
+          minLength: 0
+        status:
+          type: string
+          enum:
+          - ACTIVE
+          - INACTIVE
+      required:
+      - name
     AlertRuleRequest:
       type: object
       properties:
@@ -1011,6 +1394,104 @@ components:
           format: uuid
         site:
           type: string
+    UserCreateRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          maxLength: 64
+          minLength: 3
+          pattern: "[A-Za-z0-9._-]+"
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          minLength: 0
+        password:
+          type: string
+          maxLength: 128
+          minLength: 12
+        role:
+          type: string
+          enum:
+          - ADMIN
+          - NOC_OPERATOR
+          - VIEWER
+      required:
+      - email
+      - password
+      - role
+      - username
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum:
+          - ADMIN
+          - NOC_OPERATOR
+          - VIEWER
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    RoleChangeRequest:
+      type: object
+      properties:
+        role:
+          type: string
+          enum:
+          - ADMIN
+          - NOC_OPERATOR
+          - VIEWER
+      required:
+      - role
+    PasswordResetRequest:
+      type: object
+      properties:
+        password:
+          type: string
+          maxLength: 128
+          minLength: 12
+      required:
+      - password
+    ActivationRequest:
+      type: object
+      properties:
+        active:
+          type: boolean
+      required:
+      - active
+    SiteResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum:
+          - ACTIVE
+          - INACTIVE
+        description:
+          type: string
+        address:
+          type: string
+        equipmentCount:
+          type: integer
+          format: int64
     AlertRuleResponse:
       type: object
       properties:
@@ -1220,6 +1701,24 @@ components:
         totalPages:
           type: integer
           format: int64
+    PagedModelUserResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserResponse"
+        page:
+          $ref: "#/components/schemas/PageMetadata"
+    PagedModelSiteResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/SiteResponse"
+        page:
+          $ref: "#/components/schemas/PageMetadata"
     PagedModelAlertRuleResponse:
       type: object
       properties:

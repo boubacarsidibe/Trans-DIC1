@@ -25,12 +25,12 @@ export async function listEquipment({ page = 0, size = PAGE_SIZE } = {}) {
   return data;
 }
 
-// L'API n'expose pas encore /sites : on déduit les sites des équipements.
+// Les sites viennent de l'API /sites : un site sans équipement doit pouvoir recevoir le premier.
 export async function listSites() {
-  const { content } = await listEquipment({ page: 0, size: 200 });
-  const sites = new Map();
-  content.forEach((e) => sites.set(e.siteId, e.site));
-  return [...sites].map(([id, name]) => ({ id, name }));
+  const { data } = await apiClient.get("/sites", {
+    params: { page: 0, size: 200, status: "ACTIVE" },
+  });
+  return (data.content ?? []).map(({ id, name }) => ({ id, name }));
 }
 
 export async function createEquipment(payload) {
