@@ -48,6 +48,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/mes-preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mes préférences de notification
+         * @description Inactives par défaut : personne ne reçoit d'e-mail tant qu'il ne l'a pas demandé.
+         */
+        get: operations["get_2"];
+        /**
+         * Modifier mes préférences
+         * @description Canal, sévérité minimale et activation. L'adresse est celle du compte.
+         */
+        put: operations["save"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/equipements/{id}": {
         parameters: {
             query?: never;
@@ -56,7 +80,7 @@ export interface paths {
             cookie?: never;
         };
         /** Consulter un équipement */
-        get: operations["get_2"];
+        get: operations["get_3"];
         /** Modifier un équipement */
         put: operations["update_2"];
         post?: never;
@@ -448,7 +472,7 @@ export interface paths {
             cookie?: never;
         };
         /** Consulter une alerte et son historique */
-        get: operations["get_3"];
+        get: operations["get_4"];
         put?: never;
         post?: never;
         /**
@@ -488,6 +512,21 @@ export interface components {
             active?: boolean;
             siteIds?: string[];
             equipmentIds?: string[];
+        };
+        PreferenceRequest: {
+            /** @enum {string} */
+            channel: "EMAIL";
+            /** @enum {string} */
+            minimumSeverity: "INFO" | "WARNING" | "CRITICAL";
+            active: boolean;
+        };
+        PreferenceResponse: {
+            /** @enum {string} */
+            channel?: "EMAIL";
+            /** @enum {string} */
+            minimumSeverity?: "INFO" | "WARNING" | "CRITICAL";
+            active?: boolean;
+            email?: string;
         };
         EquipmentRequest: {
             inventoryCode: string;
@@ -1014,6 +1053,86 @@ export interface operations {
         };
     };
     get_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PreferenceResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreferenceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PreferenceResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    get_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -2227,7 +2346,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;

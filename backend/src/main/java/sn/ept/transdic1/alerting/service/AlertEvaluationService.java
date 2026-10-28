@@ -6,9 +6,11 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.ept.transdic1.alerting.domain.Alert;
+import sn.ept.transdic1.alerting.domain.AlertChangedEvent;
 import sn.ept.transdic1.alerting.domain.AlertEvent;
 import sn.ept.transdic1.alerting.domain.AlertEventType;
 import sn.ept.transdic1.alerting.domain.AlertRule;
@@ -45,18 +47,21 @@ public class AlertEvaluationService {
   private final AlertEventRepository events;
   private final MaintenanceRepository maintenances;
   private final MetricHistory history;
+  private final ApplicationEventPublisher publisher;
 
   public AlertEvaluationService(
       AlertRuleRepository rules,
       AlertRepository alerts,
       AlertEventRepository events,
       MaintenanceRepository maintenances,
-      MetricHistory history) {
+      MetricHistory history,
+      ApplicationEventPublisher publisher) {
     this.rules = rules;
     this.alerts = alerts;
     this.events = events;
     this.maintenances = maintenances;
     this.history = history;
+    this.publisher = publisher;
   }
 
   @Transactional
@@ -140,6 +145,9 @@ public class AlertEvaluationService {
     }
     alerts.save(alert);
     events.save(event);
+    if (notify) {
+      publisher.publishEvent(new AlertChangedEvent(alert.getId(), AlertEventType.OPENED));
+    }
     return new AlertChange(alert.getId(), AlertEventType.OPENED, notify);
   }
 
@@ -154,6 +162,7 @@ public class AlertEvaluationService {
     event.setComment("Retour à la normale détecté");
     alerts.save(alert);
     events.save(event);
+    publisher.publishEvent(new AlertChangedEvent(alert.getId(), AlertEventType.RESOLVED));
     return new AlertChange(alert.getId(), AlertEventType.RESOLVED, true);
   }
 

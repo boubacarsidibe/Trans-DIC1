@@ -24,6 +24,8 @@ tags:
 - name: Équipements
   description: Inventaire des équipements supervisés. Écriture réservée aux rôles
     ADMIN et NOC_OPERATOR.
+- name: Notifications
+  description: Préférences de notification de l'utilisateur connecté.
 - name: Règles d'alerte
   description: "Seuils, durée de confirmation, seuil de retour et portée. Lecture\
     \ pour tous les rôles, écriture réservée aux administrateurs."
@@ -228,12 +230,71 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/mes-preferences:
+    get:
+      tags:
+      - Notifications
+      summary: Mes préférences de notification
+      description: "Inactives par défaut : personne ne reçoit d'e-mail tant qu'il\
+        \ ne l'a pas demandé."
+      operationId: get_2
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PreferenceResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    put:
+      tags:
+      - Notifications
+      summary: Modifier mes préférences
+      description: "Canal, sévérité minimale et activation. L'adresse est celle du\
+        \ compte."
+      operationId: save
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreferenceRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PreferenceResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/equipements/{id}:
     get:
       tags:
       - Équipements
       summary: Consulter un équipement
-      operationId: get_2
+      operationId: get_3
       parameters:
       - name: id
         in: path
@@ -1180,7 +1241,7 @@ paths:
       tags:
       - Alertes
       summary: Consulter une alerte et son historique
-      operationId: get_3
+      operationId: get_4
       parameters:
       - name: id
         in: path
@@ -1320,6 +1381,42 @@ components:
       - name
       - operator
       - threshold
+    PreferenceRequest:
+      type: object
+      properties:
+        channel:
+          type: string
+          enum:
+          - EMAIL
+        minimumSeverity:
+          type: string
+          enum:
+          - INFO
+          - WARNING
+          - CRITICAL
+        active:
+          type: boolean
+      required:
+      - active
+      - channel
+      - minimumSeverity
+    PreferenceResponse:
+      type: object
+      properties:
+        channel:
+          type: string
+          enum:
+          - EMAIL
+        minimumSeverity:
+          type: string
+          enum:
+          - INFO
+          - WARNING
+          - CRITICAL
+        active:
+          type: boolean
+        email:
+          type: string
     EquipmentRequest:
       type: object
       properties:

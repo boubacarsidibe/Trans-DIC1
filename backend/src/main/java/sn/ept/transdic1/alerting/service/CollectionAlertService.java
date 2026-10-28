@@ -3,9 +3,11 @@ package sn.ept.transdic1.alerting.service;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.Set;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.ept.transdic1.alerting.domain.Alert;
+import sn.ept.transdic1.alerting.domain.AlertChangedEvent;
 import sn.ept.transdic1.alerting.domain.AlertEvent;
 import sn.ept.transdic1.alerting.domain.AlertEventType;
 import sn.ept.transdic1.alerting.domain.AlertState;
@@ -32,12 +34,17 @@ public class CollectionAlertService {
   private final AlertRepository alerts;
   private final AlertEventRepository events;
   private final MaintenanceRepository maintenances;
+  private final ApplicationEventPublisher publisher;
 
   public CollectionAlertService(
-      AlertRepository alerts, AlertEventRepository events, MaintenanceRepository maintenances) {
+      AlertRepository alerts,
+      AlertEventRepository events,
+      MaintenanceRepository maintenances,
+      ApplicationEventPublisher publisher) {
     this.alerts = alerts;
     this.events = events;
     this.maintenances = maintenances;
+    this.publisher = publisher;
   }
 
   /** Ouvre l'alerte de collecte, ou la rouvre si elle vient d'être résolue. Idempotent. */
@@ -84,6 +91,9 @@ public class CollectionAlertService {
     }
     alerts.save(alert);
     events.save(event);
+    if (notify) {
+      publisher.publishEvent(new AlertChangedEvent(alert.getId(), AlertEventType.OPENED));
+    }
     return Optional.of(new AlertChange(alert.getId(), AlertEventType.OPENED, notify));
   }
 
@@ -106,6 +116,7 @@ public class CollectionAlertService {
               event.setComment("La collecte a repris");
               alerts.save(alert);
               events.save(event);
+              publisher.publishEvent(new AlertChangedEvent(alert.getId(), AlertEventType.RESOLVED));
               return new AlertChange(alert.getId(), AlertEventType.RESOLVED, true);
             });
   }

@@ -44,6 +44,10 @@
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 		<dependency>
@@ -88,6 +92,13 @@
 			<groupId>com.tngtech.archunit</groupId>
 			<artifactId>archunit-junit5</artifactId>
 			<version>1.5.1</version>
+			<scope>test</scope>
+		</dependency>
+		<!-- Serveur SMTP en memoire pour verifier les e-mails reellement envoyes. -->
+		<dependency>
+			<groupId>com.icegreen</groupId>
+			<artifactId>greenmail-junit5</artifactId>
+			<version>2.1.15</version>
 			<scope>test</scope>
 		</dependency>
 		<!-- PostgreSQL reel pour les tests, lance par la JVM sans Docker (ADR-0003). -->
