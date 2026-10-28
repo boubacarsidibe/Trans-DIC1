@@ -21,6 +21,9 @@
 | `DATABASE_USER` | Oui en pratique | Tous | Compte à privilèges minimaux |
 | `DATABASE_PASSWORD` | Oui | Tous | Mot de passe de la base |
 | `JWT_SECRET` | Oui | Tous | Secret de signature si JWT retenu |
+| `CORS_ALLOWED_ORIGINS` | Non | Tous | Origines autorisées, aussi contrôlées pour le renouvellement de jeton (liste séparée par des virgules) |
+| `REFRESH_COOKIE_SECURE` | Non | Tous | `true` par défaut : le cookie de renouvellement n'est envoyé qu'en HTTPS (localhost accepté par les navigateurs) |
+| `REFRESH_MAX_AGE_SECONDS` | Non | Tous | Durée maximale d'une connexion sans nouvelle saisie du mot de passe, 28800 (8 h) par défaut |
 | `SNMP_COMMUNITY` | Oui | Selon collecte | Communauté SNMP v1/v2c ; SNMPv3 est préférable |
 | `SNMPV3_USERNAME` | Oui | Selon collecte | Identité SNMPv3 |
 | `SNMPV3_AUTH_PASSWORD` | Oui | Selon collecte | Secret d'authentification SNMPv3 |

@@ -1,41 +1,29 @@
-const SESSION_KEY = "trans-dic1.session";
+// Le jeton d'accès reste uniquement en mémoire (ADR-0005) : ni localStorage ni
+// sessionStorage, pour qu'un script injecté ne puisse pas le lire. Après un
+// rechargement de page, la session est reconstruite grâce au cookie HttpOnly
+// de renouvellement (voir refresh.js).
 export const SESSION_EXPIRED_EVENT = "trans-dic1:session-expired";
 
-function storage() {
-  try {
-    return globalThis.sessionStorage ?? null;
-  } catch {
-    return null;
-  }
-}
+let current = null;
 
 export function readSession() {
-  const store = storage();
-  if (!store) return null;
-  try {
-    const session = JSON.parse(store.getItem(SESSION_KEY));
-    if (!session?.accessToken || !session.expiresAt) return null;
-    if (Date.now() >= session.expiresAt) {
-      store.removeItem(SESSION_KEY);
-      return null;
-    }
-    return session;
-  } catch {
-    store.removeItem(SESSION_KEY);
+  if (!current) return null;
+  if (Date.now() >= current.expiresAt) {
+    current = null;
     return null;
   }
+  return current;
 }
 
 export function saveSession({ accessToken, role, expiresIn }) {
-  const session = {
+  current = {
     accessToken,
     role,
     expiresAt: Date.now() + Number(expiresIn) * 1000,
   };
-  storage()?.setItem(SESSION_KEY, JSON.stringify(session));
-  return session;
+  return current;
 }
 
 export function clearSession() {
-  storage()?.removeItem(SESSION_KEY);
+  current = null;
 }

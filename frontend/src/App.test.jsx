@@ -5,11 +5,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App.jsx";
 import apiClient from "./api/client.js";
 import { AuthProvider } from "./auth/AuthContext.jsx";
-import { saveSession } from "./auth/session.js";
+import { refreshSession } from "./auth/refresh.js";
+import { clearSession, readSession, saveSession } from "./auth/session.js";
 
 vi.mock("./api/client.js", () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
 }));
+
+vi.mock("./auth/refresh.js", () => ({ refreshSession: vi.fn() }));
 
 function renderApp(path = "/") {
   return render(
@@ -26,17 +29,50 @@ function signIn(role = "ADMIN") {
 }
 
 beforeEach(() => {
-  sessionStorage.clear();
+  clearSession();
   vi.resetAllMocks();
   apiClient.get.mockResolvedValue({ data: [] });
+  // Aucun cookie de renouvellement valide par défaut.
+  refreshSession.mockRejectedValue(new Error("401"));
 });
 
 describe("authentification", () => {
-  it("redirige un visiteur anonyme vers la connexion", () => {
+  it("redirige un visiteur anonyme vers la connexion", async () => {
     renderApp("/equipements");
     expect(
-      screen.getByRole("heading", { name: "Connexion" }),
+      await screen.findByRole("heading", { name: "Connexion" }),
     ).toBeInTheDocument();
+  });
+
+  it("rétablit la session après un rechargement grâce au cookie de renouvellement", async () => {
+    refreshSession.mockImplementation(async () =>
+      saveSession({ accessToken: "neuf", role: "ADMIN", expiresIn: 900 }),
+    );
+    apiClient.get.mockResolvedValue({
+      data: { content: [], totalPages: 1, number: 0 },
+    });
+    renderApp("/equipements");
+
+    expect(
+      await screen.findByRole("heading", { name: "Équipements" }),
+    ).toBeInTheDocument();
+    expect(refreshSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("ne garde le jeton ni dans sessionStorage ni dans localStorage", async () => {
+    apiClient.post.mockResolvedValue({
+      data: { accessToken: "jeton-secret", role: "VIEWER", expiresIn: 3600 },
+    });
+    renderApp("/connexion");
+
+    await userEvent.type(screen.getByLabelText(/Nom d/), "admin");
+    await userEvent.type(screen.getByLabelText("Mot de passe"), "secret");
+    await userEvent.click(screen.getByRole("button", { name: "Se connecter" }));
+    await screen.findByRole("heading", { name: "Trans-DIC1" });
+
+    expect(JSON.stringify({ ...sessionStorage })).not.toContain("jeton-secret");
+    expect(JSON.stringify({ ...localStorage })).not.toContain("jeton-secret");
+    expect(readSession().accessToken).toBe("jeton-secret");
   });
 
   it("connecte l'utilisateur et affiche le tableau de bord", async () => {
@@ -82,7 +118,8 @@ describe("authentification", () => {
     expect(
       await screen.findByRole("heading", { name: "Connexion" }),
     ).toBeInTheDocument();
-    expect(sessionStorage.getItem("trans-dic1.session")).toBeNull();
+    expect(readSession()).toBeNull();
+    expect(apiClient.post).toHaveBeenCalledWith("/auth/logout");
   });
 });
 

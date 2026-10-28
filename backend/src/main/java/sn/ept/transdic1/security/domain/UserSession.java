@@ -19,6 +19,12 @@ public class UserSession {
   @Column(name = "token_hash", nullable = false, unique = true, length = 128)
   private String tokenHash;
 
+  @Column(name = "family_id", nullable = false)
+  private UUID familyId;
+
+  @Column(name = "replaced_by_id")
+  private UUID replacedById;
+
   @Column(name = "ip_address", length = 45)
   private String ipAddress;
 
@@ -34,11 +40,36 @@ public class UserSession {
   protected UserSession() {}
 
   public UserSession(AppUser user, String tokenHash, Instant expiresAt) {
+    this(user, tokenHash, Instant.now(), expiresAt, null);
+  }
+
+  /** familyId est nul pour une connexion, et celui de la famille pour une rotation. */
+  public UserSession(
+      AppUser user, String tokenHash, Instant createdAt, Instant expiresAt, UUID familyId) {
     id = UUID.randomUUID();
     this.user = user;
     this.tokenHash = tokenHash;
-    createdAt = Instant.now();
+    this.createdAt = createdAt;
     this.expiresAt = expiresAt;
+    this.familyId = familyId == null ? id : familyId;
+  }
+
+  public UUID getFamilyId() {
+    return familyId;
+  }
+
+  public UUID getReplacedById() {
+    return replacedById;
+  }
+
+  /** Remplace ce jeton par le suivant : il ne pourra plus être présenté. */
+  public void rotate(Instant now, UserSession next) {
+    revokedAt = now;
+    replacedById = next.id;
+  }
+
+  public boolean isExpired(Instant now) {
+    return !now.isBefore(expiresAt);
   }
 
   public UUID getId() {

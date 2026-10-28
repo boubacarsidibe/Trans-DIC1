@@ -1,15 +1,21 @@
 import axios from "axios";
+import { refreshSession } from "../auth/refresh.js";
 import {
   SESSION_EXPIRED_EVENT,
   clearSession,
   readSession,
 } from "../auth/session.js";
+import { API_BASE_URL } from "./config.js";
+
+const AUTH_PATHS = ["/auth/login", "/auth/refresh", "/auth/logout"];
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api/v1",
+  baseURL: API_BASE_URL,
   headers: {
     Accept: "application/json",
   },
+  // Le cookie HttpOnly de renouvellement accompagne les appels /auth/*.
+  withCredentials: true,
   timeout: 10_000,
 });
 
@@ -23,12 +29,24 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    const isLogin = error.config?.url?.endsWith("/auth/login");
-    if (error.response?.status === 401 && !isLogin) {
-      clearSession();
-      globalThis.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+  async (error) => {
+    const request = error.config;
+    const isAuthCall = AUTH_PATHS.some((path) => request?.url?.endsWith(path));
+    if (error.response?.status !== 401 || isAuthCall || !request) {
+      return Promise.reject(error);
     }
+    // Jeton d'accès expiré : un renouvellement silencieux, puis une seule relance.
+    if (!request.retried) {
+      request.retried = true;
+      try {
+        await refreshSession();
+        return apiClient(request);
+      } catch {
+        // Le renouvellement a échoué : la session est terminée.
+      }
+    }
+    clearSession();
+    globalThis.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
     return Promise.reject(error);
   },
 );
