@@ -24,7 +24,7 @@
 | `CORS_ALLOWED_ORIGINS` | Non | Tous | Origines autorisées, aussi contrôlées pour le renouvellement de jeton (liste séparée par des virgules) |
 | `REFRESH_COOKIE_SECURE` | Non | Tous | `true` par défaut : le cookie de renouvellement n'est envoyé qu'en HTTPS (localhost accepté par les navigateurs) |
 | `REFRESH_MAX_AGE_SECONDS` | Non | Tous | Durée maximale d'une connexion sans nouvelle saisie du mot de passe, 28800 (8 h) par défaut |
-| `SNMP_COMMUNITY` | Oui | Selon collecte | Communauté SNMP v1/v2c ; SNMPv3 est préférable |
+| `SNMP_COMMUNITY` | Oui | Selon collecte | Exemple de secret SNMP v2c : la configuration d'un équipement le désigne par la référence `env:SNMP_COMMUNITY` (tout nom de variable convient) |
 | `SNMPV3_USERNAME` | Oui | Selon collecte | Identité SNMPv3 |
 | `SNMPV3_AUTH_PASSWORD` | Oui | Selon collecte | Secret d'authentification SNMPv3 |
 | `SNMPV3_PRIV_PASSWORD` | Oui | Selon collecte | Secret de chiffrement SNMPv3 |

@@ -1,6 +1,6 @@
 # ADR-0006 — Exécution, collecte et temps réel : Java 21, SNMP4J, agent actif, SSE
 
-- Statut : proposée
+- Statut : acceptée ; Java 21, agent actif et SNMP4J implémentés (le flux SSE reste à faire)
 - Date : 2026-10-28
 - Précise : ADR-0001 (backend, collecte) ; remplace WebSocket du backlog
 
@@ -22,6 +22,9 @@ Quatre choix techniques restaient implicites ou contradictoires entre le backlog
 - SNMP4J gère SNMPv3 (authentification SHA, chiffrement AES), les requêtes synchrones et asynchrones, GETBULK et le multi-threading ; la version courante sur Maven Central est la 3.12 ([Maven Central](https://central.sonatype.com/artifact/org.snmp4j/snmp4j)).
 - Aucun benchmark indépendant de bibliothèques SNMP Java n'a été trouvé. Le choix repose sur les fonctions (SNMPv3 exigé par l'ADR-0001), la maintenance et le fait que l'alternative commerciale (iReasoning) est propriétaire.
 - L'accès reste derrière un port applicatif : SNMP4J est remplaçable sans toucher au métier.
+- Mis en œuvre : `SnmpCollectionService` lit les configurations arrivées à échéance (toutes les 15 secondes), en parallèle (8 fils par défaut) et sans qu'un équipement en échec bloque les autres. Un échec ouvre une alerte de collecte, résolue seule à la première mesure reçue ; la lecture suivante est reprogrammée dans tous les cas.
+- **Secrets par référence.** La base ne stocke que `env:NOM` ; la valeur est lue dans l'environnement du serveur par `SecretResolver` (un gestionnaire de secrets pourra s'y brancher). En v3 la valeur est `phraseAuthentification` ou `phraseAuthentification|phraseChiffrement`. Rien de secret n'entre dans les messages d'erreur, les alertes, l'audit ni l'API.
+- **SNMPv3** : authentification SHA-1 et chiffrement AES-128, ce que la plupart des équipements réseau savent faire ; SHA-2 et AES-256 pourront être ajoutés par équipement. Le moteur de sécurité v3 de SNMP4J est partagé par tout le processus : les lectures v3 sont donc sérialisées et les identifiants retirés de la mémoire après chaque lecture (un test a révélé qu'une entrée restée en mémoire masquait un changement de mot de passe).
 
 ### 3. Agent Trans-DIC1 en mode actif (l'agent envoie)
 

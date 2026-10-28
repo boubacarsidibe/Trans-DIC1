@@ -101,7 +101,9 @@ Source : historique git (`develop`, 41 commits d'avance sur `main`), code et doc
 | Documentation | 6 ADR, ~40 diagrammes Mermaid, modèle StarUML, maquettes, 2 présentations | ✅ | `docs/`, `deliverables/` |
 | Collecte | Enregistrement des agents (jeton), réception des mesures `POST /api/v1/agent/measures`, stockage et évaluation | ✅ | `AgentController`, `MeasureIngestionService`, `AgentApiTests` |
 | Collecte | Surveillance des agents silencieux : alerte de collecte critique, résolue seule à la prochaine mesure, réouverture avant archivage | ✅ | `AgentWatchdogService`, `CollectionAlertService`, `AgentWatchdogTests` |
-| Collecte | Planificateur et adaptateur SNMP4J | 🟡 | ADR-0006, diagrammes |
+| Collecte | Collecte SNMP v2c et v3 planifiée (SNMP4J) : lecture des OID, stockage, évaluation des alertes, panne et reprise | ✅ | `SnmpCollectionService`, `Snmp4jClient`, `SnmpCollectionTests` (faux équipement UDP réel) |
+| Collecte | Configuration SNMP par équipement, secrets par référence `env:NOM` | ✅ | `SnmpConfigController`, `SnmpConfigApiTests` |
+| Collecte | Écran de configuration de la collecte | ⚪ | API prête, pas d'écran |
 | Alertes | Évaluation des seuils : confirmation, hystérésis, déduplication, réouverture, maintenance | ✅ | `AlertEvaluationService`, `AlertEvaluationTests` |
 | Alertes | API du cycle de vie : liste, détail et historique, prise en charge, assignation, résolution manuelle, archivage, suppression logique, audit | ✅ | `AlertController`, `AlertWorkflowService`, `AlertApiTests` |
 | Alertes | Écran des alertes (liste filtrable, actions selon le rôle, historique) | ✅ | `AlertsPage.jsx` |
@@ -116,7 +118,7 @@ Source : historique git (`develop`, 41 commits d'avance sur `main`), code et doc
 | Temps réel | Flux SSE vers le tableau de bord | 🟡 | ADR-0006 |
 | Déploiement | Nginx, TLS, staging, production | ⚪ | prérequis externes ouverts |
 
-**Vérification faite pour ce dossier** : `./mvnw verify` sous Java 21 se termine par `BUILD SUCCESS` avec 210 tests backend sans échec (PostgreSQL 16 embarqué, sans Docker), seuils JaCoCo et Spotless passés. Côté frontend : 33 tests, couverture 92 %, lint sans erreur, build et audit des dépendances sans faille. La CI distante n'a pas été relancée.
+**Vérification faite pour ce dossier** : `./mvnw verify` sous Java 21 se termine par `BUILD SUCCESS` avec 227 tests backend sans échec (PostgreSQL 16 embarqué, sans Docker), seuils JaCoCo et Spotless passés. Côté frontend : 33 tests, couverture 92 %, lint sans erreur, build et audit des dépendances sans faille. La CI distante n'a pas été relancée.
 
 ### 3.2 Chronologie
 
@@ -265,6 +267,7 @@ flowchart TD
 | `POST /api/v1/alertes/{id}/assignation` · `/archivage` · `DELETE /{id}` | `ADMIN` | Assigne ou réassigne · archive une alerte résolue · supprime (logique) |
 | `GET /api/v1/regles-alertes` · `/{id}` | authentifié | Liste paginée · détail d'une règle et de sa portée |
 | `POST` · `PUT /{id}` · `DELETE /{id}` `/api/v1/regles-alertes` | `ADMIN` | Crée · remplace règle et portée · supprime (refusé si la règle a produit des alertes) |
+| `GET` · `PUT` · `DELETE /api/v1/equipements/{id}/collecte-snmp` | `ADMIN` | Consulte · crée ou remplace · arrête la collecte SNMP d'un équipement (secrets par référence) |
 | `GET /api/v1/vue-ensemble` | authentifié | Chiffres clés du tableau de bord |
 | `GET` · `PUT /api/v1/mes-preferences` | authentifié | Préférences de notification de l'utilisateur connecté (inactives par défaut) |
 | `GET /api/v1/sites` · `/{id}` | authentifié | Liste paginée (filtre par statut) · détail avec nombre d'équipements |
@@ -541,7 +544,7 @@ flowchart LR
 | [0003](adr/0003-integration-tests-on-real-postgresql.md) | Tests sur un vrai PostgreSQL embarqué (sans Docker) au lieu de H2 | acceptée, implémentée |
 | [0004](adr/0004-metrics-storage.md) | Métriques : partitionnement natif, clé entière, BRIN | acceptée, implémentée (hors purge) |
 | [0005](adr/0005-authentication-and-refresh.md) | Jeton en mémoire + renouvellement par cookie avec rotation | acceptée, implémentée |
-| [0006](adr/0006-collection-realtime-runtime.md) | Java 21, SNMP4J, agent actif, SSE | proposée (Java 21 et agent actif implémentés) |
+| [0006](adr/0006-collection-realtime-runtime.md) | Java 21, SNMP4J, agent actif, SSE | acceptée ; Java 21, agent actif et SNMP4J implémentés, SSE restant |
 | [0007](adr/0007-email-notifications.md) | Notifications par e-mail : événement, file en base, envoi différé | acceptée, implémentée |
 
 ### 11.2 Pourquoi / comment / donc, décision par décision
@@ -594,7 +597,7 @@ flowchart LR
     S4 --> S5["Sprint 5<br/>rapport · soutenance"]
 ```
 
-Corrections faites : tests sur PostgreSQL embarqué, migration `metric` (V9), renouvellement de jeton (V10). Aussi faits : hystérésis des règles d'alerte (V11), agrégats horaires et purge des partitions expirées (V12), limitation de débit de `/auth/refresh` et nettoyage des sessions expirées. Restent : passage à Java 25, regroupement des alertes, agrégats journaliers.
+Corrections faites : tests sur PostgreSQL embarqué, migration `metric` (V9), renouvellement de jeton (V10). Aussi faits : hystérésis des règles d'alerte (V11), agrégats horaires et purge des partitions expirées (V12), limitation de débit de `/auth/refresh` et nettoyage des sessions expirées. Restent : passage à Java 25, regroupement des alertes, agrégats journaliers, flux SSE du tableau de bord.
 
 ---
 
