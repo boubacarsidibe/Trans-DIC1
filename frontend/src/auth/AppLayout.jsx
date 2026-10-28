@@ -21,6 +21,9 @@ function AppLayout() {
         <NavLink to="/equipements" className={linkClass}>
           Équipements
         </NavLink>
+        <NavLink to="/alertes" className={linkClass}>
+          Alertes
+        </NavLink>
         <span className="ml-auto text-xs text-slate-400">Rôle : {role}</span>
         <button
           type="button"
