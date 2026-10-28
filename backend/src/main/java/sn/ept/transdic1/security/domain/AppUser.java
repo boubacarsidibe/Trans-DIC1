@@ -90,6 +90,22 @@ public class AppUser {
     lockedUntil = null;
   }
 
+  /** Change le rôle : un changement de droits est toujours une décision explicite. */
+  public void changeRole(Role newRole) {
+    role = newRole;
+  }
+
+  public void setActive(boolean active) {
+    this.active = active;
+  }
+
+  /** Remplace le mot de passe et lève un éventuel verrouillage (réinitialisation par un admin). */
+  public void resetPassword(String newPasswordHash) {
+    passwordHash = newPasswordHash;
+    failedLoginAttempts = 0;
+    lockedUntil = null;
+  }
+
   public UUID getId() {
     return id;
   }

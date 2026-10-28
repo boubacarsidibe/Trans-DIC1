@@ -22,7 +22,8 @@ public class SecurityAuditLog {
 
   /**
    * @param knownUsername nom du compte existant, ou null si l'identifiant est inconnu : un
-   *     identifiant saisi peut être un mot de passe tapé au mauvais endroit, il n'est jamais stocké.
+   *     identifiant saisi peut être un mot de passe tapé au mauvais endroit, il n'est jamais
+   *     stocké.
    */
   public void record(String action, String knownUsername, String attemptedIdentifier) {
     String fingerprint = fingerprint(attemptedIdentifier);
@@ -34,6 +35,20 @@ public class SecurityAuditLog {
         knownUsername,
         action,
         "empreinte=" + fingerprint);
+  }
+
+  /** Action d'administration des comptes : jamais de mot de passe dans les détails. */
+  public void recordAdminAction(
+      String action, String actorUsername, java.util.UUID targetUserId, String details) {
+    log.info("security_event action={} actor={}", action, actorUsername);
+    jdbc.update(
+        "INSERT INTO audit_entry (id, username, action, target_type, target_id, details_sanitized) "
+            + "VALUES (?, ?, ?, 'USER', ?, ?)",
+        UUID.randomUUID(),
+        actorUsername,
+        action,
+        targetUserId,
+        details);
   }
 
   static String fingerprint(String value) {

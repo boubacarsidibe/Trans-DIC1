@@ -17,6 +17,11 @@ public interface UserSessionRepository extends JpaRepository<UserSession, UUID> 
 
   long countByUserIdAndRevokedAtIsNull(UUID userId);
 
+  /**
+   * Sessions de renouvellement encore valides d'un utilisateur, à révoquer si ses droits changent.
+   */
+  java.util.List<UserSession> findByUserIdAndRevokedAtIsNull(UUID userId);
+
   /** Supprime les sessions expirées avant la date donnée (nettoyage quotidien). */
   @org.springframework.data.jpa.repository.Modifying
   @org.springframework.data.jpa.repository.Query(
