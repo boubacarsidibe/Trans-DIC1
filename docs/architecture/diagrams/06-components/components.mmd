@@ -17,7 +17,7 @@ flowchart LR
     end
 
     users -->|HTTPS| web
-    web -->|REST JSON / WebSocket cible| api
+    web -->|REST JSON / SSE cible| api
     api --> inventory
     api --> monitoring
     api --> alerting

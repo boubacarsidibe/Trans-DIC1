@@ -255,7 +255,7 @@ flowchart LR
         db[("PostgreSQL")]
     end
     users -->|HTTPS| web
-    web -->|REST / WebSocket cible| api
+    web -->|REST / SSE cible| api
     api --> inventory & monitoring & alerting & reporting
     inventory --> db
     monitoring --> db

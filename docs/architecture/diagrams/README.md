@@ -10,6 +10,7 @@ Les fichiers ci-dessous constituent la version à utiliser pour la suite de la c
 - `02-domain/persistence-model-uml.mmd` : modèle UML des seules classes persistées, sans clés étrangères dupliquées dans les attributs.
 - `03-sequences/collection-and-alert.mmd` : collecte configurable par agent ou SNMP, puis évaluation des alertes.
 - `03-sequences/alert-handling.mmd` : prise en charge par un NOC, assignation par un Administrateur et résolution.
+- `03-sequences/token-refresh.mmd` : connexion, renouvellement avec rotation, détection de réutilisation et déconnexion (ADR-0005).
 - `04-activities/metric-collection.mmd` : cycle planifié avec intervalle configurable, reprises, maintenance et résolution automatique.
 - `05-states/alert-lifecycle.mmd` : états `OUVERTE`, `PRISE_EN_CHARGE`, `RESOLUE`, `ARCHIVEE` et `SUPPRIMEE`.
 - `06-components/target-components.mmd` : composants cibles sans dépendance à Zabbix.

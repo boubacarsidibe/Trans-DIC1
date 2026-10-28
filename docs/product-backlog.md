@@ -32,7 +32,7 @@ Aucune date d'échéance n'est inventée. Elles seront ajoutées lorsque la date
 - Données : PostgreSQL et JPA.
 - Frontend : React, Vite, React Router, Axios, Tailwind et Recharts.
 - Collecte : simulation, Zabbix Agent puis SNMP.
-- Temps réel : WebSocket.
+- Temps réel : SSE (Server-Sent Events), voir ADR-0006.
 - Livraison : Docker Compose et Nginx.
 
 Ces technologies guidaient le backlog initial. Le socle applicatif du Sprint 0 est désormais présent dans le repository ; les fonctions métier restent planifiées dans les sprints suivants.

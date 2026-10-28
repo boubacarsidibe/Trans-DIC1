@@ -12,7 +12,7 @@ Trans-DIC1 supervise les équipements réseau et serveurs de l'EPT. Le socle doi
 
 | Domaine | Choix fixé |
 | --- | --- |
-| Backend | Java 17, Spring Boot 4.1.1, Maven Wrapper |
+| Backend | Java 21, Spring Boot 4.1.1, Maven Wrapper |
 | Frontend | Node.js 24 LTS, npm 11.11.1, React 19, Vite 8 |
 | Interface | React Router 7, Axios 1, Tailwind CSS 4 |
 | Données | PostgreSQL 16 natif, migrations Flyway |
@@ -47,3 +47,10 @@ PostgreSQL constitue le stockage initial. Les métriques brutes sont conservées
 ## Conséquences
 
 Les versions et frontières sont désormais explicites. Cette ADR constitue la décision de référence ; toute modification structurante devra être portée par une nouvelle ADR.
+
+## Précisions ultérieures
+
+- ADR-0002 : justification du développement sur mesure.
+- ADR-0003 : les tests de persistance passent de H2 à un vrai PostgreSQL embarqué, sans Docker (remplace la ligne « Tests » ci-dessus pour la base de données).
+- ADR-0004 : partitionnement natif des métriques, à décider avant le module de collecte.
+- ADR-0005 : jeton d'accès en mémoire et renouvellement par cookie avec rotation.

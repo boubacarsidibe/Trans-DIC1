@@ -16,8 +16,8 @@ sequenceDiagram
     loop Pour chaque configuration
         P->>O: Exécuter la collecte(configuration)
         alt Mode AGENT
-            O->>A: Demander les valeurs configurées
-            A-->>O: Valeurs, horodatage et qualité
+            Note over O,A: ADR-0006 : l'agent pousse ses valeurs vers la passerelle,<br/>le backend n'ouvre aucune connexion vers le serveur
+            A-->>O: Valeurs reçues, horodatage et qualité
         else Mode SNMP
             O->>S: GET des OID configurés
             S-->>O: Valeurs SNMP

@@ -75,7 +75,7 @@ Les autres énumérations (`ServiceType`, `ValueType`, `ComparisonOperator`, `Al
 - `Equipment.inventoryCode` et `Equipment.fictitious` n'existent pas dans le diagramme : ils viennent de l'API déjà livrée (code d'inventaire unique, données de démonstration).
 - `Metric.key` est conservé en plus de la relation vers `MetricDefinition` (facultative) pour les mesures déjà enregistrées.
 - `AuditEntry.username` copie le nom du compte à l'instant de l'action ; la relation `author` peut devenir vide si le compte est supprimé.
-- Les durées (`Duration`) sont stockées en secondes (`*_seconds`, `BIGINT`) pour être identiques sur PostgreSQL et H2.
+- Les durées (`Duration`) sont stockées en secondes (`*_seconds`, `BIGINT`) pour rester indépendantes du moteur.
 
 ## Où chaque règle est garantie
 
@@ -99,5 +99,5 @@ Les autres énumérations (`ServiceType`, `ValueType`, `ComparisonOperator`, `Al
 ## Migrations
 
 - `db/migration/V7__persistent_model.sql` : tables, clés, `CHECK` et index, plus l'évolution additive des tables existantes (aucune donnée supprimée).
-- `db/postgres/V8__partial_unique_indexes.sql` : index uniques partiels, **PostgreSQL uniquement** (H2, utilisé par les tests, ne les supporte pas). Le profil de test ne charge que `db/migration`.
-- Les numéros de version sont partagés entre les deux dossiers : la prochaine migration est la V9.
+- `db/migration/V8__partial_unique_indexes.sql` : index uniques partiels (PostgreSQL). Depuis l'ADR-0003, un seul dossier de migrations est appliqué en développement, en test (Testcontainers) et en production.
+- V9 partitionne la table `metric` (ADR-0004). La prochaine migration est la V10.

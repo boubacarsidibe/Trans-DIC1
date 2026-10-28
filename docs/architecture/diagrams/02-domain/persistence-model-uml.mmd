@@ -23,6 +23,8 @@ namespace IdentiteEtAcces {
     <<entity>>
     -id: UUID
     -jetonHash: String
+    -familleId: UUID
+    -remplaceeParId: UUID
     -adresseIp: String
     -creeA: DateTime
     -expireA: DateTime
@@ -133,7 +135,8 @@ namespace InventaireEtCollecte {
 
   class Metrique {
     <<entity>>
-    -id: UUID
+    %% ADR-0004 : partition mensuelle sur collecteeA, cle primaire (collecteeA, id), id bigint genere
+    -id: Long
     -valeur: Decimal
     -unite: String
     -qualite: QualiteMesure

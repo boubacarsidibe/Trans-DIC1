@@ -5,7 +5,7 @@
 | Environnement | Exécution | Données | Secrets | Déploiement |
 | --- | --- | --- | --- | --- |
 | Development | Java, Node et PostgreSQL 16 locaux | fictives RFC 5737 | `.env` non versionné | manuel documenté |
-| Testing | CI GitHub, H2 isolé | synthétiques | secrets de test sans valeur réelle | à chaque push/PR |
+| Testing | CI GitHub, PostgreSQL 16 embarqué | synthétiques | secrets de test sans valeur réelle | à chaque push/PR |
 | Staging | hôte EPT à confirmer | assainies | secrets d'environnement | artefact immuable |
 | Production | hôte EPT à confirmer | réelles autorisées | coffre EPT | approbation et rollback obligatoires |
 

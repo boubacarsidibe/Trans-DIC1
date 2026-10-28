@@ -1,0 +1,31 @@
+sequenceDiagram
+    autonumber
+    participant W as Application web
+    participant A as API
+    participant S as Sessions utilisateur
+    participant U as Audit
+
+    Note over W,A: ADR-0005 — jeton d'accès en mémoire, jeton de renouvellement en cookie HttpOnly
+
+    W->>A: Connexion (identifiants)
+    A->>S: Créer la session (hash du jeton, famille)
+    A-->>W: Jeton d'accès 15 min (corps) + cookie de renouvellement
+
+    loop Jeton d'accès expiré ou page rechargée
+        W->>A: Renouveler (cookie, vérification de l'origine)
+        A->>S: Rechercher le hash du jeton présenté
+        alt Jeton valide et non remplacé
+            A->>S: Marquer remplacé, créer le jeton suivant (même famille)
+            A-->>W: Nouveau jeton d'accès + nouveau cookie
+        else Jeton déjà remplacé (réutilisation)
+            A->>S: Révoquer toute la famille
+            A->>U: Journaliser la réutilisation détectée
+            A-->>W: 401, reconnexion requise
+        else Jeton expiré (plus de 8 h) ou révoqué
+            A-->>W: 401, reconnexion requise
+        end
+    end
+
+    W->>A: Déconnexion
+    A->>S: Révoquer la famille
+    A-->>W: Effacer le cookie

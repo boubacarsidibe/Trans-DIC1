@@ -7,13 +7,13 @@ C4Container
 
     System_Boundary(transdic, "Trans-DIC1") {
         Container(web, "Application web", "React 19, Vite 8", "Dashboard, inventaire, métriques, alertes et rapports")
-        Container(api, "API applicative", "Java 17, Spring Boot 4.1", "REST, autorisation, orchestration métier et WebSocket cible")
+        Container(api, "API applicative", "Java 21, Spring Boot 4.1", "REST, autorisation, orchestration métier et SSE cible")
         Container(worker, "Collecteur", "Java / adaptateurs", "Planifie et normalise les collectes simulées, Zabbix et SNMP")
         ContainerDb(db, "Base de données", "PostgreSQL 16", "Inventaire, métriques, alertes, notifications, rapports et audit")
     }
 
     Rel(user, web, "Utilise", "HTTPS")
-    Rel(web, api, "Appelle", "REST JSON / WebSocket cible")
+    Rel(web, api, "Appelle", "REST JSON / SSE cible")
     Rel(api, db, "Lit et écrit", "SQL via JPA")
     Rel(api, worker, "Déclenche/coordonne", "Port applicatif")
     Rel(worker, monitored, "Collecte", "Zabbix port 10050 / SNMPv3")

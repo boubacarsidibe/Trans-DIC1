@@ -38,7 +38,7 @@ Le healthcheck applicatif `GET http://localhost:8080/actuator/health` vérifie n
 
 ## Base de tests
 
-Les tests backend utilisent H2 en mémoire, en mode de compatibilité PostgreSQL. Cette base isolée est recréée à chaque exécution et applique les migrations Flyway.
+Les tests backend utilisent un vrai PostgreSQL 16 embarqué (binaires natifs lancés par la JVM, sans Docker ni installation). La base est recréée à chaque exécution et applique toutes les migrations Flyway, index uniques partiels et table des métriques partitionnée compris (ADR-0003).
 
 ## Jeu de données du Sprint 0
 

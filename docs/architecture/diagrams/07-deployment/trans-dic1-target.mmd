@@ -30,7 +30,6 @@ flowchart TB
     API --> REPORT_STORAGE
     SCHEDULER --> WORKER
     WORKER -- TLS --> DATABASE
-    WORKER -- "HTTPS ou mTLS" --> AGENT
     WORKER -- SNMPv3 --> SNMP_DEVICE
-    AGENT -- "Métriques et heartbeat" --> API
+    AGENT -- "Métriques et heartbeat (HTTPS, sortant)" --> API
     API -- "SMTP/TLS" --> SMTP
