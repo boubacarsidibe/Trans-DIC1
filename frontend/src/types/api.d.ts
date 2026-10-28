@@ -91,6 +91,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/equipements/{equipmentId}/collecte-snmp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Consulter la collecte SNMP d'un équipement */
+        get: operations["get_4"];
+        /**
+         * Configurer la collecte SNMP
+         * @description Crée ou remplace la configuration. Communauté et mots de passe se donnent par référence (env:NOM), jamais en clair. La première lecture a lieu à la prochaine passe.
+         */
+        put: operations["put"];
+        post?: never;
+        /**
+         * Arrêter la collecte SNMP
+         * @description Désactive la collecte ; les mesures déjà reçues sont conservées.
+         */
+        delete: operations["delete_3"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/utilisateurs": {
         parameters: {
             query?: never;
@@ -472,14 +497,14 @@ export interface paths {
             cookie?: never;
         };
         /** Consulter une alerte et son historique */
-        get: operations["get_4"];
+        get: operations["get_5"];
         put?: never;
         post?: never;
         /**
          * Supprimer une alerte
          * @description Suppression logique : l'alerte et son historique restent en base.
          */
-        delete: operations["delete_3"];
+        delete: operations["delete_4"];
         options?: never;
         head?: never;
         patch?: never;
@@ -552,6 +577,30 @@ export interface components {
             /** Format: uuid */
             siteId?: string;
             site?: string;
+        };
+        Metric: {
+            key: string;
+            name: string;
+            oid: string;
+            unit?: string;
+            /** @enum {string} */
+            valueType: "INTEGER" | "DECIMAL" | "BOOLEAN" | "TEXT";
+        };
+        SnmpConfigRequest: {
+            name: string;
+            /** @enum {string} */
+            snmpVersion: "V2C" | "V3";
+            communityReference?: string;
+            securityIdentity?: string;
+            secretReference?: string;
+            /** Format: int32 */
+            pollIntervalSeconds: number;
+            /** Format: int32 */
+            timeoutSeconds: number;
+            /** Format: int32 */
+            retryCount: number;
+            active?: boolean;
+            metrics: components["schemas"]["Metric"][];
         };
         UserCreateRequest: {
             username: string;
@@ -1271,6 +1320,138 @@ export interface operations {
                 };
             };
             /** @description Équipement introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Aucune collecte configurée */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SnmpConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description Configuration invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Équipement introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Aucune collecte configurée */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -2346,7 +2527,7 @@ export interface operations {
             };
         };
     };
-    get_4: {
+    get_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -2384,7 +2565,7 @@ export interface operations {
             };
         };
     };
-    delete_3: {
+    delete_4: {
         parameters: {
             query?: never;
             header?: never;

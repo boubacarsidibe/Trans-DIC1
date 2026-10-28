@@ -16,6 +16,9 @@ tags:
     \ NOC_OPERATOR et ADMIN ; assignation, archivage et suppression pour ADMIN."
 - name: Utilisateurs
   description: "Gestion des comptes, réservée aux administrateurs."
+- name: Collecte SNMP
+  description: Configuration de la lecture SNMP d'un équipement. Secrets par référence
+    (env:NOM) uniquement.
 - name: Métriques
   description: Mesures collectées sur les équipements.
 - name: Agents de collecte
@@ -387,6 +390,102 @@ paths:
           description: Équipement supprimé
         "404":
           description: Équipement introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/equipements/{equipmentId}/collecte-snmp:
+    get:
+      tags:
+      - Collecte SNMP
+      summary: Consulter la collecte SNMP d'un équipement
+      operationId: get_4
+      parameters:
+      - name: equipmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Aucune collecte configurée
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    put:
+      tags:
+      - Collecte SNMP
+      summary: Configurer la collecte SNMP
+      description: "Crée ou remplace la configuration. Communauté et mots de passe\
+        \ se donnent par référence (env:NOM), jamais en clair. La première lecture\
+        \ a lieu à la prochaine passe."
+      operationId: put
+      parameters:
+      - name: equipmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SnmpConfigRequest"
+        required: true
+      responses:
+        "400":
+          description: Configuration invalide
+        "404":
+          description: Équipement introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      tags:
+      - Collecte SNMP
+      summary: Arrêter la collecte SNMP
+      description: Désactive la collecte ; les mesures déjà reçues sont conservées.
+      operationId: delete_3
+      parameters:
+      - name: equipmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Aucune collecte configurée
+        "204":
+          description: No Content
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -1241,7 +1340,7 @@ paths:
       tags:
       - Alertes
       summary: Consulter une alerte et son historique
-      operationId: get_4
+      operationId: get_5
       parameters:
       - name: id
         in: path
@@ -1269,7 +1368,7 @@ paths:
       - Alertes
       summary: Supprimer une alerte
       description: "Suppression logique : l'alerte et son historique restent en base."
-      operationId: delete_3
+      operationId: delete_4
       parameters:
       - name: id
         in: path
@@ -1491,6 +1590,92 @@ components:
           format: uuid
         site:
           type: string
+    Metric:
+      type: object
+      properties:
+        key:
+          type: string
+          maxLength: 64
+          minLength: 0
+          pattern: "[a-z0-9][a-z0-9._-]*"
+        name:
+          type: string
+          maxLength: 120
+          minLength: 0
+        oid:
+          type: string
+          minLength: 1
+          pattern: "\\.?[0-9]+(\\.[0-9]+)+"
+        unit:
+          type: string
+          maxLength: 24
+          minLength: 0
+        valueType:
+          type: string
+          enum:
+          - INTEGER
+          - DECIMAL
+          - BOOLEAN
+          - TEXT
+      required:
+      - key
+      - name
+      - oid
+      - valueType
+    SnmpConfigRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+          minLength: 0
+        snmpVersion:
+          type: string
+          enum:
+          - V2C
+          - V3
+        communityReference:
+          type: string
+          maxLength: 255
+          minLength: 0
+        securityIdentity:
+          type: string
+          maxLength: 255
+          minLength: 0
+        secretReference:
+          type: string
+          maxLength: 255
+          minLength: 0
+        pollIntervalSeconds:
+          type: integer
+          format: int32
+          maximum: 86400
+          minimum: 10
+        timeoutSeconds:
+          type: integer
+          format: int32
+          maximum: 60
+          minimum: 1
+        retryCount:
+          type: integer
+          format: int32
+          maximum: 5
+          minimum: 0
+        active:
+          type: boolean
+        metrics:
+          type: array
+          items:
+            $ref: "#/components/schemas/Metric"
+          maxItems: 50
+          minItems: 0
+      required:
+      - metrics
+      - name
+      - pollIntervalSeconds
+      - retryCount
+      - snmpVersion
+      - timeoutSeconds
     UserCreateRequest:
       type: object
       properties:
