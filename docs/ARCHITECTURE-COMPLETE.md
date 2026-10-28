@@ -103,6 +103,7 @@ Source : historique git (`develop`, 41 commits d'avance sur `main`), code et doc
 | Collecte | Surveillance des agents silencieux : alerte de collecte critique, résolue seule à la prochaine mesure, réouverture avant archivage | ✅ | `AgentWatchdogService`, `CollectionAlertService`, `AgentWatchdogTests` |
 | Collecte | Collecte SNMP v2c et v3 planifiée (SNMP4J) : lecture des OID, stockage, évaluation des alertes, panne et reprise | ✅ | `SnmpCollectionService`, `Snmp4jClient`, `SnmpCollectionTests` (faux équipement UDP réel) |
 | Collecte | Configuration SNMP par équipement, secrets par référence `env:NOM` | ✅ | `SnmpConfigController`, `SnmpConfigApiTests` |
+| Collecte | Statut automatique des équipements : hors service quand l'agent ou l'équipement ne répond plus, en service dès qu'une mesure arrive (la maintenance n'est jamais écrasée) | ✅ | `Equipment.markUnreachable` / `markReachable`, `AgentWatchdogTests` |
 | Collecte | Écran de configuration de la collecte SNMP et des agents | ⚪ | API prête, pas d'écran |
 | Équipements | Écran de gestion des sites | ⚪ | API prête (le formulaire d'équipement les utilise), pas d'écran dédié |
 | Alertes | Évaluation des seuils : confirmation, hystérésis, déduplication, réouverture, maintenance | ✅ | `AlertEvaluationService`, `AlertEvaluationTests` |
@@ -121,7 +122,7 @@ Source : historique git (`develop`, 41 commits d'avance sur `main`), code et doc
 | Temps réel | Flux SSE vers le tableau de bord | 🟡 | ADR-0006 |
 | Déploiement | Nginx, TLS, staging, production | ⚪ | prérequis externes ouverts |
 
-**Vérification faite pour ce dossier** : `./mvnw verify` sous Java 21 se termine par `BUILD SUCCESS` avec 234 tests backend sans échec (PostgreSQL 16 embarqué, sans Docker), seuils JaCoCo et Spotless passés. Côté frontend : 62 tests, couverture 92 %, lint sans erreur, build et audit des dépendances sans faille. La CI distante n'a pas été relancée.
+**Vérification faite pour ce dossier** : `./mvnw verify` sous Java 21 se termine par `BUILD SUCCESS` avec 236 tests backend sans échec (PostgreSQL 16 embarqué, sans Docker), seuils JaCoCo et Spotless passés. Côté frontend : 62 tests, couverture 92 %, lint sans erreur, build et audit des dépendances sans faille. La CI distante n'a pas été relancée.
 
 ### 3.2 Chronologie
 
