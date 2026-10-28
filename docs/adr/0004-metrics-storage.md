@@ -1,6 +1,6 @@
 # ADR-0004 — Stockage des métriques : partitionnement natif PostgreSQL
 
-- Statut : acceptée et implémentée (migration V9) ; la purge des partitions expirées reste à faire avec les agrégats
+- Statut : acceptée et implémentée (migrations V9 et V12)
 - Date : 2026-10-28
 - Précise : ADR-0001, section « Métriques et rétention »
 
@@ -41,7 +41,8 @@ Les sources comparatives sont des pages d'éditeurs et des mesures isolées ; au
 
 - Fait : migration V9 (clé primaire `(collected_at, id)`, séquence `metric_id_seq`, partition par défaut, fonction `ensure_metric_partition`) et entité `Metric` à identifiant `Long`. `MetricPartitionService` crée chaque jour les partitions des 3 mois suivants (`pg_partman` non retenu : aucune extension à installer).
 - `MetricResponse.id` passe de UUID à entier : contrat OpenAPI et types TypeScript mis à jour.
-- Reste à faire : tâche de purge des partitions de plus de 30 jours, à écrire après les agrégats horaires.
+- Fait aussi (V12) : table `metric_hourly` alimentée chaque heure par `MetricRetentionService` (recalcul des deux dernières heures pour les mesures en retard), puis suppression quotidienne des partitions mensuelles dont la borne haute a plus de 30 jours **et** est couverte par les agrégats, et des agrégats de plus de 13 mois. Une mesure n'est donc jamais supprimée avant d'être agrégée ; avec des partitions mensuelles, les mesures brutes sont conservées entre 30 et environ 60 jours.
+- Reste à faire : agrégats journaliers (3 ans).
 - La purge de la rétention devient une opération de partition, testée sur PostgreSQL réel (voir ADR-0003).
 - Le diagramme de classes persistant et l'ERD indiquent la nouvelle clé.
 - Sources : [pg_partman vs hypertables](https://timescale.com/blog/pg_partman-vs-hypertables-for-postgres-partitioning), [guide Supabase de migration vers pg_partman](https://supabase.com/docs/guides/database/migrating-to-pg-partman), [fil pgsql-general](https://www.postgresql.org/message-id/b414b078-0e99-442b-b2ef-b7aad8819edc%40cloud.gatewaynet.com).
