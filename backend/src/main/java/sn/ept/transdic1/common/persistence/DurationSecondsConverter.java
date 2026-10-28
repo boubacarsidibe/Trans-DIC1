@@ -4,7 +4,7 @@ import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import java.time.Duration;
 
-/** Stocke une durée en secondes dans une colonne BIGINT, identique sur PostgreSQL et H2. */
+/** Stocke une durée en secondes dans une colonne BIGINT, identique quel que soit le moteur. */
 @Converter
 public class DurationSecondsConverter implements AttributeConverter<Duration, Long> {
   @Override

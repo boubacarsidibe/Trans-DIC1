@@ -44,8 +44,8 @@ import sn.ept.transdic1.security.repository.*;
 /**
  * Vérifie le modèle persistant : le contexte démarre avec ddl-auto=validate (entités et schéma
  * Flyway concordent), les contraintes du diagramme sont portées par la base, et les requêtes métier
- * des repositories fonctionnent. Les index uniques partiels sont propres à PostgreSQL et vérifiés
- * hors de ce test.
+ * des repositories fonctionnent. Les index uniques partiels sont vérifiés dans
+ * PartialUniqueIndexTests.
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -92,7 +92,8 @@ class PersistenceModelTests {
     user =
         users.save(new AppUser("model-user", "model-user@example.test", "hash", Role.NOC_OPERATOR));
     site = sites.save(new Site("MODEL-SITE", "Site de test"));
-    // Base H2 partagée entre les classes de test : adresse et code uniques à chaque exécution.
+    // Base PostgreSQL partagée entre les classes de test : adresse et code uniques à chaque
+    // exécution.
     int a = ThreadLocalRandom.current().nextInt(1, 254);
     int b = ThreadLocalRandom.current().nextInt(1, 254);
     equipment =
@@ -142,9 +143,10 @@ class PersistenceModelTests {
     siteAccesses.save(new SiteAccess(user, site, NOW));
     equipmentAccesses.save(new EquipmentAccess(user, equipment, NOW));
 
-    var service = new MonitoredService(equipment, "SSH", ServiceType.TCP_PORT);
-    service.setPort(22);
-    services.save(service);
+    var newService = new MonitoredService(equipment, "SSH", ServiceType.TCP_PORT);
+    newService.setPort(22);
+    // save() fusionne une entité à identifiant déjà attribué : il faut garder l'instance retournée.
+    var service = services.save(newService);
 
     var config =
         new CollectionConfiguration(
@@ -301,7 +303,19 @@ class PersistenceModelTests {
               action.run();
               em.flush();
             })
-        .hasRootCauseInstanceOf(java.sql.SQLIntegrityConstraintViolationException.class);
+        .satisfies(
+            error -> {
+              Throwable root = error;
+              while (root.getCause() != null) {
+                root = root.getCause();
+              }
+              // Classe 23 de SQLSTATE : violation de contrainte d'intégrité (CHECK, UNIQUE, clé
+              // étrangère).
+              assertThat(root)
+                  .isInstanceOfSatisfying(
+                      java.sql.SQLException.class,
+                      sql -> assertThat(sql.getSQLState()).startsWith("23"));
+            });
   }
 
   @Test

@@ -1,0 +1,1 @@
+org.springframework.context.ApplicationContextInitializer=sn.ept.transdic1.support.EmbeddedPostgresInitializer
