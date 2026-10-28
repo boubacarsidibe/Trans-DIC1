@@ -87,6 +87,8 @@ Source : historique git (`develop`, 41 commits d'avance sur `main`), code et doc
 | Autorisation | Rôles `ADMIN`/`NOC_OPERATOR`/`VIEWER` sur les endpoints (`@PreAuthorize`) | ✅ | `EquipmentController` |
 | Inventaire | CRUD équipements `/api/v1/equipements`, DTO validés, erreurs `problem+json` | ✅ | `EquipmentController`, `ApiExceptionHandler` |
 | Inventaire | Audit des mutations d'inventaire (US07) | ✅ | `AuditService`, `EquipmentAuditTests` |
+| Inventaire | Gestion des sites : création, modification, suppression d'un site vide, code immuable, audit ; le formulaire d'équipement liste désormais les vrais sites | ✅ | `SiteController`, `SiteService`, `SiteApiTests` |
+| Utilisateurs | Gestion des comptes par les administrateurs : création, rôle, activation, réinitialisation du mot de passe, garde-fous (soi-même, dernier administrateur), connexions révoquées, audit | ✅ | `UserController`, `UserAdminService`, `UserAdminApiTests` |
 | Métriques | Lecture des dernières mesures `/api/v1/metrics/latest`, mesure CPU synthétique | ✅ | `MetricController`, V4 |
 | Métriques | Partitions mensuelles, agrégats horaires, purge sans perte d'historique | ✅ | V9, V12, `MetricRetentionService`, `MetricRetentionTests` |
 | Modèle | 28 entités JPA, 28 tables, contraintes `CHECK`, index uniques partiels (US02) | ✅ | V7, V8, `PersistenceModelTests` |
@@ -105,12 +107,13 @@ Source : historique git (`develop`, 41 commits d'avance sur `main`), code et doc
 | Alertes | Écran des alertes (liste filtrable, actions selon le rôle, historique) | ✅ | `AlertsPage.jsx` |
 | Alertes | Administration des règles : seuil, durée de confirmation, hystérésis, portée (sites et équipements), audit | ✅ | `AlertRuleController`, `AlertRuleService`, `AlertRuleApiTests` |
 | Alertes | Écran d'administration des règles | ⚪ | API prête, pas d'écran |
+| Utilisateurs | Écran d'administration des comptes | ⚪ | API prête, pas d'écran |
 | Tableau de bord | Chiffres clés réels : équipements par statut, alertes actives par sévérité, agents actifs | ✅ | `OverviewController`, `DashboardPage.jsx` |
 | Notifications / rapports | Envoi e-mail, tentatives, rapports planifiés | ⚪ | entités créées, aucun service |
 | Temps réel | Flux SSE vers le tableau de bord | 🟡 | ADR-0006 |
 | Déploiement | Nginx, TLS, staging, production | ⚪ | prérequis externes ouverts |
 
-**Vérification faite pour ce dossier** : `./mvnw verify` sous Java 21 se termine par `BUILD SUCCESS` avec 187 tests backend sans échec (PostgreSQL 16 embarqué, sans Docker), seuils JaCoCo et Spotless passés. Côté frontend : 30 tests, couverture 92 %, lint sans erreur, build et audit des dépendances sans faille. La CI distante n'a pas été relancée.
+**Vérification faite pour ce dossier** : `./mvnw verify` sous Java 21 se termine par `BUILD SUCCESS` avec 203 tests backend sans échec (PostgreSQL 16 embarqué, sans Docker), seuils JaCoCo et Spotless passés. Côté frontend : 30 tests, couverture 92 %, lint sans erreur, build et audit des dépendances sans faille. La CI distante n'a pas été relancée.
 
 ### 3.2 Chronologie
 
@@ -260,6 +263,10 @@ flowchart TD
 | `GET /api/v1/regles-alertes` · `/{id}` | authentifié | Liste paginée · détail d'une règle et de sa portée |
 | `POST` · `PUT /{id}` · `DELETE /{id}` `/api/v1/regles-alertes` | `ADMIN` | Crée · remplace règle et portée · supprime (refusé si la règle a produit des alertes) |
 | `GET /api/v1/vue-ensemble` | authentifié | Chiffres clés du tableau de bord |
+| `GET /api/v1/sites` · `/{id}` | authentifié | Liste paginée (filtre par statut) · détail avec nombre d'équipements |
+| `POST` · `PUT /{id}` · `DELETE /{id}` `/api/v1/sites` | `ADMIN`, `NOC_OPERATOR` | Crée · modifie (code immuable) · supprime un site vide |
+| `GET` · `POST /api/v1/utilisateurs` | `ADMIN` | Liste des comptes · création |
+| `POST /api/v1/utilisateurs/{id}/role` · `/activation` · `/mot-de-passe` | `ADMIN` | Change le rôle · active ou désactive · réinitialise le mot de passe |
 | `POST /api/v1/auth/refresh` · `/logout` | cookie de renouvellement | Renouvelle le jeton d'accès (rotation) · révoque la connexion |
 | `POST` · `DELETE /api/v1/equipements/{id}/agent` | `ADMIN` | Enregistre un agent (jeton affiché une fois) · le révoque |
 | `POST /api/v1/agent/measures` | jeton d'agent | Reçoit un lot de mesures (500 au plus), les stocke et évalue les alertes |
