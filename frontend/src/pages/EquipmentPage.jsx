@@ -14,7 +14,7 @@ function EquipmentPage() {
   const { role } = useAuth();
   const canManage = canManageEquipment(role);
   const [page, setPage] = useState(0);
-  const [data, setData] = useState({ content: [], totalPages: 0 });
+  const [data, setData] = useState({ content: [], page: { totalPages: 0 } });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -81,6 +81,8 @@ function EquipmentPage() {
   }
 
   const items = data.content;
+  // L'API renvoie les métadonnées de pagination dans data.page (format Spring Data en DTO).
+  const totalPages = data.page?.totalPages ?? 0;
 
   return (
     <main className="app-shell px-6 py-10">
@@ -166,7 +168,7 @@ function EquipmentPage() {
           ))}
         </div>
 
-        {data.totalPages > 1 && (
+        {totalPages > 1 && (
           <nav
             aria-label="Pagination"
             className="mt-6 flex items-center gap-4 text-slate-300"
@@ -180,11 +182,11 @@ function EquipmentPage() {
               Précédent
             </button>
             <span>
-              Page {page + 1} sur {data.totalPages}
+              Page {page + 1} sur {totalPages}
             </span>
             <button
               type="button"
-              disabled={page + 1 >= data.totalPages}
+              disabled={page + 1 >= totalPages}
               onClick={() => setPage(page + 1)}
               className="rounded-lg border border-slate-600 px-3 py-1 disabled:opacity-40"
             >

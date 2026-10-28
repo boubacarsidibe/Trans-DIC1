@@ -49,7 +49,7 @@ describe("authentification", () => {
       saveSession({ accessToken: "neuf", role: "ADMIN", expiresIn: 900 }),
     );
     apiClient.get.mockResolvedValue({
-      data: { content: [], totalPages: 1, number: 0 },
+      data: { content: [], page: { totalPages: 1, number: 0 } },
     });
     renderApp("/equipements");
 
@@ -125,7 +125,7 @@ describe("authentification", () => {
 
 describe("page équipements", () => {
   const page = (content, totalPages = 1) => ({
-    data: { content, totalPages, number: 0 },
+    data: { content, page: { totalPages, number: 0 } },
   });
   const sample = {
     id: "e1",
