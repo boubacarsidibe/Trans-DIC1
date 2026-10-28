@@ -28,7 +28,11 @@ monitoring       → inventory.domain
 access           → security.domain, inventory.domain
 alerting         → security.domain, inventory.domain
 reporting        → security.domain, inventory.domain, alerting.domain
+collection       → inventory (domain, repository), monitoring (domain, repository),
+                   alerting (service, domain, repository), audit.service
 ```
+
+`collection` orchestre la réception des mesures : aucun autre module ne la connaît. Le moteur d'alertes lit l'historique des mesures par le port `MetricHistory`, implémenté par `collection`, ce qui évite tout cycle avec `monitoring`.
 
 Les modules de base (`inventory`, `monitoring`, `security`, `audit`) ne dépendent jamais de `alerting`, `reporting` ni `access`. Le détail du modèle est dans [persistence-mapping.md](persistence-mapping.md).
 

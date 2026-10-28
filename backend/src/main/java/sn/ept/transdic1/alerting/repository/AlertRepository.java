@@ -15,6 +15,10 @@ public interface AlertRepository extends JpaRepository<Alert, UUID> {
   Optional<Alert> findFirstByEquipmentIdAndRuleIdAndStateIn(
       UUID equipmentId, UUID ruleId, Collection<AlertState> states);
 
+  /** Dernière alerte résolue du couple équipement-règle, rouverte si l'anomalie revient. */
+  Optional<Alert> findFirstByEquipmentIdAndRuleIdAndStateOrderByResolvedAtDesc(
+      UUID equipmentId, UUID ruleId, AlertState state);
+
   Page<Alert> findByState(AlertState state, Pageable pageable);
 
   Page<Alert> findByEquipmentIdOrderByTriggeredAtDesc(UUID equipmentId, Pageable pageable);

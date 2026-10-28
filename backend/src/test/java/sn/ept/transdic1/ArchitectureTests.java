@@ -133,6 +133,10 @@ class ArchitectureTests {
   //   monitoring, access          -> inventory.domain, security.domain
   //   alerting                    -> inventory.domain, security.domain
   //   reporting                   -> inventory.domain, security.domain, alerting.domain
+  //   collection                  -> inventory (domain, repository), monitoring (domain,
+  // repository),
+  //                                  alerting (service, domain, repository) ; personne ne dépend
+  // d'elle
 
   @ArchTest
   static final ArchRule auditOnlyDependsOnSecurity =
@@ -216,6 +220,38 @@ class ArchitectureTests {
           .should()
           .dependOnClassesThat()
           .resideInAnyPackage(ROOT + ".alerting..", ROOT + ".reporting..", ROOT + ".access..");
+
+  @ArchTest
+  static final ArchRule noModuleDependsOnCollection =
+      noClasses()
+          .that()
+          .resideOutsideOfPackage(ROOT + ".collection..")
+          .and()
+          .resideInAPackage(ROOT + "..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage(ROOT + ".collection..")
+          .because(
+              "collection orchestre monitoring et alerting : eux ne la connaissent pas, ce qui"
+                  + " évite tout cycle");
+
+  @ArchTest
+  static final ArchRule collectionOnlyUsesDomainsAndServicesOfOtherModules =
+      noClasses()
+          .that()
+          .resideInAPackage(ROOT + ".collection..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              ROOT + ".inventory.controller..",
+              ROOT + ".inventory.service..",
+              ROOT + ".monitoring.controller..",
+              ROOT + ".monitoring.service..",
+              ROOT + ".alerting.controller..",
+              ROOT + ".security.service..",
+              ROOT + ".reporting..",
+              ROOT + ".access..")
+          .because("collection lit les entités et dépose les mesures, sans passer par leurs API");
 
   // --- Modèle : les types d'équipement sont des valeurs, pas des sous-classes ---------------
 
