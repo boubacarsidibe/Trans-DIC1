@@ -61,21 +61,25 @@ function DashboardPage() {
       label: "Équipements supervisés",
       value: number(equipments?.total),
       tone: "text-sky-300",
+      bar: "#1160a8",
     },
     {
       label: "Équipements hors service",
       value: number(equipments?.byStatus?.DOWN),
       tone: "text-red-300",
+      bar: "#c4302b",
     },
     {
       label: "Alertes actives",
       value: number(alerts?.active),
       tone: "text-amber-300",
+      bar: "#c27b00",
     },
     {
       label: "Agents actifs",
       value: number(overview?.activeAgents),
       tone: "text-teal-300",
+      bar: "#0a5878",
     },
   ];
 
@@ -84,14 +88,11 @@ function DashboardPage() {
       <div className="mx-auto max-w-6xl">
         <header className="flex flex-col gap-5 border-b border-slate-700/60 pb-8 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-teal-300">
-              École Polytechnique de Thiès
-            </p>
             <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
               Trans-DIC1
             </h1>
             <p className="mt-3 max-w-2xl text-slate-400">
-              Centre de supervision des infrastructures réseau et serveurs.
+              Centre de supervision des infrastructures réseau et serveurs de l’École Polytechnique de Thiès.
               <span className={`ml-3 text-xs ${live ? "text-emerald-300" : "text-slate-500"}`}>
                 ● {live ? "En direct" : "Hors ligne"}
               </span>
@@ -128,10 +129,11 @@ function DashboardPage() {
             {indicators.map((indicator) => (
               <article
                 className="status-card rounded-2xl p-6"
+                style={{ borderLeft: `6px solid ${indicator.bar}` }}
                 key={indicator.label}
               >
                 <p className="text-sm text-slate-400">{indicator.label}</p>
-                <p className={`mt-4 text-4xl font-semibold ${indicator.tone}`}>
+                <p className={`mt-4 text-5xl font-semibold ${indicator.tone}`}>
                   {indicator.value}
                 </p>
               </article>
