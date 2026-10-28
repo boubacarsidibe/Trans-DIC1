@@ -9,7 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import sn.ept.transdic1.monitoring.domain.Metric;
 
-public interface MetricRepository extends JpaRepository<Metric, UUID> {
+public interface MetricRepository extends JpaRepository<Metric, Long> {
   List<Metric> findTop20ByOrderByCollectedAtDesc();
 
   /** Historique paginé d'un indicateur sur une période, pour les graphiques. */

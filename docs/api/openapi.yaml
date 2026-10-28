@@ -399,8 +399,8 @@ components:
       type: object
       properties:
         id:
-          type: string
-          format: uuid
+          type: integer
+          format: int64
         equipmentId:
           type: string
           format: uuid

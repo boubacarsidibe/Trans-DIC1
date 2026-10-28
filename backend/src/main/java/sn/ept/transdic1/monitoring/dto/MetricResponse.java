@@ -6,7 +6,7 @@ import java.util.UUID;
 import sn.ept.transdic1.monitoring.domain.Metric;
 
 public record MetricResponse(
-    UUID id,
+    Long id,
     UUID equipmentId,
     String equipmentName,
     String key,

@@ -3,7 +3,6 @@ package sn.ept.transdic1.monitoring.domain;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.UUID;
 import sn.ept.transdic1.inventory.domain.CollectionAgent;
 import sn.ept.transdic1.inventory.domain.Equipment;
 import sn.ept.transdic1.inventory.domain.MetricDefinition;
@@ -11,7 +10,14 @@ import sn.ept.transdic1.inventory.domain.MonitoredService;
 
 @Entity
 public class Metric {
-  @Id private UUID id;
+  /**
+   * Identifiant entier issu de metric_id_seq (ADR-0004). La clé primaire en base est (collected_at,
+   * id) car la table est partitionnée par mois sur collected_at.
+   */
+  @Id
+  @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "metric_id_seq")
+  @SequenceGenerator(name = "metric_id_seq", sequenceName = "metric_id_seq", allocationSize = 1)
+  private Long id;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "equipment_id")
@@ -57,7 +63,6 @@ public class Metric {
       String unit,
       MeasurementQuality quality,
       Instant collectedAt) {
-    id = UUID.randomUUID();
     this.equipment = equipment;
     this.key = key;
     this.value = value;
@@ -67,7 +72,7 @@ public class Metric {
     receivedAt = Instant.now();
   }
 
-  public UUID getId() {
+  public Long getId() {
     return id;
   }
 

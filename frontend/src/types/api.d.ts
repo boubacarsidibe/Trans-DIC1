@@ -125,8 +125,8 @@ export interface components {
             role?: string;
         };
         MetricResponse: {
-            /** Format: uuid */
-            id?: string;
+            /** Format: int64 */
+            id?: number;
             /** Format: uuid */
             equipmentId?: string;
             equipmentName?: string;
