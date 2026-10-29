@@ -37,6 +37,12 @@ public class Notification {
   @Column(name = "state", nullable = false)
   private NotificationState state;
 
+  @Column(name = "kind", nullable = false, length = 32)
+  private String kind = "ALERT_OPENED";
+
+  @Column(name = "dedup_key", length = 200)
+  private String dedupKey;
+
   @Column(name = "created_at", nullable = false)
   private Instant createdAt;
 
@@ -114,6 +120,22 @@ public class Notification {
 
   public void setState(NotificationState state) {
     this.state = state;
+  }
+
+  public String getKind() {
+    return kind;
+  }
+
+  public void setKind(String kind) {
+    this.kind = kind;
+  }
+
+  public String getDedupKey() {
+    return dedupKey;
+  }
+
+  public void setDedupKey(String dedupKey) {
+    this.dedupKey = dedupKey;
   }
 
   public Instant getCreatedAt() {

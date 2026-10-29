@@ -1,4 +1,4 @@
-package sn.ept.transdic1.collection.service;
+package sn.ept.transdic1.common.secret;
 
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;

@@ -275,6 +275,7 @@ class PersistenceModelTests {
             "Maintenance",
             "NotificationPreference",
             "Notification",
+            "NotificationTemplate",
             "NotificationAttempt",
             "Report",
             "ReportSchedule",
@@ -282,7 +283,7 @@ class PersistenceModelTests {
             "ScheduleSiteScope",
             "ScheduleEquipmentScope",
             "AuditEntry")
-        .hasSize(28);
+        .hasSize(29);
   }
 
   @Test

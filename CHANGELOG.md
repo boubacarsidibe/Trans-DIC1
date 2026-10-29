@@ -6,6 +6,9 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 
 ### Added
 
+- Journal d'audit consultable et exportable en CSV par les administrateurs, en lecture seule (FEAT-06).
+- Escalade des alertes non prises en charge vers les administrateurs (FEAT-03).
+- Notifications vers e-mail, webhook signé, Teams et Slack, modèles de messages modifiables, historique et envoi de test ; file d'envoi idempotente et événements internes (ARCH-07, FEAT-05).
 - Verrou en base des tâches planifiées de collecte (une seule instance à la fois), pool de threads dédié, état et durée de chaque exécution en base et en métriques (ARCH-06).
 - Hooks Git versionnés (Conventional Commits, lint avant commit), CODEOWNERS par dossier et release-please pour les versions (ENG-01).
 - Socle initial de gouvernance et d'industrialisation du dépôt.

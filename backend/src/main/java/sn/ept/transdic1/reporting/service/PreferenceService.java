@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import sn.ept.transdic1.alerting.domain.Severity;
+import sn.ept.transdic1.common.secret.SecretResolver;
 import sn.ept.transdic1.reporting.domain.NotificationChannel;
 import sn.ept.transdic1.reporting.domain.NotificationPreference;
 import sn.ept.transdic1.reporting.dto.PreferenceRequest;
@@ -33,12 +34,20 @@ public class PreferenceService {
         .orElseGet(
             () ->
                 new PreferenceResponse(
-                    NotificationChannel.EMAIL, Severity.CRITICAL, false, user.getEmail()));
+                    NotificationChannel.EMAIL, Severity.CRITICAL, false, user.getEmail(), null));
   }
 
   @Transactional
   public PreferenceResponse save(String username, PreferenceRequest request) {
     AppUser user = user(username);
+    String destination = request.destination() == null ? null : request.destination().trim();
+    if (request.channel() == NotificationChannel.EMAIL) {
+      destination = null;
+    } else if (!SecretResolver.isSupported(destination)) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
+          "Indiquez la référence du secret qui contient l'URL du canal (ex. env:TEAMS_NOC_URL)");
+    }
     var preference =
         preferences
             .findByUserId(user.getId())
@@ -48,13 +57,14 @@ public class PreferenceService {
     preference.setChannel(request.channel());
     preference.setMinimumSeverity(request.minimumSeverity());
     preference.setActive(request.active());
+    preference.setDestination(destination);
     preferences.save(preference);
     return response(preference, user);
   }
 
   private static PreferenceResponse response(NotificationPreference p, AppUser user) {
     return new PreferenceResponse(
-        p.getChannel(), p.getMinimumSeverity(), p.isActive(), user.getEmail());
+        p.getChannel(), p.getMinimumSeverity(), p.isActive(), user.getEmail(), p.getDestination());
   }
 
   private AppUser user(String username) {

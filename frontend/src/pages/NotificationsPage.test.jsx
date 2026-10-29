@@ -68,9 +68,34 @@ describe("mes notifications", () => {
         channel: "EMAIL",
         minimumSeverity: "WARNING",
         active: true,
+        destination: null,
       }),
     );
     expect(await screen.findByRole("status")).toHaveTextContent("enregistrées");
+  });
+
+  it("demande une référence de secret pour un canal externe, jamais une URL", async () => {
+    apiClient.get.mockResolvedValue({ data: defaults });
+    apiClient.put.mockResolvedValue({ data: { ...defaults, channel: "TEAMS", destination: "env:TEAMS_NOC_URL" } });
+    renderPage();
+
+    await userEvent.selectOptions(await screen.findByLabelText("Canal"), "TEAMS");
+    await userEvent.type(screen.getByLabelText(/Référence du secret/), "https://exemple.test/secret");
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("env:NOM");
+    expect(apiClient.put).not.toHaveBeenCalled();
+
+    await userEvent.clear(screen.getByLabelText(/Référence du secret/));
+    await userEvent.type(screen.getByLabelText(/Référence du secret/), "env:TEAMS_NOC_URL");
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() =>
+      expect(apiClient.put).toHaveBeenCalledWith("/mes-preferences", {
+        channel: "TEAMS",
+        minimumSeverity: "CRITICAL",
+        active: false,
+        destination: "env:TEAMS_NOC_URL",
+      }),
+    );
   });
 
   it("signale une erreur de chargement et d'enregistrement", async () => {

@@ -13,6 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 import sn.ept.transdic1.audit.service.AuditService;
 import sn.ept.transdic1.collection.dto.SnmpConfigRequest;
 import sn.ept.transdic1.collection.dto.SnmpConfigResponse;
+import sn.ept.transdic1.common.secret.SecretResolver;
 import sn.ept.transdic1.inventory.domain.CollectionConfiguration;
 import sn.ept.transdic1.inventory.domain.CollectionMode;
 import sn.ept.transdic1.inventory.domain.MetricDefinition;

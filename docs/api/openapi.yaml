@@ -28,6 +28,10 @@ tags:
 - name: Règles d'alerte
   description: "Seuils, durée de confirmation, seuil de retour et portée. Lecture\
     \ pour tous les rôles, écriture réservée aux administrateurs."
+- name: Canaux de notification
+  description: "Historique d'envoi, modèles de messages et envoi de test. Réservé\
+    \ aux administrateurs. Les URL des canaux (webhook, Teams, Slack) ne sont jamais\
+    \ stockées ni renvoyées : on ne manipule que la référence du secret (env:NOM)."
 - name: Sites
   description: Emplacements regroupant les équipements. Écriture réservée à ADMIN
     et NOC_OPERATOR.
@@ -498,6 +502,39 @@ paths:
           description: Aucune collecte configurée
         "204":
           description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/canaux/modeles/{kind}:
+    put:
+      tags:
+      - Canaux de notification
+      summary: Modifier un modèle de message
+      operationId: updateTemplate
+      parameters:
+      - name: kind
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TemplateRequest"
+        required: true
+      responses:
+        "404":
+          description: Modèle introuvable
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -1145,6 +1182,67 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/canaux/test:
+    post:
+      tags:
+      - Canaux de notification
+      summary: Envoyer un message de test
+      description: Envoie un message fictif immédiatement et indique si le canal répond.
+        Rien n'est enregistré dans l'historique.
+      operationId: test
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TestResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/canaux/historique/{id}/rejouer:
+    post:
+      tags:
+      - Canaux de notification
+      summary: Rejouer une notification en échec
+      operationId: replay
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "409":
+          description: La notification n'est pas en échec
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/auth/refresh:
     post:
       tags:
@@ -1665,6 +1763,68 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/canaux/modeles:
+    get:
+      tags:
+      - Canaux de notification
+      summary: Modèles de messages
+      description: "Marques disponibles : {equipement}, {site}, {severite}, {message},\
+        \ {declenchee}, {resolue}, {url}."
+      operationId: templates
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TemplateResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/canaux/historique:
+    get:
+      tags:
+      - Canaux de notification
+      summary: Historique d'envoi
+      description: "Plus récentes d'abord : état, canal, nombre de tentatives, derniè\
+        re erreur."
+      operationId: history_1
+      parameters:
+      - name: pageable
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/Pageable"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PagedModelHistoryItem"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/audit:
     get:
       tags:
@@ -2010,6 +2170,9 @@ components:
           type: string
           enum:
           - EMAIL
+          - WEBHOOK
+          - TEAMS
+          - SLACK
         minimumSeverity:
           type: string
           enum:
@@ -2018,6 +2181,10 @@ components:
           - CRITICAL
         active:
           type: boolean
+        destination:
+          type: string
+          maxLength: 100
+          minLength: 0
       required:
       - active
       - channel
@@ -2029,6 +2196,9 @@ components:
           type: string
           enum:
           - EMAIL
+          - WEBHOOK
+          - TEAMS
+          - SLACK
         minimumSeverity:
           type: string
           enum:
@@ -2038,6 +2208,8 @@ components:
         active:
           type: boolean
         email:
+          type: string
+        destination:
           type: string
     EquipmentRequest:
       type: object
@@ -2199,6 +2371,20 @@ components:
       - retryCount
       - snmpVersion
       - timeoutSeconds
+    TemplateRequest:
+      type: object
+      properties:
+        subjectTemplate:
+          type: string
+          maxLength: 255
+          minLength: 0
+        bodyTemplate:
+          type: string
+          maxLength: 4000
+          minLength: 0
+      required:
+      - bodyTemplate
+      - subjectTemplate
     UserCreateRequest:
       type: object
       properties:
@@ -2419,6 +2605,30 @@ components:
         identifier:
           type: string
         token:
+          type: string
+    TestRequest:
+      type: object
+      properties:
+        channel:
+          type: string
+          enum:
+          - EMAIL
+          - WEBHOOK
+          - TEAMS
+          - SLACK
+        destination:
+          type: string
+          maxLength: 254
+          minLength: 0
+      required:
+      - channel
+      - destination
+    TestResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        error:
           type: string
     TokenResponse:
       type: object
@@ -2684,6 +2894,63 @@ components:
         lastAt:
           type: string
           format: date-time
+    TemplateResponse:
+      type: object
+      properties:
+        kind:
+          type: string
+        subjectTemplate:
+          type: string
+        bodyTemplate:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+    HistoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        sentAt:
+          type: string
+          format: date-time
+        username:
+          type: string
+        channel:
+          type: string
+          enum:
+          - EMAIL
+          - WEBHOOK
+          - TEAMS
+          - SLACK
+        destination:
+          type: string
+        subject:
+          type: string
+        state:
+          type: string
+          enum:
+          - PENDING
+          - SENT
+          - FAILED
+        attempts:
+          type: integer
+          format: int32
+        lastError:
+          type: string
+    PagedModelHistoryItem:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/HistoryItem"
+        page:
+          $ref: "#/components/schemas/PageMetadata"
     AlertResponse:
       type: object
       properties:

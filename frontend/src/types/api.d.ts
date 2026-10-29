@@ -116,6 +116,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/canaux/modeles/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Modifier un modèle de message */
+        put: operations["updateTemplate"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/utilisateurs": {
         parameters: {
             query?: never;
@@ -318,6 +335,43 @@ export interface paths {
         post: operations["register"];
         /** Révoquer l'agent d'un équipement */
         delete: operations["revoke"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/canaux/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Envoyer un message de test
+         * @description Envoie un message fictif immédiatement et indique si le canal répond. Rien n'est enregistré dans l'historique.
+         */
+        post: operations["test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/canaux/historique/{id}/rejouer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rejouer une notification en échec */
+        post: operations["replay"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -611,6 +665,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/canaux/modeles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Modèles de messages
+         * @description Marques disponibles : {equipement}, {site}, {severite}, {message}, {declenchee}, {resolue}, {url}.
+         */
+        get: operations["templates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/canaux/historique": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Historique d'envoi
+         * @description Plus récentes d'abord : état, canal, nombre de tentatives, dernière erreur.
+         */
+        get: operations["history_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit": {
         parameters: {
             query?: never;
@@ -742,18 +836,20 @@ export interface components {
         };
         PreferenceRequest: {
             /** @enum {string} */
-            channel: "EMAIL";
+            channel: "EMAIL" | "WEBHOOK" | "TEAMS" | "SLACK";
             /** @enum {string} */
             minimumSeverity: "INFO" | "WARNING" | "CRITICAL";
             active: boolean;
+            destination?: string;
         };
         PreferenceResponse: {
             /** @enum {string} */
-            channel?: "EMAIL";
+            channel?: "EMAIL" | "WEBHOOK" | "TEAMS" | "SLACK";
             /** @enum {string} */
             minimumSeverity?: "INFO" | "WARNING" | "CRITICAL";
             active?: boolean;
             email?: string;
+            destination?: string;
         };
         EquipmentRequest: {
             inventoryCode: string;
@@ -803,6 +899,10 @@ export interface components {
             retryCount: number;
             active?: boolean;
             metrics: components["schemas"]["Metric"][];
+        };
+        TemplateRequest: {
+            subjectTemplate: string;
+            bodyTemplate: string;
         };
         UserCreateRequest: {
             username: string;
@@ -905,6 +1005,15 @@ export interface components {
             agentId?: string;
             identifier?: string;
             token?: string;
+        };
+        TestRequest: {
+            /** @enum {string} */
+            channel: "EMAIL" | "WEBHOOK" | "TEAMS" | "SLACK";
+            destination: string;
+        };
+        TestResponse: {
+            success?: boolean;
+            error?: string;
         };
         TokenResponse: {
             accessToken?: string;
@@ -1039,6 +1148,35 @@ export interface components {
             lastValue?: number;
             /** Format: date-time */
             lastAt?: string;
+        };
+        TemplateResponse: {
+            kind?: string;
+            subjectTemplate?: string;
+            bodyTemplate?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        HistoryItem: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            sentAt?: string;
+            username?: string;
+            /** @enum {string} */
+            channel?: "EMAIL" | "WEBHOOK" | "TEAMS" | "SLACK";
+            destination?: string;
+            subject?: string;
+            /** @enum {string} */
+            state?: "PENDING" | "SENT" | "FAILED";
+            /** Format: int32 */
+            attempts?: number;
+            lastError?: string;
+        };
+        PagedModelHistoryItem: {
+            content?: components["schemas"]["HistoryItem"][];
+            page?: components["schemas"]["PageMetadata"];
         };
         AlertResponse: {
             /** Format: uuid */
@@ -1719,6 +1857,48 @@ export interface operations {
                 };
             };
             /** @description Aucune collecte configurée */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplateRequest"];
+            };
+        };
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Modèle introuvable */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -2540,6 +2720,86 @@ export interface operations {
             };
         };
     };
+    test: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TestResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    replay: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description La notification n'est pas en échec */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     refresh: {
         parameters: {
             query?: never;
@@ -3108,6 +3368,84 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MetricKeyResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    templates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TemplateResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    history_1: {
+        parameters: {
+            query: {
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelHistoryItem"];
                 };
             };
             /** @description Authentification requise ou jeton expiré */

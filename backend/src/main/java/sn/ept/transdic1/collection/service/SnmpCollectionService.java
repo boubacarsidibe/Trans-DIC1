@@ -22,6 +22,7 @@ import sn.ept.transdic1.collection.service.SnmpClient.Reading;
 import sn.ept.transdic1.collection.service.SnmpClient.SnmpFailure;
 import sn.ept.transdic1.collection.service.SnmpClient.Target;
 import sn.ept.transdic1.common.scheduling.JobGuard;
+import sn.ept.transdic1.common.secret.SecretResolver;
 import sn.ept.transdic1.inventory.domain.CollectionConfiguration;
 import sn.ept.transdic1.inventory.domain.CollectionMode;
 import sn.ept.transdic1.inventory.domain.MetricDefinition;

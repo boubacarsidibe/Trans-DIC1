@@ -25,6 +25,10 @@ public class NotificationPreference {
   @Column(name = "minimum_severity", nullable = false)
   private Severity minimumSeverity;
 
+  /** Référence du secret contenant l'URL du canal (ex. env:TEAMS_NOC_URL), jamais l'URL. */
+  @Column(name = "destination", length = 100)
+  private String destination;
+
   @Column(name = "active", nullable = false)
   private boolean active;
 
@@ -61,6 +65,14 @@ public class NotificationPreference {
 
   public void setMinimumSeverity(Severity minimumSeverity) {
     this.minimumSeverity = minimumSeverity;
+  }
+
+  public String getDestination() {
+    return destination;
+  }
+
+  public void setDestination(String destination) {
+    this.destination = destination;
   }
 
   public boolean isActive() {

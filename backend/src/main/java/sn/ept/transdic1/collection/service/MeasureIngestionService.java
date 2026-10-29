@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ import sn.ept.transdic1.collection.dto.MeasureInput;
 import sn.ept.transdic1.inventory.repository.EquipmentRepository;
 import sn.ept.transdic1.monitoring.domain.MeasurementQuality;
 import sn.ept.transdic1.monitoring.domain.Metric;
+import sn.ept.transdic1.monitoring.domain.MetricIngestedEvent;
 import sn.ept.transdic1.monitoring.repository.MetricRepository;
 
 /**
@@ -37,13 +39,16 @@ public class MeasureIngestionService {
   private final AlertEvaluationService evaluation;
   private final CollectionAlertService collectionAlerts;
   private final Clock clock;
+  private final ApplicationEventPublisher publisher;
 
   public MeasureIngestionService(
       EquipmentRepository equipments,
       MetricRepository metrics,
       AlertEvaluationService evaluation,
       CollectionAlertService collectionAlerts,
-      Clock clock) {
+      Clock clock,
+      ApplicationEventPublisher publisher) {
+    this.publisher = publisher;
     this.equipments = equipments;
     this.metrics = metrics;
     this.evaluation = evaluation;
@@ -111,6 +116,8 @@ public class MeasureIngestionService {
         resolved++;
       }
     }
+    publisher.publishEvent(
+        new MetricIngestedEvent(equipmentId, ordered.size(), evaluated, clock.instant()));
     return new IngestionResult(ordered.size(), evaluated, opened, resolved);
   }
 

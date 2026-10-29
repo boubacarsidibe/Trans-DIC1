@@ -40,6 +40,7 @@ function AppLayout() {
         {item("/regles", "Règles")}
         {item("/notifications", "Mes notifications")}
         {role === "ADMIN" && item("/utilisateurs", "Utilisateurs")}
+        {role === "ADMIN" && item("/canaux", "Canaux")}
         {role === "ADMIN" && item("/audit", "Journal d'audit")}
 
         <div className="rail-foot">

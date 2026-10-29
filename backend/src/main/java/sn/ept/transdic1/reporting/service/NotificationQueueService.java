@@ -19,13 +19,17 @@ import sn.ept.transdic1.reporting.domain.NotificationPreference;
 import sn.ept.transdic1.reporting.domain.NotificationState;
 import sn.ept.transdic1.reporting.repository.NotificationPreferenceRepository;
 import sn.ept.transdic1.reporting.repository.NotificationRepository;
+import sn.ept.transdic1.security.domain.AppUser;
 import sn.ept.transdic1.security.domain.Role;
 import sn.ept.transdic1.security.repository.UserRepository;
 
 /**
- * Prépare les e-mails d'une alerte : un destinataire par utilisateur actif dont la préférence est
- * activée et dont le seuil de sévérité est atteint. L'envoi est fait plus tard, hors de la
- * transaction de l'alerte, par {@link NotificationDispatchService}.
+ * Écrit les notifications d'une alerte dans la table d'envoi (pattern Outbox) : un destinataire par
+ * utilisateur actif dont la préférence est activée et dont le seuil de sévérité est atteint, sur le
+ * canal qu'il a choisi. L'écriture a lieu dans la transaction de l'alerte (les deux sont validées
+ * ensemble ou pas du tout) ; l'envoi est fait plus tard par {@link NotificationDispatchService}.
+ * Chaque ligne porte une clé d'idempotence (événement + destinataire + canal) : le même événement
+ * rejoué ne crée jamais un second message.
  */
 @Service
 public class NotificationQueueService {
@@ -38,48 +42,59 @@ public class NotificationQueueService {
   private final NotificationPreferenceRepository preferences;
   private final NotificationRepository notifications;
   private final UserRepository users;
+  private final MessageTemplateService renderer;
 
   public NotificationQueueService(
       AlertRepository alerts,
       NotificationPreferenceRepository preferences,
       NotificationRepository notifications,
-      UserRepository users) {
-    this.users = users;
+      UserRepository users,
+      MessageTemplateService renderer) {
     this.alerts = alerts;
     this.preferences = preferences;
     this.notifications = notifications;
+    this.users = users;
+    this.renderer = renderer;
   }
 
   /** Dans la transaction de l'alerte : les notifications et l'alerte sont validées ensemble. */
   @EventListener
   @Transactional
   public void onAlertChanged(AlertChangedEvent event) {
-    queueFor(event.alertId(), event.type());
+    queueFor(event.eventId(), event.alertId(), event.type());
   }
 
-  /** Retourne le nombre de notifications préparées. */
+  /** Retourne le nombre de notifications préparées (0 si l'événement a déjà été traité). */
   @Transactional
-  public int queueFor(UUID alertId, AlertEventType type) {
+  public int queueFor(UUID eventId, UUID alertId, AlertEventType type) {
     Alert alert = alerts.findById(alertId).orElse(null);
     if (alert == null) {
       return 0;
     }
-    String subject = subject(alert, type);
+    String kind = kind(type);
+    String subject = renderer.render(kind, alert).subject();
     int queued = 0;
     if (type == AlertEventType.ESCALATED) {
-      return queueEscalation(alert, subject);
-    }
-    for (NotificationPreference preference : recipients(alert.getSeverity())) {
-      var user = preference.getUser();
-      if (!user.isActive() || user.getEmail() == null || user.getEmail().isBlank()) {
-        continue;
+      for (AppUser admin : users.findByRoleAndActiveTrue(Role.ADMIN)) {
+        if (add(
+            eventId, kind, alert, subject, admin, NotificationChannel.EMAIL, admin.getEmail())) {
+          queued++;
+        }
       }
-      var notification =
-          new Notification(
-              user, preference.getChannel(), user.getEmail(), subject, NotificationState.PENDING);
-      notification.setAlert(alert);
-      notifications.save(notification);
-      queued++;
+    } else {
+      for (NotificationPreference preference : recipients(alert.getSeverity())) {
+        AppUser user = preference.getUser();
+        if (!user.isActive()) {
+          continue;
+        }
+        String destination =
+            preference.getChannel() == NotificationChannel.EMAIL
+                ? user.getEmail()
+                : preference.getDestination();
+        if (add(eventId, kind, alert, subject, user, preference.getChannel(), destination)) {
+          queued++;
+        }
+      }
     }
     if (queued > 0) {
       LOG.info("Notifications préparées pour l'alerte {} : {}", alertId, queued);
@@ -87,28 +102,28 @@ public class NotificationQueueService {
     return queued;
   }
 
-  /**
-   * Une alerte non prise en charge prévient les administrateurs actifs, quelles que soient leurs
-   * préférences.
-   */
-  private int queueEscalation(Alert alert, String subject) {
-    int queued = 0;
-    for (var admin : users.findByRoleAndActiveTrue(Role.ADMIN)) {
-      if (admin.getEmail() == null || admin.getEmail().isBlank()) {
-        continue;
-      }
-      var notification =
-          new Notification(
-              admin,
-              NotificationChannel.EMAIL,
-              admin.getEmail(),
-              subject,
-              NotificationState.PENDING);
-      notification.setAlert(alert);
-      notifications.save(notification);
-      queued++;
+  private boolean add(
+      UUID eventId,
+      String kind,
+      Alert alert,
+      String subject,
+      AppUser user,
+      NotificationChannel channel,
+      String destination) {
+    if (destination == null || destination.isBlank()) {
+      return false;
     }
-    return queued;
+    String dedupKey = eventId + ":" + user.getId() + ":" + channel;
+    if (notifications.existsByDedupKey(dedupKey)) {
+      return false;
+    }
+    var notification =
+        new Notification(user, channel, destination, subject, NotificationState.PENDING);
+    notification.setAlert(alert);
+    notification.setKind(kind);
+    notification.setDedupKey(dedupKey);
+    notifications.save(notification);
+    return true;
   }
 
   private List<NotificationPreference> recipients(Severity severity) {
@@ -118,16 +133,16 @@ public class NotificationQueueService {
         .toList();
   }
 
-  static String subject(Alert alert, AlertEventType type) {
-    if (type == AlertEventType.ESCALATED) {
-      return "[ESCALADE] Alerte non prise en charge — " + alert.getEquipment().getName();
-    }
-    String state = type == AlertEventType.RESOLVED ? "Résolue" : "Ouverte";
-    return "["
-        + SEVERITY_LABELS.getOrDefault(alert.getSeverity(), alert.getSeverity().name())
-        + "] Alerte "
-        + state.toLowerCase()
-        + " — "
-        + alert.getEquipment().getName();
+  static String kind(AlertEventType type) {
+    return switch (type) {
+      case RESOLVED -> "ALERT_RESOLVED";
+      case ESCALATED -> "ALERT_ESCALATED";
+      default -> "ALERT_OPENED";
+    };
+  }
+
+  /** Libellé français de la sévérité, utilisé dans les messages. */
+  static String label(Severity severity) {
+    return SEVERITY_LABELS.getOrDefault(severity, severity.name());
   }
 }

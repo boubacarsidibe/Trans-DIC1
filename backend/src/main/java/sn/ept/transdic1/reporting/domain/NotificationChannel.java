@@ -1,5 +1,8 @@
 package sn.ept.transdic1.reporting.domain;
 
 public enum NotificationChannel {
-  EMAIL
+  EMAIL,
+  WEBHOOK,
+  TEAMS,
+  SLACK
 }
