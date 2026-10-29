@@ -13,6 +13,7 @@ export const STATE_LABELS = {
   RESOLVED: "Résolue",
   ARCHIVED: "Archivée",
   DELETED: "Supprimée",
+  ESCALATED: "Escaladée aux administrateurs",
 };
 
 export const SEVERITY_LABELS = {

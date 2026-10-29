@@ -49,6 +49,9 @@ tags:
   description: Préférences de notification de l'utilisateur connecté.
 - name: Vue d'ensemble
   description: Chiffres clés du tableau de bord.
+- name: Journal d'audit
+  description: "Consultation et export du journal des actions sensibles. Réservé aux\
+    \ administrateurs ; le journal est en lecture seule, aucune route ne le modifie."
 paths:
   /api/v1/sites/{id}:
     get:
@@ -1662,6 +1665,149 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/audit:
+    get:
+      tags:
+      - Journal d'audit
+      summary: Consulter le journal
+      description: "Liste paginée (50 par page, plus récentes d'abord), filtrable\
+        \ par période (from inclus, to exclu), compte, action et cible."
+      operationId: list_5
+      parameters:
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: username
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: action
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: targetType
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: targetId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: pageable
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/Pageable"
+      responses:
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/audit/export:
+    get:
+      tags:
+      - Journal d'audit
+      summary: Exporter le journal en CSV
+      description: "Mêmes filtres que la consultation, 10 000 entrées au plus. L'export\
+        \ est lui-même journalisé."
+      operationId: export
+      parameters:
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: username
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: action
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: targetType
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: targetId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/audit/actions:
+    get:
+      tags:
+      - Journal d'audit
+      summary: Actions journalisées
+      description: Valeurs possibles du filtre d'action.
+      operationId: actions
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  type: string
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/alertes:
     get:
       tags:
@@ -1669,7 +1815,7 @@ paths:
       summary: Lister les alertes
       description: "Liste paginée (20 par page, plus récentes d'abord), filtrable\
         \ par état et par équipement. Les alertes supprimées sont masquées."
-      operationId: list_5
+      operationId: list_6
       parameters:
       - name: state
         in: query

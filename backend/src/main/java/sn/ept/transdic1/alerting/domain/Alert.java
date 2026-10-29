@@ -56,6 +56,9 @@ public class Alert {
   @Column(name = "deleted_at")
   private Instant deletedAt;
 
+  @Column(name = "escalated_at")
+  private Instant escalatedAt;
+
   @Enumerated(EnumType.STRING)
   @Column(name = "resolution_type")
   private ResolutionType resolutionType;
@@ -158,6 +161,14 @@ public class Alert {
 
   public void setTakenAt(Instant takenAt) {
     this.takenAt = takenAt;
+  }
+
+  public Instant getEscalatedAt() {
+    return escalatedAt;
+  }
+
+  public void setEscalatedAt(Instant escalatedAt) {
+    this.escalatedAt = escalatedAt;
   }
 
   public Instant getResolvedAt() {

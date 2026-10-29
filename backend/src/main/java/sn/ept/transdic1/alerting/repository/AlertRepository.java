@@ -23,6 +23,13 @@ public interface AlertRepository
 
   boolean existsByRuleId(UUID ruleId);
 
+  /**
+   * Alertes toujours ouvertes (personne ne les a prises) depuis avant {@code before}, pas encore
+   * escaladées.
+   */
+  java.util.List<Alert> findByStateAndEscalatedAtIsNullAndTriggeredAtBefore(
+      AlertState state, java.time.Instant before);
+
   /** Alertes déclenchées pendant la période [from, to[, les plus récentes d'abord. */
   java.util.List<Alert>
       findByTriggeredAtGreaterThanEqualAndTriggeredAtLessThanOrderByTriggeredAtDesc(

@@ -14,10 +14,13 @@ import sn.ept.transdic1.alerting.domain.AlertEventType;
 import sn.ept.transdic1.alerting.domain.Severity;
 import sn.ept.transdic1.alerting.repository.AlertRepository;
 import sn.ept.transdic1.reporting.domain.Notification;
+import sn.ept.transdic1.reporting.domain.NotificationChannel;
 import sn.ept.transdic1.reporting.domain.NotificationPreference;
 import sn.ept.transdic1.reporting.domain.NotificationState;
 import sn.ept.transdic1.reporting.repository.NotificationPreferenceRepository;
 import sn.ept.transdic1.reporting.repository.NotificationRepository;
+import sn.ept.transdic1.security.domain.Role;
+import sn.ept.transdic1.security.repository.UserRepository;
 
 /**
  * Prépare les e-mails d'une alerte : un destinataire par utilisateur actif dont la préférence est
@@ -34,11 +37,14 @@ public class NotificationQueueService {
   private final AlertRepository alerts;
   private final NotificationPreferenceRepository preferences;
   private final NotificationRepository notifications;
+  private final UserRepository users;
 
   public NotificationQueueService(
       AlertRepository alerts,
       NotificationPreferenceRepository preferences,
-      NotificationRepository notifications) {
+      NotificationRepository notifications,
+      UserRepository users) {
+    this.users = users;
     this.alerts = alerts;
     this.preferences = preferences;
     this.notifications = notifications;
@@ -60,6 +66,9 @@ public class NotificationQueueService {
     }
     String subject = subject(alert, type);
     int queued = 0;
+    if (type == AlertEventType.ESCALATED) {
+      return queueEscalation(alert, subject);
+    }
     for (NotificationPreference preference : recipients(alert.getSeverity())) {
       var user = preference.getUser();
       if (!user.isActive() || user.getEmail() == null || user.getEmail().isBlank()) {
@@ -78,6 +87,30 @@ public class NotificationQueueService {
     return queued;
   }
 
+  /**
+   * Une alerte non prise en charge prévient les administrateurs actifs, quelles que soient leurs
+   * préférences.
+   */
+  private int queueEscalation(Alert alert, String subject) {
+    int queued = 0;
+    for (var admin : users.findByRoleAndActiveTrue(Role.ADMIN)) {
+      if (admin.getEmail() == null || admin.getEmail().isBlank()) {
+        continue;
+      }
+      var notification =
+          new Notification(
+              admin,
+              NotificationChannel.EMAIL,
+              admin.getEmail(),
+              subject,
+              NotificationState.PENDING);
+      notification.setAlert(alert);
+      notifications.save(notification);
+      queued++;
+    }
+    return queued;
+  }
+
   private List<NotificationPreference> recipients(Severity severity) {
     return preferences.findAll().stream()
         .filter(NotificationPreference::isActive)
@@ -86,6 +119,9 @@ public class NotificationQueueService {
   }
 
   static String subject(Alert alert, AlertEventType type) {
+    if (type == AlertEventType.ESCALATED) {
+      return "[ESCALADE] Alerte non prise en charge — " + alert.getEquipment().getName();
+    }
     String state = type == AlertEventType.RESOLVED ? "Résolue" : "Ouverte";
     return "["
         + SEVERITY_LABELS.getOrDefault(alert.getSeverity(), alert.getSeverity().name())

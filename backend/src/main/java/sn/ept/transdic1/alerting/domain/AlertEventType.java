@@ -10,5 +10,6 @@ public enum AlertEventType {
   NOTIFIED,
   RESOLVED,
   ARCHIVED,
-  DELETED
+  DELETED,
+  ESCALATED
 }
