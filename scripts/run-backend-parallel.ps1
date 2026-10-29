@@ -71,6 +71,9 @@ $env:BOOTSTRAP_ADMIN_PASSWORD = $run['RUN_ADMIN_PASSWORD']
 # Navigateur sur http://localhost : le cookie de renouvellement ne peut pas exiger HTTPS ici.
 $env:REFRESH_COOKIE_SECURE = 'false'
 $env:CORS_ALLOWED_ORIGINS = 'http://localhost:5173'
+# Mesures simulées toutes les 10 s : la démonstration a des courbes sans agent ni SNMP.
+$env:COLLECTION_SIMULATED_ENABLED = 'true'
+$env:COLLECTION_SIMULATED_INTERVAL_MS = '10000'
 
 # Le projet est en Java 21 : une variable JAVA_HOME restée sur un JDK plus ancien fait échouer Maven.
 $javaCommand = Get-Command java -ErrorAction SilentlyContinue
