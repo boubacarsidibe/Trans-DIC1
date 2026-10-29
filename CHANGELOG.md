@@ -6,6 +6,8 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 
 ### Added
 
+- Verrou en base des tâches planifiées de collecte (une seule instance à la fois), pool de threads dédié, état et durée de chaque exécution en base et en métriques (ARCH-06).
+- Hooks Git versionnés (Conventional Commits, lint avant commit), CODEOWNERS par dossier et release-please pour les versions (ENG-01).
 - Socle initial de gouvernance et d'industrialisation du dépôt.
 - Migration Flyway créant cinq équipements fictifs et test automatisé de leur chargement.
 - Premier parcours vertical MVP avec métrique CPU synthétique persistée, API protégée et affichage React.

@@ -30,6 +30,15 @@ ci(github): validate repository hygiene
 
 Types acceptés : `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore` et `revert`.
 
+## Hooks locaux et versions
+
+Activez les hooks une fois par clone : `pwsh ./scripts/install-hooks.ps1` (ou `./scripts/install-hooks.sh`).
+
+- `commit-msg` refuse un message qui ne suit pas Conventional Commits (`scripts/check-commit-message.mjs`).
+- `pre-commit` lance le lint du frontend et la vérification Spotless du backend selon les fichiers indexés, et refuse un fichier d'environnement local.
+- Sur `main`, release-please ouvre une Pull Request de version : elle fixe le numéro (Semantic Versioning) et complète `CHANGELOG.md` à partir des commits.
+- `.github/CODEOWNERS` désigne les relecteurs par dossier.
+
 ## Qualité et tests
 
 Avant chaque push :

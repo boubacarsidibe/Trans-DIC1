@@ -1,7 +1,11 @@
-# Propriétaire initial du repository. Remplacer ou compléter par des équipes réelles
-# lorsque les responsabilités frontend, backend, monitoring et DevOps seront distribuées.
+# Relecteurs par dossier. Remplacer par des équipes GitHub (@org/equipe) quand elles existent.
 *                            @boubacarsidibe
-/.github/                    @boubacarsidibe
+/backend/                    @boubacarsidibe
+/frontend/                   @boubacarsidibe
+/backend/src/main/resources/db/migration/  @boubacarsidibe
 /docs/                       @boubacarsidibe
+/docs/adr/                   @boubacarsidibe
 /scripts/                    @boubacarsidibe
-
+/.github/                    @boubacarsidibe
+/docker-compose.yml          @boubacarsidibe
+/SECURITY.md                 @boubacarsidibe

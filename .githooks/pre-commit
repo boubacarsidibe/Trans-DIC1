@@ -1,0 +1,23 @@
+#!/bin/sh
+# Lint et formatage des fichiers indexés, par composant. Un échec bloque le commit.
+root="$(git rev-parse --show-toplevel)"
+staged="$(git diff --cached --name-only --diff-filter=ACM)"
+
+if echo "$staged" | grep -q '^frontend/.*\.\(js\|jsx\)$'; then
+  echo "pre-commit : lint du frontend"
+  (cd "$root/frontend" && npm run --silent lint) || exit 1
+fi
+
+if echo "$staged" | grep -q '^backend/.*\.java$'; then
+  echo "pre-commit : format du backend (Spotless)"
+  (cd "$root/backend" && ./mvnw -q -o spotless:check) || {
+    echo "Formatage incorrect : lancez « ./mvnw spotless:apply » dans backend/ puis ajoutez les fichiers."
+    exit 1
+  }
+fi
+
+if echo "$staged" | grep -qE '^\.env$|\.env\.run$'; then
+  echo "pre-commit : un fichier d'environnement local est indexé, commit refusé."
+  exit 1
+fi
+exit 0

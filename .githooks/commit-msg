@@ -1,0 +1,3 @@
+#!/bin/sh
+# Refuse un message de commit qui ne suit pas Conventional Commits.
+exec node "$(git rev-parse --show-toplevel)/scripts/check-commit-message.mjs" "$1"
