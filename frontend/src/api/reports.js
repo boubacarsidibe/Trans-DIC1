@@ -63,19 +63,32 @@ export async function getIncidents(period, siteId) {
   return data;
 }
 
-/** Télécharge le CSV avec le jeton de la session (un simple lien n'enverrait pas l'en-tête). */
-export async function downloadCsv(kind, period, siteId) {
+/**
+ * Nom du fichier téléchargé : type de rapport, puis les jours de la période (UTC), pour qu'un
+ * fichier garde son sens une fois sorti de l'application.
+ */
+export function reportFileName(kind, period, format) {
+  const base = kind === "availability" ? "disponibilite" : "incidents";
+  const day = (value) => new Date(value).toISOString().slice(0, 10);
+  return `${base}_${day(period.from)}_${day(period.to)}.${format}`;
+}
+
+/** Télécharge le rapport avec le jeton de la session (un simple lien n'enverrait pas l'en-tête). */
+export async function downloadReport(kind, period, siteId, format) {
   const path = kind === "availability" ? "/rapports/disponibilite" : "/rapports/incidents";
   const { data } = await apiClient.get(path, {
-    params: params(period, siteId, { format: "csv" }),
+    params: params(period, siteId, { format }),
     responseType: "blob",
   });
   const url = URL.createObjectURL(data);
   const link = document.createElement("a");
   link.href = url;
-  link.download = kind === "availability" ? "disponibilite.csv" : "incidents.csv";
+  link.download = reportFileName(kind, period, format);
   document.body.appendChild(link);
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
 }
+
+export const downloadCsv = (kind, period, siteId) => downloadReport(kind, period, siteId, "csv");
+export const downloadPdf = (kind, period, siteId) => downloadReport(kind, period, siteId, "pdf");

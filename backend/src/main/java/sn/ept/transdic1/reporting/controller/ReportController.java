@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import sn.ept.transdic1.reporting.dto.AvailabilityReport;
 import sn.ept.transdic1.reporting.dto.IncidentReport;
 import sn.ept.transdic1.reporting.service.ReportCsvService;
+import sn.ept.transdic1.reporting.service.ReportPdfService;
 import sn.ept.transdic1.reporting.service.ReportService;
 
 @Tag(
@@ -32,17 +33,19 @@ public class ReportController {
 
   private final ReportService reports;
   private final ReportCsvService csv;
+  private final ReportPdfService pdf;
 
-  public ReportController(ReportService reports, ReportCsvService csv) {
+  public ReportController(ReportService reports, ReportCsvService csv, ReportPdfService pdf) {
     this.reports = reports;
     this.csv = csv;
+    this.pdf = pdf;
   }
 
   @Operation(
       summary = "Rapport de disponibilité",
       description =
           "Temps d'indisponibilité (alerte de collecte ouverte) et disponibilité en pourcentage par"
-              + " équipement supervisé. format=csv pour un fichier de tableur.")
+              + " équipement supervisé. format=csv pour un fichier de tableur, format=pdf pour un document imprimable.")
   @ApiResponse(responseCode = "400", description = "Période invalide", content = @Content)
   @GetMapping("/disponibilite")
   public ResponseEntity<?> availability(
@@ -54,6 +57,9 @@ public class ReportController {
     if ("csv".equalsIgnoreCase(format)) {
       return file(csv.availability(report), "disponibilite.csv");
     }
+    if ("pdf".equalsIgnoreCase(format)) {
+      return pdf(pdf.availability(report), "disponibilite.pdf");
+    }
     return ResponseEntity.ok(report);
   }
 
@@ -61,7 +67,7 @@ public class ReportController {
       summary = "Rapport d'incidents",
       description =
           "Alertes déclenchées pendant la période : volumes par sévérité, délai moyen de résolution,"
-              + " équipements les plus touchés. format=csv pour un fichier de tableur.")
+              + " équipements les plus touchés. format=csv pour un fichier de tableur, format=pdf pour un document imprimable.")
   @ApiResponse(responseCode = "400", description = "Période invalide", content = @Content)
   @GetMapping("/incidents")
   public ResponseEntity<?> incidents(
@@ -73,7 +79,23 @@ public class ReportController {
     if ("csv".equalsIgnoreCase(format)) {
       return file(csv.incidents(report), "incidents.csv");
     }
+    if ("pdf".equalsIgnoreCase(format)) {
+      return pdf(pdf.incidents(report), "incidents.pdf");
+    }
     return ResponseEntity.ok(report);
+  }
+
+  private static ResponseEntity<byte[]> pdf(byte[] content, String name) {
+    return ResponseEntity.ok()
+        .contentType(MediaType.APPLICATION_PDF)
+        .header(
+            HttpHeaders.CONTENT_DISPOSITION,
+            ContentDisposition.attachment()
+                .filename(name, StandardCharsets.UTF_8)
+                .build()
+                .toString())
+        .header(HttpHeaders.CACHE_CONTROL, "no-store")
+        .body(content);
   }
 
   private static ResponseEntity<byte[]> file(String content, String name) {

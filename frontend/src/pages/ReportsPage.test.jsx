@@ -194,4 +194,54 @@ describe("page des rapports", () => {
     );
     expect(revoked).toHaveBeenCalledWith("blob:test");
   });
+
+  it("exporte en PDF sous un nom qui indique la période", async () => {
+    mockApi();
+    const created = vi.fn(() => "blob:pdf");
+    globalThis.URL.createObjectURL = created;
+    globalThis.URL.revokeObjectURL = vi.fn();
+    const names = [];
+    const click = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function recordName() {
+      names.push(this.download);
+    };
+    apiClient.get.mockImplementation(async (url, config) => {
+      if (url === "/sites") return { data: { content: [], page: { totalPages: 1 } } };
+      if (config?.params?.format === "pdf") return { data: new Blob(["%PDF-"]) };
+      return { data: availability };
+    });
+    renderPage();
+
+    try {
+      await userEvent.click(await screen.findByRole("button", { name: "Produire le rapport" }));
+      await userEvent.click(await screen.findByRole("button", { name: "Exporter en PDF" }));
+      await waitFor(() => expect(created).toHaveBeenCalled());
+    } finally {
+      HTMLAnchorElement.prototype.click = click;
+    }
+
+    expect(apiClient.get).toHaveBeenCalledWith(
+      "/rapports/disponibilite",
+      expect.objectContaining({
+        responseType: "blob",
+        params: expect.objectContaining({ format: "pdf" }),
+      }),
+    );
+    expect(names[0]).toMatch(/^disponibilite_\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\.pdf$/);
+  });
+
+  it("signale l'échec d'un export PDF", async () => {
+    mockApi();
+    apiClient.get.mockImplementation(async (url, config) => {
+      if (url === "/sites") return { data: { content: [], page: { totalPages: 1 } } };
+      if (config?.params?.format === "pdf") throw new Error("boom");
+      return { data: availability };
+    });
+    renderPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Produire le rapport" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Exporter en PDF" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("L'export PDF a échoué.");
+  });
 });

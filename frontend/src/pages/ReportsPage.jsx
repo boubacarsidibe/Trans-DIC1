@@ -3,6 +3,7 @@ import { listSites } from "../api/equipment.js";
 import {
   defaultPeriod,
   downloadCsv,
+  downloadPdf,
   formatDuration,
   getAvailability,
   getIncidents,
@@ -21,6 +22,7 @@ function ReportsPage() {
   const [report, setReport] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState("");
 
   useEffect(() => {
     listSites()
@@ -51,12 +53,15 @@ function ReportsPage() {
     }
   }
 
-  async function exportCsv() {
+  async function exportFile(download, label) {
     setError("");
+    setExporting(label);
     try {
-      await downloadCsv(report.kind, period, siteId);
+      await download(report.kind, period, siteId);
     } catch {
-      setError("L'export CSV a échoué.");
+      setError(`L'export ${label} a échoué.`);
+    } finally {
+      setExporting("");
     }
   }
 
@@ -128,14 +133,14 @@ function ReportsPage() {
         </form>
 
         <div className="mt-3 flex flex-wrap gap-2 text-sm">
-          {[7, 30, 90].map((days) => (
+          {[1, 7, 30, 90].map((days) => (
             <button
               key={days}
               type="button"
               onClick={() => setPeriod(defaultPeriod(days))}
               className="rounded border border-slate-600 px-3 py-1 text-slate-300"
             >
-              {days} derniers jours
+              {days === 1 ? "Aujourd'hui" : `${days} derniers jours`}
             </button>
           ))}
         </div>
@@ -156,7 +161,16 @@ function ReportsPage() {
               <div className="flex gap-2 print:hidden">
                 <button
                   type="button"
-                  onClick={exportCsv}
+                  disabled={exporting !== ""}
+                  onClick={() => exportFile(downloadPdf, "PDF")}
+                  className="rounded border border-slate-600 px-3 py-1 text-slate-200"
+                >
+                  {exporting === "PDF" ? "Préparation du PDF…" : "Exporter en PDF"}
+                </button>
+                <button
+                  type="button"
+                  disabled={exporting !== ""}
+                  onClick={() => exportFile(downloadCsv, "CSV")}
                   className="rounded border border-slate-600 px-3 py-1 text-slate-200"
                 >
                   Exporter en CSV

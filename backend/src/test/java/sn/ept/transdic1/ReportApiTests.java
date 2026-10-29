@@ -393,6 +393,57 @@ class ReportApiTests {
   }
 
   @Test
+  void pdfExportsAreReadableAndStatePeriodAndGenerationDate() throws Exception {
+    var named = equipment("Routeur PDF");
+    collectionAlert(
+        named,
+        AlertState.RESOLVED,
+        Instant.parse("2026-01-02T00:00:00Z"),
+        AlertEventType.OPENED,
+        Instant.parse("2026-01-02T12:00:00Z"),
+        AlertEventType.RESOLVED);
+
+    var response =
+        availability("&format=pdf")
+            .andExpect(status().isOk())
+            .andExpect(content().contentTypeCompatibleWith("application/pdf"))
+            .andExpect(
+                header()
+                    .string(
+                        "Content-Disposition",
+                        org.hamcrest.Matchers.containsString("disponibilite.pdf")))
+            .andReturn()
+            .getResponse();
+    byte[] bytes = response.getContentAsByteArray();
+    assertThat(new String(bytes, 0, 5, java.nio.charset.StandardCharsets.US_ASCII))
+        .isEqualTo("%PDF-");
+    String text = pdfText(bytes);
+    assertThat(text).contains("Rapport de disponibilité").contains("Période : du");
+    assertThat(text).contains("Généré le").contains("Routeur PDF").contains("95,000 %");
+
+    String incidentsText =
+        pdfText(
+            incidents("&format=pdf")
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("application/pdf"))
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray());
+    assertThat(incidentsText).contains("Rapport d'incidents").contains("Liste des alertes");
+  }
+
+  private static String pdfText(byte[] pdf) throws java.io.IOException {
+    var reader = new org.openpdf.text.pdf.PdfReader(pdf);
+    var extractor = new org.openpdf.text.pdf.parser.PdfTextExtractor(reader);
+    var text = new StringBuilder();
+    for (int page = 1; page <= reader.getNumberOfPages(); page++) {
+      text.append(extractor.getTextFromPage(page)).append('\n');
+    }
+    reader.close();
+    return text.toString();
+  }
+
+  @Test
   void invalidPeriodsAreRejected() throws Exception {
     mockMvc
         .perform(
