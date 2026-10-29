@@ -13,6 +13,7 @@ import UsersPage from "./pages/UsersPage.jsx";
 import AlertsPage from "./pages/AlertsPage.jsx";
 import CollectionPage from "./pages/CollectionPage.jsx";
 import EquipmentPage from "./pages/EquipmentPage.jsx";
+import AuditPage from "./pages/AuditPage.jsx";
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route element={<ProtectedRoute roles={["ADMIN"]} />}>
             <Route path="/utilisateurs" element={<UsersPage />} />
+            <Route path="/audit" element={<AuditPage />} />
             <Route path="/equipements/:id/collecte" element={<CollectionPage />} />
           </Route>
         </Route>

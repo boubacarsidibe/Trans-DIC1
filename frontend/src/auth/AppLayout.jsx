@@ -40,6 +40,7 @@ function AppLayout() {
         {item("/regles", "Règles")}
         {item("/notifications", "Mes notifications")}
         {role === "ADMIN" && item("/utilisateurs", "Utilisateurs")}
+        {role === "ADMIN" && item("/audit", "Journal d'audit")}
 
         <div className="rail-foot">
           <span>Rôle : {ROLE_LABELS[role] ?? role}</span>
