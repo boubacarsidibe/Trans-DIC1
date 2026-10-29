@@ -1418,7 +1418,7 @@ paths:
       summary: Rapport d'incidents
       description: "Alertes déclenchées pendant la période : volumes par sévérité\
         , délai moyen de résolution, équipements les plus touchés. format=csv pour\
-        \ un fichier de tableur."
+        \ un fichier de tableur, format=pdf pour un document imprimable."
       operationId: incidents
       parameters:
       - name: from
@@ -1465,8 +1465,9 @@ paths:
       tags:
       - Rapports
       summary: Rapport de disponibilité
-      description: Temps d'indisponibilité (alerte de collecte ouverte) et disponibilité
-        en pourcentage par équipement supervisé. format=csv pour un fichier de tableur.
+      description: "Temps d'indisponibilité (alerte de collecte ouverte) et disponibilité\
+        \ en pourcentage par équipement supervisé. format=csv pour un fichier de tableur,\
+        \ format=pdf pour un document imprimable."
       operationId: availability
       parameters:
       - name: from
@@ -1548,6 +1549,107 @@ paths:
       responses:
         "503":
           description: Trop de clients connectés
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/equipements/{equipmentId}/metriques:
+    get:
+      tags:
+      - Métriques
+      summary: Historique d'un indicateur
+      description: "Points agrégés (moyenne, minimum, maximum) d'un indicateur sur\
+        \ une période. Par défaut les dernières 24 heures ; le pas AUTO choisit RAW\
+        \ (3 h au plus), MIN5, HOUR ou DAY. Période : 400 jours au plus, 5 000 points\
+        \ au plus."
+      operationId: history
+      parameters:
+      - name: equipmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: key
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: step
+        in: query
+        required: false
+        schema:
+          type: string
+          default: AUTO
+          enum:
+          - AUTO
+          - RAW
+          - MIN5
+          - HOUR
+          - DAY
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/MetricHistoryResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/equipements/{equipmentId}/metriques/indicateurs:
+    get:
+      tags:
+      - Métriques
+      summary: Indicateurs d'un équipement
+      description: "Indicateurs mesurés ces 30 derniers jours, avec leur dernière\
+        \ valeur."
+      operationId: keys
+      parameters:
+      - name: equipmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MetricKeyResponse"
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -2387,6 +2489,55 @@ components:
             $ref: "#/components/schemas/EquipmentResponse"
         page:
           $ref: "#/components/schemas/PageMetadata"
+    MetricHistoryResponse:
+      type: object
+      properties:
+        equipmentId:
+          type: string
+          format: uuid
+        key:
+          type: string
+        unit:
+          type: string
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        step:
+          type: string
+        points:
+          type: array
+          items:
+            $ref: "#/components/schemas/Point"
+    Point:
+      type: object
+      properties:
+        at:
+          type: string
+          format: date-time
+        avg:
+          type: number
+        min:
+          type: number
+        max:
+          type: number
+        count:
+          type: integer
+          format: int32
+    MetricKeyResponse:
+      type: object
+      properties:
+        key:
+          type: string
+        unit:
+          type: string
+        lastValue:
+          type: number
+        lastAt:
+          type: string
+          format: date-time
     AlertResponse:
       type: object
       properties:

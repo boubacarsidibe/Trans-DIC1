@@ -145,8 +145,16 @@ function EquipmentPage() {
                 <span className="text-teal-300">{e.status}</span>
               </div>
               <p className="mt-2 text-sm text-slate-400">Site : {e.site}</p>
+              <div className="mt-3 flex flex-wrap gap-3">
+                <Link
+                  to={`/equipements/${e.id}/historique`}
+                  aria-label={`Voir l'historique de ${e.name}`}
+                  className="rounded-lg border border-slate-600 px-3 py-1 text-sm text-slate-200"
+                >
+                  Historique
+                </Link>
               {canManage && (
-                <div className="mt-3 flex gap-3">
+                <>
                   <button
                     type="button"
                     onClick={() => openForm(e)}
@@ -172,8 +180,9 @@ function EquipmentPage() {
                       Collecte
                     </Link>
                   )}
-                </div>
+                </>
               )}
+              </div>
             </article>
           ))}
         </div>

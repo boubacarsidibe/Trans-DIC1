@@ -27,6 +27,10 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 - Lecture de l'état de l'agent d'un équipement (`GET /api/v1/equipements/{id}/agent`).
 - Écrans des sites et de la configuration de la collecte (agent et SNMP) par équipement, réservés aux administrateurs.
 - Script `scripts/run-backend-parallel.ps1` : lance une instance de démonstration isolée sur le port 8090.
+- Port de collecte `MetricSource` et source simulée (CPU, mémoire, disque, disponibilité) reproductible, activée par `collection.simulated.enabled` ; tours sans chevauchement, tentatives bornées, compteurs Micrometer (US09).
+- API de l'historique des mesures `GET /api/v1/equipements/{id}/metriques` (agrégats moyenne/min/max, pas automatique, 400 jours et 5 000 points au plus) et liste des indicateurs d'un équipement (US10).
+- Écran d'historique avec graphiques CPU, mémoire et disque, choix de période, tableau de valeurs accessible et trous de mesure visibles (US12).
+- Export PDF des rapports de disponibilité et d'incidents (`format=pdf`, OpenPDF) avec période et date de génération, et bouton « Exporter en PDF » (US18).
 - Écran des alertes dans l'interface : liste, filtre par état, actions selon le rôle, historique.
 - API d'administration des règles d'alerte (`/api/v1/regles-alertes`) : création, modification, suppression, portée par site ou équipement, validation du seuil de retour, audit.
 - API de gestion des sites (`/api/v1/sites`) : création, modification avec code immuable, suppression d'un site vide, audit. Le formulaire d'équipement liste les vrais sites au lieu de les déduire des équipements, ce qui permettait de choisir seulement des sites déjà occupés.

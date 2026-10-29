@@ -500,7 +500,7 @@ export interface paths {
         };
         /**
          * Rapport d'incidents
-         * @description Alertes déclenchées pendant la période : volumes par sévérité, délai moyen de résolution, équipements les plus touchés. format=csv pour un fichier de tableur.
+         * @description Alertes déclenchées pendant la période : volumes par sévérité, délai moyen de résolution, équipements les plus touchés. format=csv pour un fichier de tableur, format=pdf pour un document imprimable.
          */
         get: operations["incidents"];
         put?: never;
@@ -520,7 +520,7 @@ export interface paths {
         };
         /**
          * Rapport de disponibilité
-         * @description Temps d'indisponibilité (alerte de collecte ouverte) et disponibilité en pourcentage par équipement supervisé. format=csv pour un fichier de tableur.
+         * @description Temps d'indisponibilité (alerte de collecte ouverte) et disponibilité en pourcentage par équipement supervisé. format=csv pour un fichier de tableur, format=pdf pour un document imprimable.
          */
         get: operations["availability"];
         put?: never;
@@ -563,6 +563,46 @@ export interface paths {
          * @description Flux text/event-stream. Événements : ready (connexion établie) et alerts (une alerte a changé, à recharger par l'API). Le navigateur doit envoyer l'en-tête Authorization : utiliser fetch plutôt qu'EventSource.
          */
         get: operations["stream"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipements/{equipmentId}/metriques": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Historique d'un indicateur
+         * @description Points agrégés (moyenne, minimum, maximum) d'un indicateur sur une période. Par défaut les dernières 24 heures ; le pas AUTO choisit RAW (3 h au plus), MIN5, HOUR ou DAY. Période : 400 jours au plus, 5 000 points au plus.
+         */
+        get: operations["history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipements/{equipmentId}/metriques/indicateurs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Indicateurs d'un équipement
+         * @description Indicateurs mesurés ces 30 derniers jours, avec leur dernière valeur.
+         */
+        get: operations["keys"];
         put?: never;
         post?: never;
         delete?: never;
@@ -911,6 +951,34 @@ export interface components {
         PagedModelEquipmentResponse: {
             content?: components["schemas"]["EquipmentResponse"][];
             page?: components["schemas"]["PageMetadata"];
+        };
+        MetricHistoryResponse: {
+            /** Format: uuid */
+            equipmentId?: string;
+            key?: string;
+            unit?: string;
+            /** Format: date-time */
+            from?: string;
+            /** Format: date-time */
+            to?: string;
+            step?: string;
+            points?: components["schemas"]["Point"][];
+        };
+        Point: {
+            /** Format: date-time */
+            at?: string;
+            avg?: number;
+            min?: number;
+            max?: number;
+            /** Format: int32 */
+            count?: number;
+        };
+        MetricKeyResponse: {
+            key?: string;
+            unit?: string;
+            lastValue?: number;
+            /** Format: date-time */
+            lastAt?: string;
         };
         AlertResponse: {
             /** Format: uuid */
@@ -2914,6 +2982,91 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    history: {
+        parameters: {
+            query: {
+                key: string;
+                from?: string;
+                to?: string;
+                step?: "AUTO" | "RAW" | "MIN5" | "HOUR" | "DAY";
+            };
+            header?: never;
+            path: {
+                equipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MetricHistoryResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    keys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MetricKeyResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
             };
         };
     };

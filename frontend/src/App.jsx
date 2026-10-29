@@ -7,6 +7,7 @@ import MaintenancesPage from "./pages/MaintenancesPage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
 import ReportsPage from "./pages/ReportsPage.jsx";
 import RulesPage from "./pages/RulesPage.jsx";
+import MetricsPage from "./pages/MetricsPage.jsx";
 import SitesPage from "./pages/SitesPage.jsx";
 import UsersPage from "./pages/UsersPage.jsx";
 import AlertsPage from "./pages/AlertsPage.jsx";
@@ -21,6 +22,7 @@ function App() {
         <Route element={<AppLayout />}>
           <Route path="/tableau-de-bord" element={<DashboardPage />} />
           <Route path="/equipements" element={<EquipmentPage />} />
+          <Route path="/equipements/:id/historique" element={<MetricsPage />} />
           <Route path="/sites" element={<SitesPage />} />
           <Route path="/alertes" element={<AlertsPage />} />
           <Route path="/maintenances" element={<MaintenancesPage />} />
