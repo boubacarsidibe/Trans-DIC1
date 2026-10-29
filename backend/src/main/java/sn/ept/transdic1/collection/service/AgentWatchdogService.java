@@ -10,6 +10,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.ept.transdic1.alerting.service.CollectionAlertService;
+import sn.ept.transdic1.common.scheduling.JobGuard;
 import sn.ept.transdic1.inventory.domain.AgentStatus;
 import sn.ept.transdic1.inventory.domain.CollectionAgent;
 import sn.ept.transdic1.inventory.repository.CollectionAgentRepository;
@@ -27,20 +28,28 @@ public class AgentWatchdogService {
   private final CollectionAlertService collectionAlerts;
   private final Clock clock;
   private final Duration silence;
+  private final JobGuard guard;
 
   public AgentWatchdogService(
       CollectionAgentRepository agents,
       CollectionAlertService collectionAlerts,
       Clock clock,
+      JobGuard guard,
       @Value("${collection.agent.silence-seconds:300}") long silenceSeconds) {
     this.agents = agents;
     this.collectionAlerts = collectionAlerts;
     this.clock = clock;
     this.silence = Duration.ofSeconds(silenceSeconds);
+    this.guard = guard;
+  }
+
+  /** Passage planifié : une seule instance à la fois. */
+  @Scheduled(cron = "${collection.agent.watchdog-cron:0 * * * * *}", zone = "UTC")
+  public void scheduledCheck() {
+    guard.run("collection.agent-watchdog", Duration.ofMinutes(5), this::checkAgents);
   }
 
   /** Retourne le nombre d'alertes ouvertes par ce passage. */
-  @Scheduled(cron = "${collection.agent.watchdog-cron:0 * * * * *}", zone = "UTC")
   @Transactional
   public int checkAgents() {
     Instant now = clock.instant();

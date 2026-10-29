@@ -2,6 +2,7 @@ package sn.ept.transdic1.collection.service;
 
 import jakarta.annotation.PreDestroy;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +21,7 @@ import sn.ept.transdic1.collection.dto.MeasureInput;
 import sn.ept.transdic1.collection.service.SnmpClient.Reading;
 import sn.ept.transdic1.collection.service.SnmpClient.SnmpFailure;
 import sn.ept.transdic1.collection.service.SnmpClient.Target;
+import sn.ept.transdic1.common.scheduling.JobGuard;
 import sn.ept.transdic1.inventory.domain.CollectionConfiguration;
 import sn.ept.transdic1.inventory.domain.CollectionMode;
 import sn.ept.transdic1.inventory.domain.MetricDefinition;
@@ -48,6 +50,7 @@ public class SnmpCollectionService {
   private final Clock clock;
   private final int port;
   private final ExecutorService executor;
+  private final JobGuard guard;
 
   public SnmpCollectionService(
       CollectionConfigurationRepository configurations,
@@ -58,6 +61,7 @@ public class SnmpCollectionService {
       SecretResolver secrets,
       TransactionTemplate transaction,
       Clock clock,
+      JobGuard guard,
       @Value("${collection.snmp.default-port:161}") int port,
       @Value("${collection.snmp.parallelism:8}") int parallelism) {
     this.configurations = configurations;
@@ -68,6 +72,7 @@ public class SnmpCollectionService {
     this.secrets = secrets;
     this.transaction = transaction;
     this.clock = clock;
+    this.guard = guard;
     this.port = port;
     // parallelism <= 1 : tout se passe dans le thread appelant (tests, petits parcs).
     this.executor = parallelism > 1 ? Executors.newFixedThreadPool(parallelism) : null;
@@ -80,8 +85,13 @@ public class SnmpCollectionService {
     }
   }
 
-  /** Lit les équipements dont l'échéance est atteinte ; retourne le nombre de lectures faites. */
+  /** Passage planifié : une seule instance lit les équipements échus à la fois. */
   @Scheduled(fixedDelayString = "${collection.snmp.scan-interval-ms:15000}")
+  public void scheduledScan() {
+    guard.run("collection.snmp-scan", Duration.ofMinutes(5), this::collectDue);
+  }
+
+  /** Lit les équipements dont l'échéance est atteinte ; retourne le nombre de lectures faites. */
   public int collectDue() {
     Instant now = clock.instant();
     List<UUID> due =

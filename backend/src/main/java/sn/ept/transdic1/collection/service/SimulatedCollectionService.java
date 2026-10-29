@@ -2,6 +2,7 @@ package sn.ept.transdic1.collection.service;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -13,6 +14,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import sn.ept.transdic1.collection.port.MetricSource;
 import sn.ept.transdic1.collection.port.MetricSourceException;
+import sn.ept.transdic1.common.scheduling.JobGuard;
 import sn.ept.transdic1.inventory.domain.Equipment;
 import sn.ept.transdic1.inventory.repository.EquipmentRepository;
 
@@ -34,6 +36,7 @@ public class SimulatedCollectionService {
   private final MeterRegistry meters;
   private final Clock clock;
   private final int maxAttempts;
+  private final JobGuard guard;
   private final AtomicBoolean running = new AtomicBoolean(false);
 
   public SimulatedCollectionService(
@@ -42,21 +45,28 @@ public class SimulatedCollectionService {
       SimulatedMetricSource source,
       MeterRegistry meters,
       Clock clock,
+      JobGuard guard,
       @Value("${collection.simulated.max-attempts:3}") int maxAttempts) {
     this.equipments = equipments;
     this.ingestion = ingestion;
     this.source = source;
     this.meters = meters;
     this.clock = clock;
+    this.guard = guard;
     this.maxAttempts = Math.max(1, maxAttempts);
+  }
+
+  /** Tour planifié : une seule instance collecte à la fois. */
+  @Scheduled(
+      fixedDelayString = "${collection.simulated.interval-ms:30000}",
+      initialDelayString = "${collection.simulated.initial-delay-ms:5000}")
+  public void scheduledRound() {
+    guard.run("collection.simulated", Duration.ofMinutes(5), this::collectOnce);
   }
 
   /**
    * Un tour de collecte ; retourne le nombre d'équipements lus, ou -1 si un tour était en cours.
    */
-  @Scheduled(
-      fixedDelayString = "${collection.simulated.interval-ms:30000}",
-      initialDelayString = "${collection.simulated.initial-delay-ms:5000}")
   public int collectOnce() {
     if (!running.compareAndSet(false, true)) {
       LOG.warn("Collecte simulée ignorée : le tour précédent n'est pas terminé");
