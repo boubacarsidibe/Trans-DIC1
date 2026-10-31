@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { completeOidcLogin } from "../auth/oidc.js";
+import photoLarge from "../assets/login/reseau-2000.webp";
+import photoSmall from "../assets/login/reseau-900.webp";
 
 /** Retour du fournisseur d'identité : termine la connexion unique puis ouvre l'application. */
 function OidcCallbackPage() {
@@ -23,9 +25,20 @@ function OidcCallbackPage() {
 
   return (
     <main className="login">
+      <img
+        className="login-photo"
+        src={photoLarge}
+        srcSet={`${photoSmall} 900w, ${photoLarge} 2000w`}
+        sizes="100vw"
+        alt=""
+      />
       <div
         className="login-card"
-        style={{ gridColumn: "1 / -1", justifySelf: "center" }}
+        style={{
+          gridColumn: "1 / -1",
+          justifySelf: "center",
+          alignSelf: "center",
+        }}
       >
         <h1 className="login-title">Connexion</h1>
         {error ? (
