@@ -24,6 +24,10 @@ public class Site {
   @Column(length = 255)
   private String address;
 
+  /** Cible de disponibilité du site, en pourcentage (99,5 par défaut). */
+  @Column(name = "sla_target", nullable = false, precision = 6, scale = 3)
+  private java.math.BigDecimal slaTarget = new java.math.BigDecimal("99.500");
+
   @Column(name = "created_at", nullable = false)
   private Instant createdAt;
 
@@ -84,6 +88,14 @@ public class Site {
 
   public void setAddress(String address) {
     this.address = address;
+  }
+
+  public java.math.BigDecimal getSlaTarget() {
+    return slaTarget;
+  }
+
+  public void setSlaTarget(java.math.BigDecimal slaTarget) {
+    this.slaTarget = slaTarget;
   }
 
   public Instant getCreatedAt() {

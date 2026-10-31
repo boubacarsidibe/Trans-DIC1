@@ -18,4 +18,7 @@ public record SiteRequest(
     @NotBlank @Size(max = 120) String name,
     @Size(max = 1000) String description,
     @Size(max = 255) String address,
-    SiteStatus status) {}
+    SiteStatus status,
+    @jakarta.validation.constraints.DecimalMin("50.0")
+        @jakarta.validation.constraints.DecimalMax("100.0")
+        java.math.BigDecimal slaTarget) {}

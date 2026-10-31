@@ -7,10 +7,12 @@ import {
   formatDuration,
   getAvailability,
   getIncidents,
+  getSla,
   validatePeriod,
 } from "../api/reports.js";
 import { SEVERITY_LABELS, STATE_LABELS } from "../api/alerts.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import SlaResult from "./SlaResult.jsx";
 
 const formatDate = (value) => (value ? new Date(value).toLocaleString("fr-FR") : "—");
 const percent = (value) => `${Number(value).toFixed(3).replace(".", ",")} %`;
@@ -44,7 +46,9 @@ function ReportsPage() {
       setReport(
         kind === "availability"
           ? { kind, data: await getAvailability(period, siteId) }
-          : { kind, data: await getIncidents(period, siteId) },
+          : kind === "sla"
+            ? { kind, data: await getSla(period) }
+            : { kind, data: await getIncidents(period, siteId) },
       );
     } catch {
       setReport(null);
@@ -69,7 +73,7 @@ function ReportsPage() {
   return (
     <main className="app-shell page">
       <div className="page-inner">
-        <PageHeader title="Rapports" description="Disponibilité et incidents sur une période." />
+        <PageHeader title="Rapports" description="Disponibilité, SLA par site et incidents sur une période." />
 
         <form
           onSubmit={generate}
@@ -85,6 +89,7 @@ function ReportsPage() {
             >
               <option value="availability">Disponibilité</option>
               <option value="incidents">Incidents</option>
+              <option value="sla">SLA par site</option>
             </select>
           </label>
           <label className="block text-sm text-slate-300">
@@ -165,14 +170,14 @@ function ReportsPage() {
                 >
                   {exporting === "PDF" ? "Préparation du PDF…" : "Exporter en PDF"}
                 </button>
-                <button
+                {report.kind !== "sla" && <button
                   type="button"
                   disabled={exporting !== ""}
                   onClick={() => exportFile(downloadCsv, "CSV")}
                   className="btn btn-secondary btn-sm"
                 >
                   Exporter en CSV
-                </button>
+                </button>}
                 <button
                   type="button"
                   onClick={() => globalThis.print()}
@@ -183,7 +188,8 @@ function ReportsPage() {
               </div>
             </div>
 
-            {report.kind === "availability" ? (
+            {report.kind === "sla" && <SlaResult report={report.data} />}
+            {report.kind === "sla" ? null : report.kind === "availability" ? (
               <>
                 <p className="mt-6 text-2xl text-white">
                   Disponibilité globale :{" "}

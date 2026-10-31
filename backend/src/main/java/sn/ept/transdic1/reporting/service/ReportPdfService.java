@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import sn.ept.transdic1.alerting.domain.Severity;
 import sn.ept.transdic1.reporting.dto.AvailabilityReport;
 import sn.ept.transdic1.reporting.dto.IncidentReport;
+import sn.ept.transdic1.reporting.dto.SlaReport;
 
 /**
  * Export PDF des rapports : A4, titre, période et date de génération en tête, tableaux qui
@@ -127,6 +128,72 @@ public class ReportPdfService {
           }
           document.add(table);
         });
+  }
+
+  public byte[] sla(SlaReport report) {
+    return build(
+        "Disponibilité et SLA par site",
+        DATE_TIME.format(report.from()),
+        DATE_TIME.format(report.to()),
+        DATE_TIME.format(report.generatedAt()),
+        document -> {
+          Paragraph reference =
+              new Paragraph(
+                  "Période de référence : du "
+                      + DATE_TIME.format(report.compareFrom())
+                      + " au "
+                      + DATE_TIME.format(report.compareTo())
+                      + " (UTC)",
+                  TEXT);
+          reference.setSpacingAfter(6);
+          document.add(reference);
+          document.add(heading("Synthèse par site"));
+          PdfPTable table = table(new float[] {3f, 1.4f, 1.6f, 1.6f, 1.3f, 1.6f});
+          header(table, "Site", "Cible", "Disponibilité", "Référence", "Écart", "SLA");
+          for (var site : report.sites()) {
+            cell(table, site.siteName(), Element.ALIGN_LEFT);
+            cell(table, percent(site.target()), Element.ALIGN_RIGHT);
+            cell(table, percent(site.availability()), Element.ALIGN_RIGHT);
+            cell(table, percent(site.previousAvailability()), Element.ALIGN_RIGHT);
+            cell(table, signed(site.delta()), Element.ALIGN_RIGHT);
+            cell(
+                table,
+                (site.met() ? "Respecté" : "Non respecté")
+                    + (site.degraded() ? " (en baisse)" : ""),
+                Element.ALIGN_LEFT);
+          }
+          if (report.sites().isEmpty()) {
+            empty(table, 6, "Aucun équipement supervisé.");
+          }
+          document.add(table);
+          for (var site : report.sites()) {
+            document.add(heading("Site : " + site.siteName()));
+            PdfPTable detail = table(new float[] {3.2f, 1.8f, 1.8f, 1.6f, 1.6f});
+            header(
+                detail,
+                "Équipement",
+                "Indisponibilité",
+                "Maintenance",
+                "Disponibilité",
+                "Référence");
+            for (var row : site.equipments()) {
+              cell(detail, row.equipmentName(), Element.ALIGN_LEFT);
+              cell(detail, duration(row.downtimeSeconds()), Element.ALIGN_RIGHT);
+              cell(detail, duration(row.maintenanceSeconds()), Element.ALIGN_RIGHT);
+              cell(detail, percent(row.availability()), Element.ALIGN_RIGHT);
+              cell(detail, percent(row.previousAvailability()), Element.ALIGN_RIGHT);
+            }
+            document.add(detail);
+          }
+          document.add(heading("Méthode de calcul"));
+          document.add(new Paragraph(report.method(), TEXT));
+        });
+  }
+
+  private static String signed(BigDecimal value) {
+    String text =
+        value.setScale(3, java.math.RoundingMode.HALF_UP).toPlainString().replace('.', ',');
+    return (value.signum() > 0 ? "+" : "") + text + " pt";
   }
 
   @FunctionalInterface

@@ -41,6 +41,10 @@ export function validateSite(values, { creating }) {
   else if (values.name.length > 120) errors.name = "120 caractères au plus.";
   if (values.address.length > 255) errors.address = "255 caractères au plus.";
   if (values.description.length > 1000) errors.description = "1 000 caractères au plus.";
+  const target = Number(String(values.slaTarget ?? "").replace(",", "."));
+  if (values.slaTarget !== undefined && values.slaTarget !== "" && (Number.isNaN(target) || target < 50 || target > 100)) {
+    errors.slaTarget = "Entre 50 et 100 %.";
+  }
   return errors;
 }
 
@@ -51,5 +55,8 @@ export function toPayload(values, { creating }) {
     description: values.description.trim() || null,
     address: values.address.trim() || null,
     status: values.status,
+    ...(values.slaTarget !== undefined && values.slaTarget !== ""
+      ? { slaTarget: Number(String(values.slaTarget).replace(",", ".")) }
+      : {}),
   };
 }

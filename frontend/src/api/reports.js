@@ -56,6 +56,12 @@ export async function getAvailability(period, siteId) {
   return data;
 }
 
+/** SLA par site, comparé à la période précédente de même durée. */
+export async function getSla(period) {
+  const { data } = await apiClient.get("/rapports/sla", { params: toRange(period) });
+  return data;
+}
+
 export async function getIncidents(period, siteId) {
   const { data } = await apiClient.get("/rapports/incidents", {
     params: params(period, siteId),
@@ -68,16 +74,17 @@ export async function getIncidents(period, siteId) {
  * fichier garde son sens une fois sorti de l'application.
  */
 export function reportFileName(kind, period, format) {
-  const base = kind === "availability" ? "disponibilite" : "incidents";
+  const base = kind === "availability" ? "disponibilite" : kind === "sla" ? "sla-par-site" : "incidents";
   const day = (value) => new Date(value).toISOString().slice(0, 10);
   return `${base}_${day(period.from)}_${day(period.to)}.${format}`;
 }
 
 /** Télécharge le rapport avec le jeton de la session (un simple lien n'enverrait pas l'en-tête). */
 export async function downloadReport(kind, period, siteId, format) {
-  const path = kind === "availability" ? "/rapports/disponibilite" : "/rapports/incidents";
+  const path =
+    kind === "availability" ? "/rapports/disponibilite" : kind === "sla" ? "/rapports/sla" : "/rapports/incidents";
   const { data } = await apiClient.get(path, {
-    params: params(period, siteId, { format }),
+    params: kind === "sla" ? { ...toRange(period), format } : params(period, siteId, { format }),
     responseType: "blob",
   });
   const url = URL.createObjectURL(data);

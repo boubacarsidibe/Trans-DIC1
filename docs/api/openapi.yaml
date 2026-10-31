@@ -1685,6 +1685,62 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/rapports/sla:
+    get:
+      tags:
+      - Rapports
+      summary: Disponibilité et SLA par site
+      description: "Disponibilité par site et par équipement, hors maintenances planifié\
+        es, comparée à une période de référence (par défaut la période précédente\
+        \ de même durée). format=pdf pour un document imprimable avec la méthode de\
+        \ calcul."
+      operationId: sla
+      parameters:
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: compareFrom
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: compareTo
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: format
+        in: query
+        required: false
+        schema:
+          type: string
+          default: json
+      responses:
+        "400":
+          description: Période invalide
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/rapports/incidents:
     get:
       tags:
@@ -2363,6 +2419,10 @@ components:
           enum:
           - ACTIVE
           - INACTIVE
+        slaTarget:
+          type: number
+          maximum: 100.0
+          minimum: 50.0
       required:
       - name
     AlertRuleRequest:
@@ -2743,6 +2803,8 @@ components:
         equipmentCount:
           type: integer
           format: int64
+        slaTarget:
+          type: number
     AlertRuleResponse:
       type: object
       properties:

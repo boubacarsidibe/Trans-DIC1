@@ -13,7 +13,7 @@ import { canManageEquipment } from "../auth/permissions.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import { Badge } from "../ui/Badges.jsx";
 
-const EMPTY = { code: "", name: "", description: "", address: "", status: "ACTIVE" };
+const EMPTY = { code: "", name: "", description: "", address: "", status: "ACTIVE", slaTarget: "99.5" };
 
 function SiteForm({ initial, creating, submitting, onSubmit, onCancel }) {
   const [values, setValues] = useState(initial);
@@ -56,6 +56,7 @@ function SiteForm({ initial, creating, submitting, onSubmit, onCancel }) {
       )}
       {field("name", "Nom")}
       {field("address", "Adresse")}
+      {field("slaTarget", "Cible de disponibilité (SLA, %)", { inputMode: "decimal" })}
       <label className="block text-sm text-slate-300">
         Statut
         <select
@@ -202,6 +203,7 @@ function SitesPage() {
                     description: editing.description ?? "",
                     address: editing.address ?? "",
                     status: editing.status,
+                    slaTarget: editing.slaTarget != null ? String(editing.slaTarget) : "99.5",
                   }
             }
             creating={editing === "new"}

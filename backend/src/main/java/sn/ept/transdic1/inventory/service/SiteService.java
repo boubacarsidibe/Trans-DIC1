@@ -91,6 +91,9 @@ public class SiteService {
     if (request.status() != null) {
       site.setStatus(request.status());
     }
+    if (request.slaTarget() != null) {
+      site.setSlaTarget(request.slaTarget().setScale(3, java.math.RoundingMode.HALF_UP));
+    }
   }
 
   private SiteResponse toResponse(Site site) {

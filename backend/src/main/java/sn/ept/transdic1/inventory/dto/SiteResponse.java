@@ -12,7 +12,8 @@ public record SiteResponse(
     SiteStatus status,
     String description,
     String address,
-    long equipmentCount) {
+    long equipmentCount,
+    java.math.BigDecimal slaTarget) {
 
   public static SiteResponse from(Site site, long equipmentCount) {
     return new SiteResponse(
@@ -22,6 +23,7 @@ public record SiteResponse(
         site.getStatus(),
         site.getDescription(),
         site.getAddress(),
-        equipmentCount);
+        equipmentCount,
+        site.getSlaTarget());
   }
 }

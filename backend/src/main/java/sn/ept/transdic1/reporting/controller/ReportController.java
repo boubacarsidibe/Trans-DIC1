@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import sn.ept.transdic1.reporting.dto.AvailabilityReport;
 import sn.ept.transdic1.reporting.dto.IncidentReport;
+import sn.ept.transdic1.reporting.dto.SlaReport;
 import sn.ept.transdic1.reporting.service.ReportCsvService;
 import sn.ept.transdic1.reporting.service.ReportPdfService;
 import sn.ept.transdic1.reporting.service.ReportService;
@@ -81,6 +82,29 @@ public class ReportController {
     }
     if ("pdf".equalsIgnoreCase(format)) {
       return pdf(pdf.incidents(report), "incidents.pdf");
+    }
+    return ResponseEntity.ok(report);
+  }
+
+  @Operation(
+      summary = "Disponibilité et SLA par site",
+      description =
+          "Disponibilité par site et par équipement, hors maintenances planifiées, comparée à une"
+              + " période de référence (par défaut la période précédente de même durée)."
+              + " format=pdf pour un document imprimable avec la méthode de calcul.")
+  @ApiResponse(responseCode = "400", description = "Période invalide", content = @Content)
+  @GetMapping("/sla")
+  public ResponseEntity<?> sla(
+      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+          Instant compareFrom,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+          Instant compareTo,
+      @RequestParam(defaultValue = "json") String format) {
+    SlaReport report = reports.sla(from, to, compareFrom, compareTo);
+    if ("pdf".equalsIgnoreCase(format)) {
+      return pdf(pdf.sla(report), "sla-par-site.pdf");
     }
     return ResponseEntity.ok(report);
   }

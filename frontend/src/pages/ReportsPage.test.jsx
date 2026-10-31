@@ -245,3 +245,50 @@ describe("page des rapports", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("L'export PDF a échoué.");
   });
 });
+
+describe("rapport SLA par site", () => {
+  it("affiche la synthèse par site, l'écart et la méthode", async () => {
+    apiClient.get.mockImplementation(async (url) => {
+      if (url === "/rapports/sla") {
+        return {
+          data: {
+            from: "2026-10-01T00:00:00Z",
+            to: "2026-10-31T00:00:00Z",
+            compareFrom: "2026-09-01T00:00:00Z",
+            compareTo: "2026-10-01T00:00:00Z",
+            generatedAt: "2026-10-31T10:00:00Z",
+            method: "Temps attendu = durée moins les maintenances.",
+            sites: [
+              {
+                siteId: "s1",
+                siteName: "Campus",
+                target: 99.5,
+                availability: 98.2,
+                previousAvailability: 99.9,
+                delta: -1.7,
+                met: false,
+                degraded: true,
+                equipments: [
+                  { equipmentId: "e1", equipmentName: "Routeur", downtimeSeconds: 3600, maintenanceSeconds: 0, availability: 98.2, previousAvailability: 99.9 },
+                ],
+              },
+            ],
+          },
+        };
+      }
+      return { data: [] };
+    });
+    renderPage();
+
+    await userEvent.selectOptions(await screen.findByLabelText("Rapport"), "sla");
+    await userEvent.click(screen.getByRole("button", { name: "Produire le rapport" }));
+
+    const table = await screen.findByRole("table", { name: "SLA par site" });
+    expect(table).toHaveTextContent("Campus");
+    expect(table).toHaveTextContent("98,200 %");
+    expect(table).toHaveTextContent("-1,700 pt (en baisse)");
+    expect(table).toHaveTextContent("Non respecté");
+    expect(screen.getByText(/durée moins les maintenances/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Exporter en CSV" })).toBeNull();
+  });
+});

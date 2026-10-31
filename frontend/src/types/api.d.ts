@@ -626,6 +626,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rapports/sla": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Disponibilité et SLA par site
+         * @description Disponibilité par site et par équipement, hors maintenances planifiées, comparée à une période de référence (par défaut la période précédente de même durée). format=pdf pour un document imprimable avec la méthode de calcul.
+         */
+        get: operations["sla"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rapports/incidents": {
         parameters: {
             query?: never;
@@ -949,6 +969,7 @@ export interface components {
             address?: string;
             /** @enum {string} */
             status?: "ACTIVE" | "INACTIVE";
+            slaTarget?: number;
         };
         AlertRuleRequest: {
             name: string;
@@ -1076,6 +1097,7 @@ export interface components {
             address?: string;
             /** Format: int64 */
             equipmentCount?: number;
+            slaTarget?: number;
         };
         AlertRuleResponse: {
             /** Format: uuid */
@@ -3528,6 +3550,48 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["OverviewResponse"];
                 };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    sla: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                compareFrom?: string;
+                compareTo?: string;
+                format?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Période invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Authentification requise ou jeton expiré */
             401: {

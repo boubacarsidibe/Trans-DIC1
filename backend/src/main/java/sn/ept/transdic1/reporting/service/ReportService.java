@@ -26,10 +26,12 @@ import sn.ept.transdic1.alerting.domain.AlertType;
 import sn.ept.transdic1.alerting.domain.Severity;
 import sn.ept.transdic1.alerting.repository.AlertEventRepository;
 import sn.ept.transdic1.alerting.repository.AlertRepository;
+import sn.ept.transdic1.alerting.repository.MaintenanceRepository;
 import sn.ept.transdic1.inventory.domain.Equipment;
 import sn.ept.transdic1.inventory.repository.EquipmentRepository;
 import sn.ept.transdic1.reporting.dto.AvailabilityReport;
 import sn.ept.transdic1.reporting.dto.IncidentReport;
+import sn.ept.transdic1.reporting.dto.SlaReport;
 
 /**
  * Rapports de disponibilité et d'incidents calculés à la demande à partir de l'historique des
@@ -47,16 +49,19 @@ public class ReportService {
   private final EquipmentRepository equipments;
   private final AlertRepository alerts;
   private final AlertEventRepository events;
+  private final MaintenanceRepository maintenances;
   private final Clock clock;
 
   public ReportService(
       EquipmentRepository equipments,
       AlertRepository alerts,
       AlertEventRepository events,
+      MaintenanceRepository maintenances,
       Clock clock) {
     this.equipments = equipments;
     this.alerts = alerts;
     this.events = events;
+    this.maintenances = maintenances;
     this.clock = clock;
   }
 
@@ -170,6 +175,158 @@ public class ReportService {
         Map.copyOf(bySeverity),
         top,
         rows);
+  }
+
+  /** Méthode de calcul, rendue avec le rapport (JSON et PDF). */
+  public static final String SLA_METHOD =
+      "Temps attendu = durée de la période moins les maintenances planifiées (équipement ou site)."
+          + " Indisponibilité = temps pendant lequel une alerte de collecte était ouverte, hors"
+          + " maintenance. Disponibilité = (temps attendu - indisponibilité) / temps attendu."
+          + " Un site agrège ses équipements au prorata de leur temps attendu. La cible est"
+          + " respectée si la disponibilité l'atteint ; un écart de plus de 0,1 point sous la"
+          + " période de référence est signalé.";
+
+  /**
+   * Disponibilité et SLA par site sur [from, to[, comparés à [compareFrom, compareTo[ (par défaut
+   * la période précédente de même durée).
+   */
+  @Transactional(readOnly = true)
+  public SlaReport sla(Instant from, Instant to, Instant compareFrom, Instant compareTo) {
+    validate(from, to);
+    if (compareFrom == null || compareTo == null) {
+      Duration length = Duration.between(from, to);
+      compareFrom = from.minus(length);
+      compareTo = from;
+    }
+    validate(compareFrom, compareTo);
+    var current = availabilityByEquipment(from, to);
+    var previous = availabilityByEquipment(compareFrom, compareTo);
+
+    var bySite = new java.util.TreeMap<String, List<Equipment>>();
+    for (Equipment equipment : equipments.findByMonitoringEnabledTrue()) {
+      bySite.computeIfAbsent(equipment.getSite().getName(), k -> new ArrayList<>()).add(equipment);
+    }
+    var rows = new ArrayList<SlaReport.SiteRow>();
+    for (var entry : bySite.entrySet()) {
+      var site = entry.getValue().get(0).getSite();
+      long expected = 0;
+      long down = 0;
+      long previousExpected = 0;
+      long previousDown = 0;
+      var equipmentRows = new ArrayList<SlaReport.EquipmentRow>();
+      for (Equipment equipment :
+          entry.getValue().stream().sorted(Comparator.comparing(Equipment::getName)).toList()) {
+        var now = current.get(equipment.getId());
+        var before = previous.get(equipment.getId());
+        expected += now.expected();
+        down += now.down();
+        previousExpected += before.expected();
+        previousDown += before.down();
+        equipmentRows.add(
+            new SlaReport.EquipmentRow(
+                equipment.getId(),
+                equipment.getName(),
+                now.down(),
+                now.maintenance(),
+                percent(now.expected() - now.down(), now.expected()),
+                percent(before.expected() - before.down(), before.expected())));
+      }
+      BigDecimal availability = percent(expected - down, expected);
+      BigDecimal before = percent(previousExpected - previousDown, previousExpected);
+      BigDecimal delta = availability.subtract(before);
+      BigDecimal target = site.getSlaTarget();
+      rows.add(
+          new SlaReport.SiteRow(
+              site.getId(),
+              site.getName(),
+              target,
+              availability,
+              before,
+              delta,
+              availability.compareTo(target) >= 0,
+              delta.compareTo(new BigDecimal("-0.1")) < 0,
+              equipmentRows));
+    }
+    return new SlaReport(from, to, compareFrom, compareTo, clock.instant(), SLA_METHOD, rows);
+  }
+
+  /** Temps attendu, indisponibilité hors maintenance et temps de maintenance d'un équipement. */
+  private record Usage(long expected, long down, long maintenance) {}
+
+  private Map<UUID, Usage> availabilityByEquipment(Instant from, Instant to) {
+    Instant now = clock.instant();
+    Instant horizon = to.isAfter(now) ? now : to;
+    long period = Duration.between(from, to).toSeconds();
+    var outages = outagesByEquipment(from, to, horizon);
+    var windows =
+        maintenances.findAll().stream()
+            .filter(
+                m -> m.getState() != sn.ept.transdic1.alerting.domain.MaintenanceState.CANCELLED)
+            .filter(m -> m.getStartAt().isBefore(to) && m.getEndAt().isAfter(from))
+            .toList();
+    var result = new HashMap<UUID, Usage>();
+    for (Equipment equipment : equipments.findByMonitoringEnabledTrue()) {
+      var covering =
+          merge(
+              windows.stream()
+                  .filter(
+                      m ->
+                          (m.getEquipment() != null
+                                  && m.getEquipment().getId().equals(equipment.getId()))
+                              || (m.getSite() != null
+                                  && m.getSite().getId().equals(equipment.getSite().getId())))
+                  .map(m -> new Interval(max(m.getStartAt(), from), min(m.getEndAt(), to)))
+                  .toList());
+      long maintenance = covering.stream().mapToLong(i -> seconds(i)).sum();
+      long down = 0;
+      for (Interval outage : outages.getOrDefault(equipment.getId(), List.of())) {
+        long overlap =
+            covering.stream()
+                .mapToLong(
+                    w ->
+                        seconds(
+                            new Interval(
+                                max(w.start(), outage.start()), min(w.end(), outage.end()))))
+                .sum();
+        down += seconds(outage) - overlap;
+      }
+      result.put(
+          equipment.getId(), new Usage(Math.max(period - maintenance, 0), down, maintenance));
+    }
+    return result;
+  }
+
+  /**
+   * Fusionne des intervalles qui se chevauchent (deux maintenances simultanées comptent une fois).
+   */
+  private static List<Interval> merge(List<Interval> intervals) {
+    var sorted =
+        intervals.stream()
+            .filter(i -> i.end().isAfter(i.start()))
+            .sorted(Comparator.comparing(Interval::start))
+            .toList();
+    var merged = new ArrayList<Interval>();
+    for (Interval i : sorted) {
+      if (!merged.isEmpty() && !i.start().isAfter(merged.get(merged.size() - 1).end())) {
+        Interval last = merged.remove(merged.size() - 1);
+        merged.add(new Interval(last.start(), max(last.end(), i.end())));
+      } else {
+        merged.add(i);
+      }
+    }
+    return merged;
+  }
+
+  private static long seconds(Interval i) {
+    return i.end().isAfter(i.start()) ? Duration.between(i.start(), i.end()).toSeconds() : 0;
+  }
+
+  private static Instant max(Instant a, Instant b) {
+    return a.isAfter(b) ? a : b;
+  }
+
+  private static Instant min(Instant a, Instant b) {
+    return a.isBefore(b) ? a : b;
   }
 
   // ------------------------------------------------------------------ calculs
