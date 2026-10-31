@@ -256,6 +256,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/regles-alertes/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tester une règle sur l'historique
+         * @description Rejoue la règle, enregistrée ou non, sur 1 à 7 jours de mesures et indique les alertes qu'elle aurait ouvertes. Rien n'est enregistré : ni règle, ni alerte, ni notification.
+         */
+        post: operations["test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/maintenances": {
         parameters: {
             query?: never;
@@ -414,7 +434,7 @@ export interface paths {
          * Envoyer un message de test
          * @description Envoie un message fictif immédiatement et indique si le canal répond. Rien n'est enregistré dans l'historique.
          */
-        post: operations["test"];
+        post: operations["test_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1120,6 +1140,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        RuleTestRequest: {
+            rule: components["schemas"]["AlertRuleRequest"];
+            /** Format: int32 */
+            days: number;
         };
         MaintenanceRequest: {
             /** Format: uuid */
@@ -2547,6 +2572,46 @@ export interface operations {
             };
         };
     };
+    test: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RuleTestRequest"];
+            };
+        };
+        responses: {
+            /** @description Règle invalide, portée vide ou trop large (50 équipements au plus) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     list_3: {
         parameters: {
             query: {
@@ -3093,7 +3158,7 @@ export interface operations {
             };
         };
     };
-    test: {
+    test_1: {
         parameters: {
             query?: never;
             header?: never;

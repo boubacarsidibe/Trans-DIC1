@@ -31,6 +31,9 @@ public interface EquipmentRepository
 
   long countBySiteId(UUID siteId);
 
+  /** Équipements des sites donnés (portée d'une règle testée sur l'historique). */
+  List<Equipment> findBySiteIdIn(java.util.Collection<UUID> siteIds);
+
   /** Équipements à superviser : entrée du planificateur de collecte. */
   List<Equipment> findByMonitoringEnabledTrue();
 }

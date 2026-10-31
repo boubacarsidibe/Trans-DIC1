@@ -13,6 +13,7 @@ import {
 import { useAuth } from "../auth/AuthContext.jsx";
 import { canAdministerAlerts } from "../auth/permissions.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import RuleTestPanel from "./RuleTestPanel.jsx";
 import { Badge } from "../ui/Badges.jsx";
 
 const EMPTY = {
@@ -67,6 +68,13 @@ function RuleForm({ initial, sites, equipments, submitting, onSubmit, onCancel }
     const found = validateRule(values);
     setErrors(found);
     if (Object.keys(found).length === 0) onSubmit(toPayload(values));
+  }
+
+  // Même validation qu'à l'enregistrement : une règle invalide n'est pas testée.
+  function testPayload() {
+    const found = validateRule(values);
+    setErrors(found);
+    return Object.keys(found).length === 0 ? toPayload(values) : null;
   }
 
   const field = (id, label, props = {}) => (
@@ -161,6 +169,8 @@ function RuleForm({ initial, sites, equipments, submitting, onSubmit, onCancel }
           Sans site ni équipement, la règle ne s'applique à rien.
         </p>
       </fieldset>
+
+      <RuleTestPanel buildPayload={testPayload} />
 
       <div className="flex gap-3 md:col-span-2">
         <button
