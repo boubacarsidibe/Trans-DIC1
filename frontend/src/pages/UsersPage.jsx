@@ -11,6 +11,7 @@ import {
   validateUser,
 } from "../api/users.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import { Badge } from "../ui/Badges.jsx";
 
 const EMPTY = { username: "", email: "", password: "", role: "VIEWER" };
 
@@ -294,7 +295,9 @@ function UsersPage() {
                       ))}
                     </select>
                   </td>
-                  <td className="p-3">{user.active ? "Actif" : "Désactivé"}</td>
+                  <td className="p-3">
+                    <Badge tone={user.active ? "ok" : "muted"}>{user.active ? "Actif" : "Désactivé"}</Badge>
+                  </td>
                   <td className="p-3">
                     <div className="flex flex-wrap gap-2">
                       <button

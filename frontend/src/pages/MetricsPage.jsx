@@ -23,6 +23,7 @@ import {
   toSeries,
 } from "../api/metrics.js";
 import { useLiveUpdates } from "../hooks/useLiveUpdates.js";
+import PageHeader from "../ui/PageHeader.jsx";
 
 // Trois chiffres vus d'un coup d'œil, puis la courbe, puis le tableau pour qui ne voit pas la courbe.
 function MetricChart({ metric, history, periodHours, error, loading }) {
@@ -208,35 +209,27 @@ function MetricsPage() {
   const periodHours = PERIODS.find((p) => p.id === period)?.hours ?? 24;
 
   return (
-    <main className="app-shell px-6 py-10">
-      <div className="mx-auto max-w-5xl">
-        <Link to="/equipements" className="text-sm text-teal-300">
-          ← Équipements
-        </Link>
-        <h1 className="mt-3 text-3xl font-semibold text-white">
-          Historique{equipment ? ` : ${equipment.name}` : ""}
-        </h1>
-        <p className="mt-2 text-slate-400">
-          Charge du processeur, de la mémoire et du disque sur la période choisie.
-        </p>
+    <main className="app-shell page">
+      <div className="page-inner">
+        <PageHeader
+          back={{ to: "/equipements", label: "Équipements" }}
+          title={`Historique${equipment ? ` : ${equipment.name}` : ""}`}
+          description="Processeur, mémoire et disque sur la période choisie."
+        />
         {loadError && (
           <p role="alert" className="notice notice-bad mt-4">
             {loadError}
           </p>
         )}
 
-        <div role="group" aria-label="Période" className="mt-6 flex flex-wrap gap-2">
+        <div role="group" aria-label="Période" className="segmented">
           {PERIODS.map((p) => (
             <button
               key={p.id}
               type="button"
               aria-pressed={p.id === period}
               onClick={() => setPeriod(p.id)}
-              className={`rounded-lg border px-3 py-1.5 text-sm ${
-                p.id === period
-                  ? "border-teal-400 bg-teal-400 text-slate-950"
-                  : "border-slate-600 text-slate-200"
-              }`}
+              className="segmented-item"
             >
               {p.label}
             </button>

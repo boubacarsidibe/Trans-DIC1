@@ -2337,3 +2337,109 @@ thead {
     padding: 0.5rem;
   }
 }
+
+/* Lien de retour des sous-pages. */
+.page-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0a5878;
+  text-decoration: none;
+}
+
+.page-back:hover {
+  text-decoration: underline;
+}
+
+/* Choix de période : boutons accolés, l'actif en bleu signal. */
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  overflow: hidden;
+  border: 1px solid #b9b5ae;
+  border-radius: 4px;
+  background: #f4f3f1;
+}
+
+.segmented-item {
+  min-height: 2rem;
+  border-left: 1px solid #cfcbc4;
+  padding: 0.25rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.segmented-item:first-child {
+  border-left: 0;
+}
+
+.segmented-item:hover {
+  background: #fff;
+}
+
+.segmented-item[aria-pressed="true"] {
+  background: #0a5878;
+  color: #fff;
+}
+
+/* Fenêtres de confirmation : voile sombre, boîte nette, actions à droite. */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: rgb(20 17 15 / 62%);
+  padding: 1.5rem;
+}
+
+.modal {
+  width: 100%;
+  max-width: 28rem;
+  border: 1px solid #cbc7c0;
+  border-radius: 8px;
+  background: #ebe9e5;
+  padding: 1.25rem 1.4rem;
+  box-shadow: 0 20px 60px rgb(0 0 0 / 40%);
+}
+
+.modal-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.modal-text {
+  margin-top: 0.5rem;
+  color: #3a4350;
+}
+
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+/* Courbes de l'historique sur la feuille claire. */
+.page .status-card h2 {
+  font-size: 1rem;
+}
+
+.notice-warn {
+  border: 1px solid #e2c98f;
+  background: #f6ecd2;
+  color: #6e4600;
+}
+
+/* Champs en ligne (indicateurs, filtres) : même hauteur que les autres champs. */
+.field-inline {
+  min-height: 2.3rem;
+  border-radius: 4px;
+  padding: 0.35rem 0.6rem;
+}

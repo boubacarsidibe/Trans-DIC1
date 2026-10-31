@@ -120,7 +120,7 @@ function TemplateEditor({ template, onSaved }) {
 
   const name = TEMPLATE_LABELS[template.kind] ?? template.kind;
   return (
-    <form onSubmit={submit} aria-label={`Modèle : ${name}`} className="mt-6 border-t border-slate-700/50 pt-6">
+    <form onSubmit={submit} aria-label={`Modèle : ${name}`} className="mt-6 border-t border-[var(--line)] pt-6">
       <h3 className="text-lg text-white">{name}</h3>
       <label className="mt-3 block text-sm text-slate-300">
         Objet ({name})
@@ -138,7 +138,7 @@ function TemplateEditor({ template, onSaved }) {
           onChange={(event) => setBody(event.target.value)}
           maxLength={4000}
           rows={8}
-          className="mt-2 w-full rounded-lg bg-slate-900 p-3 font-mono text-sm"
+          className="field mt-2 font-mono text-sm"
         />
       </label>
       <div className="mt-3 flex items-center gap-3">

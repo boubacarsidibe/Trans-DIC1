@@ -11,6 +11,7 @@ import {
 import { useAuth } from "../auth/AuthContext.jsx";
 import { canManageEquipment } from "../auth/permissions.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import { Badge } from "../ui/Badges.jsx";
 
 const EMPTY = { code: "", name: "", description: "", address: "", status: "ACTIVE" };
 
@@ -259,7 +260,9 @@ function SitesPage() {
                   <td className="p-3">{site.address ?? "—"}</td>
                   <td className="p-3">{site.equipmentCount}</td>
                   <td className="p-3">
-                    {SITE_STATUSES.find((s) => s.value === site.status)?.label ?? site.status}
+                    <Badge tone={site.status === "ACTIVE" ? "ok" : "muted"}>
+                      {SITE_STATUSES.find((s) => s.value === site.status)?.label ?? site.status}
+                    </Badge>
                   </td>
                   {canManage && (
                     <td className="p-3">

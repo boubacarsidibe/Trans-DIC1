@@ -120,6 +120,19 @@ le brun.
   conservés.
 - Vérifié : 140 tests frontend, build, aucune page ne déborde à 390 px.
 
+## 2026-10-31 — Finition des pages restantes
+
+Demande : appliquer la même finition à Maintenances et à toutes les pages incluses.
+
+- **Historique** et **Collecte** passent dans la feuille grise, avec l'en-tête commun et un lien
+  de retour « Équipements » (le titre était illisible, sombre sur fond sombre).
+- **Choix de période** de l'historique : boutons accolés, la période active en bleu signal.
+- **Fenêtre de confirmation** : le voile blanchissait la page (couleur inversée par la palette) ;
+  désormais voile brun sombre, boîte gris clair avec titre, texte explicite et actions à droite.
+- **États** des règles, comptes, sites et maintenances : point de couleur + mot, comme partout.
+- Derniers styles hérités remplacés (champs des indicateurs SNMP, bouton secondaire, encadré
+  d'avertissement) : mêmes hauteurs et mêmes formes sur toutes les pages.
+
 ## Dépendances
 
 - Ajout de `@playwright/test` 1.64.1 (publié le 14/10/2026) en dépendance de développement : captures

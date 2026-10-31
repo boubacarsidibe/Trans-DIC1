@@ -12,6 +12,7 @@ import {
 import { useAuth } from "../auth/AuthContext.jsx";
 import { canHandleAlerts } from "../auth/permissions.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import { Badge } from "../ui/Badges.jsx";
 
 const EMPTY = {
   targetType: "EQUIPMENT",
@@ -222,7 +223,7 @@ function MaintenancesPage() {
               setPage(0);
               setState(e.target.value);
             }}
-            className="ml-3 rounded-lg bg-slate-900 p-2"
+            className="field field-inline ml-3"
           >
             <option value="">Toutes</option>
             {MAINTENANCE_STATES.map((value) => (
@@ -283,7 +284,11 @@ function MaintenancesPage() {
                   <td className="p-3">{formatDate(m.startAt)}</td>
                   <td className="p-3">{formatDate(m.endAt)}</td>
                   <td className="p-3 text-slate-300">{m.reason}</td>
-                  <td className="p-3">{MAINTENANCE_LABELS[m.state] ?? m.state}</td>
+                  <td className="p-3">
+                    <Badge tone={{ PLANNED: "info", IN_PROGRESS: "warn", COMPLETED: "muted", CANCELLED: "muted" }[m.state] ?? "muted"}>
+                      {MAINTENANCE_LABELS[m.state] ?? m.state}
+                    </Badge>
+                  </td>
                   <td className="p-3">{m.planner}</td>
                   {canManage && (
                     <td className="p-3">

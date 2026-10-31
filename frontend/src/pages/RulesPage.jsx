@@ -13,6 +13,7 @@ import {
 import { useAuth } from "../auth/AuthContext.jsx";
 import { canAdministerAlerts } from "../auth/permissions.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import { Badge } from "../ui/Badges.jsx";
 
 const EMPTY = {
   name: "",
@@ -363,7 +364,9 @@ function RulesPage() {
                   <td className="p-3">
                     {rule.siteIds.length} site(s), {rule.equipmentIds.length} équipement(s)
                   </td>
-                  <td className="p-3">{rule.active ? "Active" : "Désactivée"}</td>
+                  <td className="p-3">
+                    <Badge tone={rule.active ? "ok" : "muted"}>{rule.active ? "Active" : "Désactivée"}</Badge>
+                  </td>
                   {canAdminister && (
                     <td className="p-3">
                       <div className="flex gap-2">

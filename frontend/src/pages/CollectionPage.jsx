@@ -14,6 +14,7 @@ import {
   toSnmpPayload,
   validateSnmp,
 } from "../api/collection.js";
+import PageHeader from "../ui/PageHeader.jsx";
 
 const formatDate = (value) => (value ? new Date(value).toLocaleString("fr-FR") : "jamais");
 
@@ -95,7 +96,7 @@ function AgentSection({ equipmentId, onError, onNotice }) {
       )}
 
       {token && (
-        <div role="note" className="mt-4 rounded-lg border border-amber-400/40 bg-amber-400/10 p-4">
+        <div role="note" className="notice notice-warn mt-4">
           <p className="text-sm text-amber-200">
             Jeton de l'agent (affiché une seule fois, à garder secret) :
           </p>
@@ -345,7 +346,7 @@ function SnmpSection({ equipmentId, onError, onNotice }) {
                   metrics: [...values.metrics, { key: "", name: "", oid: "", unit: "", valueType: "INTEGER" }],
                 })
               }
-              className="mt-3 rounded border border-slate-600 px-3 py-1 text-sm text-slate-200"
+              className="btn btn-secondary btn-sm mt-3"
             >
               Ajouter un indicateur
             </button>
@@ -396,17 +397,13 @@ function CollectionPage() {
   }, []);
 
   return (
-    <main className="app-shell px-6 py-10">
-      <div className="mx-auto max-w-5xl">
-        <Link to="/equipements" className="text-sm text-teal-300">
-          ← Équipements
-        </Link>
-        <h1 className="mt-3 text-3xl font-semibold text-white">
-          Collecte{equipment ? ` : ${equipment.name}` : ""}
-        </h1>
-        <p className="mt-2 text-slate-400">
-          Choisissez comment cet équipement est supervisé : un agent installé dessus, la lecture SNMP, ou les deux.
-        </p>
+    <main className="app-shell page">
+      <div className="page-inner">
+        <PageHeader
+          back={{ to: "/equipements", label: "Équipements" }}
+          title={`Collecte${equipment ? ` : ${equipment.name}` : ""}`}
+          description="Agent installé sur l'équipement, lecture SNMP, ou les deux."
+        />
 
         {notice && (
           <p role="status" className="notice notice-ok">

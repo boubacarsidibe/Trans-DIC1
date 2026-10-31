@@ -229,13 +229,14 @@ function EquipmentPage() {
             role="alertdialog"
             aria-modal="true"
             aria-label="Confirmer la suppression"
-            className="fixed inset-0 grid place-items-center bg-slate-950/80 px-6"
+            className="modal-backdrop"
           >
-            <div className="panel w-full max-w-md">
-              <p className="text-white">
-                Supprimer définitivement « {pendingDelete.name} » ?
+            <div className="modal">
+              <h2 className="modal-title">Supprimer l'équipement</h2>
+              <p className="modal-text">
+                Supprimer définitivement « {pendingDelete.name} » ? Son historique de mesures sera perdu.
               </p>
-              <div className="mt-5 flex gap-3">
+              <div className="modal-actions">
                 <button
                   type="button"
                   onClick={confirmDelete}
