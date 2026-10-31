@@ -10,9 +10,10 @@
   --font-sans: "Source Sans 3", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   --font-display: "Bricolage Grotesque", "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
 
-  --radius-xl: 0.5rem;
-  --radius-2xl: 0.5rem;
-  --radius-3xl: 0.75rem;
+  --radius-lg: 0.375rem;
+  --radius-xl: 0.375rem;
+  --radius-2xl: 0.375rem;
+  --radius-3xl: 0.5rem;
 
   --color-white: #10203a;
   --color-slate-100: #14243e;
@@ -55,7 +56,9 @@
   --ink: #10203a;
   --line: #d3dce7;
   --signal: #0a5878;
-  --rail: #0d1b30;
+  --rail: #0b1726;
+  --gutter: clamp(1.25rem, 2.5vw, 2rem);
+  --photo: url("./assets/login/reseau-2000.webp");
   --rail-ink: #c9d6e6;
   color: var(--ink);
   background: var(--paper);
@@ -716,15 +719,16 @@ thead {
  */
 .login {
   position: relative;
+  font-size: clamp(1rem, 0.42vw + 0.6rem, 1.45rem);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(22rem, 26rem);
+  grid-template-columns: minmax(0, 1fr) minmax(23em, 27em);
   grid-template-rows: auto 1fr auto;
-  column-gap: clamp(2rem, 6vw, 7rem);
+  column-gap: clamp(2em, 6vw, 7em);
   height: 100vh;
   height: 100dvh;
-  min-height: 34rem;
+  min-height: 34em;
   overflow: hidden;
-  padding: clamp(1.5rem, 3.5vw, 3rem) clamp(1.5rem, 6vw, 6.5rem);
+  padding: clamp(1.5em, 3.5vw, 3em) clamp(1.5em, 6vw, 6.5em);
   background: #07111f;
   color: #fff;
   isolation: isolate;
@@ -757,19 +761,19 @@ thead {
   grid-row: 1;
   display: flex;
   align-items: center;
-  gap: 0.8rem;
+  gap: 0.8em;
 }
 
 .login-brand-name {
   font-family: var(--font-display);
-  font-size: 1.35rem;
+  font-size: 1.35em;
   font-weight: 700;
   line-height: 1;
 }
 
 .login-brand-sub {
-  margin-top: 0.3rem;
-  font-size: 0.85rem;
+  margin-top: 0.3em;
+  font-size: 0.85em;
   color: #c9d6e6;
 }
 
@@ -778,7 +782,7 @@ thead {
   grid-row: 2;
   align-self: center;
   font-family: var(--font-display);
-  font-size: clamp(2.6rem, 5.6vw, 5rem);
+  font-size: clamp(2.6em, 5.6vw, 5em);
   font-weight: 700;
   line-height: 1.02;
   letter-spacing: -0.02em;
@@ -788,7 +792,7 @@ thead {
 .login-footer {
   grid-column: 1;
   grid-row: 3;
-  font-size: 0.85rem;
+  font-size: 0.85em;
   color: #aebfd6;
 }
 
@@ -800,39 +804,39 @@ thead {
   flex-direction: column;
   border-radius: 16px;
   background: #fff;
-  padding: clamp(1.75rem, 3vw, 2.5rem);
+  padding: clamp(1.75em, 3vw, 2.5em);
   color: var(--ink);
   box-shadow: 0 24px 60px rgb(0 0 0 / 35%);
 }
 
 .login-title {
-  font-size: 1.75rem;
+  font-size: 1.75em;
   font-weight: 700;
   color: var(--ink);
 }
 
 .login-help {
-  margin-top: 0.35rem;
+  margin-top: 0.35em;
   color: #566780;
 }
 
 .login-label {
-  margin-top: 1.4rem;
-  margin-bottom: 0.45rem;
-  font-size: 0.9rem;
+  margin-top: 1.4em;
+  margin-bottom: 0.45em;
+  font-size: 0.9em;
   font-weight: 600;
   color: #34465f;
 }
 
 .login-input {
   width: 100%;
-  min-height: 3rem;
+  min-height: 3em;
   border: 1px solid #b9c6d6;
   border-radius: 10px;
   background: #fff;
-  padding: 0.6rem 0.9rem;
+  padding: 0.6em 0.9em;
   color: var(--ink);
-  font-size: 1rem;
+  font-size: 1em;
   transition: border-color 0.15s;
 }
 
@@ -849,16 +853,16 @@ thead {
 }
 
 .login-password .login-input {
-  padding-right: 3.25rem;
+  padding-right: 3.25em;
 }
 
 .login-reveal {
   position: absolute;
   top: 50%;
-  right: 0.3rem;
+  right: 0.3em;
   display: grid;
-  width: 2.6rem;
-  height: 2.6rem;
+  width: 2.6em;
+  height: 2.6em;
   place-items: center;
   transform: translateY(-50%);
   border-radius: 8px;
@@ -873,40 +877,40 @@ thead {
 }
 
 .login-caps {
-  margin-top: 0.5rem;
-  font-size: 0.85rem;
+  margin-top: 0.5em;
+  font-size: 0.85em;
   color: #8a5a00;
 }
 
 .login-error {
   display: flex;
   align-items: flex-start;
-  gap: 0.5rem;
-  margin-top: 1.1rem;
+  gap: 0.5em;
+  margin-top: 1.1em;
   border: 1px solid #e8b9b6;
   border-radius: 10px;
   background: #fdf0ef;
-  padding: 0.65rem 0.85rem;
-  font-size: 0.9rem;
+  padding: 0.65em 0.85em;
+  font-size: 0.9em;
   color: #8c1c15;
 }
 
 .login-error svg {
   flex: none;
-  margin-top: 0.1rem;
+  margin-top: 0.1em;
 }
 
 .login-submit {
   display: inline-flex;
-  min-height: 3.1rem;
-  margin-top: 1.6rem;
+  min-height: 3.1em;
+  margin-top: 1.6em;
   align-items: center;
   justify-content: center;
-  gap: 0.6rem;
+  gap: 0.6em;
   border-radius: 10px;
   background: var(--signal);
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 1em;
   color: #fff;
   cursor: pointer;
   transition: background-color 0.18s;
@@ -922,9 +926,9 @@ thead {
 }
 
 .login-assist {
-  margin-top: 1.1rem;
+  margin-top: 1.1em;
   text-align: center;
-  font-size: 0.85rem;
+  font-size: 0.85em;
   color: #566780;
 }
 
@@ -1090,4 +1094,412 @@ thead {
   .kpi-value {
     font-size: 1.9rem;
   }
+}
+
+/* Barres d'outils, tableaux, chronologie, pagination. */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.toolbar-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #34465f;
+}
+
+.toolbar-field select,
+.toolbar-field input {
+  min-height: 2.5rem;
+  min-width: 13rem;
+  border-radius: 8px;
+  padding: 0.4rem 0.7rem;
+  font-weight: 400;
+}
+
+.panel-flush {
+  padding: 0;
+}
+
+.panel-flush .data-table thead {
+  background: #f5f8fb;
+}
+
+.cell-strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.cell-message {
+  min-width: 16rem;
+  max-width: 28rem;
+  color: #34465f;
+}
+
+.row-selected {
+  background: #eef5fa;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.notice-ok {
+  border: 1px solid #b7dfca;
+  background: #e3f4ec;
+  color: #0f5e3c;
+}
+
+.timeline {
+  margin: 0;
+  padding: 0 0 0 1.1rem;
+  list-style: none;
+  border-left: 2px solid var(--line);
+}
+
+.timeline li {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 1rem;
+  padding: 0.45rem 0;
+}
+
+.timeline li::before {
+  content: "";
+  position: absolute;
+  top: 0.95rem;
+  left: -1.47rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border: 2px solid var(--signal);
+  border-radius: 999px;
+  background: #fff;
+}
+
+.timeline-date {
+  min-width: 8.5rem;
+  font-size: 0.88rem;
+  color: #566780;
+}
+
+.timeline-text {
+  color: #34465f;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.pagination-position {
+  font-size: 0.9rem;
+  color: #566780;
+}
+
+
+/* ==== Habillage « console » (2026-10-31, v3) ==== */
+.shell h1,
+.shell h2,
+.shell h3 {
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+}
+
+/* Menu latéral : la photo réseau de la connexion, très assombrie, pour la matière. */
+.rail {
+  background:
+    linear-gradient(180deg, rgb(11 23 38 / 93%), rgb(11 23 38 / 97%)),
+    var(--photo) 30% center / cover;
+}
+
+/* Contenu pleine largeur, comme dans les consoles de supervision. */
+.page {
+  padding: 0 var(--gutter) 2.5rem;
+}
+
+.page-inner {
+  max-width: none;
+}
+
+/* Bandeau de titre : prolonge le menu et la page de connexion (photo + voile bleu nuit). */
+.page-header {
+  margin: 0 calc(var(--gutter) * -1) 1.5rem;
+  align-items: center;
+  padding: 1.4rem var(--gutter) 1.3rem;
+  background:
+    linear-gradient(90deg, rgb(11 23 38 / 96%) 0%, rgb(11 23 38 / 86%) 60%, rgb(11 23 38 / 72%) 100%),
+    var(--photo) center 45% / cover;
+  color: #fff;
+}
+
+.page-title {
+  font-size: 1.55rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.page-description {
+  margin-top: 0.2rem;
+  font-size: 0.95rem;
+  color: #b9c8db;
+}
+
+.page-header .btn-primary {
+  background: #fff;
+  color: var(--ink);
+}
+
+.page-header .btn-primary:hover:not(:disabled) {
+  background: #e1e9f1;
+}
+
+.page-header .btn-secondary {
+  border-color: rgb(255 255 255 / 35%);
+  background: transparent;
+  color: #fff;
+}
+
+.page-header .live {
+  background: rgb(62 207 142 / 16%);
+  color: #8ce8bd;
+}
+
+.page-header .live-dot {
+  background: #3ecf8e;
+}
+
+.page-header .badge-muted {
+  background: rgb(255 255 255 / 12%);
+  color: #c9d6e6;
+}
+
+.page-header .health-ok {
+  border-color: rgb(62 207 142 / 40%);
+  background: rgb(62 207 142 / 14%);
+  color: #8ce8bd;
+}
+
+.page-header .health-bad {
+  border-color: rgb(255 107 94 / 50%);
+  background: rgb(255 107 94 / 16%);
+  color: #ffb4ac;
+}
+
+/* Surfaces plates : un trait fin, pas d'ombre, petits rayons. */
+.status-card,
+.panel {
+  border-color: #dde3ea;
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.panel {
+  padding: 1rem 1.25rem;
+}
+
+.panel-head {
+  margin: -1rem -1.25rem 1rem;
+  border-bottom: 1px solid #e6ebf1;
+  padding: 0.7rem 1.25rem;
+}
+
+.panel-flush .panel-head {
+  margin: 0;
+}
+
+.panel-head h2 {
+  font-size: 0.98rem;
+}
+
+/* Chiffres clés : une seule barre de synthèse, sans icônes. */
+.kpi-grid {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid #dde3ea;
+  border-radius: 6px;
+  background: var(--surface);
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+
+.kpi {
+  border: 0;
+  border-left: 1px solid #e6ebf1;
+  border-radius: 0;
+  padding: 0.9rem 1.25rem 1rem;
+  box-shadow: none;
+}
+
+.kpi:first-child {
+  border-left: 0;
+}
+
+.kpi-icon {
+  display: none;
+}
+
+.kpi-label {
+  margin-top: 0;
+  font-size: 0.85rem;
+}
+
+.kpi-value {
+  font-family: var(--font-sans);
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.kpi-alarm {
+  box-shadow: inset 0 3px 0 #c4302b;
+}
+
+/* États : un point de couleur et un mot, sans pastille. */
+.badge {
+  gap: 0.45rem;
+  border-radius: 0;
+  background: none !important;
+  padding: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--ink) !important;
+}
+
+.badge svg {
+  width: 9px;
+  height: 9px;
+}
+
+.badge-ok svg {
+  color: #1f8a5b;
+}
+
+.badge-warn svg {
+  color: #c27b00;
+}
+
+.badge-bad svg {
+  color: #c4302b;
+}
+
+.badge-info svg {
+  color: #1160a8;
+}
+
+.badge-muted svg {
+  color: #9aa8ba;
+}
+
+/* Tableaux : lignes compactes, en-tête gris, survol discret. */
+.data-table {
+  font-size: 0.92rem;
+}
+
+.data-table th {
+  border-bottom: 1px solid #dde3ea;
+  background: #f6f8fa;
+  padding: 0.6rem 1rem;
+}
+
+.data-table td {
+  border-top: 1px solid #edf1f5;
+  padding: 0.6rem 1rem;
+}
+
+.data-table tbody tr:first-child td {
+  border-top: 0;
+}
+
+.btn {
+  border-radius: 6px;
+}
+
+.health {
+  border-radius: 6px;
+}
+
+@media (max-width: 900px) {
+  .page-header {
+    padding-top: 1.1rem;
+    padding-bottom: 1rem;
+  }
+
+  .kpi:nth-child(3) {
+    border-left: 0;
+  }
+
+  .kpi:nth-child(n + 3) {
+    border-top: 1px solid #e6ebf1;
+  }
+}
+
+.panel.panel-flush {
+  padding: 0;
+}
+
+.row-actions {
+  flex-wrap: nowrap;
+}
+
+/* Champs et formulaires communs. */
+.field {
+  display: block;
+  width: 100%;
+  min-height: 2.6rem;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-weight: 400;
+}
+
+.field-inline {
+  display: inline-block;
+  width: auto;
+  min-height: 2.4rem;
+  padding: 0.35rem 0.6rem;
+}
+
+.form-grid {
+  display: grid;
+  gap: 1rem 1.25rem;
+  padding: 1.25rem;
+}
+
+.btn-danger-solid {
+  background: #c4302b;
+  color: #fff;
+}
+
+.btn-danger-solid:hover:not(:disabled) {
+  background: #a5241f;
+}
+
+.cell-sub {
+  display: block;
+  font-size: 0.82rem;
+  color: #6b7a90;
+}
+
+.cell-strong {
+  display: block;
+}
+
+.cell-mono {
+  font-variant-numeric: tabular-nums;
+  color: #34465f;
+}
+
+.btn-icon {
+  width: 2.25rem;
+  padding: 0;
 }
