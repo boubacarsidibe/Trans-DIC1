@@ -97,6 +97,10 @@ npm ci
 npm run lint
 npm test
 npm run build
+
+# Sauvegarde et restauration PostgreSQL (Docker requis)
+Set-Location ..
+bash backup/tests/backup-restore-test.sh
 ```
 
 Les tests backend utilisent une base H2 en mémoire, isolée de PostgreSQL local, et appliquent la migration Flyway. Le workflow GitHub Actions exécute les mêmes contrôles sur chaque push et Pull Request dès que GitHub Actions est disponible pour le dépôt.
@@ -107,6 +111,7 @@ Les tests backend utilisent une base H2 en mémoire, isolée de PostgreSQL local
 .
 ├── .github/              # collaboration et CI GitHub
 ├── backend/              # API Spring Boot
+├── backup/               # service de sauvegarde PostgreSQL (docs/devops/operations.md)
 ├── frontend/             # application React
 ├── docs/adr/             # décisions d'architecture
 ├── docs/architecture/    # modèle et flux fonctionnels
