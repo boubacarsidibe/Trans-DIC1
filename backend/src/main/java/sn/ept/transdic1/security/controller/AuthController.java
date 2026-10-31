@@ -31,16 +31,19 @@ public class AuthController {
   private final String cookieName;
   private final boolean cookieSecure;
   private final List<String> allowedOrigins;
+  private final boolean localLogin;
 
   public AuthController(
       AuthService service,
       @Value("${security.refresh.cookie-name:trans_dic1_refresh}") String cookieName,
       @Value("${security.refresh.cookie-secure:true}") boolean cookieSecure,
-      @Value("${CORS_ALLOWED_ORIGINS:http://localhost:5173}") List<String> allowedOrigins) {
+      @Value("${CORS_ALLOWED_ORIGINS:http://localhost:5173}") List<String> allowedOrigins,
+      @Value("${auth.local.enabled:true}") boolean localLogin) {
     this.service = service;
     this.cookieName = cookieName;
     this.cookieSecure = cookieSecure;
     this.allowedOrigins = allowedOrigins;
+    this.localLogin = localLogin;
   }
 
   @Operation(
@@ -56,9 +59,16 @@ public class AuthController {
   @ApiResponse(
       responseCode = "429",
       description = "Trop de tentatives depuis cette adresse, voir l'en-tête Retry-After")
+  @ApiResponse(
+      responseCode = "403",
+      description = "Connexion locale désactivée : seule la connexion unique OIDC est ouverte")
   @PostMapping("/login")
   ResponseEntity<TokenResponse> login(
       @Valid @RequestBody LoginRequest request, HttpServletRequest http) {
+    if (!localLogin) {
+      throw new ResponseStatusException(
+          HttpStatus.FORBIDDEN, "Connexion locale désactivée : utilisez la connexion unique.");
+    }
     return respond(service.login(request, http.getRemoteAddr()));
   }
 

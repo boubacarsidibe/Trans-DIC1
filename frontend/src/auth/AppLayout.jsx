@@ -6,6 +6,8 @@ import {
   Building2,
   FileBarChart2,
   LayoutDashboard,
+  LayoutTemplate,
+  Network,
   LogOut,
   Menu,
   Radar,
@@ -31,6 +33,7 @@ const SECTIONS = [
     title: "Supervision",
     links: [
       { to: "/tableau-de-bord", label: "Tableau de bord", icon: LayoutDashboard },
+      { to: "/vues", label: "Mes vues", icon: LayoutTemplate },
       { to: "/alertes", label: "Alertes", icon: BellRing },
       { to: "/rapports", label: "Rapports", icon: FileBarChart2 },
     ],
@@ -40,6 +43,7 @@ const SECTIONS = [
     links: [
       { to: "/equipements", label: "Équipements", icon: Server },
       { to: "/sites", label: "Sites", icon: Building2 },
+      { to: "/topologie", label: "Topologie", icon: Network },
       { to: "/maintenances", label: "Maintenances", icon: Wrench },
       { to: "/import", label: "Import CSV", icon: Upload, roles: ["ADMIN", "NOC_OPERATOR"] },
       { to: "/decouverte", label: "Découverte", icon: Radar, roles: ["ADMIN"] },

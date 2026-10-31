@@ -72,3 +72,12 @@ reports/
 # Certificats TLS du reverse proxy (US23) : jamais versionnés.
 proxy/tls/
 deploy/.deployed-tag
+
+# Chaîne de livraison (OPS-01) : état et journaux propres à chaque serveur.
+deploy/.staging-tag
+deploy/.staging-validated
+deploy/.pipeline-last
+deploy/.pipeline.lock/
+deploy/reports/
+deploy/approvals.log
+deploy/pipeline.secrets

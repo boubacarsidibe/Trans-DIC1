@@ -1,0 +1,12 @@
+publicUrl: https://supervision.ept.sn
+backend:
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+database:
+  host: postgres.cri.ept.sn   # base gérée par le CRI, sauvegardée (OPS-02)
+postgres:
+  enabled: false
+ingress:
+  host: supervision.ept.sn

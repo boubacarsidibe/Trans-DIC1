@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import apiClient from "../api/client.js";
+import { endOidcSession } from "./oidc.js";
 import { refreshSession } from "./refresh.js";
 import {
   SESSION_EXPIRED_EVENT,
@@ -26,7 +27,8 @@ function usernameOf(session) {
     const payload = session?.accessToken?.split(".")[1];
     if (!payload) return null;
     const json = atob(payload.replaceAll("-", "+").replaceAll("_", "/"));
-    return JSON.parse(json).sub ?? null;
+    const claims = JSON.parse(json);
+    return claims.preferred_username ?? claims.sub ?? null;
   } catch {
     return null;
   }
@@ -51,8 +53,16 @@ export function AuthProvider({ children }) {
     setSession(null);
   }, []);
 
+  /** Session ouverte ailleurs (retour de la connexion unique). */
+  const adoptSession = useCallback((next) => {
+    setSession(next);
+    setInitializing(false);
+  }, []);
+
   const logout = useCallback(() => {
     endSession();
+    // Connexion unique : la session du fournisseur est fermée aussi (redirection).
+    if (endOidcSession()) return;
     // Révocation côté serveur, sans bloquer l'interface si elle échoue.
     Promise.resolve(apiClient.post("/auth/logout")).catch(() => {});
   }, [endSession]);
@@ -92,8 +102,9 @@ export function AuthProvider({ children }) {
       username: usernameOf(session),
       login,
       logout,
+      adoptSession,
     }),
-    [session, initializing, login, logout],
+    [session, initializing, login, logout, adoptSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

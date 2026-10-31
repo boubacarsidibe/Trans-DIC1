@@ -26,10 +26,13 @@ public class LiveUpdateService {
   private final List<SseEmitter> clients = new CopyOnWriteArrayList<>();
   private final int maxClients;
   private final long timeoutMillis;
+  private final boolean brokered;
 
   public LiveUpdateService(
       @Value("${live.max-clients:200}") int maxClients,
-      @Value("${live.timeout-seconds:1800}") long timeoutSeconds) {
+      @Value("${live.timeout-seconds:1800}") long timeoutSeconds,
+      @Value("${broker.enabled:false}") boolean brokered) {
+    this.brokered = brokered;
     this.maxClients = maxClients;
     this.timeoutMillis = timeoutSeconds * 1000;
   }
@@ -55,7 +58,16 @@ public class LiveUpdateService {
   /** Après validation de la transaction ; sans transaction en cours, tout de suite. */
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
   public void onAlertActivity(AlertActivityEvent event) {
-    broadcast("alerts", "{\"type\":\"" + event.type().name() + "\"}");
+    // Avec le broker (plusieurs instances), le signal arrive par EventSubscriber sur chaque
+    // instance : on ne le diffuse pas une seconde fois ici.
+    if (!brokered) {
+      broadcast("alerts", "{\"type\":\"" + event.type().name() + "\"}");
+    }
+  }
+
+  /** Signal reçu du broker (contrat v1) : diffusé tel quel aux écrans de cette instance. */
+  public void relay(String payload) {
+    broadcast("alerts", payload);
   }
 
   /**

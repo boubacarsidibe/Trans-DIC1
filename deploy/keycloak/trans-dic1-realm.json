@@ -1,0 +1,80 @@
+{
+  "realm": "trans-dic1",
+  "displayName": "Trans-DIC1 (développement)",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
+  "loginWithEmailAllowed": true,
+  "bruteForceProtected": true,
+  "failureFactor": 5,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 28800,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["fr"],
+  "defaultLocale": "fr",
+  "roles": {
+    "realm": [
+      { "name": "trans-dic1-admin", "description": "Administrateur Trans-DIC1 (ADMIN)" },
+      { "name": "trans-dic1-noc", "description": "Opérateur NOC Trans-DIC1 (NOC_OPERATOR)" },
+      { "name": "trans-dic1-viewer", "description": "Lecteur Trans-DIC1 (VIEWER)" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "trans-dic1-web",
+      "name": "Trans-DIC1",
+      "description": "Application web Trans-DIC1 : client public, Authorization Code + PKCE S256.",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "rootUrl": "http://localhost:5173",
+      "baseUrl": "/tableau-de-bord",
+      "redirectUris": ["http://localhost:5173/auth/callback"],
+      "webOrigins": ["http://localhost:5173"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/connexion"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "admin.demo",
+      "email": "admin.demo@trans-dic1.test",
+      "firstName": "Admin",
+      "lastName": "Démo",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": ["trans-dic1-admin"],
+      "credentials": [{ "type": "password", "value": "Changer-au-premier-acces-1", "temporary": true }]
+    },
+    {
+      "username": "noc.demo",
+      "email": "noc.demo@trans-dic1.test",
+      "firstName": "Opérateur",
+      "lastName": "Démo",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": ["trans-dic1-noc"],
+      "credentials": [{ "type": "password", "value": "Changer-au-premier-acces-1", "temporary": true }]
+    },
+    {
+      "username": "lecteur.demo",
+      "email": "lecteur.demo@trans-dic1.test",
+      "firstName": "Lecteur",
+      "lastName": "Démo",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": ["trans-dic1-viewer"],
+      "credentials": [{ "type": "password", "value": "Changer-au-premier-acces-1", "temporary": true }]
+    }
+  ]
+}

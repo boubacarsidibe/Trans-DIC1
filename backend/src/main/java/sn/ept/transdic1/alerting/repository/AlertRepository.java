@@ -23,6 +23,10 @@ public interface AlertRepository
 
   boolean existsByRuleId(UUID ruleId);
 
+  /** Alerte active dont la clé d'occurrence commence par ce préfixe (anomalies). */
+  Optional<Alert> findFirstByOccurrenceKeyStartingWithAndStateIn(
+      String prefix, Collection<AlertState> states);
+
   /**
    * Alertes toujours ouvertes (personne ne les a prises) depuis avant {@code before}, pas encore
    * escaladées.

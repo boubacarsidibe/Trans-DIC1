@@ -53,6 +53,12 @@ tags:
 - name: Authentification
   description: Jeton d'accès (corps de la réponse) et jeton de renouvellement (cookie
     HttpOnly).
+- name: Vues de tableau de bord
+  description: Vues personnelles (widgets ordonnés) pour le tableau de bord et le
+    mur d'écran NOC. Chaque utilisateur ne voit et ne modifie que ses propres vues.
+- name: Topologie
+  description: "Dépendances entre équipements et impact d'une panne. Consultation\
+    \ pour tous les rôles, modification des liens par les administrateurs."
 - name: Métriques
   description: Mesures collectées sur les équipements.
 - name: Agents de collecte
@@ -66,6 +72,69 @@ tags:
   description: "Consultation et export du journal des actions sensibles. Réservé aux\
     \ administrateurs ; le journal est en lecture seule, aucune route ne le modifie."
 paths:
+  /api/v1/vues/{id}:
+    put:
+      tags:
+      - Vues de tableau de bord
+      summary: Modifier une vue
+      operationId: update
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ViewRequest"
+        required: true
+      responses:
+        "404":
+          description: Vue introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      tags:
+      - Vues de tableau de bord
+      summary: Supprimer une vue
+      operationId: delete
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Vue introuvable
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/sites/{id}:
     get:
       tags:
@@ -99,7 +168,7 @@ paths:
       - Sites
       summary: Modifier un site
       description: Le code ne peut pas changer.
-      operationId: update
+      operationId: update_1
       parameters:
       - name: id
         in: path
@@ -134,7 +203,7 @@ paths:
       tags:
       - Sites
       summary: Supprimer un site vide
-      operationId: delete
+      operationId: delete_1
       parameters:
       - name: id
         in: path
@@ -193,7 +262,7 @@ paths:
       tags:
       - Règles d'alerte
       summary: Remplacer une règle et sa portée
-      operationId: update_1
+      operationId: update_2
       parameters:
       - name: id
         in: path
@@ -231,7 +300,7 @@ paths:
       - Règles d'alerte
       summary: Supprimer une règle
       description: "Refusé si la règle a déjà produit des alertes : désactivez-la."
-      operationId: delete_1
+      operationId: delete_2
       parameters:
       - name: id
         in: path
@@ -353,7 +422,7 @@ paths:
       tags:
       - Équipements
       summary: Modifier un équipement
-      operationId: update_2
+      operationId: update_3
       parameters:
       - name: id
         in: path
@@ -402,7 +471,7 @@ paths:
       tags:
       - Équipements
       summary: Supprimer un équipement
-      operationId: delete_2
+      operationId: delete_3
       parameters:
       - name: id
         in: path
@@ -498,7 +567,7 @@ paths:
       - Collecte SNMP
       summary: Arrêter la collecte SNMP
       description: Désactive la collecte ; les mesures déjà reçues sont conservées.
-      operationId: delete_3
+      operationId: delete_4
       parameters:
       - name: equipmentId
         in: path
@@ -556,13 +625,74 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/vues:
+    get:
+      tags:
+      - Vues de tableau de bord
+      summary: Mes vues
+      operationId: list
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ViewResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      tags:
+      - Vues de tableau de bord
+      summary: Créer une vue
+      description: "Widgets possibles : summary, statuses, severities, open-alerts,\
+        \ down-equipments, latest-metric."
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ViewRequest"
+        required: true
+      responses:
+        "409":
+          description: Nom déjà utilisé
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ViewResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/utilisateurs:
     get:
       tags:
       - Utilisateurs
       summary: Lister les comptes
       description: "Liste paginée (20 par page, tri par nom)."
-      operationId: list
+      operationId: list_1
       parameters:
       - name: pageable
         in: query
@@ -592,7 +722,7 @@ paths:
       tags:
       - Utilisateurs
       summary: Créer un compte
-      operationId: create
+      operationId: create_1
       requestBody:
         content:
           application/json:
@@ -738,13 +868,46 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/topologie/liens:
+    post:
+      tags:
+      - Topologie
+      summary: Déclarer qu'un équipement dépend d'un équipement amont
+      operationId: addLink
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LinkRequest"
+        required: true
+      responses:
+        "409":
+          description: Lien existant ou boucle
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Link"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/sites:
     get:
       tags:
       - Sites
       summary: Lister les sites
       description: "Liste paginée (20 par page, tri par nom), filtrable par statut."
-      operationId: list_1
+      operationId: list_2
       parameters:
       - name: status
         in: query
@@ -782,7 +945,7 @@ paths:
       tags:
       - Sites
       summary: Créer un site
-      operationId: create_1
+      operationId: create_2
       requestBody:
         content:
           application/json:
@@ -818,7 +981,7 @@ paths:
       - Règles d'alerte
       summary: Lister les règles
       description: "Liste paginée (20 par page, tri par nom)."
-      operationId: list_2
+      operationId: list_3
       parameters:
       - name: pageable
         in: query
@@ -848,7 +1011,7 @@ paths:
       tags:
       - Règles d'alerte
       summary: Créer une règle
-      operationId: create_2
+      operationId: create_3
       requestBody:
         content:
           application/json:
@@ -916,7 +1079,7 @@ paths:
       summary: Lister les maintenances
       description: "Liste paginée (20 par page, début le plus récent d'abord), filtrable\
         \ par état, site et équipement."
-      operationId: list_3
+      operationId: list_4
       parameters:
       - name: state
         in: query
@@ -968,7 +1131,7 @@ paths:
       tags:
       - Maintenances
       summary: Planifier une maintenance
-      operationId: create_3
+      operationId: create_4
       requestBody:
         content:
           application/json:
@@ -1033,7 +1196,7 @@ paths:
       summary: Lister les équipements
       description: "Liste paginée (20 par page, tri par nom), filtrable par site,\
         \ type et statut."
-      operationId: list_4
+      operationId: list_5
       parameters:
       - name: siteId
         in: query
@@ -1091,7 +1254,7 @@ paths:
       tags:
       - Équipements
       summary: Créer un équipement
-      operationId: create_4
+      operationId: create_5
       requestBody:
         content:
           application/json:
@@ -1494,6 +1657,13 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/TokenResponse"
+        "403":
+          description: "Connexion locale désactivée : seule la connexion unique OIDC\
+            \ est ouverte"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
       security: []
   /api/v1/alertes/{id}/resolution:
     post:
@@ -1706,6 +1876,64 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/OverviewResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/topologie:
+    get:
+      tags:
+      - Topologie
+      summary: "Graphe complet : équipements et liens vers l'amont"
+      operationId: graph
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Graph"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/topologie/impact/{equipmentId}:
+    get:
+      tags:
+      - Topologie
+      summary: Impact d'une panne
+      description: "Équipements en aval, rendus injoignables si celui-ci tombe."
+      operationId: impact
+      parameters:
+      - name: equipmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Impact"
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -2140,6 +2368,47 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/auth/moi:
+    get:
+      tags:
+      - Authentification
+      summary: Utilisateur connecté et son rôle dans l'application
+      operationId: me
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Me"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/auth/configuration:
+    get:
+      tags:
+      - Authentification
+      summary: Modes de connexion
+      description: Connexion locale et/ou connexion unique OIDC (Authorization Code
+        + PKCE) ; l'écran de connexion s'adapte à cette réponse.
+      operationId: configuration
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Configuration"
+      security: []
   /api/v1/audit:
     get:
       tags:
@@ -2147,7 +2416,7 @@ paths:
       summary: Consulter le journal
       description: "Liste paginée (50 par page, plus récentes d'abord), filtrable\
         \ par période (from inclus, to exclu), compte, action et cible."
-      operationId: list_5
+      operationId: list_6
       parameters:
       - name: from
         in: query
@@ -2290,7 +2559,7 @@ paths:
       summary: Lister les alertes
       description: "Liste paginée (20 par page, plus récentes d'abord), filtrable\
         \ par état et par équipement. Les alertes supprimées sont masquées."
-      operationId: list_6
+      operationId: list_7
       parameters:
       - name: state
         in: query
@@ -2366,7 +2635,7 @@ paths:
       - Alertes
       summary: Supprimer une alerte
       description: "Suppression logique : l'alerte et son historique restent en base."
-      operationId: delete_4
+      operationId: delete_5
       parameters:
       - name: id
         in: path
@@ -2377,6 +2646,36 @@ paths:
       responses:
         "409":
           description: Transition impossible depuis l'état actuel de l'alerte
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/topologie/liens/{id}:
+    delete:
+      tags:
+      - Topologie
+      summary: Supprimer un lien
+      operationId: removeLink
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Lien introuvable
         "204":
           description: No Content
         "401":
@@ -2427,6 +2726,24 @@ paths:
                 $ref: "#/components/schemas/ApiError"
 components:
   schemas:
+    ViewRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 80
+          minLength: 0
+        widgets:
+          type: array
+          items:
+            type: string
+            maxLength: 40
+            minLength: 0
+          maxItems: 12
+          minItems: 0
+      required:
+      - name
+      - widgets
     SiteRequest:
       type: object
       properties:
@@ -2738,6 +3055,24 @@ components:
       required:
       - bodyTemplate
       - subjectTemplate
+    ViewResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        widgets:
+          type: array
+          items:
+            type: string
+        position:
+          type: integer
+          format: int32
+        updatedAt:
+          type: string
+          format: date-time
     UserCreateRequest:
       type: object
       properties:
@@ -2814,6 +3149,30 @@ components:
           type: boolean
       required:
       - active
+    LinkRequest:
+      type: object
+      properties:
+        equipmentId:
+          type: string
+          format: uuid
+        upstreamId:
+          type: string
+          format: uuid
+      required:
+      - equipmentId
+      - upstreamId
+    Link:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        equipmentId:
+          type: string
+          format: uuid
+        upstreamId:
+          type: string
+          format: uuid
     SiteResponse:
       type: object
       properties:
@@ -3234,6 +3593,46 @@ components:
             $ref: "#/components/schemas/UserResponse"
         page:
           $ref: "#/components/schemas/PageMetadata"
+    Graph:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Node"
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/Link"
+    Node:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        inventoryCode:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        siteId:
+          type: string
+          format: uuid
+        siteName:
+          type: string
+    Impact:
+      type: object
+      properties:
+        equipmentId:
+          type: string
+          format: uuid
+        dependents:
+          type: array
+          items:
+            $ref: "#/components/schemas/Node"
     PagedModelSiteResponse:
       type: object
       properties:
@@ -3411,6 +3810,31 @@ components:
             $ref: "#/components/schemas/HistoryItem"
         page:
           $ref: "#/components/schemas/PageMetadata"
+    Me:
+      type: object
+      properties:
+        username:
+          type: string
+        role:
+          type: string
+    Configuration:
+      type: object
+      properties:
+        localLogin:
+          type: boolean
+        oidc:
+          $ref: "#/components/schemas/Oidc"
+    Oidc:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        issuer:
+          type: string
+        clientId:
+          type: string
+        scopes:
+          type: string
     AlertResponse:
       type: object
       properties:
@@ -3429,6 +3853,7 @@ components:
           enum:
           - THRESHOLD
           - COLLECTION
+          - ANOMALY
         state:
           type: string
           enum:
@@ -3460,6 +3885,11 @@ components:
           type: array
           items:
             type: string
+        parentAlertId:
+          type: string
+          format: uuid
+        correlationReason:
+          type: string
     PagedModelAlertResponse:
       type: object
       properties:

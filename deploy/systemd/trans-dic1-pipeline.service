@@ -1,0 +1,12 @@
+[Unit]
+Description=Trans-DIC1 : chaîne de livraison sur le dernier commit de develop
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Utilisateur de service membre du groupe docker, propriétaire de la copie du dépôt.
+User=transdic1
+WorkingDirectory=/opt/trans-dic1
+EnvironmentFile=-/opt/trans-dic1/deploy/pipeline.secrets
+ExecStart=/opt/trans-dic1/scripts/pipeline/watch-develop.sh

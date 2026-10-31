@@ -1,4 +1,8 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import ViewsPage from "./pages/ViewsPage.jsx";
+import OidcCallbackPage from "./pages/OidcCallbackPage.jsx";
+import TopologyPage from "./pages/TopologyPage.jsx";
+import WallPage from "./pages/WallPage.jsx";
 import AppLayout from "./auth/AppLayout.jsx";
 import ProtectedRoute from "./auth/ProtectedRoute.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
@@ -22,12 +26,16 @@ function App() {
   return (
     <Routes>
       <Route path="/connexion" element={<LoginPage />} />
+      <Route path="/auth/callback" element={<OidcCallbackPage />} />
       <Route element={<ProtectedRoute />}>
+        <Route path="/mur" element={<WallPage />} />
         <Route element={<AppLayout />}>
           <Route path="/tableau-de-bord" element={<DashboardPage />} />
+          <Route path="/vues" element={<ViewsPage />} />
           <Route path="/equipements" element={<EquipmentPage />} />
           <Route path="/equipements/:id/historique" element={<MetricsPage />} />
           <Route path="/sites" element={<SitesPage />} />
+          <Route path="/topologie" element={<TopologyPage />} />
           <Route path="/alertes" element={<AlertsPage />} />
           <Route path="/maintenances" element={<MaintenancesPage />} />
           <Route path="/rapports" element={<ReportsPage />} />
@@ -41,7 +49,10 @@ function App() {
             <Route path="/utilisateurs" element={<UsersPage />} />
             <Route path="/audit" element={<AuditPage />} />
             <Route path="/canaux" element={<ChannelsPage />} />
-            <Route path="/equipements/:id/collecte" element={<CollectionPage />} />
+            <Route
+              path="/equipements/:id/collecte"
+              element={<CollectionPage />}
+            />
           </Route>
         </Route>
       </Route>

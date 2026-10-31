@@ -16,6 +16,11 @@ Chaque décision structurante est consignée dans un ADR : contexte, options com
 | [0010](0010-observability.md) | Observabilité : Micrometer et Prometheus, logs ECS, traces OpenTelemetry | acceptée, implémentée |
 | [0011](0011-deployment.md) | Déploiement : Compose de production derrière Nginx, retour arrière par étiquette | acceptée, implémentée |
 | [0012](0012-agent.md) | Agent Trans-DIC1 : Python 3 sans dépendance, service systemd | acceptée, implémentée |
+| [0013](0013-sla-par-site.md) | Disponibilité et SLA par site, maintenances exclues | acceptée, implémentée |
+| [0014](0014-alert-correlation.md) | Regroupement des alertes de collecte sous une alerte racine | acceptée, implémentée |
+| [0015](0015-anomaly-detection.md) | Détection d'anomalies des métriques par profil horaire | acceptée, implémentée |
+| [0016](0016-broker.md) | Relais des événements entre instances par PostgreSQL LISTEN/NOTIFY | acceptée, implémentée |
+| [0017](0017-oidc.md) | Connexion unique OIDC : client public PKCE, backend serveur de ressources | acceptée, implémentée (fournisseur réel à valider) |
 
 L'ADR 0008 a d'abord été publié sous le numéro 0007, déjà attribué aux e-mails : il a été renuméroté sans changement de décision.
 

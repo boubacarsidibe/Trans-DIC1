@@ -14,6 +14,7 @@ export const STATE_LABELS = {
   ARCHIVED: "Archivée",
   DELETED: "Supprimée",
   ESCALATED: "Escaladée aux administrateurs",
+  CORRELATED: "Regroupée sous une alerte racine",
 };
 
 export const SEVERITY_LABELS = {
