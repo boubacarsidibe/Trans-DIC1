@@ -1,4 +1,4 @@
-# ADR 0011 : disponibilité et SLA par site
+# ADR 0013 : disponibilité et SLA par site
 
 - Statut : accepté
 - Date : 2026-10-31
