@@ -12,6 +12,7 @@ import { refreshSession } from "./refresh.js";
 import {
   SESSION_EXPIRED_EVENT,
   clearSession,
+  markPasswordChanged,
   readSession,
   saveSession,
 } from "./session.js";
@@ -94,17 +95,21 @@ export function AuthProvider({ children }) {
     return () => clearTimeout(timer);
   }, [session, endSession]);
 
+  const passwordChanged = useCallback(() => setSession(markPasswordChanged()), []);
+
   const value = useMemo(
     () => ({
       isAuthenticated: Boolean(session),
       isInitializing: initializing,
       role: session?.role ?? null,
       username: usernameOf(session),
+      passwordChangeRequired: Boolean(session?.passwordChangeRequired),
       login,
       logout,
       adoptSession,
+      passwordChanged,
     }),
-    [session, initializing, login, logout, adoptSession],
+    [session, initializing, login, logout, adoptSession, passwordChanged],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

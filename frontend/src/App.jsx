@@ -21,6 +21,7 @@ import AuditPage from "./pages/AuditPage.jsx";
 import ChannelsPage from "./pages/ChannelsPage.jsx";
 import DiscoveryPage from "./pages/DiscoveryPage.jsx";
 import ImportPage from "./pages/ImportPage.jsx";
+import ChangePasswordPage from "./pages/ChangePasswordPage.jsx";
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
       <Route path="/connexion" element={<LoginPage />} />
       <Route path="/auth/callback" element={<OidcCallbackPage />} />
       <Route element={<ProtectedRoute />}>
+        <Route path="/changer-mot-de-passe" element={<ChangePasswordPage />} />
         <Route path="/mur" element={<WallPage />} />
         <Route element={<AppLayout />}>
           <Route path="/tableau-de-bord" element={<DashboardPage />} />

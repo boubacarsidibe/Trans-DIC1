@@ -66,11 +66,14 @@ public class UserAdminService {
                 request.email(),
                 encoder.encode(request.password()),
                 request.role()));
+    // Mot de passe choisi par l'administrateur : temporaire, à changer à la première connexion.
+    user.setPasswordChangeRequired(true);
+    users.save(user);
     audit.recordAdminAction(
         "USER_CREATED",
         actor,
         user.getId(),
-        "compte=" + user.getUsername() + " role=" + user.getRole());
+        "compte=" + user.getUsername() + " role=" + user.getRole() + " motDePasse=temporaire");
     return UserResponse.from(user);
   }
 
@@ -118,6 +121,7 @@ public class UserAdminService {
           HttpStatus.BAD_REQUEST, "Le mot de passe ne doit pas contenir le nom d'utilisateur");
     }
     user.resetPassword(encoder.encode(newPassword));
+    user.setPasswordChangeRequired(true);
     users.save(user);
     revokeSessions(user);
     audit.recordAdminAction("USER_PASSWORD_RESET", actor, id, "compte=" + user.getUsername());
