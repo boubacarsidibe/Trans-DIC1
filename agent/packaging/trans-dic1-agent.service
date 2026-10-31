@@ -1,0 +1,36 @@
+[Unit]
+Description=Agent Trans-DIC1 (CPU, mémoire, disque et disponibilité)
+Documentation=file:///opt/trans-dic1-agent/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=trans-dic1-agent
+Group=trans-dic1-agent
+WorkingDirectory=/opt/trans-dic1-agent
+ExecStart=/usr/bin/python3 -m trans_dic1_agent --config /etc/trans-dic1-agent/agent.conf
+Restart=on-failure
+RestartSec=10
+# Configuration invalide (code 2) : inutile de redémarrer en boucle.
+RestartPreventExitStatus=2
+
+# Durcissement : l'agent ne fait que lire /proc et la taille des disques, et sortir en HTTPS.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+MemoryMax=64M
+
+[Install]
+WantedBy=multi-user.target

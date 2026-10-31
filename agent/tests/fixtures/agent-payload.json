@@ -1,0 +1,8 @@
+{
+  "measures": [
+    {"key": "cpu.usage", "value": 60.0, "unit": "%", "quality": "GOOD", "collectedAt": "2026-10-30T10:00:00.123Z"},
+    {"key": "memory.usage", "value": 75.0, "unit": "%", "quality": "GOOD", "collectedAt": "2026-10-30T10:00:00.123Z"},
+    {"key": "disk.usage", "value": 0.0, "unit": "%", "quality": "BAD", "collectedAt": "2026-10-30T10:00:00.123Z"},
+    {"key": "availability", "value": 100.0, "unit": "%", "quality": "GOOD", "collectedAt": "2026-10-30T10:00:00.123Z"}
+  ]
+}
