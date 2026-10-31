@@ -25,6 +25,14 @@ Une première version de cette décision utilisait Testcontainers. Elle est éca
 5. `PartialUniqueIndexTests` prouve chaque index partiel par une violation réelle ; `MetricPartitioningTests` prouve le partitionnement ; `PersistenceModelTests` vérifie les violations de contraintes par code SQLSTATE de classe 23 (indépendant du moteur).
 6. La CI exécute les tests sur les runners Ubuntu sans configuration supplémentaire.
 
+## Options
+
+| Option | Avantages | Inconvénients |
+| --- | --- | --- |
+| H2 en mode PostgreSQL (situation initiale) | Rapide, sans dépendance | Ni index uniques partiels ni partitionnement : les règles clés du modèle n'étaient pas testées |
+| Testcontainers (PostgreSQL dans Docker) | Base identique à la production | Exige Docker sur chaque poste et en CI, contraire à l'ADR-0001 |
+| **PostgreSQL 16 embarqué (zonky), retenue** | Vrai moteur PostgreSQL, même version qu'en production, sans Docker ni installation | Binaires natifs téléchargés par Maven ; un seul serveur partagé par les tests |
+
 ## Conséquences
 
 - Premier lancement : téléchargement des binaires PostgreSQL (environ 10 Mo) dans le dépôt Maven local, puis lecture en cache.

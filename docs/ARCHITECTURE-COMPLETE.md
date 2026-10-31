@@ -557,8 +557,15 @@ flowchart LR
 | [0003](adr/0003-integration-tests-on-real-postgresql.md) | Tests sur un vrai PostgreSQL embarqué (sans Docker) au lieu de H2 | acceptée, implémentée |
 | [0004](adr/0004-metrics-storage.md) | Métriques : partitionnement natif, clé entière, BRIN | acceptée, implémentée (hors purge) |
 | [0005](adr/0005-authentication-and-refresh.md) | Jeton en mémoire + renouvellement par cookie avec rotation | acceptée, implémentée |
-| [0006](adr/0006-collection-realtime-runtime.md) | Java 21, SNMP4J, agent actif, SSE | acceptée ; Java 21, agent actif et SNMP4J implémentés, SSE restant |
+| [0006](adr/0006-collection-realtime-runtime.md) | Java 21, SNMP4J, agent actif, SSE | acceptée, implémentée |
 | [0007](adr/0007-email-notifications.md) | Notifications par e-mail : événement, file en base, envoi différé | acceptée, implémentée |
+| [0008](adr/0008-events-outbox-channels.md) | Événements internes, Outbox, canaux webhook, Teams et Slack (d'abord numéroté 0007 par erreur) | acceptée, implémentée |
+| [0009](adr/0009-postgresql-backup.md) | Sauvegarde : conteneur dédié, dump chiffré, restauration de contrôle | acceptée, implémentée |
+| [0010](adr/0010-observability.md) | Observabilité : Prometheus, logs ECS, traces OpenTelemetry | acceptée, implémentée |
+| [0011](adr/0011-deployment.md) | Déploiement : Compose de production derrière Nginx, retour arrière | acceptée, implémentée |
+| [0012](adr/0012-agent.md) | Agent Trans-DIC1 : Python 3 sans dépendance, systemd | acceptée, implémentée |
+
+L'index tenu à jour est [docs/adr/README.md](adr/README.md). Le PDF du dossier d'architecture n'a pas été régénéré depuis l'ajout des ADR 0008 à 0012.
 
 ### 11.2 Pourquoi / comment / donc, décision par décision
 

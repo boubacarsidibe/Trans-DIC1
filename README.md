@@ -4,14 +4,24 @@ Trans-DIC1 est la plateforme centralisée de supervision des infrastructures ré
 
 ## État du projet
 
-Le socle du Sprint 0 est opérationnel : API Spring Boot, interface React, base PostgreSQL locale, migrations Flyway, cinq équipements fictifs, tests automatisés et workflow CI. Les fonctions métier d'inventaire, de collecte et d'alerting seront livrées dans les user stories suivantes.
+La plateforme couvre les fonctions suivantes :
+- inventaire (sites, équipements, import CSV, découverte SNMP) ;
+- collecte par agent Trans-DIC1 et par SNMP ;
+- alertes avec seuils, hystérésis, prise en charge, escalade et maintenances ;
+- notifications par e-mail, Teams, Slack et webhook ;
+- rapports PDF et CSV, rôles, journal d'audit, temps réel (SSE) ;
+- sauvegarde, observabilité et déploiement de production.
+
+La validation sur l'infrastructure de l'EPT reste à faire.
+
+**Pour commencer : [guide de démarrage](docs/getting-started.md). Toute la documentation : [docs/README.md](docs/README.md).**
 
 | Composant | Stack |
 | --- | --- |
 | Backend | Java 21, Spring Boot 4.1.1, Maven Wrapper |
 | Frontend | Node.js 24, React 19, Vite 8, Tailwind CSS 4 |
 | Données | PostgreSQL 16 natif, Flyway |
-| Tests | JUnit/H2 et Vitest/Testing Library |
+| Tests | JUnit sur PostgreSQL 16 embarqué (ADR-0003), ArchUnit, Vitest/Testing Library, Playwright |
 
 La décision complète est dans [ADR-0001](docs/adr/0001-application-stack.md), le modèle initial dans [docs/architecture/domain-model.md](docs/architecture/domain-model.md) et le backlog dans [docs/product-backlog.md](docs/product-backlog.md).
 
@@ -65,9 +75,9 @@ Le compte administrateur initial (`BOOTSTRAP_ADMIN_USERNAME` et `BOOTSTRAP_ADMIN
 | Service | URL | Remarque |
 |---|---|---|
 | Frontend | `http://localhost:5173` | nginx sans privilèges |
-| API | `http://localhost:8080/actuator/health` | image JRE 17, utilisateur non-root |
+| API | `http://localhost:8080/actuator/health` | image JRE 21, utilisateur non-root |
 | Mailpit | `http://localhost:8025` | boîte mail de test, SMTP sur le port 1025 |
-| PostgreSQL | `127.0.0.1:5433` | volume `postgres-data` ; 5433 évite le conflit avec un PostgreSQL local |
+| PostgreSQL | `127.0.0.1:5433` | volume `postgres-data` ; 5433 évite le conflit avec un PostgreSQL local (ports modifiables dans `.env`, voir le guide de démarrage) |
 
 Si `DATABASE_PASSWORD` ou `JWT_SECRET` manque, `docker compose` s'arrête avec un message explicite. `docker compose down -v` supprime aussi la base.
 
@@ -108,7 +118,7 @@ Set-Location ..
 bash backup/tests/backup-restore-test.sh
 ```
 
-Les tests backend utilisent une base H2 en mémoire, isolée de PostgreSQL local, et appliquent la migration Flyway. Le workflow GitHub Actions exécute les mêmes contrôles sur chaque push et Pull Request dès que GitHub Actions est disponible pour le dépôt.
+Les tests backend tournent sur un vrai PostgreSQL 16 embarqué, lancé par la JVM sans Docker ni installation (ADR-0003), et appliquent toutes les migrations Flyway. Le dépôt n'a plus de workflow GitHub Actions : ces contrôles se lancent en local avant chaque Pull Request (voir [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ## Structure
 

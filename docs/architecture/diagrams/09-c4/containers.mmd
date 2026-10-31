@@ -1,22 +1,27 @@
 C4Container
-    title Conteneurs cibles de Trans-DIC1
+    title Conteneurs de Trans-DIC1 (docker-compose.prod.yml)
 
     Person(user, "Utilisateur EPT", "Administrateur, opérateur NOC ou lecteur")
-    System_Ext(monitored, "Infrastructure supervisée", "Équipements, serveurs et Zabbix Agent")
-    System_Ext(smtp, "Service SMTP", "Acheminement des emails")
+    System_Ext(devices, "Équipements réseau", "SNMP v2c/v3")
+    System_Ext(agent, "Agent Trans-DIC1", "Python 3, service systemd sur chaque serveur supervisé")
+    System_Ext(smtp, "SMTP, Teams, Slack, webhooks", "Canaux de notification")
 
     System_Boundary(transdic, "Trans-DIC1") {
-        Container(web, "Application web", "React 19, Vite 8", "Dashboard, inventaire, métriques, alertes et rapports")
-        Container(api, "API applicative", "Java 21, Spring Boot 4.1", "REST, autorisation, orchestration métier et SSE cible")
-        Container(worker, "Collecteur", "Java / adaptateurs", "Planifie et normalise les collectes simulées, Zabbix et SNMP")
-        ContainerDb(db, "Base de données", "PostgreSQL 16", "Inventaire, métriques, alertes, notifications, rapports et audit")
+        Container(proxy, "Reverse proxy", "Nginx sans privilèges", "Seul point d'entrée : TLS, HSTS, redirection HTTP, routage")
+        Container(web, "Application web", "React 19, Vite 8, servie par Nginx", "Tableau de bord, inventaire, alertes, rapports, administration")
+        Container(api, "API et collecte", "Java 21, Spring Boot 4.1", "REST /api/v1, SSE, contrôle d'accès, collecte SNMP et réception des agents, alertes, notifications, audit")
+        ContainerDb(db, "Base de données", "PostgreSQL 16", "Inventaire, métriques partitionnées, alertes, file de notifications, audit, état des tâches")
+        Container(backup, "Sauvegarde", "postgres:16-alpine, openssl", "Dump chiffré quotidien, rétention, restauration de contrôle")
+        Container(obs, "Supervision de la plateforme", "Prometheus, Alertmanager, Grafana, Jaeger", "Métriques, alertes techniques, traces (profil observability)")
     }
 
-    Rel(user, web, "Utilise", "HTTPS")
-    Rel(web, api, "Appelle", "REST JSON / SSE cible")
-    Rel(api, db, "Lit et écrit", "SQL via JPA")
-    Rel(api, worker, "Déclenche/coordonne", "Port applicatif")
-    Rel(worker, monitored, "Collecte", "Zabbix port 10050 / SNMPv3")
-    Rel(worker, db, "Persiste les métriques", "SQL via JPA")
-    Rel(api, smtp, "Envoie les notifications", "SMTP")
-
+    Rel(user, proxy, "Utilise", "HTTPS")
+    Rel(agent, proxy, "Envoie ses mesures", "HTTPS, jeton d'agent")
+    Rel(proxy, web, "Sert l'interface", "HTTP interne")
+    Rel(proxy, api, "Transmet /api", "HTTP interne, SSE")
+    Rel(web, api, "Appelle", "REST JSON, SSE, même origine")
+    Rel(api, db, "Lit et écrit", "JDBC, JPA, Flyway")
+    Rel(api, devices, "Interroge et découvre", "SNMP")
+    Rel(api, smtp, "Envoie les notifications", "SMTP, HTTPS")
+    Rel(backup, db, "Sauvegarde et restaure", "pg_dump, pg_restore")
+    Rel(obs, api, "Collecte les métriques, reçoit les traces", "HTTP, jeton de collecte, OTLP")

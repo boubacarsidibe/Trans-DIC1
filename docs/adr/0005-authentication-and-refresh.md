@@ -24,6 +24,15 @@ Les sources consultées convergent : jeton d'accès de courte durée gardé en m
 7. **Rechargement de page** : le frontend appelle l'endpoint de renouvellement au démarrage pour récupérer un jeton d'accès, ce qui remplace la persistance en `sessionStorage`.
 8. La limitation de débit et le verrouillage progressif de SEC-01 restent inchangés.
 
+## Options
+
+| Option | Avantages | Inconvénients |
+| --- | --- | --- |
+| JWT long conservé dans `sessionStorage` (situation initiale) | Simple | Lisible par un script injecté (XSS) ; aucune révocation avant expiration |
+| Session serveur classique (cookie de session) | Révocation immédiate | État serveur pour chaque requête ; protection CSRF à ajouter sur toute l'API |
+| **Jeton d'accès court en mémoire et renouvellement par cookie `HttpOnly` avec rotation, retenue** | Jeton d'accès inaccessible après rechargement, renouvellement révocable et rotation qui détecte un vol | Un endpoint de renouvellement à protéger (Origin, SameSite) ; HTTPS obligatoire hors localhost |
+| Fournisseur d'identité OIDC (Keycloak) | SSO, normes éprouvées | Infrastructure supplémentaire ; prévu en évolution (ARCH-09) |
+
 ## Conséquences
 
 - Une faille XSS ne permet plus de voler une session durable.

@@ -147,17 +147,24 @@ Les diagrammes de classes, de séquence et d'états utilisent les syntaxes UML n
 - **Règles appliquées :** PK/FK explicites, table associative pour le N–N, relations en notation crow's foot.
 - **Hypothèses :** clé d'occurrence unique ; site obligatoire ; noms physiques à valider avant migration.
 
-### `09-c4/context.mmd` et `09-c4/containers.mmd`
+### `09-c4/context.mmd`, `09-c4/containers.mmd` et `09-c4/components.mmd`
 
-- **Nom :** C4 contexte et conteneurs cibles.
-- **Objectif :** fournir deux niveaux de zoom pour les parties prenantes et l'équipe.
-- **Question :** avec qui le système interagit-il, puis quels conteneurs le réalisent ?
-- **Périmètre :** système global et cible applicative.
-- **Exclus :** niveau code et component C4, redondants à ce stade.
-- **Sources dépôt :** README, ADR-0001, architecture DevOps et backlog.
-- **Règles appliquées :** une abstraction par niveau ; personnes/systèmes externes au contexte ; technologies dans les conteneurs.
-- **Hypothèses :** worker séparé et WebSocket cible.
-- **Support :** syntaxe Mermaid C4 officielle mais expérimentale.
+- **Nom :** C4 contexte, conteneurs et composants.
+- **Objectif :** trois niveaux de zoom, des parties prenantes jusqu'aux modules du backend.
+- **Questions :**
+  - avec qui le système interagit-il ?
+  - quels conteneurs le réalisent ?
+  - quels modules composent l'API ?
+- **Périmètre :** état du code au 2026-11-01. Les conteneurs sont ceux de `docker-compose.prod.yml` ; les composants sont les modules de `backend/src/main/java/sn/ept/transdic1`, dont les dépendances sont contrôlées par ArchUnit ([archunit.md](../archunit.md)).
+- **Exclus :** niveau code C4, redondant avec ArchUnit et la Javadoc.
+- **Sources dépôt :** ADR-0001, ADR-0006, ADR-0008 à ADR-0012, `docker-compose.prod.yml`, `ArchitectureTests`.
+- **Règles appliquées :** une abstraction par niveau ; personnes et systèmes externes au contexte ; technologies dans les conteneurs et composants.
+- **Corrections du 2026-11-01 :**
+  - plus de Zabbix (agent Trans-DIC1 et SNMP) ;
+  - collecte intégrée à l'API (pas de worker séparé) ;
+  - SSE en place (et non plus « cible ») ;
+  - ajout du reverse proxy, de la sauvegarde et de la supervision de la plateforme.
+- **Support :** syntaxe Mermaid C4 officielle mais expérimentale. Vérifier le rendu après une modification : `docker run --rm -v "${PWD}:/data" minlag/mermaid-cli:11.4.2 -i /data/components.mmd -o /data/components.png` (depuis `09-c4`).
 
 ## Références par catégorie
 
