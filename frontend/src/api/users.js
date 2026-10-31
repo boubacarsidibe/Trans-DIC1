@@ -11,9 +11,9 @@ export const roleLabel = (value) =>
 
 export const USER_PAGE_SIZE = 10;
 
-export async function listUsers({ page = 0 } = {}) {
+export async function listUsers({ page = 0, size = USER_PAGE_SIZE } = {}) {
   const { data } = await apiClient.get("/utilisateurs", {
-    params: { page, size: USER_PAGE_SIZE },
+    params: { page, size },
   });
   return data;
 }

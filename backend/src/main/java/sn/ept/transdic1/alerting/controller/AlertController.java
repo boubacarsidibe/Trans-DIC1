@@ -91,6 +91,29 @@ public class AlertController {
     return service.assign(id, request.userId(), authentication.getName(), request.comment());
   }
 
+  @Operation(
+      summary = "Ajouter un opérateur au suivi",
+      description = "Assignation multiple : les opérateurs déjà assignés restent assignés.")
+  @ApiResponse(responseCode = "400", description = "Assigné invalide", content = @Content)
+  @ApiResponse(responseCode = "409", description = CONFLICT, content = @Content)
+  @PostMapping("/{id}/assignes")
+  @PreAuthorize("hasRole('ADMIN')")
+  public AlertResponse addAssignee(
+      @PathVariable UUID id,
+      @Valid @RequestBody AssignmentRequest request,
+      Authentication authentication) {
+    return service.addAssignee(id, request.userId(), authentication.getName(), request.comment());
+  }
+
+  @Operation(summary = "Retirer un opérateur du suivi")
+  @ApiResponse(responseCode = "404", description = "Opérateur non assigné", content = @Content)
+  @DeleteMapping("/{id}/assignes/{userId}")
+  @PreAuthorize("hasRole('ADMIN')")
+  public AlertResponse removeAssignee(
+      @PathVariable UUID id, @PathVariable UUID userId, Authentication authentication) {
+    return service.removeAssignee(id, userId, authentication.getName());
+  }
+
   @Operation(summary = "Résoudre manuellement une alerte")
   @ApiResponse(responseCode = "409", description = CONFLICT, content = @Content)
   @PostMapping("/{id}/resolution")

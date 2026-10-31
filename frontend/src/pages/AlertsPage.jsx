@@ -16,6 +16,7 @@ import { useLiveUpdates } from "../hooks/useLiveUpdates.js";
 import { AlertStateBadge, LiveIndicator } from "../ui/Badges.jsx";
 import { SEVERITY, label } from "../ui/labels.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import AssigneesEditor from "./AssigneesEditor.jsx";
 import Pagination from "../ui/Pagination.jsx";
 
 // Les messages des règles citent l'opérateur technique : on l'affiche en symbole.
@@ -196,7 +197,7 @@ function AlertsPage() {
                   <td>
                     <AlertStateBadge state={alert.state} />
                   </td>
-                  <td>{alert.assignee ?? "—"}</td>
+                  <td>{alert.assignees?.length ? alert.assignees.join(", ") : (alert.assignee ?? "—")}</td>
                   <td className="whitespace-nowrap">{formatDate(alert.triggeredAt)}</td>
                   <td>
                     <div className="row-actions">
@@ -258,6 +259,15 @@ function AlertsPage() {
                 Fermer
               </button>
             </div>
+            {canAdminister && (
+              <AssigneesEditor
+                alert={detail.alert}
+                onChanged={async () => {
+                  setDetail(await getAlert(detail.alert.id));
+                  await load(page, state);
+                }}
+              />
+            )}
             <ol className="timeline">
               {detail.events.map((event, index) => (
                 <li key={`${event.type}-${event.occurredAt}-${index}`}>

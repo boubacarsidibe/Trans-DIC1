@@ -1528,6 +1528,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/alertes/{id}/assignes:
+    post:
+      tags:
+      - Alertes
+      summary: Ajouter un opérateur au suivi
+      description: "Assignation multiple : les opérateurs déjà assignés restent assigné\
+        s."
+      operationId: addAssignee
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignmentRequest"
+        required: true
+      responses:
+        "400":
+          description: Assigné invalide
+        "409":
+          description: Transition impossible depuis l'état actuel de l'alerte
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/alertes/{id}/assignation:
     post:
       tags:
@@ -2252,6 +2290,40 @@ paths:
           description: Transition impossible depuis l'état actuel de l'alerte
         "204":
           description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/alertes/{id}/assignes/{userId}:
+    delete:
+      tags:
+      - Alertes
+      summary: Retirer un opérateur du suivi
+      operationId: removeAssignee
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Opérateur non assigné
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -3276,6 +3348,10 @@ components:
           format: date-time
         assignee:
           type: string
+        assignees:
+          type: array
+          items:
+            type: string
     PagedModelAlertResponse:
       type: object
       properties:

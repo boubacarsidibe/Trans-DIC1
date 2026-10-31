@@ -66,3 +66,14 @@ export async function archiveAlert(id) {
   const { data } = await apiClient.post(`/alertes/${id}/archivage`);
   return data;
 }
+
+/** Assignation multiple : ajoute un opérateur au suivi sans retirer les autres. */
+export async function addAssignee(id, userId) {
+  const { data } = await apiClient.post(`/alertes/${id}/assignes`, { userId });
+  return data;
+}
+
+export async function removeAssignee(id, userId) {
+  const { data } = await apiClient.delete(`/alertes/${id}/assignes/${userId}`);
+  return data;
+}

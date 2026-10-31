@@ -2462,3 +2462,44 @@ thead {
   width: 1.2em;
   height: 1.2em;
 }
+
+/* Suivi d'une alerte par plusieurs opérateurs. */
+.assignees {
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.9rem;
+}
+
+.assignees-title {
+  margin-bottom: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.assignees-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.assignees-list li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #f4f3f1;
+  padding: 0.15rem 0.2rem 0.15rem 0.6rem;
+  font-weight: 600;
+}
+
+.assignees-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}

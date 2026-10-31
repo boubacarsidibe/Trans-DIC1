@@ -80,14 +80,14 @@ public class AlertWorkflowService {
           }
           return cb.and(predicates.toArray(Predicate[]::new));
         };
-    return alerts.findAll(spec, pageable).map(alert -> AlertResponse.from(alert, assignee(alert)));
+    return alerts.findAll(spec, pageable).map(alert -> AlertResponse.from(alert, assignees(alert)));
   }
 
   @Transactional(readOnly = true)
   public AlertDetailResponse get(UUID id) {
     Alert alert = find(id);
     return new AlertDetailResponse(
-        AlertResponse.from(alert, assignee(alert)),
+        AlertResponse.from(alert, assignees(alert)),
         events.findByAlertIdOrderByOccurredAtAsc(id).stream()
             .map(AlertEventResponse::from)
             .toList());
@@ -104,7 +104,7 @@ public class AlertWorkflowService {
     startAssignment(alert, user);
     transition(alert, AlertState.IN_PROGRESS, AlertEventType.TAKEN, user, comment);
     audit.record("ALERT_TAKEN", "ALERT", id, "par=" + username);
-    return AlertResponse.from(alert, user.getUsername());
+    return AlertResponse.from(alert, assignees(alert));
   }
 
   /** Un administrateur assigne (ou réassigne) l'alerte à un opérateur. */
@@ -112,29 +112,17 @@ public class AlertWorkflowService {
   public AlertResponse assign(UUID id, UUID assigneeId, String byUsername, String comment) {
     Alert alert = find(id);
     requireState(alert, "assigner", AlertState.OPEN, AlertState.IN_PROGRESS);
-    AppUser assignee =
-        users
-            .findById(assigneeId)
-            .filter(AppUser::isActive)
-            .filter(u -> u.getRole() == Role.NOC_OPERATOR || u.getRole() == Role.ADMIN)
-            .orElseThrow(
-                () ->
-                    new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "L'assigné doit être un opérateur ou un administrateur actif"));
+    AppUser assignee = eligible(assigneeId);
     AppUser by = user(byUsername);
     var now = clock.instant();
-    assignments
-        .findByAlertIdAndEndedAtIsNull(id)
-        .ifPresent(
-            current -> {
-              current.setEndedAt(now);
-              assignments.saveAndFlush(current);
-              var released = new AlertEvent(alert, AlertEventType.UNASSIGNED, now);
-              released.setAuthor(by);
-              released.setComment("Retiré à " + current.getUser().getUsername());
-              events.save(released);
-            });
+    for (var current : assignments.findAllByAlertIdAndEndedAtIsNullOrderByAssignedAtAsc(id)) {
+      current.setEndedAt(now);
+      assignments.saveAndFlush(current);
+      var released = new AlertEvent(alert, AlertEventType.UNASSIGNED, now);
+      released.setAuthor(by);
+      released.setComment("Retiré à " + current.getUser().getUsername());
+      events.save(released);
+    }
     startAssignment(alert, assignee);
     AlertState previous = alert.getState();
     var event = new AlertEvent(alert, AlertEventType.ASSIGNED, now);
@@ -151,7 +139,73 @@ public class AlertWorkflowService {
     publisher.publishEvent(new AlertActivityEvent(alert.getId(), AlertEventType.ASSIGNED));
     audit.record(
         "ALERT_ASSIGNED", "ALERT", id, "a=" + assignee.getUsername() + " par=" + byUsername);
-    return AlertResponse.from(alert, assignee.getUsername());
+    return AlertResponse.from(alert, assignees(alert));
+  }
+
+  /**
+   * Ajoute un opérateur au suivi de l'alerte sans retirer ceux qui y sont déjà (assignation
+   * multiple). Sans effet si l'opérateur suit déjà l'alerte.
+   */
+  @Transactional
+  public AlertResponse addAssignee(UUID id, UUID assigneeId, String byUsername, String comment) {
+    Alert alert = find(id);
+    requireState(alert, "assigner", AlertState.OPEN, AlertState.IN_PROGRESS);
+    AppUser assignee = eligible(assigneeId);
+    boolean already =
+        assignments.findAllByAlertIdAndEndedAtIsNullOrderByAssignedAtAsc(id).stream()
+            .anyMatch(a -> a.getUser().getId().equals(assignee.getId()));
+    if (already) {
+      return AlertResponse.from(alert, assignees(alert));
+    }
+    AppUser by = user(byUsername);
+    var now = clock.instant();
+    startAssignment(alert, assignee);
+    AlertState previous = alert.getState();
+    alert.setState(AlertState.IN_PROGRESS);
+    if (alert.getTakenAt() == null) {
+      alert.setTakenAt(now);
+    }
+    var event = new AlertEvent(alert, AlertEventType.ASSIGNED, now);
+    event.setAuthor(by);
+    event.setPreviousState(previous);
+    event.setNewState(AlertState.IN_PROGRESS);
+    event.setComment(
+        comment == null ? "Ajout de " + assignee.getUsername() + " au suivi" : comment);
+    alerts.save(alert);
+    events.save(event);
+    publisher.publishEvent(new AlertActivityEvent(alert.getId(), AlertEventType.ASSIGNED));
+    audit.record(
+        "ALERT_ASSIGNEE_ADDED", "ALERT", id, "a=" + assignee.getUsername() + " par=" + byUsername);
+    return AlertResponse.from(alert, assignees(alert));
+  }
+
+  /** Retire un opérateur du suivi ; l'alerte reste prise en charge par les autres. */
+  @Transactional
+  public AlertResponse removeAssignee(UUID id, UUID assigneeId, String byUsername) {
+    Alert alert = find(id);
+    requireState(alert, "retirer un assigné", AlertState.OPEN, AlertState.IN_PROGRESS);
+    var current =
+        assignments.findAllByAlertIdAndEndedAtIsNullOrderByAssignedAtAsc(id).stream()
+            .filter(a -> a.getUser().getId().equals(assigneeId))
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Cet opérateur ne suit pas l'alerte"));
+    var now = clock.instant();
+    current.setEndedAt(now);
+    assignments.save(current);
+    var event = new AlertEvent(alert, AlertEventType.UNASSIGNED, now);
+    event.setAuthor(user(byUsername));
+    event.setComment("Retiré à " + current.getUser().getUsername());
+    events.save(event);
+    publisher.publishEvent(new AlertActivityEvent(alert.getId(), AlertEventType.UNASSIGNED));
+    audit.record(
+        "ALERT_ASSIGNEE_REMOVED",
+        "ALERT",
+        id,
+        "a=" + current.getUser().getUsername() + " par=" + byUsername);
+    return AlertResponse.from(alert, assignees(alert));
   }
 
   /** Résolution manuelle, par un opérateur ou un administrateur. */
@@ -161,18 +215,12 @@ public class AlertWorkflowService {
     requireState(alert, "résoudre", AlertState.OPEN, AlertState.IN_PROGRESS);
     AppUser user = user(username);
     var now = clock.instant();
-    assignments
-        .findByAlertIdAndEndedAtIsNull(id)
-        .ifPresent(
-            current -> {
-              current.setEndedAt(now);
-              assignments.save(current);
-            });
+    endAssignments(id, now);
     alert.setResolvedAt(now);
     alert.setResolutionType(ResolutionType.MANUAL);
     transition(alert, AlertState.RESOLVED, AlertEventType.RESOLVED, user, comment);
     audit.record("ALERT_RESOLVED", "ALERT", id, "par=" + username);
-    return AlertResponse.from(alert, null);
+    return AlertResponse.from(alert, java.util.List.of());
   }
 
   @Transactional
@@ -183,7 +231,7 @@ public class AlertWorkflowService {
     alert.setArchivedAt(clock.instant());
     transition(alert, AlertState.ARCHIVED, AlertEventType.ARCHIVED, user, null);
     audit.record("ALERT_ARCHIVED", "ALERT", id, "par=" + username);
-    return AlertResponse.from(alert, null);
+    return AlertResponse.from(alert, java.util.List.of());
   }
 
   /** Suppression logique : l'alerte et son historique restent en base. */
@@ -199,13 +247,7 @@ public class AlertWorkflowService {
         AlertState.ARCHIVED);
     AppUser user = user(username);
     var now = clock.instant();
-    assignments
-        .findByAlertIdAndEndedAtIsNull(id)
-        .ifPresent(
-            current -> {
-              current.setEndedAt(now);
-              assignments.save(current);
-            });
+    endAssignments(id, now);
     alert.setDeletedAt(now);
     transition(alert, AlertState.DELETED, AlertEventType.DELETED, user, null);
     audit.record("ALERT_DELETED", "ALERT", id, "par=" + username);
@@ -242,6 +284,18 @@ public class AlertWorkflowService {
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Alerte introuvable"));
   }
 
+  private AppUser eligible(UUID assigneeId) {
+    return users
+        .findById(assigneeId)
+        .filter(AppUser::isActive)
+        .filter(u -> u.getRole() == Role.NOC_OPERATOR || u.getRole() == Role.ADMIN)
+        .orElseThrow(
+            () ->
+                new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "L'assigné doit être un opérateur ou un administrateur actif"));
+  }
+
   private AppUser user(String username) {
     return users
         .findByUsername(username)
@@ -249,11 +303,17 @@ public class AlertWorkflowService {
             () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Utilisateur inconnu"));
   }
 
-  private String assignee(Alert alert) {
-    return assignments
-        .findByAlertIdAndEndedAtIsNull(alert.getId())
+  private java.util.List<String> assignees(Alert alert) {
+    return assignments.findAllByAlertIdAndEndedAtIsNullOrderByAssignedAtAsc(alert.getId()).stream()
         .map(assignment -> assignment.getUser().getUsername())
-        .orElse(null);
+        .toList();
+  }
+
+  private void endAssignments(UUID alertId, java.time.Instant now) {
+    for (var current : assignments.findAllByAlertIdAndEndedAtIsNullOrderByAssignedAtAsc(alertId)) {
+      current.setEndedAt(now);
+      assignments.save(current);
+    }
   }
 
   private static void requireState(Alert alert, String action, AlertState... allowed) {

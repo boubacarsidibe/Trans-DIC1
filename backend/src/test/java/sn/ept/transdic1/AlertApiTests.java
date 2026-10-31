@@ -247,6 +247,34 @@ class AlertApiTests {
   }
 
   @Test
+  void severalOperatorsCanFollowTheSameAlert() throws Exception {
+    act("POST", noc, alert.getId(), "prise-en-charge", null).andExpect(status().isOk());
+    String addAdmin = "{\"userId\":\"" + adminUser.getId() + "\"}";
+
+    act("POST", noc, alert.getId(), "assignes", addAdmin).andExpect(status().isForbidden());
+    act("POST", admin, alert.getId(), "assignes", addAdmin)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.assignees.length()").value(2))
+        .andExpect(jsonPath("$.assignee").value(nocUser.getUsername()));
+    // Ajouter deux fois le même opérateur ne crée pas de doublon.
+    act("POST", admin, alert.getId(), "assignes", addAdmin)
+        .andExpect(jsonPath("$.assignees.length()").value(2));
+    assertThat(activeAssignments()).isEqualTo(2);
+
+    act("DELETE", admin, alert.getId(), "assignes/" + nocUser.getId(), null)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.assignees.length()").value(1))
+        .andExpect(jsonPath("$.assignees[0]").value(adminUser.getUsername()));
+    act("DELETE", admin, alert.getId(), "assignes/" + nocUser.getId(), null)
+        .andExpect(status().isNotFound());
+    assertThat(auditCount("ALERT_ASSIGNEE_ADDED")).isEqualTo(1);
+
+    // La résolution libère tous les opérateurs.
+    act("POST", admin, alert.getId(), "resolution", null).andExpect(status().isOk());
+    assertThat(activeAssignments()).isZero();
+  }
+
+  @Test
   void manualResolutionClosesTheAssignmentAndCannotBeRepeated() throws Exception {
     act("POST", noc, alert.getId(), "prise-en-charge", null).andExpect(status().isOk());
 

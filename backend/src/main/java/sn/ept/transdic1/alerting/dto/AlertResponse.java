@@ -20,9 +20,11 @@ public record AlertResponse(
     Instant triggeredAt,
     Instant takenAt,
     Instant resolvedAt,
-    String assignee) {
+    String assignee,
+    java.util.List<String> assignees) {
 
-  public static AlertResponse from(Alert alert, String assignee) {
+  /** {@code assignee} reste le premier assigné, pour les clients qui n'en affichent qu'un. */
+  public static AlertResponse from(Alert alert, java.util.List<String> assignees) {
     return new AlertResponse(
         alert.getId(),
         alert.getEquipment().getId(),
@@ -35,6 +37,7 @@ public record AlertResponse(
         alert.getTriggeredAt(),
         alert.getTakenAt(),
         alert.getResolvedAt(),
-        assignee);
+        assignees.isEmpty() ? null : assignees.get(0),
+        java.util.List.copyOf(assignees));
   }
 }

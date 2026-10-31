@@ -532,6 +532,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/alertes/{id}/assignes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ajouter un opérateur au suivi
+         * @description Assignation multiple : les opérateurs déjà assignés restent assignés.
+         */
+        post: operations["addAssignee"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/alertes/{id}/assignation": {
         parameters: {
             query?: never;
@@ -896,6 +916,23 @@ export interface paths {
          * @description Suppression logique : l'alerte et son historique restent en base.
          */
         delete: operations["delete_4"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alertes/{id}/assignes/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Retirer un opérateur du suivi */
+        delete: operations["removeAssignee"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1336,6 +1373,7 @@ export interface components {
             /** Format: date-time */
             resolvedAt?: string;
             assignee?: string;
+            assignees?: string[];
         };
         PagedModelAlertResponse: {
             content?: components["schemas"]["AlertResponse"][];
@@ -3297,6 +3335,55 @@ export interface operations {
             };
         };
     };
+    addAssignee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Assigné invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Transition impossible depuis l'état actuel de l'alerte */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     assign: {
         parameters: {
             query?: never;
@@ -4086,6 +4173,45 @@ export interface operations {
             };
             /** @description Transition impossible depuis l'état actuel de l'alerte */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    removeAssignee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Opérateur non assigné */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

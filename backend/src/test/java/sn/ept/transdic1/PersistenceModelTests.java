@@ -765,10 +765,12 @@ class PersistenceModelTests {
     var alert = alerts.save(thresholdAlert(rule(), "occ-assign", AlertState.IN_PROGRESS));
     var assignment = assignments.save(new AlertAssignment(alert, user, NOW));
 
-    assertThat(assignments.findByAlertIdAndEndedAtIsNull(alert.getId())).isPresent();
+    assertThat(assignments.findAllByAlertIdAndEndedAtIsNullOrderByAssignedAtAsc(alert.getId()))
+        .hasSize(1);
     assignment.setEndedAt(NOW.plusSeconds(60));
     em.flush();
-    assertThat(assignments.findByAlertIdAndEndedAtIsNull(alert.getId())).isEmpty();
+    assertThat(assignments.findAllByAlertIdAndEndedAtIsNullOrderByAssignedAtAsc(alert.getId()))
+        .isEmpty();
   }
 
   @Test
