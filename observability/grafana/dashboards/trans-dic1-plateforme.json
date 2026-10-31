@@ -1,0 +1,161 @@
+{
+  "uid": "trans-dic1-plateforme",
+  "title": "Trans-DIC1 — Santé de la plateforme",
+  "description": "Santé, latence, erreurs, collectes, alertes, notifications et sauvegardes (ARCH-08).",
+  "tags": ["trans-dic1"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Backend joignable",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "refId": "A", "expr": "up{job=\"trans-dic1-backend\"}" }],
+      "fieldConfig": { "defaults": {
+        "mappings": [{ "type": "value", "options": { "0": { "text": "HORS SERVICE", "color": "red" }, "1": { "text": "OK", "color": "green" } } }],
+        "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+      }, "overrides": [] },
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 2, "type": "stat", "title": "Requêtes par seconde",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "refId": "A", "expr": "sum(rate(http_server_requests_seconds_count{job=\"trans-dic1-backend\"}[5m]))" }],
+      "fieldConfig": { "defaults": { "unit": "reqps", "decimals": 2 }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 3, "type": "stat", "title": "Erreurs 5xx",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "refId": "A", "expr": "sum(rate(http_server_requests_seconds_count{job=\"trans-dic1-backend\", status=~\"5..\"}[5m])) / sum(rate(http_server_requests_seconds_count{job=\"trans-dic1-backend\"}[5m]))" }],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 2,
+        "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 0.01 }, { "color": "red", "value": 0.05 }] }
+      }, "overrides": [] },
+      "options": { "colorMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 4, "type": "stat", "title": "Latence p95 (hors flux SSE)",
+      "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "refId": "A", "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"trans-dic1-backend\", uri!~\"/actuator.*|/api/v1/flux.*\"}[5m])))" }],
+      "fieldConfig": { "defaults": { "unit": "s", "decimals": 3,
+        "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 0.3 }, { "color": "red", "value": 0.5 }] }
+      }, "overrides": [] },
+      "options": { "colorMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 5, "type": "stat", "title": "Alertes actives",
+      "gridPos": { "x": 16, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "refId": "A", "expr": "sum(alerts_active{job=\"trans-dic1-backend\"})" }],
+      "fieldConfig": { "defaults": { "decimals": 0 }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 6, "type": "stat", "title": "Dernière sauvegarde",
+      "gridPos": { "x": 20, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "refId": "A", "expr": "time() - scheduled_job_last_run_seconds{exported_job=\"backup.postgres\"}" }],
+      "fieldConfig": { "defaults": { "unit": "s", "noValue": "aucune",
+        "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 93600 }] }
+      }, "overrides": [] },
+      "options": { "colorMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "Débit HTTP par statut",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "refId": "A", "expr": "sum by (status) (rate(http_server_requests_seconds_count{job=\"trans-dic1-backend\"}[5m]))", "legendFormat": "{{status}}" }],
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+    },
+    {
+      "id": 8, "type": "timeseries", "title": "Latence de l'API (p50, p95, p99)",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"trans-dic1-backend\", uri!~\"/actuator.*|/api/v1/flux.*\"}[5m])))", "legendFormat": "p50" },
+        { "refId": "B", "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"trans-dic1-backend\", uri!~\"/actuator.*|/api/v1/flux.*\"}[5m])))", "legendFormat": "p95" },
+        { "refId": "C", "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"trans-dic1-backend\", uri!~\"/actuator.*|/api/v1/flux.*\"}[5m])))", "legendFormat": "p99" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+    {
+      "id": 9, "type": "timeseries", "title": "Erreurs 5xx par route",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "refId": "A", "expr": "sum by (method, uri) (rate(http_server_requests_seconds_count{job=\"trans-dic1-backend\", status=~\"5..\"}[5m]))", "legendFormat": "{{method}} {{uri}}" }],
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+    },
+    {
+      "id": 10, "type": "timeseries", "title": "Alertes actives par sévérité",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "refId": "A", "expr": "alerts_active{job=\"trans-dic1-backend\"}", "legendFormat": "{{severity}}" }],
+      "fieldConfig": { "defaults": { "decimals": 0, "custom": { "stacking": { "mode": "normal" } } }, "overrides": [] }
+    },
+    {
+      "id": 11, "type": "timeseries", "title": "Durée des tâches planifiées (p95)",
+      "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "refId": "A", "expr": "histogram_quantile(0.95, sum by (le, exported_job) (rate(scheduled_job_duration_seconds_bucket{job=\"trans-dic1-backend\"}[15m])))", "legendFormat": "{{exported_job}}" }],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+    {
+      "id": 12, "type": "timeseries", "title": "Exécutions des tâches par statut",
+      "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "refId": "A", "expr": "sum by (exported_job, status) (increase(scheduled_job_runs_total{job=\"trans-dic1-backend\"}[15m]))", "legendFormat": "{{exported_job}} {{status}}" }],
+      "fieldConfig": { "defaults": { "decimals": 0 }, "overrides": [] }
+    },
+    {
+      "id": 13, "type": "timeseries", "title": "Mesures ingérées par minute",
+      "gridPos": { "x": 0, "y": 28, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(measures_received_total{job=\"trans-dic1-backend\"}[5m])) * 60", "legendFormat": "reçues" },
+        { "refId": "B", "expr": "sum(rate(measures_accepted_total{job=\"trans-dic1-backend\"}[5m])) * 60", "legendFormat": "retenues" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 14, "type": "table", "title": "Dernière exécution de chaque tâche",
+      "gridPos": { "x": 12, "y": 28, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "refId": "A", "expr": "scheduled_job_last_success{job=\"trans-dic1-backend\"}", "format": "table", "instant": true }],
+      "transformations": [{ "id": "organize", "options": { "excludeByName": { "Time": true, "__name__": true, "application": true, "instance": true, "job": true }, "renameByName": { "exported_job": "Tâche", "Value": "Dernière exécution réussie (1 = oui)" } } }],
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "id": 15, "type": "timeseries", "title": "File de notifications",
+      "gridPos": { "x": 0, "y": 36, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "notifications_queue{job=\"trans-dic1-backend\"}", "legendFormat": "{{state}}" },
+        { "refId": "B", "expr": "notifications_pending_oldest_age_seconds{job=\"trans-dic1-backend\"}", "legendFormat": "âge de la plus ancienne (s)" }
+      ],
+      "fieldConfig": { "defaults": { "decimals": 0 }, "overrides": [] }
+    },
+    {
+      "id": 16, "type": "timeseries", "title": "JVM et connexions PostgreSQL",
+      "gridPos": { "x": 12, "y": 36, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "sum(jvm_memory_used_bytes{job=\"trans-dic1-backend\", area=\"heap\"})", "legendFormat": "tas JVM utilisé" },
+        { "refId": "B", "expr": "sum(hikaricp_connections_active{job=\"trans-dic1-backend\"}) / sum(hikaricp_connections_max{job=\"trans-dic1-backend\"})", "legendFormat": "connexions PostgreSQL actives / max" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [
+        { "matcher": { "id": "byFrameRefID", "options": "B" }, "properties": [
+          { "id": "unit", "value": "percentunit" }, { "id": "custom.axisPlacement", "value": "right" }, { "id": "max", "value": 1 }
+        ] }
+      ] }
+    }
+  ]
+}

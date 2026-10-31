@@ -1,0 +1,18 @@
+# Envoi des alertes techniques (ARCH-08). En développement, les e-mails arrivent dans Mailpit
+# (http://localhost:8025). En staging et en production, remplacer l'adresse et le serveur SMTP par
+# ceux du CRI (voir docs/devops/observability.md) ; aucun mot de passe n'est versionné ici.
+route:
+  receiver: noc-email
+  group_by: ["alertname"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: noc-email
+    email_configs:
+      - to: noc@trans-dic1.local
+        from: alertmanager@trans-dic1.local
+        smarthost: mailpit:1025
+        require_tls: false
+        send_resolved: true
