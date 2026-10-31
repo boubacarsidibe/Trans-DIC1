@@ -1,0 +1,80 @@
+# Reverse proxy Trans-DIC1 (US23) : seul point d'entrée exposé. TLS terminé ici, interface servie
+# par le conteneur frontend, API par le backend. ${PUBLIC_HOSTNAME} est remplacé au démarrage ;
+# les variables nginx ($host, $remote_addr...) ne le sont pas.
+
+# HTTP : contrôle de santé interne, sinon redirection vers HTTPS.
+server {
+  listen 8080;
+  server_name _;
+  server_tokens off;
+
+  location = /healthz {
+    access_log off;
+    default_type text/plain;
+    return 200 "ok\n";
+  }
+
+  location / {
+    return 301 https://$host$request_uri;
+  }
+}
+
+server {
+  listen 8443 ssl;
+  http2 on;
+  server_name ${PUBLIC_HOSTNAME};
+  server_tokens off;
+
+  ssl_certificate /etc/nginx/tls/tls.crt;
+  ssl_certificate_key /etc/nginx/tls/tls.key;
+  ssl_protocols TLSv1.2 TLSv1.3;
+  ssl_prefer_server_ciphers off;
+  ssl_session_cache shared:SSL:10m;
+  ssl_session_timeout 1d;
+  ssl_session_tickets off;
+
+  client_max_body_size 5m;
+
+  # HSTS posé ici une seule fois : celui que l'API ajoute derrière un proxy HTTPS est masqué.
+  proxy_hide_header Strict-Transport-Security;
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+  # Le client ne choisit jamais son adresse : X-Forwarded-For est remplacé, pas complété. Le backend
+  # s'en sert pour limiter les tentatives de connexion par adresse.
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $remote_addr;
+  proxy_set_header X-Forwarded-Proto https;
+  proxy_set_header X-Forwarded-Host $host;
+  proxy_set_header X-Forwarded-Port $server_port;
+
+  # Flux temps réel (SSE) : pas de mise en tampon, connexion longue.
+  location /api/v1/flux {
+    proxy_pass http://backend:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_buffering off;
+    proxy_cache off;
+    proxy_read_timeout 1h;
+  }
+
+  location /api/ {
+    proxy_pass http://backend:8080;
+    proxy_http_version 1.1;
+    proxy_read_timeout 60s;
+  }
+
+  # Seule la santé globale est publique ; métriques et sondes détaillées restent internes.
+  location = /actuator/health {
+    proxy_pass http://backend:8080;
+  }
+
+  location /actuator/ {
+    return 404;
+  }
+
+  location / {
+    proxy_pass http://frontend:8080;
+    proxy_http_version 1.1;
+  }
+}

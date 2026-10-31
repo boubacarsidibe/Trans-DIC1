@@ -71,6 +71,8 @@ Le compte administrateur initial (`BOOTSTRAP_ADMIN_USERNAME` et `BOOTSTRAP_ADMIN
 
 Si `DATABASE_PASSWORD` ou `JWT_SECRET` manque, `docker compose` s'arrête avec un message explicite. `docker compose down -v` supprime aussi la base.
 
+Le déploiement de production (reverse proxy Nginx en HTTPS, réseaux séparés, conteneurs en lecture seule, sauvegarde, retour arrière automatique) utilise `docker-compose.prod.yml` et `deploy/deploy.sh` : voir [docs/devops/deployment.md](docs/devops/deployment.md).
+
 ## Documentation de l'API (OpenAPI / Swagger)
 
 Avec le backend démarré :

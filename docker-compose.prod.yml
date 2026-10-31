@@ -1,0 +1,195 @@
+# Déploiement de production selon le diagramme cible (US23) : docs/devops/deployment.md.
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+# Seul le reverse proxy est exposé. Les variables viennent de .env.prod sur le serveur (jamais
+# versionné ni copié dans une image). Les images sont repérées par IMAGE_TAG : revenir à la version
+# précédente, c'est redémarrer avec l'étiquette précédente (deploy/deploy.sh le fait seul).
+
+name: trans-dic1-prod
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-hardening: &hardening
+  restart: unless-stopped
+  logging: *logging
+  security_opt:
+    - no-new-privileges:true
+
+services:
+  proxy:
+    <<: *hardening
+    image: ${IMAGE_REGISTRY:-trans-dic1}/proxy:${IMAGE_TAG:-local}
+    build:
+      context: ./proxy
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    environment:
+      PUBLIC_HOSTNAME: ${PUBLIC_HOSTNAME:?PUBLIC_HOSTNAME est obligatoire (nom DNS de la plateforme)}
+    volumes:
+      # tls.crt et tls.key, fournis par le CRI (ou générés pour un test : voir deployment.md).
+      - ${TLS_CERT_DIR:-./proxy/tls}:/etc/nginx/tls:ro
+      # Configuration générée au démarrage depuis le modèle : seul dossier inscriptible avec /tmp.
+      - type: tmpfs
+        target: /etc/nginx/conf.d
+        tmpfs:
+          mode: 01777
+    tmpfs:
+      - /tmp
+    read_only: true
+    cap_drop: [ALL]
+    networks: [front]
+    ports:
+      - "${HTTP_PORT:-80}:8080"
+      - "${HTTPS_PORT:-443}:8443"
+
+  frontend:
+    <<: *hardening
+    image: ${IMAGE_REGISTRY:-trans-dic1}/frontend:${IMAGE_TAG:-local}
+    build:
+      context: ./frontend
+      args:
+        # Même origine que l'API derrière le proxy : pas de CORS, cookie SameSite=Strict accepté.
+        VITE_API_BASE_URL: /api/v1
+    tmpfs:
+      - /tmp
+    read_only: true
+    cap_drop: [ALL]
+    networks: [front]
+
+  backend:
+    <<: *hardening
+    image: ${IMAGE_REGISTRY:-trans-dic1}/backend:${IMAGE_TAG:-local}
+    build:
+      context: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      APP_ENV: ${APP_ENV:-production}
+      APP_PORT: 8080
+      FORWARD_HEADERS_STRATEGY: native
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${DATABASE_NAME:-trans_dic1}
+      DATABASE_USER: ${DATABASE_USER:-trans_dic1}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD est obligatoire}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET est obligatoire (32 caractères minimum)}
+      JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-900}
+      REFRESH_COOKIE_SECURE: "true"
+      REFRESH_MAX_AGE_SECONDS: ${REFRESH_MAX_AGE_SECONDS:-28800}
+      PUBLIC_URL: ${PUBLIC_URL:?PUBLIC_URL est obligatoire (ex. https://supervision.example)}
+      CORS_ALLOWED_ORIGINS: ${PUBLIC_URL}
+      BOOTSTRAP_ADMIN_USERNAME: ${BOOTSTRAP_ADMIN_USERNAME:-}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-25}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_AUTH: ${SMTP_AUTH:-false}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      NOTIFICATION_FROM: ${NOTIFICATION_FROM:-trans-dic1@ept.sn}
+      METRICS_SCRAPE_TOKEN: ${METRICS_SCRAPE_TOKEN:-}
+      TRACING_EXPORT_ENABLED: ${TRACING_EXPORT_ENABLED:-false}
+      TRACING_OTLP_ENDPOINT: ${TRACING_OTLP_ENDPOINT:-http://jaeger:4318/v1/traces}
+      TRACING_SAMPLING_PROBABILITY: ${TRACING_SAMPLING_PROBABILITY:-0.1}
+    # Sonde de disponibilité ; démarrage long toléré (migrations Flyway, serveur chargé : 215 s
+    # mesurées sur un poste partagé), vérifié toutes les 5 s pendant cette période.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health/readiness >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 300s
+      start_interval: 5s
+    tmpfs:
+      - /tmp
+    read_only: true
+    cap_drop: [ALL]
+    # front : reçoit le trafic du proxy et joint les équipements, SMTP et canaux de notification.
+    # back : seul chemin vers PostgreSQL.
+    networks: [front, back]
+
+  postgres:
+    <<: *hardening
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-trans_dic1}
+      POSTGRES_USER: ${DATABASE_USER:-trans_dic1}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD est obligatoire}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Aucun port publié ; réseau sans accès extérieur.
+    networks: [back]
+
+  backup:
+    <<: *hardening
+    image: ${IMAGE_REGISTRY:-trans-dic1}/backup:${IMAGE_TAG:-local}
+    build:
+      context: ./backup
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${DATABASE_NAME:-trans_dic1}
+      DATABASE_USER: ${DATABASE_USER:-trans_dic1}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD est obligatoire}
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:?BACKUP_ENCRYPTION_KEY est obligatoire (32 caractères minimum)}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      BACKUP_RESTORE_CHECK: ${BACKUP_RESTORE_CHECK:-true}
+      RTO_SECONDS: ${RTO_SECONDS:-14400}
+    volumes:
+      - ${BACKUP_HOST_DIR:-backup-data}:/backups
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    networks: [back]
+
+  # Supervision de la plateforme (ARCH-08), même configuration qu'en développement.
+  #   docker compose -f docker-compose.prod.yml --env-file .env.prod --profile observability up -d
+  prometheus:
+    extends: { file: docker-compose.yml, service: prometheus }
+    logging: *logging
+    networks: [front]
+  alertmanager:
+    extends: { file: docker-compose.yml, service: alertmanager }
+    logging: *logging
+    networks: [front]
+  grafana:
+    extends: { file: docker-compose.yml, service: grafana }
+    logging: *logging
+    networks: [front]
+  jaeger:
+    extends: { file: docker-compose.yml, service: jaeger }
+    logging: *logging
+    networks: [front]
+
+networks:
+  front:
+  back:
+    internal: true
+
+configs:
+  scrape-token:
+    content: ${METRICS_SCRAPE_TOKEN:-}
+
+volumes:
+  postgres-data:
+  backup-data:
+  prometheus-data:
+  grafana-data:
