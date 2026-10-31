@@ -6,6 +6,17 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 
 ### Added
 
+- Connexion unique OIDC avec le fournisseur d'identité de l'EPT : Authorization Code + PKCE côté écran, jetons du fournisseur validés côté serveur, rôles convertis, connexion locale gardée en secours, Keycloak de développement (ARCH-09, ADR 0017).
+- Relais des événements entre instances du backend par PostgreSQL LISTEN/NOTIFY avec table d'envoi et rattrapage (ARCH-10, ADR 0016).
+- Chaîne de livraison par scripts (construction, analyse des images, déploiement en staging, promotion) et chart Helm pour Kubernetes (OPS-01, OPS-03).
+- Détection d'anomalies des métriques par profil jour et heure, alertes de type Anomalie (FEAT-12, ADR 0015).
+- Regroupement des alertes de collecte sous une alerte racine grâce à la topologie (FEAT-11, ADR 0014).
+- Topologie du réseau et calcul de l'impact d'une panne (FEAT-10).
+- Vues de tableau de bord personnelles et partagées, écran mural NOC (FEAT-08).
+- Disponibilité et SLA par site, objectif par site, maintenances exclues, export PDF (FEAT-09, ADR 0013).
+- Plusieurs opérateurs assignés à une même alerte (FEAT-03).
+- Plan de validation sur l'infrastructure de l'EPT, proposition de seuils pour le CRI, brouillon du rapport final, trame de soutenance et scénario de démonstration (`docs/validation/`, `docs/soutenance/`).
+
 - Journal d'audit consultable et exportable en CSV par les administrateurs, en lecture seule (FEAT-06).
 - Escalade des alertes non prises en charge vers les administrateurs (FEAT-03).
 - Notifications vers e-mail, webhook signé, Teams et Slack, modèles de messages modifiables, historique et envoi de test ; file d'envoi idempotente et événements internes (ARCH-07, FEAT-05).
@@ -51,6 +62,8 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 
 ### Changed
 
+- Le journal d'audit des règles d'alerte garde l'ancienne et la nouvelle valeur (seuil, retour, confirmation, sévérité), pour revenir à un seuil précédent.
+- Nouvel habillage de l'interface : connexion avec photo, feuille de travail gris clair sur fond brun, tableaux et récapitulatifs uniformes.
 - Le backend passe à Java 21.
 - Les tests utilisent un vrai PostgreSQL 16 embarqué, sans Docker, à la place de H2 (ADR-0003). Un seul dossier de migrations.
 - Le jeton d'accès n'est plus stocké dans `sessionStorage` mais en mémoire.
