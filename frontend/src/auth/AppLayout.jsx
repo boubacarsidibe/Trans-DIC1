@@ -7,6 +7,7 @@ import {
   FileBarChart2,
   LayoutDashboard,
   LayoutTemplate,
+  Network,
   LogOut,
   Menu,
   Radar,
@@ -42,6 +43,7 @@ const SECTIONS = [
     links: [
       { to: "/equipements", label: "Équipements", icon: Server },
       { to: "/sites", label: "Sites", icon: Building2 },
+      { to: "/topologie", label: "Topologie", icon: Network },
       { to: "/maintenances", label: "Maintenances", icon: Wrench },
       { to: "/import", label: "Import CSV", icon: Upload, roles: ["ADMIN", "NOC_OPERATOR"] },
       { to: "/decouverte", label: "Découverte", icon: Radar, roles: ["ADMIN"] },

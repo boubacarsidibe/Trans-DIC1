@@ -54,6 +54,9 @@ tags:
 - name: Vues de tableau de bord
   description: Vues personnelles (widgets ordonnés) pour le tableau de bord et le
     mur d'écran NOC. Chaque utilisateur ne voit et ne modifie que ses propres vues.
+- name: Topologie
+  description: "Dépendances entre équipements et impact d'une panne. Consultation\
+    \ pour tous les rôles, modification des liens par les administrateurs."
 - name: Métriques
   description: Mesures collectées sur les équipements.
 - name: Agents de collecte
@@ -851,6 +854,39 @@ paths:
           description: Utilisateur introuvable
         "409":
           description: "Garde-fou : soi-même ou dernier administrateur"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/topologie/liens:
+    post:
+      tags:
+      - Topologie
+      summary: Déclarer qu'un équipement dépend d'un équipement amont
+      operationId: addLink
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LinkRequest"
+        required: true
+      responses:
+        "409":
+          description: Lien existant ou boucle
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Link"
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -1812,6 +1848,64 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/topologie:
+    get:
+      tags:
+      - Topologie
+      summary: "Graphe complet : équipements et liens vers l'amont"
+      operationId: graph
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Graph"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/topologie/impact/{equipmentId}:
+    get:
+      tags:
+      - Topologie
+      summary: Impact d'une panne
+      description: "Équipements en aval, rendus injoignables si celui-ci tombe."
+      operationId: impact
+      parameters:
+      - name: equipmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Impact"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/rapports/sla:
     get:
       tags:
@@ -2485,6 +2579,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/topologie/liens/{id}:
+    delete:
+      tags:
+      - Topologie
+      summary: Supprimer un lien
+      operationId: removeLink
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Lien introuvable
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/alertes/{id}/assignes/{userId}:
     delete:
       tags:
@@ -2944,6 +3068,30 @@ components:
           type: boolean
       required:
       - active
+    LinkRequest:
+      type: object
+      properties:
+        equipmentId:
+          type: string
+          format: uuid
+        upstreamId:
+          type: string
+          format: uuid
+      required:
+      - equipmentId
+      - upstreamId
+    Link:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        equipmentId:
+          type: string
+          format: uuid
+        upstreamId:
+          type: string
+          format: uuid
     SiteResponse:
       type: object
       properties:
@@ -3351,6 +3499,46 @@ components:
             $ref: "#/components/schemas/UserResponse"
         page:
           $ref: "#/components/schemas/PageMetadata"
+    Graph:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Node"
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/Link"
+    Node:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        inventoryCode:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        siteId:
+          type: string
+          format: uuid
+        siteName:
+          type: string
+    Impact:
+      type: object
+      properties:
+        equipmentId:
+          type: string
+          format: uuid
+        dependents:
+          type: array
+          items:
+            $ref: "#/components/schemas/Node"
     PagedModelSiteResponse:
       type: object
       properties:

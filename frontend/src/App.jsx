@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import ViewsPage from "./pages/ViewsPage.jsx";
+import TopologyPage from "./pages/TopologyPage.jsx";
 import WallPage from "./pages/WallPage.jsx";
 import AppLayout from "./auth/AppLayout.jsx";
 import ProtectedRoute from "./auth/ProtectedRoute.jsx";
@@ -32,6 +33,7 @@ function App() {
           <Route path="/equipements" element={<EquipmentPage />} />
           <Route path="/equipements/:id/historique" element={<MetricsPage />} />
           <Route path="/sites" element={<SitesPage />} />
+          <Route path="/topologie" element={<TopologyPage />} />
           <Route path="/alertes" element={<AlertsPage />} />
           <Route path="/maintenances" element={<MaintenancesPage />} />
           <Route path="/rapports" element={<ReportsPage />} />
