@@ -1,0 +1,7 @@
+apiVersion: v2
+name: trans-dic1
+description: Plateforme de supervision réseau de l'École Polytechnique de Thiès (backend, frontend, PostgreSQL optionnel).
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords: [supervision, noc, ept]

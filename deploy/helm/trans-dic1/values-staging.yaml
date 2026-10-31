@@ -1,0 +1,13 @@
+publicUrl: https://staging.supervision.ept.sn
+backend:
+  replicas: 1
+  autoscaling: { enabled: false }
+  env:
+    APP_ENV: staging
+frontend:
+  replicas: 1
+postgres:
+  enabled: true
+ingress:
+  host: staging.supervision.ept.sn
+  tlsSecret: trans-dic1-staging-tls

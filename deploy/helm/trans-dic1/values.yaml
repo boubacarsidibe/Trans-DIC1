@@ -1,0 +1,60 @@
+# Valeurs par défaut. Surcharges par environnement : values-staging.yaml, values-production.yaml.
+image:
+  registry: trans-dic1          # ex. ghcr.io/ept/trans-dic1
+  tag: local                    # étiquette produite par scripts/pipeline/pipeline.sh (hash du commit)
+  pullPolicy: IfNotPresent
+
+publicUrl: https://supervision.ept.sn
+
+# Secrets : jamais dans les valeurs. Un Secret Kubernetes existant, créé à la main ou par un
+# gestionnaire externe (External Secrets Operator), avec les clés DATABASE_PASSWORD, JWT_SECRET et,
+# si besoin, BOOTSTRAP_ADMIN_PASSWORD, SMTP_PASSWORD, METRICS_SCRAPE_TOKEN.
+existingSecret: trans-dic1-secrets
+
+backend:
+  replicas: 2
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits: { cpu: "1", memory: 1Gi }
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+  env:
+    APP_ENV: production
+    JWT_EXPIRATION_SECONDS: "900"
+    REFRESH_MAX_AGE_SECONDS: "28800"
+    SMTP_HOST: ""
+    SMTP_PORT: "25"
+    NOTIFICATION_FROM: trans-dic1@ept.sn
+    TRACING_EXPORT_ENABLED: "false"
+    DISCOVERY_ALLOWED_RANGES: ""
+
+frontend:
+  replicas: 2
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { cpu: 250m, memory: 128Mi }
+
+database:
+  # Base externe (recommandé en production) : host et nom ; le mot de passe vient de existingSecret.
+  host: ""
+  port: 5432
+  name: trans_dic1
+  user: trans_dic1
+
+# Base interne pour un cluster de test : une seule réplique, volume persistant.
+postgres:
+  enabled: false
+  image: postgres:16-alpine
+  storage: 10Gi
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+
+ingress:
+  enabled: true
+  className: nginx
+  host: supervision.ept.sn
+  tlsSecret: trans-dic1-tls

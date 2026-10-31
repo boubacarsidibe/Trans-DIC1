@@ -1,0 +1,4 @@
+Trans-DIC1 {{ .Values.image.tag }} déployé dans l'espace de noms {{ .Release.Namespace }}.
+Interface : {{ .Values.publicUrl }}
+Suivi : kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+Secret attendu : {{ .Values.existingSecret }} (DATABASE_PASSWORD, JWT_SECRET, ...).

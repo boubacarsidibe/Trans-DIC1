@@ -1,0 +1,66 @@
+# Modèle INACTIF : à copier dans .github/workflows/ quand GitHub Actions sera de nouveau disponible
+# (compte bloqué pour facturation, risque R2). Même enchaînement que scripts/pipeline/pipeline.sh.
+name: Livraison
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Étiquette (hash court) à passer en production
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}/trans-dic1
+
+jobs:
+  build:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: tag
+        run: echo "tag=$(git rev-parse --short=12 HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Tests, images, Trivy, publication
+        run: scripts/pipeline/pipeline.sh --no-deploy
+        env:
+          PUSH: "true"
+
+  staging:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Déploiement automatique en staging
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: cd /opt/trans-dic1 && ENV_FILE=.env.staging deploy/deploy.sh ${{ needs.build.outputs.tag }}
+
+  production:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    # Environnement protégé : approbation manuelle obligatoire avant ce job.
+    environment: production
+    steps:
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: cd /opt/trans-dic1 && ENV_FILE=.env.prod deploy/deploy.sh ${{ inputs.tag }}
