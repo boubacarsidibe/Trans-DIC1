@@ -933,6 +933,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/moi": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Utilisateur connecté et son rôle dans l'application */
+        get: operations["me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/configuration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Modes de connexion
+         * @description Connexion locale et/ou connexion unique OIDC (Authorization Code + PKCE) ; l'écran de connexion s'adapte à cette réponse.
+         */
+        get: operations["configuration"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit": {
         parameters: {
             query?: never;
@@ -1531,6 +1568,20 @@ export interface components {
         PagedModelHistoryItem: {
             content?: components["schemas"]["HistoryItem"][];
             page?: components["schemas"]["PageMetadata"];
+        };
+        Me: {
+            username?: string;
+            role?: string;
+        };
+        Configuration: {
+            localLogin?: boolean;
+            oidc?: components["schemas"]["Oidc"];
+        };
+        Oidc: {
+            enabled?: boolean;
+            issuer?: string;
+            clientId?: string;
+            scopes?: string;
         };
         AlertResponse: {
             /** Format: uuid */
@@ -3646,6 +3697,15 @@ export interface operations {
                     "*/*": components["schemas"]["TokenResponse"];
                 };
             };
+            /** @description Connexion locale désactivée : seule la connexion unique OIDC est ouverte */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TokenResponse"];
+                };
+            };
             /** @description Trop de tentatives depuis cette adresse, voir l'en-tête Retry-After */
             429: {
                 headers: {
@@ -4466,6 +4526,64 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Me"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    configuration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Configuration"];
                 };
             };
         };

@@ -931,6 +931,51 @@ thead {
   opacity: 0.8;
 }
 
+/* Connexion unique (OIDC) : bouton secondaire au-dessus du formulaire local. */
+.login-sso {
+  display: inline-flex;
+  width: 100%;
+  min-height: 3.1em;
+  margin-top: 1.4em;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6em;
+  border: 1px solid #b9b3aa;
+  border-radius: 10px;
+  background: #fff;
+  font-weight: 600;
+  font-size: 1em;
+  color: #2b2621;
+  cursor: pointer;
+  transition: border-color 0.18s, background-color 0.18s;
+}
+
+.login-sso:hover:not(:disabled) {
+  border-color: var(--signal);
+  background: #f4f8fa;
+}
+
+.login-sso:disabled {
+  cursor: progress;
+  opacity: 0.8;
+}
+
+.login-or {
+  display: flex;
+  margin-top: 1.2em;
+  align-items: center;
+  gap: 0.8em;
+  font-size: 0.85em;
+  color: #6b645c;
+}
+
+.login-or::before,
+.login-or::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid #d8d3cc;
+}
+
 .login-assist {
   margin-top: 1.1em;
   text-align: center;

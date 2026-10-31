@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import ViewsPage from "./pages/ViewsPage.jsx";
+import OidcCallbackPage from "./pages/OidcCallbackPage.jsx";
 import TopologyPage from "./pages/TopologyPage.jsx";
 import WallPage from "./pages/WallPage.jsx";
 import AppLayout from "./auth/AppLayout.jsx";
@@ -25,6 +26,7 @@ function App() {
   return (
     <Routes>
       <Route path="/connexion" element={<LoginPage />} />
+      <Route path="/auth/callback" element={<OidcCallbackPage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/mur" element={<WallPage />} />
         <Route element={<AppLayout />}>
@@ -47,7 +49,10 @@ function App() {
             <Route path="/utilisateurs" element={<UsersPage />} />
             <Route path="/audit" element={<AuditPage />} />
             <Route path="/canaux" element={<ChannelsPage />} />
-            <Route path="/equipements/:id/collecte" element={<CollectionPage />} />
+            <Route
+              path="/equipements/:id/collecte"
+              element={<CollectionPage />}
+            />
           </Route>
         </Route>
       </Route>

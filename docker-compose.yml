@@ -90,6 +90,14 @@ services:
       TRACING_SAMPLING_PROBABILITY: ${TRACING_SAMPLING_PROBABILITY:-0.1}
       # Découverte automatique (FEAT-07) : plages autorisées par l'exploitation.
       DISCOVERY_ALLOWED_RANGES: ${DISCOVERY_ALLOWED_RANGES:-}
+      # Connexion unique (ARCH-09) : avec le profil « sso », OIDC_ENABLED=true et
+      # OIDC_ISSUER_URI=http://localhost:8180/realms/trans-dic1 dans .env.
+      AUTH_LOCAL_ENABLED: ${AUTH_LOCAL_ENABLED:-true}
+      OIDC_ENABLED: ${OIDC_ENABLED:-false}
+      OIDC_ISSUER_URI: ${OIDC_ISSUER_URI:-}
+      # Dans le réseau Docker, « localhost » n'est pas Keycloak : les clés sont lues par son nom.
+      OIDC_JWK_SET_URI: ${OIDC_JWK_SET_URI:-http://keycloak:8180/realms/trans-dic1/protocol/openid-connect/certs}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-trans-dic1-web}
     ports:
       - "${BACKEND_HOST_PORT:-8080}:8080"
 
@@ -104,6 +112,27 @@ services:
         condition: service_healthy
     ports:
       - "${FRONTEND_HOST_PORT:-5173}:8080"
+
+  # --- Connexion unique de développement (ARCH-09), profil « sso » --------------------------------
+  # docker compose --profile sso up -d keycloak
+  # Royaume trans-dic1 importé au démarrage : client public trans-dic1-web (PKCE S256), trois rôles et
+  # trois comptes de démonstration. Mode développement uniquement : en production, c'est le
+  # fournisseur du CRI qui est utilisé (docs/devops/connexion-unique.md).
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3
+    profiles: ["sso"]
+    restart: unless-stopped
+    command: ["start-dev", "--import-realm", "--http-port=8180"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD est obligatoire dans .env pour le profil sso}
+      # Même nom d'hôte pour le navigateur et pour le backend (émetteur identique dans les jetons).
+      KC_HOSTNAME: http://localhost:8180
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+    volumes:
+      - ./deploy/keycloak/trans-dic1-realm.json:/opt/keycloak/data/import/trans-dic1-realm.json:ro
+    ports:
+      - "127.0.0.1:8180:8180"
 
   # --- Observabilité (ARCH-08), profil « observability » ---------------------------------------
   # docker compose --profile observability up -d --build
