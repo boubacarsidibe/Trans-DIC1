@@ -100,6 +100,9 @@ npm run lint
 npm test
 npm run build
 
+# Parcours de bout en bout dans un vrai navigateur (Docker et Chrome requis, docs/devops/e2e-tests.md)
+sh e2e/run-e2e.sh
+
 # Sauvegarde et restauration PostgreSQL (Docker requis)
 Set-Location ..
 bash backup/tests/backup-restore-test.sh
