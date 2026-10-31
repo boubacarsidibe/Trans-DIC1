@@ -68,3 +68,7 @@ reports/
 *.tar
 *.tar.gz
 
+
+# Certificats TLS du reverse proxy (US23) : jamais versionnés.
+proxy/tls/
+deploy/.deployed-tag
