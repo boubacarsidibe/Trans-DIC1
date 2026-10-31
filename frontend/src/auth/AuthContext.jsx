@@ -20,6 +20,18 @@ const AuthContext = createContext(null);
 // Le jeton d'accès est renouvelé un peu avant son expiration.
 const RENEW_MARGIN_MS = 30_000;
 
+/** Nom du compte lu dans le jeton (champ « sub »), pour l'affichage seulement. */
+function usernameOf(session) {
+  try {
+    const payload = session?.accessToken?.split(".")[1];
+    if (!payload) return null;
+    const json = atob(payload.replaceAll("-", "+").replaceAll("_", "/"));
+    return JSON.parse(json).sub ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(() => readSession());
   // Sans jeton en mémoire (rechargement de page), on tente d'abord de rétablir
@@ -77,6 +89,7 @@ export function AuthProvider({ children }) {
       isAuthenticated: Boolean(session),
       isInitializing: initializing,
       role: session?.role ?? null,
+      username: usernameOf(session),
       login,
       logout,
     }),

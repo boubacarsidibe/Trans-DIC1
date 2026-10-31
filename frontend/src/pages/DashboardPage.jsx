@@ -1,22 +1,51 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { Activity, AlertTriangle, BellRing, CheckCircle2, Cpu, Server, ServerOff } from "lucide-react";
 import apiClient from "../api/client.js";
 import { useLiveUpdates } from "../hooks/useLiveUpdates.js";
+import { LiveIndicator, SeverityBadge, StatusBadge } from "../ui/Badges.jsx";
+import PageHeader from "../ui/PageHeader.jsx";
+import { METRIC, label } from "../ui/labels.js";
 
-const STATUS_LABELS = {
-  UP: "En service",
-  DOWN: "Hors service",
-  DEGRADED: "Dégradé",
-  MAINTENANCE: "En maintenance",
-  UNKNOWN: "Inconnu",
+const STATUSES = ["UP", "DEGRADED", "MAINTENANCE", "DOWN", "UNKNOWN"];
+const STATUS_COLORS = {
+  UP: "#1f8a5b",
+  DEGRADED: "#c27b00",
+  MAINTENANCE: "#1160a8",
+  DOWN: "#c4302b",
+  UNKNOWN: "#9aa8ba",
 };
-
-const SEVERITY_LABELS = {
-  CRITICAL: "Critiques",
-  WARNING: "Avertissements",
-  INFO: "Informations",
-};
+const SEVERITIES = ["CRITICAL", "WARNING", "INFO"];
+const SEVERITY_COLORS = { CRITICAL: "#c4302b", WARNING: "#c27b00", INFO: "#1160a8" };
 
 const number = (value) => (typeof value === "number" ? String(value) : "—");
+
+/** Barre de répartition : proportions lisibles d'un coup d'œil, chiffres exacts dans la liste. */
+function Distribution({ items }) {
+  const total = items.reduce((sum, item) => sum + (item.value || 0), 0);
+  if (total === 0) return <div className="distribution distribution-empty" aria-hidden="true" />;
+  return (
+    <div className="distribution" aria-hidden="true">
+      {items
+        .filter((item) => item.value > 0)
+        .map((item) => (
+          <span key={item.key} style={{ flexGrow: item.value, background: item.color }} />
+        ))}
+    </div>
+  );
+}
+
+function Kpi({ icon: Icon, label: text, value, alarm }) {
+  return (
+    <article className={`kpi${alarm ? " kpi-alarm" : ""}`}>
+      <span className="kpi-icon" aria-hidden="true">
+        <Icon size={20} strokeWidth={2} />
+      </span>
+      <p className="kpi-label">{text}</p>
+      <p className="kpi-value">{value}</p>
+    </article>
+  );
+}
 
 function DashboardPage() {
   const [metrics, setMetrics] = useState([]);
@@ -28,18 +57,14 @@ function DashboardPage() {
     apiClient
       .get("/metrics/latest")
       .then(({ data }) => setMetrics(Array.isArray(data) ? data : []))
-      .catch(() =>
-        setMetricError("Les métriques sont temporairement indisponibles."),
-      );
+      .catch(() => setMetricError("Les métriques sont temporairement indisponibles."));
     apiClient
       .get("/vue-ensemble")
       .then(({ data }) => {
         setOverview(data?.equipments ? data : null);
         setOverviewError("");
       })
-      .catch(() =>
-        setOverviewError("Les chiffres clés sont temporairement indisponibles."),
-      );
+      .catch(() => setOverviewError("Les chiffres clés sont temporairement indisponibles."));
   }, []);
 
   useEffect(() => {
@@ -56,140 +81,119 @@ function DashboardPage() {
 
   const equipments = overview?.equipments;
   const alerts = overview?.alerts;
-  const indicators = [
-    {
-      label: "Équipements supervisés",
-      value: number(equipments?.total),
-      tone: "text-sky-300",
-      bar: "#1160a8",
-    },
-    {
-      label: "Équipements hors service",
-      value: number(equipments?.byStatus?.DOWN),
-      tone: "text-red-300",
-      bar: "#c4302b",
-    },
-    {
-      label: "Alertes actives",
-      value: number(alerts?.active),
-      tone: "text-amber-300",
-      bar: "#c27b00",
-    },
-    {
-      label: "Agents actifs",
-      value: number(overview?.activeAgents),
-      tone: "text-teal-300",
-      bar: "#0a5878",
-    },
-  ];
+  const critical = alerts?.activeBySeverity?.CRITICAL ?? 0;
+  const down = equipments?.byStatus?.DOWN ?? 0;
+  const latest = metrics[0];
 
   return (
-    <main className="app-shell px-6 py-10 sm:px-10 lg:px-16">
-      <div className="mx-auto max-w-6xl">
-        <header className="flex flex-col gap-5 border-b border-slate-700/60 pb-8 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-              Trans-DIC1
-            </h1>
-            <p className="mt-3 max-w-2xl text-slate-400">
-              Centre de supervision des infrastructures réseau et serveurs de l’École Polytechnique de Thiès.
-              <span className={`ml-3 text-xs ${live ? "text-emerald-300" : "text-slate-500"}`}>
-                ● {live ? "En direct" : "Hors ligne"}
-              </span>
-            </p>
-          </div>
-          {alerts && (
-            <span
-              className={`w-fit rounded-full border px-4 py-2 text-sm ${
-                alerts.activeBySeverity?.CRITICAL > 0
-                  ? "border-red-400/30 bg-red-400/10 text-red-200"
-                  : "border-emerald-400/30 bg-emerald-400/10 text-emerald-200"
-              }`}
-            >
-              {alerts.activeBySeverity?.CRITICAL > 0
-                ? `${alerts.activeBySeverity.CRITICAL} alerte(s) critique(s)`
-                : "Aucune alerte critique"}
-            </span>
-          )}
-        </header>
+    <main className="app-shell page">
+      <div className="page-inner">
+        <PageHeader
+          title="Tableau de bord"
+          description="Réseau et serveurs de l’École Polytechnique de Thiès."
+          aside={live ? <LiveIndicator /> : <span className="badge badge-muted">Hors ligne</span>}
+          actions={
+            alerts && (
+              <Link to="/alertes" className={`health ${critical > 0 ? "health-bad" : "health-ok"}`}>
+                {critical > 0 ? (
+                  <AlertTriangle size={18} aria-hidden="true" />
+                ) : (
+                  <CheckCircle2 size={18} aria-hidden="true" />
+                )}
+                <span>{critical > 0 ? `${critical} alerte(s) critique(s)` : "Aucune alerte critique"}</span>
+              </Link>
+            )
+          }
+        />
 
-        <section aria-labelledby="overview-title" className="mt-10">
-          <h2
-            id="overview-title"
-            className="text-lg font-medium text-slate-200"
-          >
-            Vue d'ensemble
-          </h2>
-          {overviewError && (
-            <p role="alert" className="mt-3 text-sm text-red-300">
-              {overviewError}
-            </p>
-          )}
-          <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {indicators.map((indicator) => (
-              <article
-                className="status-card rounded-2xl p-6"
-                style={{ borderLeft: `6px solid ${indicator.bar}` }}
-                key={indicator.label}
-              >
-                <p className="text-sm text-slate-400">{indicator.label}</p>
-                <p className={`mt-4 text-5xl font-semibold ${indicator.tone}`}>
-                  {indicator.value}
-                </p>
-              </article>
-            ))}
-          </div>
+        {overviewError && (
+          <p role="alert" className="notice notice-bad">
+            {overviewError}
+          </p>
+        )}
+
+        <section aria-label="Chiffres clés" className="kpi-grid">
+          <Kpi icon={Server} label="Équipements supervisés" value={number(equipments?.total)} />
+          <Kpi icon={ServerOff} label="Équipements hors service" value={number(equipments?.byStatus?.DOWN)} alarm={down > 0} />
+          <Kpi icon={BellRing} label="Alertes actives" value={number(alerts?.active)} alarm={(alerts?.active ?? 0) > 0} />
+          <Kpi icon={Cpu} label="Agents actifs" value={number(overview?.activeAgents)} />
         </section>
 
         {overview && (
-          <section className="mt-6 grid gap-4 md:grid-cols-2">
-            <article className="status-card rounded-2xl p-6">
-              <h2 className="text-lg font-medium text-white">
-                Équipements par statut
-              </h2>
-              <ul className="mt-4 space-y-2 text-sm text-slate-300">
-                {Object.entries(STATUS_LABELS).map(([status, label]) => (
-                  <li key={status} className="flex justify-between">
-                    <span>{label}</span>
-                    <span className="text-white">
-                      {number(equipments.byStatus?.[status])}
-                    </span>
+          <div className="mt-6 grid gap-5 lg:grid-cols-2">
+            <section aria-labelledby="statuts" className="panel">
+              <div className="panel-head">
+                <h2 id="statuts">Équipements par statut</h2>
+                <Link to="/equipements" className="panel-link">
+                  Voir le parc
+                </Link>
+              </div>
+              <Distribution
+                items={STATUSES.map((status) => ({
+                  key: status,
+                  value: equipments.byStatus?.[status] ?? 0,
+                  color: STATUS_COLORS[status],
+                }))}
+              />
+              <ul className="breakdown">
+                {STATUSES.map((status) => (
+                  <li key={status}>
+                    <StatusBadge status={status} />
+                    <span className="breakdown-count">{number(equipments.byStatus?.[status])}</span>
                   </li>
                 ))}
               </ul>
-            </article>
-            <article className="status-card rounded-2xl p-6">
-              <h2 className="text-lg font-medium text-white">
-                Alertes actives par sévérité
-              </h2>
-              <ul className="mt-4 space-y-2 text-sm text-slate-300">
-                {Object.entries(SEVERITY_LABELS).map(([severity, label]) => (
-                  <li key={severity} className="flex justify-between">
-                    <span>{label}</span>
-                    <span className="text-white">
-                      {number(alerts.activeBySeverity?.[severity])}
-                    </span>
+            </section>
+
+            <section aria-labelledby="severites" className="panel">
+              <div className="panel-head">
+                <h2 id="severites">Alertes actives par sévérité</h2>
+                <Link to="/alertes" className="panel-link">
+                  Voir les alertes
+                </Link>
+              </div>
+              <Distribution
+                items={SEVERITIES.map((severity) => ({
+                  key: severity,
+                  value: alerts.activeBySeverity?.[severity] ?? 0,
+                  color: SEVERITY_COLORS[severity],
+                }))}
+              />
+              <ul className="breakdown">
+                {SEVERITIES.map((severity) => (
+                  <li key={severity}>
+                    <SeverityBadge severity={severity} />
+                    <span className="breakdown-count">{number(alerts.activeBySeverity?.[severity])}</span>
                   </li>
                 ))}
-                <li className="flex justify-between border-t border-slate-700/60 pt-2">
+                <li className="breakdown-total">
                   <span>Ouvertes · prises en charge</span>
-                  <span className="text-white">
+                  <span className="breakdown-count">
                     {number(alerts.open)} · {number(alerts.inProgress)}
                   </span>
                 </li>
               </ul>
-            </article>
-          </section>
+            </section>
+          </div>
         )}
 
-        <section className="status-card mt-6 rounded-2xl p-6">
-          <h2 className="text-lg font-medium text-white">Dernière mesure</h2>
-          <p className="mt-1 text-sm text-slate-400">
-            {metrics[0]
-              ? `${metrics[0].equipmentName} · ${metrics[0].key} : ${metrics[0].value}${metrics[0].unit}`
-              : metricError ||
-                "Aucune mesure persistée pour le moment."}
-          </p>
+        <section aria-labelledby="mesure" className="panel mt-5">
+          <div className="panel-head">
+            <h2 id="mesure">Dernière mesure reçue</h2>
+          </div>
+          {latest ? (
+            <div className="latest">
+              <Activity size={20} aria-hidden="true" />
+              <span className="latest-equipment">{latest.equipmentName}</span>
+              <span className="latest-metric">{label(METRIC, latest.key)}</span>
+              <span className="latest-value">
+                {latest.value}
+                {latest.unit}
+              </span>
+            </div>
+          ) : (
+            <p className="text-slate-400">{metricError || "Aucune mesure reçue pour le moment."}</p>
+          )}
         </section>
       </div>
     </main>

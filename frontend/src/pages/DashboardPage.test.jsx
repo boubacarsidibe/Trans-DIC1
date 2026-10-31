@@ -84,7 +84,7 @@ describe("tableau de bord", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "chiffres clés sont temporairement indisponibles",
     );
-    expect(screen.getByRole("heading", { name: "Trans-DIC1" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Tableau de bord" })).toBeInTheDocument();
   });
 
   it("met les chiffres à jour quand une alerte change", async () => {

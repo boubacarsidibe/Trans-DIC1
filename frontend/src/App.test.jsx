@@ -69,7 +69,7 @@ describe("authentification", () => {
     await userEvent.type(screen.getByLabelText(/Nom d/), "admin");
     await userEvent.type(screen.getByLabelText("Mot de passe"), "secret");
     await userEvent.click(screen.getByRole("button", { name: "Se connecter" }));
-    await screen.findByRole("heading", { name: "Trans-DIC1" });
+    await screen.findByRole("heading", { name: "Tableau de bord" });
 
     expect(JSON.stringify({ ...sessionStorage })).not.toContain("jeton-secret");
     expect(JSON.stringify({ ...localStorage })).not.toContain("jeton-secret");
@@ -87,7 +87,7 @@ describe("authentification", () => {
     await userEvent.click(screen.getByRole("button", { name: "Se connecter" }));
 
     expect(
-      await screen.findByRole("heading", { name: "Trans-DIC1" }),
+      await screen.findByRole("heading", { name: "Tableau de bord" }),
     ).toBeInTheDocument();
     expect(apiClient.post).toHaveBeenCalledWith("/auth/login", {
       username: "admin",
