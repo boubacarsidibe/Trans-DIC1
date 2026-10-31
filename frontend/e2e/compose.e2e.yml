@@ -1,0 +1,63 @@
+# Pile jetable des tests de bout en bout (QA-02) : PostgreSQL, API et interface construites depuis
+# le dépôt, sur des ports dédiés de 127.0.0.1. Lancée par e2e/run-e2e.sh, qui fournit des secrets
+# aléatoires propres à chaque exécution. Aucune donnée réelle : base vide, comptes de test.
+
+name: tdic1-e2e
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: trans_dic1
+      POSTGRES_USER: trans_dic1
+      POSTGRES_PASSWORD: ${E2E_DATABASE_PASSWORD:?lancer les tests avec e2e/run-e2e.sh}
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trans_dic1 -d trans_dic1"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build:
+      context: ../../backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_NAME: trans_dic1
+      DATABASE_USER: trans_dic1
+      DATABASE_PASSWORD: ${E2E_DATABASE_PASSWORD}
+      JWT_SECRET: ${E2E_JWT_SECRET:?lancer les tests avec e2e/run-e2e.sh}
+      BOOTSTRAP_ADMIN_USERNAME: e2e-admin
+      BOOTSTRAP_ADMIN_EMAIL: e2e-admin@example.test
+      BOOTSTRAP_ADMIN_PASSWORD: ${E2E_PASSWORD:?lancer les tests avec e2e/run-e2e.sh}
+      # Navigateur en HTTP sur localhost : le cookie de renouvellement ne peut pas exiger HTTPS.
+      REFRESH_COOKIE_SECURE: "false"
+      CORS_ALLOWED_ORIGINS: http://localhost:15173
+      PUBLIC_URL: http://localhost:15173
+      # Les nombreuses connexions des tests viennent de la même adresse.
+      LOGIN_RATE_LIMIT_ATTEMPTS: "1000"
+      SMTP_HOST: localhost
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health/readiness >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 300s
+      start_interval: 5s
+    ports:
+      - "127.0.0.1:18080:8080"
+
+  frontend:
+    build:
+      context: ../../frontend
+      args:
+        VITE_API_BASE_URL: http://localhost:18080/api/v1
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:15173:8080"
