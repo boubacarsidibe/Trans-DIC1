@@ -37,6 +37,16 @@ export async function deleteRule(id) {
   await apiClient.delete(`/regles-alertes/${id}`);
 }
 
+// Rejoue la règle (enregistrée ou non) sur l'historique : rien n'est créé côté serveur.
+export async function testRule(payload, days) {
+  const { data } = await apiClient.post(
+    "/regles-alertes/test",
+    { rule: payload, days },
+    { timeout: 30_000 },
+  );
+  return data;
+}
+
 // Le seuil de retour doit être du côté normal du seuil d'ouverture : même règle que l'API.
 export function validateRule(values) {
   const errors = {};

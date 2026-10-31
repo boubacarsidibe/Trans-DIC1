@@ -151,7 +151,7 @@ public class AlertRuleService {
   }
 
   /** Le seuil de retour doit être du bon côté du seuil d'ouverture (même contrainte qu'en base). */
-  private static java.math.BigDecimal validRecovery(AlertRuleRequest request) {
+  static java.math.BigDecimal validRecovery(AlertRuleRequest request) {
     var recovery = request.recoveryThreshold();
     if (recovery == null) {
       return null;

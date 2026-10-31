@@ -97,7 +97,8 @@ class DiscoveryApiTests {
     registry.add("collection.snmp.default-port", AGENT::port);
     registry.add("discovery.allowed-ranges", () -> "127.0.0.0/30, 192.0.2.0/29");
     registry.add("discovery.max-hosts", () -> 5);
-    registry.add("discovery.host-timeout-ms", () -> 500);
+    // SNMPv3 demande un échange de découverte de plus : délai large pour un poste chargé.
+    registry.add("discovery.host-timeout-ms", () -> 2000);
     registry.add("DISCOVERY_TEST_COMMUNITY", () -> COMMUNITY);
     registry.add("DISCOVERY_TEST_WRONG", () -> "mauvaise-communaute");
     registry.add("DISCOVERY_TEST_V3", () -> "auth-pass-12345|priv-pass-12345");

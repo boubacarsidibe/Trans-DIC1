@@ -36,6 +36,8 @@ tags:
   description: "Recherche SNMP d'équipements sur une plage autorisée par l'exploitation.\
     \ Les équipements trouvés sont proposés, jamais créés automatiquement. Réservé\
     \ aux administrateurs."
+- name: Règles d'alerte
+  description: "Seuils, durée de confirmation, hystérésis et portée des règles."
 - name: Import de l'inventaire
   description: "Import CSV des équipements (code_inventaire;nom;adresse;type;statut;site)\
     \ : aperçu puis import des lignes valides. Réservé aux rôles ADMIN et NOC_OPERATOR."
@@ -1039,6 +1041,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/regles-alertes/test:
+    post:
+      tags:
+      - Règles d'alerte
+      summary: Tester une règle sur l'historique
+      description: "Rejoue la règle, enregistrée ou non, sur 1 à 7 jours de mesures\
+        \ et indique les alertes qu'elle aurait ouvertes. Rien n'est enregistré :\
+        \ ni règle, ni alerte, ni notification."
+      operationId: test
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RuleTestRequest"
+        required: true
+      responses:
+        "400":
+          description: "Règle invalide, portée vide ou trop large (50 équipements\
+            \ au plus)"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/maintenances:
     get:
       tags:
@@ -1487,7 +1520,7 @@ paths:
       summary: Envoyer un message de test
       description: Envoie un message fictif immédiatement et indique si le canal répond.
         Rien n'est enregistré dans l'historique.
-      operationId: test
+      operationId: test_1
       requestBody:
         content:
           application/json:
@@ -3215,6 +3248,19 @@ components:
         updatedAt:
           type: string
           format: date-time
+    RuleTestRequest:
+      type: object
+      properties:
+        rule:
+          $ref: "#/components/schemas/AlertRuleRequest"
+        days:
+          type: integer
+          format: int32
+          maximum: 7
+          minimum: 1
+      required:
+      - days
+      - rule
     MaintenanceRequest:
       type: object
       properties:
