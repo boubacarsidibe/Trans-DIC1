@@ -112,6 +112,7 @@ Les tests backend utilisent une base H2 en mémoire, isolée de PostgreSQL local
 ```text
 .
 ├── .github/              # collaboration et CI GitHub
+├── agent/                # agent Python à installer sur les serveurs (docs/devops/agent.md)
 ├── backend/              # API Spring Boot
 ├── backup/               # service de sauvegarde PostgreSQL (docs/devops/operations.md)
 ├── frontend/             # application React

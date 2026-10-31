@@ -1,0 +1,27 @@
+# Configuration de l'agent Trans-DIC1 : /etc/trans-dic1-agent/agent.conf
+# Chaque valeur peut être remplacée par une variable TRANS_DIC1_AGENT_<NOM> (ex. TRANS_DIC1_AGENT_INTERVAL).
+# Le jeton n'est jamais écrit ici : il est dans token_file (droits 600).
+
+[agent]
+# Adresse de la plateforme, en HTTPS (le reverse proxy de production).
+server_url = https://supervision.example
+
+# Jeton affiché une seule fois à l'enregistrement de l'agent dans la plateforme.
+token_file = /etc/trans-dic1-agent/token
+
+# Secondes entre deux relevés (10 à 240 ; la plateforme signale un agent muet après 300 s).
+interval = 60
+
+# Système de fichiers mesuré pour disk.usage.
+disk_path = /
+
+# Délai d'une requête (s), réessais après une erreur temporaire, attente initiale entre réessais (s).
+timeout = 10
+max_retries = 3
+backoff = 2
+
+# Mesures gardées en mémoire pendant une panne de la plateforme (les plus anciennes partent d'abord).
+buffer_limit = 2000
+
+# Autorité de certification interne, si le certificat de la plateforme n'est pas public.
+# ca_file = /etc/ssl/certs/autorite-interne.pem

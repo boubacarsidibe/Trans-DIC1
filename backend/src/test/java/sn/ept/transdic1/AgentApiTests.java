@@ -331,4 +331,31 @@ class AgentApiTests {
     send(token, measures("1", Instant.now()).replace("GOOD", "EXCELLENT"))
         .andExpect(status().isBadRequest());
   }
+
+  /**
+   * Contrat avec l'agent Trans-DIC1 (agent/) : le lot qu'il produit, figé dans un fichier que ses
+   * propres tests comparent à sa sortie, est accepté tel quel. Une mesure BAD est enregistrée sans
+   * être évaluée.
+   */
+  @Test
+  void leLotProduitParLAgentEstAccepteTelQuel() throws Exception {
+    String token = register();
+    String payload =
+        java.nio.file.Files.readString(
+            java.nio.file.Path.of("..", "agent", "tests", "fixtures", "agent-payload.json"));
+
+    send(token, payload)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.stored").value(4))
+        .andExpect(jsonPath("$.evaluated").value(3));
+
+    assertThat(
+            jdbc.queryForList(
+                "SELECT metric_key || ':' || quality FROM metric WHERE equipment_id = ?"
+                    + " ORDER BY metric_key",
+                String.class,
+                equipment.getId()))
+        .containsExactly(
+            "availability:GOOD", "cpu.usage:GOOD", "disk.usage:BAD", "memory.usage:GOOD");
+  }
 }
