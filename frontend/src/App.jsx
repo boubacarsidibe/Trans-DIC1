@@ -1,4 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import ViewsPage from "./pages/ViewsPage.jsx";
+import WallPage from "./pages/WallPage.jsx";
 import AppLayout from "./auth/AppLayout.jsx";
 import ProtectedRoute from "./auth/ProtectedRoute.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
@@ -23,8 +25,10 @@ function App() {
     <Routes>
       <Route path="/connexion" element={<LoginPage />} />
       <Route element={<ProtectedRoute />}>
+        <Route path="/mur" element={<WallPage />} />
         <Route element={<AppLayout />}>
           <Route path="/tableau-de-bord" element={<DashboardPage />} />
+          <Route path="/vues" element={<ViewsPage />} />
           <Route path="/equipements" element={<EquipmentPage />} />
           <Route path="/equipements/:id/historique" element={<MetricsPage />} />
           <Route path="/sites" element={<SitesPage />} />

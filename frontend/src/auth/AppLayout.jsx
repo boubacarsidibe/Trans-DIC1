@@ -6,6 +6,7 @@ import {
   Building2,
   FileBarChart2,
   LayoutDashboard,
+  LayoutTemplate,
   LogOut,
   Menu,
   Radar,
@@ -31,6 +32,7 @@ const SECTIONS = [
     title: "Supervision",
     links: [
       { to: "/tableau-de-bord", label: "Tableau de bord", icon: LayoutDashboard },
+      { to: "/vues", label: "Mes vues", icon: LayoutTemplate },
       { to: "/alertes", label: "Alertes", icon: BellRing },
       { to: "/rapports", label: "Rapports", icon: FileBarChart2 },
     ],

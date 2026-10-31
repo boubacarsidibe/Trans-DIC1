@@ -4,6 +4,7 @@ import { Activity, AlertTriangle, CheckCircle2 } from "lucide-react";
 import apiClient from "../api/client.js";
 import { useLiveUpdates } from "../hooks/useLiveUpdates.js";
 import { LiveIndicator, SeverityBadge, StatusBadge } from "../ui/Badges.jsx";
+import Donut from "../ui/Donut.jsx";
 import PageHeader from "../ui/PageHeader.jsx";
 import { METRIC, label } from "../ui/labels.js";
 
@@ -19,50 +20,6 @@ const SEVERITIES = ["CRITICAL", "WARNING", "INFO"];
 const SEVERITY_COLORS = { CRITICAL: "#c4302b", WARNING: "#c27b00", INFO: "#1160a8" };
 
 const number = (value) => (typeof value === "number" ? String(value) : "—");
-
-/**
- * Anneau de répartition : chaque segment est proportionnel à son nombre. Le chiffre central et la
- * légende donnent les valeurs exactes (l'anneau seul est décoratif pour un lecteur d'écran).
- */
-function Ring({ items, center, caption }) {
-  const radius = 42;
-  const length = 2 * Math.PI * radius;
-  const total = items.reduce((sum, item) => sum + (item.value || 0), 0);
-  let offset = 0;
-  return (
-    <svg className="donut" width="124" height="124" viewBox="0 0 110 110" aria-hidden="true">
-      <circle cx="55" cy="55" r={radius} fill="none" stroke="rgb(255 255 255 / 9%)" strokeWidth="11" />
-      {total > 0 &&
-        items
-          .filter((item) => item.value > 0)
-          .map((item) => {
-            const part = (item.value / total) * length;
-            const segment = (
-              <circle
-                key={item.key}
-                cx="55"
-                cy="55"
-                r={radius}
-                fill="none"
-                stroke={item.color}
-                strokeWidth="11"
-                strokeDasharray={`${Math.max(part - 2, 1)} ${length}`}
-                strokeDashoffset={-offset}
-                transform="rotate(-90 55 55)"
-              />
-            );
-            offset += part;
-            return segment;
-          })}
-      <text x="55" y="56" textAnchor="middle" className="donut-center">
-        {center}
-      </text>
-      <text x="55" y="72" textAnchor="middle" className="donut-caption">
-        {caption}
-      </text>
-    </svg>
-  );
-}
 
 function Figure({ label: text, value, alarm }) {
   return (
@@ -155,7 +112,7 @@ function DashboardPage() {
                 </Link>
               </div>
               <div className="ring-block">
-                <Ring
+                <Donut
                   items={STATUSES.map((status) => ({
                     key: status,
                     value: equipments.byStatus?.[status] ?? 0,
@@ -183,7 +140,7 @@ function DashboardPage() {
                 </Link>
               </div>
               <div className="ring-block">
-                <Ring
+                <Donut
                   items={SEVERITIES.map((severity) => ({
                     key: severity,
                     value: alerts.activeBySeverity?.[severity] ?? 0,
