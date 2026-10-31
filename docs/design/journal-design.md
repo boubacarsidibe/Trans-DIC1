@@ -133,6 +133,17 @@ Demande : appliquer la même finition à Maintenances et à toutes les pages inc
 - Derniers styles hérités remplacés (champs des indicateurs SNMP, bouton secondaire, encadré
   d'avertissement) : mêmes hauteurs et mêmes formes sur toutes les pages.
 
+## 2026-10-31 — Connexion : composition centrée
+
+Retour sur un écran de 1852×909 : slogan collé au bord gauche, carte au bord droit, grand vide au
+milieu, marges inégales ; lettres du slogan trop serrées ; icône d'œil barré affichée alors que le
+mot de passe était masqué (bouton natif d'Edge en doublon du nôtre).
+
+- Contenu centré dans une largeur de 70 em : marges égales (318 px à 1852 px, 123 px à 1366 px,
+  568 px à 2560 px), slogan et carte regroupés ; la photo reste plein écran.
+- Slogan : interlettrage −0,005 em (au lieu de −0,02 em), interligne 1,06.
+- Bouton natif d'Edge masqué (`::-ms-reveal`) : une seule icône, la nôtre.
+
 ## Dépendances
 
 - Ajout de `@playwright/test` 1.64.1 (publié le 14/10/2026) en dépendance de développement : captures

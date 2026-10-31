@@ -724,12 +724,15 @@ thead {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(23em, 27em);
   grid-template-rows: auto 1fr auto;
-  column-gap: clamp(2em, 6vw, 7em);
+  column-gap: clamp(2em, 5vw, 5.5em);
   height: 100vh;
   height: 100dvh;
   min-height: 34em;
   overflow: hidden;
-  padding: clamp(1.5em, 3.5vw, 3em) clamp(1.5em, 6vw, 6.5em);
+  /* Contenu centré dans une largeur maîtrisée : marges égales à gauche et à droite, le slogan et la
+     carte restent proches au lieu d'être collés aux deux bords d'un grand écran. */
+  padding-block: clamp(1.5em, 3.5vw, 3em);
+  padding-inline: max(clamp(1.5em, 5vw, 5em), calc((100% - 70em) / 2));
   background: #07111f;
   color: #fff;
   isolation: isolate;
@@ -785,8 +788,8 @@ thead {
   font-family: var(--font-display);
   font-size: clamp(2.6em, 5.6vw, 5em);
   font-weight: 700;
-  line-height: 1.02;
-  letter-spacing: -0.02em;
+  line-height: 1.06;
+  letter-spacing: -0.005em;
   text-shadow: 0 2px 24px rgb(0 0 0 / 35%);
 }
 
@@ -2442,4 +2445,11 @@ thead {
   min-height: 2.3rem;
   border-radius: 4px;
   padding: 0.35rem 0.6rem;
+}
+
+
+/* Edge ajoute son propre bouton « afficher le mot de passe » : il faisait doublon avec le nôtre. */
+.login-input::-ms-reveal,
+.login-input::-ms-clear {
+  display: none;
 }
