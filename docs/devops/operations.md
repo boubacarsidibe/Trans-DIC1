@@ -28,9 +28,11 @@ Ces valeurs sont une baseline d'ingénierie. Le CRI doit les confirmer avant le 
 
 Chaque service devra fournir une vérification de vivacité et, s'il dépend de ressources externes, une vérification de disponibilité. Un échec de dépendance ne doit pas provoquer une boucle de redémarrage destructive.
 
+Le backend expose `/actuator/health/liveness` et `/actuator/health/readiness`. La mise en œuvre de l'observabilité (métriques Prometheus, logs JSON, traces, alertes techniques, tableau Grafana) est décrite dans [observability.md](observability.md).
+
 ## Logs
 
-Format structuré recommandé : timestamp UTC, niveau, service, environnement, message, correlation ID et contexte non sensible. Ne jamais journaliser password, communauté SNMP, JWT complet, token, cookie, clé privée ou payload confidentiel.
+Format structuré recommandé : timestamp UTC, niveau, service, environnement, message, correlation ID et contexte non sensible. Ne jamais journaliser password, communauté SNMP, JWT complet, token, cookie, clé privée ou payload confidentiel. En profil `prod`, le backend écrit ses logs en JSON au format ECS ([observability.md](observability.md#logs)).
 
 ## Métriques minimales
 

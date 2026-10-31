@@ -38,6 +38,11 @@
 | `BACKUP_RESTORE_CHECK` | Non | Staging, production | `true` par défaut : chaque sauvegarde est suivie d'une restauration de contrôle sur une base jetable |
 | `RTO_SECONDS` | Non | Staging, production | Objectif de durée de restauration, 14400 (4 h) par défaut ; un contrôle plus long est en échec |
 | `BACKUP_HOST_DIR` | Non | Staging, production | Dossier hôte des sauvegardes, sur un stockage distinct du serveur applicatif ; vide = volume Docker `backup-data` |
+| `METRICS_SCRAPE_TOKEN` | Oui | Tous | Jeton de Prometheus pour `/actuator/prometheus` (32 caractères minimum) ; vide, l'endpoint est fermé à tous |
+| `TRACING_EXPORT_ENABLED` | Non | Tous | `false` par défaut ; `true` exporte les traces OpenTelemetry vers `TRACING_OTLP_ENDPOINT` |
+| `TRACING_OTLP_ENDPOINT` | Selon topologie | Tous | Collecteur OTLP HTTP, `http://localhost:4318/v1/traces` par défaut (`http://jaeger:4318/v1/traces` dans Compose) |
+| `TRACING_SAMPLING_PROBABILITY` | Non | Tous | Part des requêtes tracées, 0.1 par défaut |
+| `GRAFANA_ADMIN_PASSWORD` | Oui | Tous | Mot de passe du compte `admin` de Grafana (profil Compose `observability`) |
 
 Les variables non retenues par la stack devront être supprimées du contrat plutôt que laissées inactives.
 

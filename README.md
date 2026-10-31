@@ -116,6 +116,7 @@ Les tests backend utilisent une base H2 en mémoire, isolée de PostgreSQL local
 ├── docs/adr/             # décisions d'architecture
 ├── docs/architecture/    # modèle et flux fonctionnels
 ├── docs/devops/          # exploitation locale et cible
+├── observability/        # Prometheus, alertes, Grafana (docs/devops/observability.md)
 ├── scripts/              # contrôles reproductibles
 └── .env.example          # contrat de configuration sans secret
 ```
