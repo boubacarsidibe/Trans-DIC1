@@ -51,6 +51,9 @@ tags:
 - name: Authentification
   description: Jeton d'accès (corps de la réponse) et jeton de renouvellement (cookie
     HttpOnly).
+- name: Vues de tableau de bord
+  description: Vues personnelles (widgets ordonnés) pour le tableau de bord et le
+    mur d'écran NOC. Chaque utilisateur ne voit et ne modifie que ses propres vues.
 - name: Métriques
   description: Mesures collectées sur les équipements.
 - name: Agents de collecte
@@ -64,6 +67,69 @@ tags:
   description: "Consultation et export du journal des actions sensibles. Réservé aux\
     \ administrateurs ; le journal est en lecture seule, aucune route ne le modifie."
 paths:
+  /api/v1/vues/{id}:
+    put:
+      tags:
+      - Vues de tableau de bord
+      summary: Modifier une vue
+      operationId: update
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ViewRequest"
+        required: true
+      responses:
+        "404":
+          description: Vue introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      tags:
+      - Vues de tableau de bord
+      summary: Supprimer une vue
+      operationId: delete
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Vue introuvable
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/sites/{id}:
     get:
       tags:
@@ -97,7 +163,7 @@ paths:
       - Sites
       summary: Modifier un site
       description: Le code ne peut pas changer.
-      operationId: update
+      operationId: update_1
       parameters:
       - name: id
         in: path
@@ -132,7 +198,7 @@ paths:
       tags:
       - Sites
       summary: Supprimer un site vide
-      operationId: delete
+      operationId: delete_1
       parameters:
       - name: id
         in: path
@@ -191,7 +257,7 @@ paths:
       tags:
       - Règles d'alerte
       summary: Remplacer une règle et sa portée
-      operationId: update_1
+      operationId: update_2
       parameters:
       - name: id
         in: path
@@ -229,7 +295,7 @@ paths:
       - Règles d'alerte
       summary: Supprimer une règle
       description: "Refusé si la règle a déjà produit des alertes : désactivez-la."
-      operationId: delete_1
+      operationId: delete_2
       parameters:
       - name: id
         in: path
@@ -351,7 +417,7 @@ paths:
       tags:
       - Équipements
       summary: Modifier un équipement
-      operationId: update_2
+      operationId: update_3
       parameters:
       - name: id
         in: path
@@ -400,7 +466,7 @@ paths:
       tags:
       - Équipements
       summary: Supprimer un équipement
-      operationId: delete_2
+      operationId: delete_3
       parameters:
       - name: id
         in: path
@@ -496,7 +562,7 @@ paths:
       - Collecte SNMP
       summary: Arrêter la collecte SNMP
       description: Désactive la collecte ; les mesures déjà reçues sont conservées.
-      operationId: delete_3
+      operationId: delete_4
       parameters:
       - name: equipmentId
         in: path
@@ -554,13 +620,74 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/vues:
+    get:
+      tags:
+      - Vues de tableau de bord
+      summary: Mes vues
+      operationId: list
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ViewResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      tags:
+      - Vues de tableau de bord
+      summary: Créer une vue
+      description: "Widgets possibles : summary, statuses, severities, open-alerts,\
+        \ down-equipments, latest-metric."
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ViewRequest"
+        required: true
+      responses:
+        "409":
+          description: Nom déjà utilisé
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ViewResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/utilisateurs:
     get:
       tags:
       - Utilisateurs
       summary: Lister les comptes
       description: "Liste paginée (20 par page, tri par nom)."
-      operationId: list
+      operationId: list_1
       parameters:
       - name: pageable
         in: query
@@ -590,7 +717,7 @@ paths:
       tags:
       - Utilisateurs
       summary: Créer un compte
-      operationId: create
+      operationId: create_1
       requestBody:
         content:
           application/json:
@@ -742,7 +869,7 @@ paths:
       - Sites
       summary: Lister les sites
       description: "Liste paginée (20 par page, tri par nom), filtrable par statut."
-      operationId: list_1
+      operationId: list_2
       parameters:
       - name: status
         in: query
@@ -780,7 +907,7 @@ paths:
       tags:
       - Sites
       summary: Créer un site
-      operationId: create_1
+      operationId: create_2
       requestBody:
         content:
           application/json:
@@ -816,7 +943,7 @@ paths:
       - Règles d'alerte
       summary: Lister les règles
       description: "Liste paginée (20 par page, tri par nom)."
-      operationId: list_2
+      operationId: list_3
       parameters:
       - name: pageable
         in: query
@@ -846,7 +973,7 @@ paths:
       tags:
       - Règles d'alerte
       summary: Créer une règle
-      operationId: create_2
+      operationId: create_3
       requestBody:
         content:
           application/json:
@@ -883,7 +1010,7 @@ paths:
       summary: Lister les maintenances
       description: "Liste paginée (20 par page, début le plus récent d'abord), filtrable\
         \ par état, site et équipement."
-      operationId: list_3
+      operationId: list_4
       parameters:
       - name: state
         in: query
@@ -935,7 +1062,7 @@ paths:
       tags:
       - Maintenances
       summary: Planifier une maintenance
-      operationId: create_3
+      operationId: create_4
       requestBody:
         content:
           application/json:
@@ -1000,7 +1127,7 @@ paths:
       summary: Lister les équipements
       description: "Liste paginée (20 par page, tri par nom), filtrable par site,\
         \ type et statut."
-      operationId: list_4
+      operationId: list_5
       parameters:
       - name: siteId
         in: query
@@ -1058,7 +1185,7 @@ paths:
       tags:
       - Équipements
       summary: Créer un équipement
-      operationId: create_4
+      operationId: create_5
       requestBody:
         content:
           application/json:
@@ -2114,7 +2241,7 @@ paths:
       summary: Consulter le journal
       description: "Liste paginée (50 par page, plus récentes d'abord), filtrable\
         \ par période (from inclus, to exclu), compte, action et cible."
-      operationId: list_5
+      operationId: list_6
       parameters:
       - name: from
         in: query
@@ -2257,7 +2384,7 @@ paths:
       summary: Lister les alertes
       description: "Liste paginée (20 par page, plus récentes d'abord), filtrable\
         \ par état et par équipement. Les alertes supprimées sont masquées."
-      operationId: list_6
+      operationId: list_7
       parameters:
       - name: state
         in: query
@@ -2333,7 +2460,7 @@ paths:
       - Alertes
       summary: Supprimer une alerte
       description: "Suppression logique : l'alerte et son historique restent en base."
-      operationId: delete_4
+      operationId: delete_5
       parameters:
       - name: id
         in: path
@@ -2394,6 +2521,24 @@ paths:
                 $ref: "#/components/schemas/ApiError"
 components:
   schemas:
+    ViewRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 80
+          minLength: 0
+        widgets:
+          type: array
+          items:
+            type: string
+            maxLength: 40
+            minLength: 0
+          maxItems: 12
+          minItems: 0
+      required:
+      - name
+      - widgets
     SiteRequest:
       type: object
       properties:
@@ -2705,6 +2850,24 @@ components:
       required:
       - bodyTemplate
       - subjectTemplate
+    ViewResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        widgets:
+          type: array
+          items:
+            type: string
+        position:
+          type: integer
+          format: int32
+        updatedAt:
+          type: string
+          format: date-time
     UserCreateRequest:
       type: object
       properties:
