@@ -29,22 +29,34 @@ Décisions de design de Trans-DIC1, avec leur raison. Chaque passe est vérifié
   libellés visibles plutôt que placeholders, retour de chargement sur les boutons, survol en
   150–300 ms, curseur pointeur sur les éléments cliquables.
 
-## 2026-10-31 — Page de connexion
+## 2026-10-31 — Page de connexion (version 2, retenue)
 
-Refaite entièrement.
+Première version (schéma de réseau dessiné, texte d'explication, liste d'atouts) **refusée** par
+Boubacar : trop de texte, pas de vraie image. Demande : une vraie photo en fond, un seul slogan,
+une ergonomie nette, et tout sur un seul écran.
 
-- **Panneau gauche « tableau de garde »** : un schéma du réseau du campus (routeur cœur,
-  commutateurs, serveurs, pare-feu) avec les trois états de la plateforme. C'est l'objet que les
-  utilisateurs retrouveront dans l'application, pas une illustration générique. Le nœud hors service
-  émet une onde lente (coupée en mouvement réduit). Le schéma est décoratif (`aria-hidden`) ; la
-  légende en texte en donne le sens.
-- **Formulaire** : libellés visibles, bouton « Afficher / Masquer » le mot de passe (`aria-pressed`),
-  avertissement « Verrouillage majuscules activé », erreur encadrée avec icône, bouton avec
-  indicateur de chargement (`aria-busy`), champs marqués `aria-invalid` après un échec. Le message
-  d'erreur reste générique (il ne dit pas si c'est le compte ou le mot de passe qui est faux).
-- **Aide** : « Pas de compte ou mot de passe oublié ? Contactez l'administrateur du CRI » — il n'y a
-  pas de réinitialisation en libre-service, on ne promet pas un lien qui n'existe pas.
-- **Téléphone** : le panneau se réduit à un bandeau de marque ; le formulaire passe en premier.
+- **Photo plein écran** : câbles réseau bleus branchés sur des commutateurs, voyants jaunes. C'est
+  du réseau (le métier de la plateforme), pas un cliché générique de serveurs ; le bleu rejoint le
+  bleu signal et les voyants le jaune de marque.
+  - Photo de Scott Rodgerson sur Unsplash (`PSpf_XgOM5w`), **licence Unsplash** : usage commercial et
+    non commercial libre, sans autorisation ni crédit obligatoire. Crédit laissé en commentaire dans
+    `LoginPage.jsx` et ici.
+  - Écartées : deux photos « Unsplash+ » (payantes, Getty Images) ; une allée de baies claire (texte
+    blanc illisible dessus) ; la photo de baies de Taylor Vick (très utilisée, déjà vue partout).
+  - Servie en WebP local (pas de lien vers Unsplash à l'exécution) : 2000 px pour les écrans larges
+    (160 Ko), 900 px pour les téléphones (57 Ko), choisie par `srcset`.
+- **Contraste** : voile bleu nuit en dégradé, dense sous le slogan, plus léger derrière la carte ;
+  le formulaire est sur une carte blanche opaque, donc son contraste ne dépend pas de la photo.
+- **Texte réduit au minimum** : marque, slogan « Votre réseau, sous contrôle. », la carte, une
+  ligne d'aide, le nom de l'école.
+- **Un seul écran** : hauteur `100dvh`, sans défilement, vérifié en 1440×900, 1280×720 (avec le
+  message d'erreur affiché) et 390×844.
+- **Ergonomie du formulaire** : libellés visibles, focus automatique sur le nom d'utilisateur, œil
+  pour afficher/masquer le mot de passe (`aria-pressed`, zone de 42 px), avertissement de
+  verrouillage des majuscules, erreur encadrée avec icône et annoncée (`role="alert"`), champs en
+  rouge (`aria-invalid`), bouton avec indicateur de chargement. Message d'erreur générique (on ne
+  révèle pas si le compte existe).
+- **Téléphone** : la photo devient un bandeau sous la marque et le slogan, la carte suit.
 
 ## Dépendances
 
