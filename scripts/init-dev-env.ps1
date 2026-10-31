@@ -30,6 +30,7 @@ if (-not (Test-Path -LiteralPath $EnvFile -PathType Leaf)) {
 $generated = @{
     DATABASE_PASSWORD         = { New-RandomHex 16 }
     JWT_SECRET                = { New-RandomHex 32 }
+    BACKUP_ENCRYPTION_KEY     = { New-RandomHex 32 }
     BOOTSTRAP_ADMIN_USERNAME  = { 'admin' }
     BOOTSTRAP_ADMIN_EMAIL     = { 'admin@trans-dic1.local' }
     BOOTSTRAP_ADMIN_PASSWORD  = { 'Dev-' + (New-RandomHex 8) }

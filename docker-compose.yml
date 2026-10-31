@@ -1,5 +1,6 @@
 # Environnement local complet : PostgreSQL, backend, frontend et Mailpit.
 #   docker compose up --build
+# Service de sauvegarde en option (OPS-02) : docker compose --profile backup up -d --build
 # Les variables sont lues dans le fichier .env à la racine (voir .env.example).
 
 name: trans-dic1
@@ -22,6 +23,32 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  # Sauvegarde chiffrée et restauration de contrôle quotidiennes (OPS-02).
+  backup:
+    build:
+      context: ./backup
+    profiles: ["backup"]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${DATABASE_NAME:-trans_dic1}
+      DATABASE_USER: ${DATABASE_USER:-trans_dic1}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD est obligatoire dans .env}
+      # Obligatoire (32 caractères minimum) : le conteneur refuse de démarrer sans elle.
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:-}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      BACKUP_RESTORE_CHECK: ${BACKUP_RESTORE_CHECK:-true}
+      RTO_SECONDS: ${RTO_SECONDS:-14400}
+    volumes:
+      # Volume nommé par défaut ; en production, un dossier monté depuis un stockage distinct
+      # du serveur applicatif (BACKUP_HOST_DIR=/chemin), accessible en écriture à l'uid 70.
+      - ${BACKUP_HOST_DIR:-backup-data}:/backups
 
   mailpit:
     image: axllent/mailpit:v1.21
@@ -73,3 +100,4 @@ services:
 
 volumes:
   postgres-data:
+  backup-data:
