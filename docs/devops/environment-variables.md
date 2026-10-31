@@ -15,6 +15,11 @@
 | `APP_ENV` | Non | Tous | `development`, `testing`, `staging` ou `production` |
 | `APP_HOST` | Non | Local | Interface d'écoute ou hôte local |
 | `APP_PORT` | Non | Tous | Port, à fixer avec le premier service |
+| `FORWARD_HEADERS_STRATEGY` | Non | Tous | `none` par défaut ; `native` derrière le reverse proxy pour lire l'adresse du client et le protocole dans `X-Forwarded-*` (fixé par `docker-compose.prod.yml`) |
+| `PUBLIC_HOSTNAME` | Non | Staging, production | Nom DNS servi par le reverse proxy (`server_name` et certificat) |
+| `TLS_CERT_DIR` | Non | Staging, production | Dossier contenant `tls.crt` et `tls.key`, monté en lecture seule dans le proxy ; `./proxy/tls` par défaut, jamais versionné |
+| `HTTP_PORT`, `HTTPS_PORT` | Non | Staging, production | Ports publiés par le proxy, 80 et 443 par défaut |
+| `IMAGE_REGISTRY`, `IMAGE_TAG` | Non | Staging, production | Préfixe et version des images ; `deploy/deploy.sh` fixe `IMAGE_TAG` à chaque déploiement |
 | `DATABASE_HOST` | Selon topologie | Tous | Hôte de la base |
 | `DATABASE_PORT` | Non | Tous | Port de la base |
 | `DATABASE_NAME` | Non | Tous | Nom logique de la base |

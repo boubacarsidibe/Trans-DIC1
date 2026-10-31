@@ -152,3 +152,5 @@ Chaque release doit référencer l'artefact précédent. En cas d'échec de dém
 3. restaurer les données uniquement selon une procédure validée ;
 4. vérifier santé et métriques ;
 5. ouvrir un incident et conserver les éléments non sensibles utiles.
+
+`deploy/deploy.sh` applique cette procédure automatiquement : il fait une sauvegarde avant le déploiement, contrôle la nouvelle version et revient à la précédente en cas d'échec ([deployment.md](deployment.md)).
