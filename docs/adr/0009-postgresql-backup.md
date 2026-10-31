@@ -38,7 +38,7 @@ Deux contraintes du dépôt pèsent sur le choix :
 
 ## Conséquences
 
-- Le test `backup/tests/backup-restore-test.sh` fait partie de la CI (job « Backup and restore test »). Il applique les migrations réelles et restaure sur un serveur vierge. Il compare ensuite chaque table, nombre de lignes et empreinte MD5 comprises.
+- Le test `backup/tests/backup-restore-test.sh` se lance avec Docker seul, en local ou dans une future CI. Il applique les migrations réelles et restaure sur un serveur vierge. Il compare ensuite chaque table, nombre de lignes et empreinte MD5 comprises.
 - La clé de chiffrement doit être conservée hors du serveur : sans elle, aucune sauvegarde n'est restaurable.
 - Le stockage hors du serveur applicatif dépend de la cible d'hébergement du CRI. Le service écrit dans un dossier (`BACKUP_HOST_DIR`) qui doit être monté depuis un stockage distinct ; tant que cette cible n'existe pas, ce critère reste à valider en staging.
 - Si le RPO descend sous quelques heures, l'option C devra être réévaluée.

@@ -123,7 +123,7 @@ Pour restaurer dans une autre base, sans toucher à la production, remplacer `tr
 bash backup/tests/backup-restore-test.sh
 ```
 
-Le test n'a besoin que de Docker et tourne en CI (job « Backup and restore test »). Il procède ainsi :
+Le test n'a besoin que de Docker ; il est à lancer avant toute modification du dossier `backup/` (le dépôt n'a plus de CI GitHub Actions). Il procède ainsi :
 
 1. il applique toutes les migrations Flyway du backend à une base source et ajoute 5 000 lignes fictives ;
 2. il sauvegarde cette base, puis vérifie le chiffrement, l'empreinte et le manifeste ;
