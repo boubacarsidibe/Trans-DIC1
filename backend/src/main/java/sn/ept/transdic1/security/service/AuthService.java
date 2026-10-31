@@ -171,7 +171,12 @@ public class AuthService {
   private AuthSession authSession(AppUser u, String refreshToken, Instant expiresAt, Instant now) {
     long remaining = Math.max(Duration.between(now, expiresAt).getSeconds(), 0);
     var token =
-        new TokenResponse(jwt.issue(u), "Bearer", jwt.expirationSeconds(), u.getRole().name());
+        new TokenResponse(
+            jwt.issue(u),
+            "Bearer",
+            jwt.expirationSeconds(),
+            u.getRole().name(),
+            u.isPasswordChangeRequired());
     return new AuthSession(token, refreshToken, remaining);
   }
 

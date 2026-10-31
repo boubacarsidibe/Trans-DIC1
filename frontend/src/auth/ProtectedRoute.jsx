@@ -2,7 +2,7 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext.jsx";
 
 function ProtectedRoute({ roles }) {
-  const { isAuthenticated, isInitializing, role } = useAuth();
+  const { isAuthenticated, isInitializing, role, passwordChangeRequired } = useAuth();
   const location = useLocation();
 
   if (isInitializing) {
@@ -17,6 +17,12 @@ function ProtectedRoute({ roles }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/connexion" replace state={{ from: location }} />;
+  }
+
+  // Mot de passe temporaire : rien d'autre n'est accessible tant qu'il n'est pas changé
+  // (le serveur le refuse aussi, avec PASSWORD_CHANGE_REQUIRED).
+  if (passwordChangeRequired && location.pathname !== "/changer-mot-de-passe") {
+    return <Navigate to="/changer-mot-de-passe" replace />;
   }
 
   if (roles && !roles.includes(role)) {

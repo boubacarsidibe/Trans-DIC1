@@ -534,6 +534,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/mot-de-passe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Changer son mot de passe
+         * @description Obligatoire après la création du compte ou une réinitialisation par un administrateur : tant que ce n'est pas fait, toute autre requête est refusée (403, PASSWORD_CHANGE_REQUIRED).
+         */
+        post: operations["change"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/logout": {
         parameters: {
             query?: never;
@@ -1410,6 +1430,11 @@ export interface components {
             /** Format: int64 */
             expiresIn?: number;
             role?: string;
+            passwordChangeRequired?: boolean;
+        };
+        PasswordChangeRequest: {
+            currentPassword: string;
+            newPassword: string;
         };
         LoginRequest: {
             username: string;
@@ -3700,6 +3725,53 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TokenResponse"];
+                };
+            };
+        };
+    };
+    change: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description Mot de passe changé */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Mot de passe actuel incorrect ou nouveau mot de passe refusé */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
                 };
             };
         };

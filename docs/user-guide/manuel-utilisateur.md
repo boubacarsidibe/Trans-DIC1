@@ -17,8 +17,9 @@ Le menu de gauche n'affiche que ce que votre rôle permet. Le serveur vérifie d
 ![Écran de connexion](images/01-connexion.png)
 
 1. Si le bouton **Se connecter avec le compte EPT** est affiché, l'utiliser : la connexion se fait avec votre compte de l'école, et votre rôle vient de l'annuaire du CRI. Sinon, saisir votre nom d'utilisateur et votre mot de passe, fournis par un administrateur.
-2. Après plusieurs erreurs, le compte est bloqué quelques minutes (1, 2, 4… jusqu'à 30) : c'est une protection, il suffit d'attendre.
-3. La session reste ouverte jusqu'à 8 heures, y compris si vous rechargez la page. **Se déconnecter** (en bas du menu) la ferme tout de suite ; avec le compte EPT, la session de l'école est fermée aussi.
+2. **Première connexion** avec un mot de passe donné par un administrateur (nouveau compte ou mot de passe réinitialisé) : la plateforme demande aussitôt de le remplacer par un mot de passe personnel d'au moins 12 caractères. Rien d'autre n'est accessible avant ce changement.
+3. Après plusieurs erreurs, le compte est bloqué quelques minutes (1, 2, 4… jusqu'à 30) : c'est une protection, il suffit d'attendre.
+4. La session reste ouverte jusqu'à 8 heures, y compris si vous rechargez la page. **Se déconnecter** (en bas du menu) la ferme tout de suite ; avec le compte EPT, la session de l'école est fermée aussi.
 
 Compte ou mot de passe oublié : contactez le CRI.
 
@@ -134,7 +135,9 @@ Une ligne dont le code d'inventaire ou l'adresse existe déjà est refusée comm
 - **Ajouter un compte** : nom, e-mail, mot de passe d'au moins 12 caractères, rôle ;
 - changer le rôle, **Désactiver** un compte, réinitialiser son **Mot de passe**.
 
-Changer le rôle, désactiver un compte ou réinitialiser son mot de passe ferme ses sessions ouvertes.
+Changer le rôle, désactiver un compte ou réinitialiser son mot de passe ferme ses sessions ouvertes, immédiatement : la personne est renvoyée à l'écran de connexion dès sa requête suivante. Le mot de passe saisi à la création ou à la réinitialisation est **temporaire** : la personne doit le changer à sa première connexion. Le transmettre par un canal sûr.
+
+Limiter un compte à certains sites n'est pas encore possible : chaque compte voit tout le parc (voir la dette technique).
 
 ### Règles d'alerte
 

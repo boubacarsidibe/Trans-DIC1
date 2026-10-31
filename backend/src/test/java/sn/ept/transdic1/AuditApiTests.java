@@ -150,11 +150,6 @@ class AuditApiTests {
 
   @Test
   void leJournalNePeutPasEtreModifie() throws Exception {
-    assertThatThrownBy(
-            () ->
-                jdbc.update(
-                    "UPDATE audit_entry SET details_sanitized = 'x' WHERE action = ?", action))
-        .hasMessageContaining("lecture seule");
     for (var method :
         new org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder[] {
           put(BASE), delete(BASE), post(BASE)
@@ -163,5 +158,12 @@ class AuditApiTests {
           .perform(method.header("Authorization", "Bearer " + admin))
           .andExpect(status().is4xxClientError());
     }
+    // En dernier : l'erreur SQL attendue rend la transaction du test inutilisable, or chaque
+    // requête authentifiée relit l'état du compte en base (FEAT-01).
+    assertThatThrownBy(
+            () ->
+                jdbc.update(
+                    "UPDATE audit_entry SET details_sanitized = 'x' WHERE action = ?", action))
+        .hasMessageContaining("lecture seule");
   }
 }

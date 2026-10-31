@@ -38,6 +38,10 @@ public class AppUser {
   @Column(name = "locked_until")
   private Instant lockedUntil;
 
+  /** Mot de passe fixé par un administrateur : à changer avant tout autre usage (FEAT-01). */
+  @Column(name = "password_change_required", nullable = false)
+  private boolean passwordChangeRequired;
+
   protected AppUser() {}
 
   public AppUser(String u, String e, String p, Role r) {
@@ -97,6 +101,14 @@ public class AppUser {
 
   public void setActive(boolean active) {
     this.active = active;
+  }
+
+  public boolean isPasswordChangeRequired() {
+    return passwordChangeRequired;
+  }
+
+  public void setPasswordChangeRequired(boolean passwordChangeRequired) {
+    this.passwordChangeRequired = passwordChangeRequired;
   }
 
   /** Remplace le mot de passe et lève un éventuel verrouillage (réinitialisation par un admin). */

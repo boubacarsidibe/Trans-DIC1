@@ -15,12 +15,20 @@ export function readSession() {
   return current;
 }
 
-export function saveSession({ accessToken, role, expiresIn }) {
+export function saveSession({ accessToken, role, expiresIn, passwordChangeRequired }) {
   current = {
     accessToken,
     role,
     expiresAt: Date.now() + Number(expiresIn) * 1000,
+    // Mot de passe temporaire fixé par un administrateur : à changer avant tout (FEAT-01).
+    passwordChangeRequired: Boolean(passwordChangeRequired),
   };
+  return current;
+}
+
+// Le mot de passe vient d'être changé : la session continue sans l'obligation.
+export function markPasswordChanged() {
+  if (current) current = { ...current, passwordChangeRequired: false };
   return current;
 }
 

@@ -153,9 +153,11 @@ class TopologyTests {
     link(admin, sw, core).andExpect(status().isCreated());
     link(admin, server, sw).andExpect(status().isCreated());
 
-    link(admin, core, server).andExpect(status().isConflict());
-    link(admin, sw, core).andExpect(status().isConflict());
     link(admin, sw, sw).andExpect(status().isBadRequest());
+    link(admin, core, server).andExpect(status().isConflict());
+    // En dernier : le doublon est refusé par la base, ce qui rend la transaction du test
+    // inutilisable, or chaque requête authentifiée relit l'état du compte (FEAT-01).
+    link(admin, sw, core).andExpect(status().isConflict());
   }
 
   @Test
