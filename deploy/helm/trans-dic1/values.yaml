@@ -30,6 +30,8 @@ backend:
     NOTIFICATION_FROM: trans-dic1@ept.sn
     TRACING_EXPORT_ENABLED: "false"
     DISCOVERY_ALLOWED_RANGES: ""
+    # Plusieurs répliques : relais des événements temps réel par PostgreSQL (ADR 0016).
+    BROKER_ENABLED: "true"
 
 frontend:
   replicas: 2

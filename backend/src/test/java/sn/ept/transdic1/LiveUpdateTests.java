@@ -175,7 +175,7 @@ class LiveUpdateTests {
 
   @Test
   void connectedClientsAreCountedAndTheirNumberIsBounded() {
-    var bounded = new LiveUpdateService(2, 60);
+    var bounded = new LiveUpdateService(2, 60, false);
 
     assertThat(bounded.register()).isNotNull();
     assertThat(bounded.register()).isNotNull();

@@ -53,13 +53,13 @@ indicateur) : un backend suffit en charge ; la seconde réplique sert la disponi
 **Plusieurs répliques du backend** :
 - les tâches planifiées (collecte, escalade, anomalies, envois) sont protégées par le verrou en
   base `JobGuard` : une seule réplique les exécute ;
-- le flux temps réel (SSE) part de la réplique qui a traité le changement. Avec plusieurs
-  répliques, activer le relais par broker (ARCH-10, `docs/adr/0016-broker.md`) pour que chaque
-  réplique relaie les événements à ses clients.
+- le flux temps réel (SSE) part de la réplique qui a traité le changement : avec plusieurs
+  répliques, `BROKER_ENABLED=true` (activé par défaut dans `values.yaml`) relaie les événements par
+  PostgreSQL à chaque réplique (ADR 0016).
 
 ## Validation sur un cluster local
 
-Procédure suivie avec minikube et Docker Desktop (voir le compte rendu dans la Pull Request) :
+Procédure à suivre avec minikube et Docker Desktop (pas encore exécutée : Docker Desktop indisponible sur le poste de développement) :
 
 ```bash
 minikube start --cpus 4 --memory 6g

@@ -120,7 +120,7 @@
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
-			<scope>runtime</scope>
+			<!-- Compilation : LISTEN/NOTIFY du relais d'événements (ADR 0016). -->
 		</dependency>
 		<dependency>
 			<groupId>com.tngtech.archunit</groupId>
