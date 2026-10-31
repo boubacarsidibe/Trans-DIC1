@@ -1540,7 +1540,7 @@ export interface components {
             equipmentName?: string;
             ruleName?: string;
             /** @enum {string} */
-            type?: "THRESHOLD" | "COLLECTION";
+            type?: "THRESHOLD" | "COLLECTION" | "ANOMALY";
             /** @enum {string} */
             state?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ARCHIVED" | "DELETED";
             /** @enum {string} */

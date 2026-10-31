@@ -3734,6 +3734,7 @@ components:
           enum:
           - THRESHOLD
           - COLLECTION
+          - ANOMALY
         state:
           type: string
           enum:
