@@ -8,10 +8,12 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Radar,
   ScrollText,
   Send,
   Server,
   SlidersHorizontal,
+  Upload,
   Users,
   Wrench,
   X,
@@ -39,6 +41,8 @@ const SECTIONS = [
       { to: "/equipements", label: "Équipements", icon: Server },
       { to: "/sites", label: "Sites", icon: Building2 },
       { to: "/maintenances", label: "Maintenances", icon: Wrench },
+      { to: "/import", label: "Import CSV", icon: Upload, roles: ["ADMIN", "NOC_OPERATOR"] },
+      { to: "/decouverte", label: "Découverte", icon: Radar, roles: ["ADMIN"] },
     ],
   },
   {
@@ -113,7 +117,7 @@ function AppLayout() {
         {SECTIONS.filter((section) => !section.admin || role === "ADMIN").map((section) => (
           <div key={section.title} className="rail-section">
             <p className="rail-group">{section.title}</p>
-            {section.links.map(({ to, label, icon: Icon }) => (
+            {section.links.filter((link) => !link.roles || link.roles.includes(role)).map(({ to, label, icon: Icon }) => (
               <NavLink key={to} to={to} className="rail-link" onClick={() => setOpen(false)}>
                 <Icon size={18} strokeWidth={1.9} aria-hidden="true" />
                 {label}

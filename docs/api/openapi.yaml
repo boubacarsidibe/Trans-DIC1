@@ -32,6 +32,13 @@ tags:
   description: "Historique d'envoi, modèles de messages et envoi de test. Réservé\
     \ aux administrateurs. Les URL des canaux (webhook, Teams, Slack) ne sont jamais\
     \ stockées ni renvoyées : on ne manipule que la référence du secret (env:NOM)."
+- name: Découverte
+  description: "Recherche SNMP d'équipements sur une plage autorisée par l'exploitation.\
+    \ Les équipements trouvés sont proposés, jamais créés automatiquement. Réservé\
+    \ aux administrateurs."
+- name: Import de l'inventaire
+  description: "Import CSV des équipements (code_inventaire;nom;adresse;type;statut;site)\
+    \ : aperçu puis import des lignes valides. Réservé aux rôles ADMIN et NOC_OPERATOR."
 - name: Sites
   description: Emplacements regroupant les équipements. Écriture réservée à ADMIN
     et NOC_OPERATOR.
@@ -1182,6 +1189,134 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/equipements/import:
+    post:
+      tags:
+      - Import de l'inventaire
+      summary: Importer un fichier CSV
+      description: "Refait la validation et crée les seules lignes valides, en une\
+        \ transaction. Chaque création et le bilan sont tracés dans le journal d'audit."
+      operationId: importCsv
+      requestBody:
+        content:
+          text/csv:
+            schema:
+              type: string
+          text/plain:
+            schema:
+              type: string
+        required: true
+      responses:
+        "400":
+          description: "Fichier vide, trop long ou en-tête invalide"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/equipements/import/apercu:
+    post:
+      tags:
+      - Import de l'inventaire
+      summary: Aperçu d'un import CSV
+      description: "Valide chaque ligne et sépare valides, erreurs et ignorées. Rien\
+        \ n'est créé."
+      operationId: preview
+      requestBody:
+        content:
+          text/csv:
+            schema:
+              type: string
+          text/plain:
+            schema:
+              type: string
+        required: true
+      responses:
+        "400":
+          description: "Fichier vide, trop long ou en-tête invalide"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/decouverte:
+    get:
+      tags:
+      - Découverte
+      summary: Dernières recherches
+      operationId: recent
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DiscoveryScanResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      tags:
+      - Découverte
+      summary: Lancer une recherche
+      description: "La plage doit être incluse dans une plage autorisée (DISCOVERY_ALLOWED_RANGES).\
+        \ La communauté ou la phrase SNMPv3 se donne par référence env:NOM. La recherche\
+        \ tourne en arrière-plan : suivre son avancement avec GET /{id}."
+      operationId: start
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiscoveryRequest"
+        required: true
+      responses:
+        "400":
+          description: Plage ou secret invalide
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Recherche déjà en cours
+        "202":
+          description: Accepted
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DiscoveryScanResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/canaux/test:
     post:
       tags:
@@ -1763,6 +1898,59 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/decouverte/{id}:
+    get:
+      tags:
+      - Découverte
+      summary: Consulter une recherche et les équipements trouvés
+      operationId: get_5
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Recherche introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/decouverte/parametres:
+    get:
+      tags:
+      - Découverte
+      summary: Plages autorisées et limites de la découverte
+      operationId: settings
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DiscoverySettingsResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/canaux/modeles:
     get:
       tags:
@@ -2023,7 +2211,7 @@ paths:
       tags:
       - Alertes
       summary: Consulter une alerte et son historique
-      operationId: get_5
+      operationId: get_6
       parameters:
       - name: id
         in: path
@@ -2606,6 +2794,85 @@ components:
           type: string
         token:
           type: string
+    DiscoveryRequest:
+      type: object
+      properties:
+        cidr:
+          type: string
+          maxLength: 18
+          minLength: 0
+        snmpVersion:
+          type: string
+          enum:
+          - V2C
+          - V3
+        credentialReference:
+          type: string
+          maxLength: 255
+          minLength: 0
+        securityIdentity:
+          type: string
+          maxLength: 255
+          minLength: 0
+      required:
+      - cidr
+      - credentialReference
+      - snmpVersion
+    DiscoveryCandidateResponse:
+      type: object
+      properties:
+        address:
+          type: string
+        sysName:
+          type: string
+        sysDescr:
+          type: string
+        suggestedType:
+          type: string
+          enum:
+          - SERVER
+          - ROUTER
+          - SWITCH
+          - VIRTUAL_MACHINE
+          - WIFI_ACCESS_POINT
+        existingEquipmentId:
+          type: string
+          format: uuid
+    DiscoveryScanResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        cidr:
+          type: string
+        snmpVersion:
+          type: string
+          enum:
+          - V2C
+          - V3
+        status:
+          type: string
+        requestedBy:
+          type: string
+        hostsTotal:
+          type: integer
+          format: int32
+        hostsScanned:
+          type: integer
+          format: int32
+        error:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        candidates:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiscoveryCandidateResponse"
     TestRequest:
       type: object
       properties:
@@ -2894,6 +3161,19 @@ components:
         lastAt:
           type: string
           format: date-time
+    DiscoverySettingsResponse:
+      type: object
+      properties:
+        allowedRanges:
+          type: array
+          items:
+            type: string
+        maxHosts:
+          type: integer
+          format: int32
+        maxDurationSeconds:
+          type: integer
+          format: int32
     TemplateResponse:
       type: object
       properties:

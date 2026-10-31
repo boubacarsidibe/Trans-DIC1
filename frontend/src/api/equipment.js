@@ -47,6 +47,19 @@ export async function deleteEquipment(id) {
   await apiClient.delete(`/equipements/${id}`);
 }
 
+// Import CSV (FEAT-07) : l'aperçu ne crée rien, l'import refait la validation côté serveur.
+const CSV_HEADERS = { headers: { "Content-Type": "text/csv" }, timeout: 30_000 };
+
+export async function previewImport(csv) {
+  const { data } = await apiClient.post("/equipements/import/apercu", csv, CSV_HEADERS);
+  return data;
+}
+
+export async function importEquipment(csv) {
+  const { data } = await apiClient.post("/equipements/import", csv, CSV_HEADERS);
+  return data;
+}
+
 const LIMITS = { inventoryCode: 64, name: 120, managementAddress: 45 };
 const LABELS = {
   inventoryCode: "Le code d'inventaire",

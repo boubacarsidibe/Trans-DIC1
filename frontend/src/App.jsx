@@ -15,6 +15,8 @@ import CollectionPage from "./pages/CollectionPage.jsx";
 import EquipmentPage from "./pages/EquipmentPage.jsx";
 import AuditPage from "./pages/AuditPage.jsx";
 import ChannelsPage from "./pages/ChannelsPage.jsx";
+import DiscoveryPage from "./pages/DiscoveryPage.jsx";
+import ImportPage from "./pages/ImportPage.jsx";
 
 function App() {
   return (
@@ -31,7 +33,11 @@ function App() {
           <Route path="/rapports" element={<ReportsPage />} />
           <Route path="/regles" element={<RulesPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
+          <Route element={<ProtectedRoute roles={["ADMIN", "NOC_OPERATOR"]} />}>
+            <Route path="/import" element={<ImportPage />} />
+          </Route>
           <Route element={<ProtectedRoute roles={["ADMIN"]} />}>
+            <Route path="/decouverte" element={<DiscoveryPage />} />
             <Route path="/utilisateurs" element={<UsersPage />} />
             <Route path="/audit" element={<AuditPage />} />
             <Route path="/canaux" element={<ChannelsPage />} />

@@ -17,6 +17,18 @@ public interface EquipmentRepository
 
   boolean existsByManagementAddressAndIdNot(String address, UUID id);
 
+  /** Équipement déjà inventorié à cette adresse (découverte, import). */
+  java.util.Optional<Equipment> findFirstByManagementAddress(String address);
+
+  /** Codes d'inventaire et adresses déjà utilisés parmi ceux fournis (détection des doublons). */
+  @org.springframework.data.jpa.repository.Query(
+      "select e.inventoryCode, e.managementAddress from Equipment e"
+          + " where e.inventoryCode in :codes or e.managementAddress in :addresses")
+  List<Object[]> findCodesAndAddresses(
+      @org.springframework.data.repository.query.Param("codes") java.util.Collection<String> codes,
+      @org.springframework.data.repository.query.Param("addresses")
+          java.util.Collection<String> addresses);
+
   long countBySiteId(UUID siteId);
 
   /** Équipements à superviser : entrée du planificateur de collecte. */

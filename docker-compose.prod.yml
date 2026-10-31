@@ -100,6 +100,8 @@ services:
       TRACING_EXPORT_ENABLED: ${TRACING_EXPORT_ENABLED:-false}
       TRACING_OTLP_ENDPOINT: ${TRACING_OTLP_ENDPOINT:-http://jaeger:4318/v1/traces}
       TRACING_SAMPLING_PROBABILITY: ${TRACING_SAMPLING_PROBABILITY:-0.1}
+      # Découverte automatique (FEAT-07) : plages autorisées par l'exploitation.
+      DISCOVERY_ALLOWED_RANGES: ${DISCOVERY_ALLOWED_RANGES:-}
     # Sonde de disponibilité ; démarrage long toléré (migrations Flyway, serveur chargé : 215 s
     # mesurées sur un poste partagé), vérifié toutes les 5 s pendant cette période.
     healthcheck:
