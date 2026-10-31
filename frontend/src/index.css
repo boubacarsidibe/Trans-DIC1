@@ -720,18 +720,20 @@ thead {
  */
 .login {
   position: relative;
-  font-size: clamp(1rem, 0.42vw + 0.6rem, 1.45rem);
+  /* Taille calée sur l'écran (largeur et hauteur) : sur un écran 1852×909 à 100 %, la carte a la
+     même taille qu'au zoom 175 % (police de base ≈ 28 px). */
+  font-size: clamp(1rem, min(1.5vw, 3.05vh), 2.2rem);
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(23em, 27em);
   grid-template-rows: auto 1fr auto;
   column-gap: clamp(2em, 5vw, 5.5em);
   height: 100vh;
   height: 100dvh;
-  min-height: 34em;
+  min-height: 32rem;
   overflow: hidden;
   /* Contenu centré dans une largeur maîtrisée : marges égales à gauche et à droite, le slogan et la
      carte restent proches au lieu d'être collés aux deux bords d'un grand écran. */
-  padding-block: clamp(1.5em, 3.5vw, 3em);
+  padding-block: clamp(1rem, 3vh, 3rem);
   padding-inline: max(clamp(1.5em, 5vw, 5em), calc((100% - 70em) / 2));
   background: #07111f;
   color: #fff;
@@ -2452,4 +2454,11 @@ thead {
 .login-input::-ms-reveal,
 .login-input::-ms-clear {
   display: none;
+}
+
+/* Les icônes du formulaire suivent la taille de la carte. */
+.login-reveal svg,
+.login-error svg {
+  width: 1.2em;
+  height: 1.2em;
 }

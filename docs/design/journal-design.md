@@ -144,6 +144,17 @@ mot de passe était masqué (bouton natif d'Edge en doublon du nôtre).
 - Slogan : interlettrage −0,005 em (au lieu de −0,02 em), interligne 1,06.
 - Bouton natif d'Edge masqué (`::-ms-reveal`) : une seule icône, la nôtre.
 
+## 2026-10-31 — Connexion : même taille qu'au zoom 175 %
+
+Demande : à 100 % le formulaire reste trop petit ; il doit avoir la taille qu'il a au zoom 175 %,
+quel que soit le zoom.
+
+- Police de base de la page : `clamp(1rem, min(1.5vw, 3.05vh), 2.2rem)`, calée sur la largeur et
+  la hauteur de l'écran. Sur 1852×909 : carte de 749 px à 100 % contre 756 px à 175 %.
+- Hauteur minimale passée en `rem` (elle grandissait avec la police et faisait défiler la page) ;
+  marges verticales en `vh`. Aucun défilement en 1366×768, 1852×909, 1920×1080, 2560×1440, 390×844.
+- Icônes du formulaire à la taille du texte.
+
 ## Dépendances
 
 - Ajout de `@playwright/test` 1.64.1 (publié le 14/10/2026) en dépendance de développement : captures
