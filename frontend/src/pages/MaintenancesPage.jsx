@@ -11,6 +11,7 @@ import {
 } from "../api/maintenances.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { canHandleAlerts } from "../auth/permissions.js";
+import PageHeader from "../ui/PageHeader.jsx";
 
 const EMPTY = {
   targetType: "EQUIPMENT",
@@ -41,14 +42,14 @@ function MaintenanceForm({ sites, equipments, submitting, onSubmit, onCancel }) 
     <form
       onSubmit={submit}
       noValidate
-      className="status-card mt-6 grid gap-4 rounded-2xl p-6 md:grid-cols-2"
+      className="panel form-grid mt-5 md:grid-cols-2"
     >
       <label className="block text-sm text-slate-300">
         Cible
         <select
           value={values.targetType}
           onChange={(e) => setValues({ ...values, targetType: e.target.value, targetId: "" })}
-          className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+          className="field mt-2"
         >
           <option value="EQUIPMENT">Un équipement</option>
           <option value="SITE">Un site entier</option>
@@ -59,7 +60,7 @@ function MaintenanceForm({ sites, equipments, submitting, onSubmit, onCancel }) 
         <select
           value={values.targetId}
           onChange={(e) => setValues({ ...values, targetId: e.target.value })}
-          className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+          className="field mt-2"
         >
           <option value="">— choisir —</option>
           {targets.map((t) => (
@@ -76,7 +77,7 @@ function MaintenanceForm({ sites, equipments, submitting, onSubmit, onCancel }) 
           type="datetime-local"
           value={values.startAt}
           onChange={(e) => setValues({ ...values, startAt: e.target.value })}
-          className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+          className="field mt-2"
         />
         {error("startAt")}
       </label>
@@ -86,7 +87,7 @@ function MaintenanceForm({ sites, equipments, submitting, onSubmit, onCancel }) 
           type="datetime-local"
           value={values.endAt}
           onChange={(e) => setValues({ ...values, endAt: e.target.value })}
-          className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+          className="field mt-2"
         />
         {error("endAt")}
       </label>
@@ -96,21 +97,21 @@ function MaintenanceForm({ sites, equipments, submitting, onSubmit, onCancel }) 
           value={values.reason}
           maxLength={2000}
           onChange={(e) => setValues({ ...values, reason: e.target.value })}
-          className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+          className="field mt-2"
         />
         {error("reason")}
       </label>
       <div className="flex gap-3 md:col-span-2">
         <button
           disabled={submitting}
-          className="rounded-lg bg-teal-400 px-4 py-2 font-semibold text-slate-950"
+          className="btn btn-primary"
         >
           Planifier
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-slate-600 px-4 py-2 text-slate-200"
+          className="btn btn-secondary"
         >
           Annuler
         </button>
@@ -197,26 +198,21 @@ function MaintenancesPage() {
   const totalPages = data.page?.totalPages ?? 0;
 
   return (
-    <main className="app-shell px-6 py-10">
-      <div className="mx-auto max-w-6xl">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold text-white">Maintenances</h1>
-            <p className="mt-2 text-slate-400">
-              Pendant une maintenance, les alertes de la cible sont enregistrées
-              mais personne n'est notifié.
-            </p>
-          </div>
-          {canManage && !creating && (
-            <button
-              type="button"
-              onClick={openForm}
-              className="rounded-lg bg-teal-400 px-4 py-2 font-semibold text-slate-950"
-            >
-              Planifier une maintenance
-            </button>
-          )}
-        </div>
+    <main className="app-shell page">
+      <div className="page-inner">
+        <PageHeader
+          title="Maintenances"
+          description="Fenêtres pendant lesquelles les alertes ne notifient personne."
+          actions={canManage && !creating && (
+          <button
+            type="button"
+            onClick={openForm}
+            className="btn btn-primary"
+          >
+            Planifier une maintenance
+          </button>
+        )}
+        />
 
         <label className="mt-6 block text-sm text-slate-300">
           État
@@ -238,12 +234,12 @@ function MaintenancesPage() {
         </label>
 
         {notice && (
-          <p role="status" className="mt-6 text-emerald-300">
+          <p role="status" className="notice notice-ok">
             {notice}
           </p>
         )}
         {error && (
-          <p role="alert" className="mt-6 text-red-300">
+          <p role="alert" className="notice notice-bad">
             {error}
           </p>
         )}
@@ -258,8 +254,8 @@ function MaintenancesPage() {
           />
         )}
 
-        <div className="status-card mt-6 overflow-x-auto rounded-2xl">
-          <table className="w-full text-left text-sm">
+        <div className="panel panel-flush mt-5 overflow-x-auto">
+          <table className="data-table">
             <thead className="text-slate-400">
               <tr>
                 <th className="p-3">Cible</th>
@@ -280,7 +276,7 @@ function MaintenancesPage() {
                 </tr>
               )}
               {data.content.map((m) => (
-                <tr key={m.id} className="border-t border-slate-700/50 align-top">
+                <tr key={m.id}>
                   <td className="p-3 text-white">
                     {m.equipmentName ?? `Site ${m.siteName}`}
                   </td>
@@ -296,7 +292,7 @@ function MaintenancesPage() {
                           type="button"
                           onClick={() => cancel(m)}
                           aria-label={`Annuler la maintenance ${m.equipmentName ?? m.siteName}`}
-                          className="rounded border border-slate-600 px-2 py-1"
+                          className="btn btn-secondary btn-sm"
                         >
                           Annuler
                         </button>
@@ -315,7 +311,7 @@ function MaintenancesPage() {
               type="button"
               disabled={page === 0}
               onClick={() => setPage(page - 1)}
-              className="rounded border border-slate-600 px-3 py-1 disabled:opacity-40"
+              className="btn btn-secondary btn-sm"
             >
               Précédent
             </button>
@@ -326,7 +322,7 @@ function MaintenancesPage() {
               type="button"
               disabled={page + 1 >= totalPages}
               onClick={() => setPage(page + 1)}
-              className="rounded border border-slate-600 px-3 py-1 disabled:opacity-40"
+              className="btn btn-secondary btn-sm"
             >
               Suivant
             </button>

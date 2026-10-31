@@ -61,7 +61,7 @@ function EquipmentForm({ initial, sites, onSubmit, onCancel, submitting }) {
       noValidate
       onSubmit={submit}
       aria-label={initial ? "Modifier l'équipement" : "Ajouter un équipement"}
-      className="status-card mt-6 grid gap-4 rounded-xl p-5 sm:grid-cols-2"
+      className="panel form-grid mt-5 sm:grid-cols-2"
     >
       <Field label="Code d'inventaire" error={errors.inventoryCode}>
         <input {...bind("inventoryCode")} className={inputClass} />
@@ -100,14 +100,14 @@ function EquipmentForm({ initial, sites, onSubmit, onCancel, submitting }) {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-lg bg-teal-400 px-4 py-2 font-semibold text-slate-950"
+          className="btn btn-primary"
         >
           {submitting ? "Enregistrement…" : "Enregistrer"}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-slate-600 px-4 py-2 text-slate-200"
+          className="btn btn-secondary"
         >
           Annuler
         </button>

@@ -9,6 +9,7 @@ import {
   sendTest,
 } from "../api/channels.js";
 import { CHANNEL_CHOICES, SECRET_REFERENCE } from "../api/preferences.js";
+import PageHeader from "../ui/PageHeader.jsx";
 
 const formatDate = (value) => (value ? new Date(value).toISOString().replace("T", " ").slice(0, 19) : "—");
 const channelLabel = (value) => CHANNEL_CHOICES.find((c) => c.value === value)?.label ?? value;
@@ -44,14 +45,14 @@ function TestForm() {
   }
 
   return (
-    <form onSubmit={submit} noValidate className="status-card mt-6 grid gap-4 rounded-2xl p-6 md:grid-cols-3">
+    <form onSubmit={submit} noValidate className="panel form-grid mt-5 md:grid-cols-3">
       <h2 className="text-xl text-white md:col-span-3">Envoyer un message de test</h2>
       <label className="block text-sm text-slate-300">
         Canal
         <select
           value={channel}
           onChange={(event) => setChannel(event.target.value)}
-          className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+          className="field mt-2"
         >
           {CHANNEL_CHOICES.map((c) => (
             <option key={c.value} value={c.value}>
@@ -67,13 +68,13 @@ function TestForm() {
           onChange={(event) => setDestination(event.target.value)}
           placeholder={channel === "EMAIL" ? "nom@ept.sn" : "env:TEAMS_NOC_URL"}
           autoComplete="off"
-          className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+          className="field mt-2"
         />
       </label>
       <div className="flex flex-wrap items-center gap-3 md:col-span-3">
         <button
           disabled={sending}
-          className="rounded-lg bg-teal-400 px-4 py-2 font-semibold text-slate-950"
+          className="btn btn-primary"
         >
           {sending ? "Envoi…" : "Envoyer le test"}
         </button>
@@ -127,7 +128,7 @@ function TemplateEditor({ template, onSaved }) {
           value={subject}
           onChange={(event) => setSubject(event.target.value)}
           maxLength={255}
-          className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+          className="field mt-2"
         />
       </label>
       <label className="mt-3 block text-sm text-slate-300">
@@ -143,7 +144,7 @@ function TemplateEditor({ template, onSaved }) {
       <div className="mt-3 flex items-center gap-3">
         <button
           disabled={saving || !subject.trim() || !body.trim()}
-          className="rounded-lg border border-slate-600 px-4 py-2 text-slate-200"
+          className="btn btn-secondary"
         >
           Enregistrer le modèle
         </button>
@@ -191,23 +192,19 @@ function ChannelsPage() {
   const totalPages = history?.page?.totalPages ?? 0;
 
   return (
-    <main className="app-shell px-6 py-10">
-      <div className="mx-auto max-w-6xl">
-        <h1 className="text-3xl font-semibold text-white">Canaux de notification</h1>
-        <p className="mt-2 text-slate-400">
-          Historique d'envoi, essai d'un canal et modèles de messages. Les URL des canaux restent dans la
-          configuration du serveur.
-        </p>
+    <main className="app-shell page">
+      <div className="page-inner">
+        <PageHeader title="Canaux de notification" description={"Historique d'envoi, test d'un canal et modèles de messages."} />
 
         {error && (
-          <p role="alert" className="mt-4 text-red-300">
+          <p role="alert" className="notice notice-bad mt-4">
             {error}
           </p>
         )}
 
         <TestForm />
 
-        <section aria-labelledby="historique" className="status-card mt-6 rounded-2xl p-6">
+        <section aria-labelledby="historique" className="panel mt-5">
           <h2 id="historique" className="text-xl text-white">
             Historique d'envoi
           </h2>
@@ -216,7 +213,7 @@ function ChannelsPage() {
           )}
           {items.length > 0 && (
             <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-left text-sm">
+              <table className="data-table">
                 <caption className="sr-only">Notifications envoyées</caption>
                 <thead className="text-slate-400">
                   <tr>
@@ -234,7 +231,7 @@ function ChannelsPage() {
                 </thead>
                 <tbody>
                   {items.map((n) => (
-                    <tr key={n.id} className="border-t border-slate-700/50 align-top">
+                    <tr key={n.id}>
                       <td className="p-2 whitespace-nowrap">{formatDate(n.createdAt)}</td>
                       <td className="p-2">{n.username}</td>
                       <td className="p-2">{channelLabel(n.channel)}</td>
@@ -247,7 +244,7 @@ function ChannelsPage() {
                           <button
                             type="button"
                             onClick={() => replayOne(n.id)}
-                            className="rounded-lg border border-slate-600 px-3 py-1 text-slate-200"
+                            className="btn btn-secondary btn-sm"
                           >
                             Rejouer
                           </button>
@@ -265,7 +262,7 @@ function ChannelsPage() {
                 type="button"
                 disabled={page === 0}
                 onClick={() => setPage(page - 1)}
-                className="rounded-lg border border-slate-600 px-3 py-1.5 text-slate-200 disabled:opacity-40"
+                className="btn btn-secondary btn-sm"
               >
                 Précédent
               </button>
@@ -276,7 +273,7 @@ function ChannelsPage() {
                 type="button"
                 disabled={page + 1 >= totalPages}
                 onClick={() => setPage(page + 1)}
-                className="rounded-lg border border-slate-600 px-3 py-1.5 text-slate-200 disabled:opacity-40"
+                className="btn btn-secondary btn-sm"
               >
                 Suivant
               </button>
@@ -284,7 +281,7 @@ function ChannelsPage() {
           )}
         </section>
 
-        <section aria-labelledby="modeles" className="status-card mt-6 rounded-2xl p-6">
+        <section aria-labelledby="modeles" className="panel mt-5">
           <h2 id="modeles" className="text-xl text-white">
             Modèles de messages
           </h2>

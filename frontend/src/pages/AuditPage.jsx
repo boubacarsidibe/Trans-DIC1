@@ -6,6 +6,7 @@ import {
   validateFilters,
 } from "../api/audit.js";
 import { defaultPeriod } from "../api/reports.js";
+import PageHeader from "../ui/PageHeader.jsx";
 
 const formatDate = (value) => new Date(value).toISOString().replace("T", " ").slice(0, 19);
 
@@ -73,17 +74,14 @@ function AuditPage() {
   const entries = data?.content ?? [];
 
   return (
-    <main className="app-shell px-6 py-10">
-      <div className="mx-auto max-w-6xl">
-        <h1 className="text-3xl font-semibold text-white">Journal d'audit</h1>
-        <p className="mt-2 text-slate-400">
-          Actions sensibles, en lecture seule. Les heures sont en UTC.
-        </p>
+    <main className="app-shell page">
+      <div className="page-inner">
+        <PageHeader title="Journal d'audit" description="Actions sensibles, en lecture seule. Heures en UTC." />
 
         <form
           onSubmit={submit}
           noValidate
-          className="status-card mt-6 grid gap-4 rounded-2xl p-6 md:grid-cols-3"
+          className="panel form-grid mt-5 md:grid-cols-3"
         >
           <label className="block text-sm text-slate-300">
             Du
@@ -91,7 +89,7 @@ function AuditPage() {
               type="date"
               value={filters.from}
               onChange={set("from")}
-              className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+              className="field mt-2"
             />
           </label>
           <label className="block text-sm text-slate-300">
@@ -100,7 +98,7 @@ function AuditPage() {
               type="date"
               value={filters.to}
               onChange={set("to")}
-              className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+              className="field mt-2"
             />
           </label>
           <label className="block text-sm text-slate-300">
@@ -109,7 +107,7 @@ function AuditPage() {
               value={filters.username}
               onChange={set("username")}
               autoComplete="off"
-              className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+              className="field mt-2"
             />
           </label>
           <label className="block text-sm text-slate-300">
@@ -117,7 +115,7 @@ function AuditPage() {
             <select
               value={filters.action}
               onChange={set("action")}
-              className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+              className="field mt-2"
             >
               <option value="">Toutes</option>
               {actions.map((a) => (
@@ -133,7 +131,7 @@ function AuditPage() {
               value={filters.targetType}
               onChange={set("targetType")}
               placeholder="ALERT, SITE, EQUIPMENT…"
-              className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+              className="field mt-2"
             />
           </label>
           <label className="block text-sm text-slate-300">
@@ -142,13 +140,13 @@ function AuditPage() {
               value={filters.targetId}
               onChange={set("targetId")}
               autoComplete="off"
-              className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+              className="field mt-2"
             />
           </label>
           <div className="flex flex-wrap items-center gap-3 md:col-span-3">
             <button
               type="submit"
-              className="rounded-lg bg-teal-400 px-4 py-2 font-semibold text-slate-950"
+              className="btn btn-primary"
             >
               Filtrer
             </button>
@@ -156,7 +154,7 @@ function AuditPage() {
               type="button"
               onClick={exportCsv}
               disabled={exporting}
-              className="rounded-lg border border-slate-600 px-4 py-2 text-slate-200"
+              className="btn btn-secondary"
             >
               {exporting ? "Export…" : "Exporter en CSV"}
             </button>
@@ -169,7 +167,7 @@ function AuditPage() {
         </form>
 
         {error && (
-          <p role="alert" className="mt-4 text-red-300">
+          <p role="alert" className="notice notice-bad mt-4">
             {error}
           </p>
         )}
@@ -179,8 +177,8 @@ function AuditPage() {
         )}
 
         {entries.length > 0 && (
-          <div className="status-card mt-6 overflow-x-auto rounded-2xl p-2">
-            <table className="w-full text-left text-sm">
+          <div className="panel panel-flush mt-5 overflow-x-auto">
+            <table className="data-table">
               <caption className="sr-only">Entrées du journal d'audit</caption>
               <thead className="text-slate-400">
                 <tr>
@@ -194,7 +192,7 @@ function AuditPage() {
               </thead>
               <tbody>
                 {entries.map((e) => (
-                  <tr key={e.id} className="border-t border-slate-700/50 align-top">
+                  <tr key={e.id}>
                     <td className="p-3 whitespace-nowrap">{formatDate(e.performedAt)}</td>
                     <td className="p-3">{e.username ?? "—"}</td>
                     <td className="p-3">{e.action}</td>
@@ -217,7 +215,7 @@ function AuditPage() {
               type="button"
               disabled={page === 0}
               onClick={() => setPage(page - 1)}
-              className="rounded-lg border border-slate-600 px-3 py-1.5 text-slate-200 disabled:opacity-40"
+              className="btn btn-secondary btn-sm"
             >
               Précédent
             </button>
@@ -228,7 +226,7 @@ function AuditPage() {
               type="button"
               disabled={page + 1 >= totalPages}
               onClick={() => setPage(page + 1)}
-              className="rounded-lg border border-slate-600 px-3 py-1.5 text-slate-200 disabled:opacity-40"
+              className="btn btn-secondary btn-sm"
             >
               Suivant
             </button>

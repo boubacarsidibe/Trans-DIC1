@@ -12,6 +12,7 @@ import {
 } from "../api/rules.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { canAdministerAlerts } from "../auth/permissions.js";
+import PageHeader from "../ui/PageHeader.jsx";
 
 const EMPTY = {
   name: "",
@@ -74,7 +75,7 @@ function RuleForm({ initial, sites, equipments, submitting, onSubmit, onCancel }
         id={id}
         value={values[id]}
         onChange={set(id)}
-        className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+        className="field mt-2"
         {...props}
       />
       {errors[id] && <span className="text-red-300">{errors[id]}</span>}
@@ -82,7 +83,7 @@ function RuleForm({ initial, sites, equipments, submitting, onSubmit, onCancel }
   );
 
   return (
-    <form onSubmit={submit} noValidate className="status-card mt-6 grid gap-4 rounded-2xl p-6 md:grid-cols-2">
+    <form onSubmit={submit} noValidate className="panel form-grid mt-5 md:grid-cols-2">
       {field("name", "Nom")}
       {field("metricType", "Indicateur (clé)")}
       <label className="block text-sm text-slate-300">
@@ -90,7 +91,7 @@ function RuleForm({ initial, sites, equipments, submitting, onSubmit, onCancel }
         <select
           value={values.operator}
           onChange={set("operator")}
-          className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+          className="field mt-2"
         >
           {OPERATORS.map((o) => (
             <option key={o.value} value={o.value}>
@@ -108,7 +109,7 @@ function RuleForm({ initial, sites, equipments, submitting, onSubmit, onCancel }
         <select
           value={values.initialSeverity}
           onChange={set("initialSeverity")}
-          className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+          className="field mt-2"
         >
           {SEVERITIES.map((s) => (
             <option key={s.value} value={s.value}>
@@ -163,14 +164,14 @@ function RuleForm({ initial, sites, equipments, submitting, onSubmit, onCancel }
       <div className="flex gap-3 md:col-span-2">
         <button
           disabled={submitting}
-          className="rounded-lg bg-teal-400 px-4 py-2 font-semibold text-slate-950"
+          className="btn btn-primary"
         >
           Enregistrer
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-slate-600 px-4 py-2 text-slate-200"
+          className="btn btn-secondary"
         >
           Annuler
         </button>
@@ -266,33 +267,29 @@ function RulesPage() {
   const totalPages = data.page?.totalPages ?? 0;
 
   return (
-    <main className="app-shell px-6 py-10">
-      <div className="mx-auto max-w-6xl">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold text-white">Règles d'alerte</h1>
-            <p className="mt-2 text-slate-400">
-              Seuils, durée de confirmation et portée des alertes automatiques.
-            </p>
-          </div>
-          {canAdminister && !editing && (
-            <button
-              type="button"
-              onClick={() => openForm("new")}
-              className="rounded-lg bg-teal-400 px-4 py-2 font-semibold text-slate-950"
-            >
-              Ajouter une règle
-            </button>
-          )}
-        </div>
+    <main className="app-shell page">
+      <div className="page-inner">
+        <PageHeader
+          title="Règles d'alerte"
+          description="Seuils et portée des alertes automatiques."
+          actions={canAdminister && !editing && (
+          <button
+            type="button"
+            onClick={() => openForm("new")}
+            className="btn btn-primary"
+          >
+            Ajouter une règle
+          </button>
+        )}
+        />
 
         {notice && (
-          <p role="status" className="mt-6 text-emerald-300">
+          <p role="status" className="notice notice-ok">
             {notice}
           </p>
         )}
         {error && (
-          <p role="alert" className="mt-6 text-red-300">
+          <p role="alert" className="notice notice-bad">
             {error}
           </p>
         )}
@@ -310,7 +307,7 @@ function RulesPage() {
         )}
 
         {pendingDelete && (
-          <div role="alertdialog" className="status-card mt-6 rounded-2xl p-6">
+          <div role="alertdialog" className="panel mt-5">
             <p className="text-white">
               Supprimer la règle « {pendingDelete.name} » ?
             </p>
@@ -318,14 +315,14 @@ function RulesPage() {
               <button
                 type="button"
                 onClick={confirmDelete}
-                className="rounded-lg bg-red-400 px-4 py-2 font-semibold text-slate-950"
+                className="btn btn-danger-solid"
               >
                 Confirmer la suppression
               </button>
               <button
                 type="button"
                 onClick={() => setPendingDelete(null)}
-                className="rounded-lg border border-slate-600 px-4 py-2 text-slate-200"
+                className="btn btn-secondary"
               >
                 Annuler
               </button>
@@ -333,8 +330,8 @@ function RulesPage() {
           </div>
         )}
 
-        <div className="status-card mt-6 overflow-x-auto rounded-2xl">
-          <table className="w-full text-left text-sm">
+        <div className="panel panel-flush mt-5 overflow-x-auto">
+          <table className="data-table">
             <thead className="text-slate-400">
               <tr>
                 <th className="p-3">Nom</th>
@@ -354,7 +351,7 @@ function RulesPage() {
                 </tr>
               )}
               {data.content.map((rule) => (
-                <tr key={rule.id} className="border-t border-slate-700/50">
+                <tr key={rule.id}>
                   <td className="p-3 text-white">{rule.name}</td>
                   <td className="p-3 text-slate-300">
                     {rule.metricType} {operatorLabel(rule.operator)} {rule.threshold}
@@ -374,7 +371,7 @@ function RulesPage() {
                           type="button"
                           onClick={() => openForm(rule)}
                           aria-label={`Modifier ${rule.name}`}
-                          className="rounded border border-slate-600 px-2 py-1"
+                          className="btn btn-secondary btn-sm"
                         >
                           Modifier
                         </button>
@@ -382,7 +379,7 @@ function RulesPage() {
                           type="button"
                           onClick={() => setPendingDelete(rule)}
                           aria-label={`Supprimer ${rule.name}`}
-                          className="rounded border border-red-400 px-2 py-1 text-red-200"
+                          className="btn btn-danger btn-sm"
                         >
                           Supprimer
                         </button>
@@ -401,7 +398,7 @@ function RulesPage() {
               type="button"
               disabled={page === 0}
               onClick={() => setPage(page - 1)}
-              className="rounded border border-slate-600 px-3 py-1 disabled:opacity-40"
+              className="btn btn-secondary btn-sm"
             >
               Précédent
             </button>
@@ -412,7 +409,7 @@ function RulesPage() {
               type="button"
               disabled={page + 1 >= totalPages}
               onClick={() => setPage(page + 1)}
-              className="rounded border border-slate-600 px-3 py-1 disabled:opacity-40"
+              className="btn btn-secondary btn-sm"
             >
               Suivant
             </button>

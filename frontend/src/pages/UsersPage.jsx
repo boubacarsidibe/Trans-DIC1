@@ -10,6 +10,7 @@ import {
   setActive,
   validateUser,
 } from "../api/users.js";
+import PageHeader from "../ui/PageHeader.jsx";
 
 const EMPTY = { username: "", email: "", password: "", role: "VIEWER" };
 
@@ -40,7 +41,7 @@ function UserForm({ submitting, onSubmit, onCancel }) {
     <form
       onSubmit={submit}
       noValidate
-      className="status-card mt-6 grid gap-4 rounded-2xl p-6 md:grid-cols-2"
+      className="panel form-grid mt-5 md:grid-cols-2"
     >
       <label className="block text-sm text-slate-300">
         Nom d'utilisateur
@@ -48,7 +49,7 @@ function UserForm({ submitting, onSubmit, onCancel }) {
           value={values.username}
           onChange={set("username")}
           autoComplete="off"
-          className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+          className="field mt-2"
         />
         {errors.username && <span className="text-red-300">{errors.username}</span>}
       </label>
@@ -59,7 +60,7 @@ function UserForm({ submitting, onSubmit, onCancel }) {
           value={values.email}
           onChange={set("email")}
           autoComplete="off"
-          className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+          className="field mt-2"
         />
         {errors.email && <span className="text-red-300">{errors.email}</span>}
       </label>
@@ -70,7 +71,7 @@ function UserForm({ submitting, onSubmit, onCancel }) {
           value={values.password}
           onChange={set("password")}
           autoComplete="new-password"
-          className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+          className="field mt-2"
         />
         {errors.password && <span className="text-red-300">{errors.password}</span>}
       </label>
@@ -79,7 +80,7 @@ function UserForm({ submitting, onSubmit, onCancel }) {
         <select
           value={values.role}
           onChange={set("role")}
-          className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+          className="field mt-2"
         >
           {ROLE_CHOICES.map((r) => (
             <option key={r.value} value={r.value}>
@@ -91,14 +92,14 @@ function UserForm({ submitting, onSubmit, onCancel }) {
       <div className="flex gap-3 md:col-span-2">
         <button
           disabled={submitting}
-          className="rounded-lg bg-teal-400 px-4 py-2 font-semibold text-slate-950"
+          className="btn btn-primary"
         >
           Créer le compte
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-slate-600 px-4 py-2 text-slate-200"
+          className="btn btn-secondary"
         >
           Annuler
         </button>
@@ -178,37 +179,32 @@ function UsersPage() {
   const totalPages = data.page?.totalPages ?? 0;
 
   return (
-    <main className="app-shell px-6 py-10">
-      <div className="mx-auto max-w-6xl">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold text-white">Utilisateurs</h1>
-            <p className="mt-2 text-slate-400">
-              Comptes, rôles et accès. Un changement de rôle, une désactivation
-              ou une réinitialisation ferme les connexions du compte.
-            </p>
-          </div>
-          {!creating && (
-            <button
-              type="button"
-              onClick={() => {
-                setNotice("");
-                setCreating(true);
-              }}
-              className="rounded-lg bg-teal-400 px-4 py-2 font-semibold text-slate-950"
-            >
-              Ajouter un compte
-            </button>
-          )}
-        </div>
+    <main className="app-shell page">
+      <div className="page-inner">
+        <PageHeader
+          title="Utilisateurs"
+          description="Comptes, rôles et accès."
+          actions={!creating && (
+          <button
+            type="button"
+            onClick={() => {
+              setNotice("");
+              setCreating(true);
+            }}
+            className="btn btn-primary"
+          >
+            Ajouter un compte
+          </button>
+        )}
+        />
 
         {notice && (
-          <p role="status" className="mt-6 text-emerald-300">
+          <p role="status" className="notice notice-ok">
             {notice}
           </p>
         )}
         {error && (
-          <p role="alert" className="mt-6 text-red-300">
+          <p role="alert" className="notice notice-bad">
             {error}
           </p>
         )}
@@ -225,7 +221,7 @@ function UsersPage() {
           <form
             onSubmit={submitReset}
             noValidate
-            className="status-card mt-6 rounded-2xl p-6"
+            className="panel mt-5"
           >
             <label className="block text-sm text-slate-300">
               Nouveau mot de passe de {resetting.user.username}
@@ -236,18 +232,18 @@ function UsersPage() {
                 onChange={(e) =>
                   setResetting({ ...resetting, password: e.target.value, error: "" })
                 }
-                className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+                className="field mt-2"
               />
               {resetting.error && <span className="text-red-300">{resetting.error}</span>}
             </label>
             <div className="mt-4 flex gap-3">
-              <button className="rounded-lg bg-teal-400 px-4 py-2 font-semibold text-slate-950">
+              <button className="btn btn-primary">
                 Réinitialiser
               </button>
               <button
                 type="button"
                 onClick={() => setResetting(null)}
-                className="rounded-lg border border-slate-600 px-4 py-2 text-slate-200"
+                className="btn btn-secondary"
               >
                 Annuler
               </button>
@@ -255,8 +251,8 @@ function UsersPage() {
           </form>
         )}
 
-        <div className="status-card mt-6 overflow-x-auto rounded-2xl">
-          <table className="w-full text-left text-sm">
+        <div className="panel panel-flush mt-5 overflow-x-auto">
+          <table className="data-table">
             <thead className="text-slate-400">
               <tr>
                 <th className="p-3">Compte</th>
@@ -275,7 +271,7 @@ function UsersPage() {
                 </tr>
               )}
               {data.content.map((user) => (
-                <tr key={user.id} className="border-t border-slate-700/50 align-top">
+                <tr key={user.id}>
                   <td className="p-3 text-white">{user.username}</td>
                   <td className="p-3 text-slate-300">{user.email}</td>
                   <td className="p-3">
@@ -289,7 +285,7 @@ function UsersPage() {
                           "Le changement de rôle a échoué.",
                         )
                       }
-                      className="rounded bg-slate-900 p-2"
+                      className="field field-inline"
                     >
                       {ROLE_CHOICES.map((r) => (
                         <option key={r.value} value={r.value}>
@@ -313,7 +309,7 @@ function UsersPage() {
                           )
                         }
                         aria-label={`${user.active ? "Désactiver" : "Réactiver"} ${user.username}`}
-                        className="rounded border border-slate-600 px-2 py-1"
+                        className="btn btn-secondary btn-sm"
                       >
                         {user.active ? "Désactiver" : "Réactiver"}
                       </button>
@@ -321,7 +317,7 @@ function UsersPage() {
                         type="button"
                         onClick={() => setResetting({ user, password: "", error: "" })}
                         aria-label={`Réinitialiser le mot de passe de ${user.username}`}
-                        className="rounded border border-slate-600 px-2 py-1"
+                        className="btn btn-secondary btn-sm"
                       >
                         Mot de passe
                       </button>
@@ -339,7 +335,7 @@ function UsersPage() {
               type="button"
               disabled={page === 0}
               onClick={() => setPage(page - 1)}
-              className="rounded border border-slate-600 px-3 py-1 disabled:opacity-40"
+              className="btn btn-secondary btn-sm"
             >
               Précédent
             </button>
@@ -350,7 +346,7 @@ function UsersPage() {
               type="button"
               disabled={page + 1 >= totalPages}
               onClick={() => setPage(page + 1)}
-              className="rounded border border-slate-600 px-3 py-1 disabled:opacity-40"
+              className="btn btn-secondary btn-sm"
             >
               Suivant
             </button>

@@ -10,6 +10,11 @@ import {
 import { useAuth } from "../auth/AuthContext.jsx";
 import { canManageEquipment } from "../auth/permissions.js";
 import EquipmentForm from "./EquipmentForm.jsx";
+import PageHeader from "../ui/PageHeader.jsx";
+import { Pencil, ServerOff, Trash2 } from "lucide-react";
+import { StatusBadge } from "../ui/Badges.jsx";
+import Pagination from "../ui/Pagination.jsx";
+import { EQUIPMENT_TYPE, label } from "../ui/labels.js";
 
 function EquipmentPage() {
   const { role } = useAuth();
@@ -86,28 +91,24 @@ function EquipmentPage() {
   const totalPages = data.page?.totalPages ?? 0;
 
   return (
-    <main className="app-shell px-6 py-10">
-      <div className="mx-auto max-w-6xl">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold text-white">Équipements</h1>
-            <p className="mt-2 text-slate-400">
-              Inventaire supervisé, paginé par l'API.
-            </p>
-          </div>
-          {canManage && !editing && (
-            <button
-              type="button"
-              onClick={() => openForm("new")}
-              className="rounded-lg bg-teal-400 px-4 py-2 font-semibold text-slate-950"
-            >
-              Ajouter un équipement
-            </button>
-          )}
-        </div>
+    <main className="app-shell page">
+      <div className="page-inner">
+        <PageHeader
+          title="Équipements"
+          description="Inventaire du parc supervisé."
+          actions={canManage && !editing && (
+          <button
+            type="button"
+            onClick={() => openForm("new")}
+            className="btn btn-primary"
+          >
+            Ajouter un équipement
+          </button>
+        )}
+        />
 
         {notice && (
-          <p role="status" className="mt-6 text-emerald-300">
+          <p role="status" className="notice notice-ok">
             {notice}
           </p>
         )}
@@ -122,97 +123,106 @@ function EquipmentPage() {
           />
         )}
 
-        {loading && <p className="mt-8 text-slate-300">Chargement…</p>}
         {error && (
-          <p role="alert" className="mt-8 text-red-300">
+          <p role="alert" className="notice notice-bad">
             {error}
           </p>
         )}
-        {!loading && !error && items.length === 0 && (
-          <p className="mt-8 text-slate-300">Aucun équipement.</p>
-        )}
 
-        <div className="mt-8 grid gap-4">
-          {items.map((e) => (
-            <article key={e.id} className="status-card rounded-xl p-5">
-              <div className="flex justify-between">
-                <div>
-                  <h2 className="font-semibold text-white">{e.name}</h2>
-                  <p className="text-sm text-slate-400">
-                    {e.inventoryCode} · {e.type} · {e.managementAddress}
-                  </p>
-                </div>
-                <span className="text-teal-300">{e.status}</span>
-              </div>
-              <p className="mt-2 text-sm text-slate-400">Site : {e.site}</p>
-              <div className="mt-3 flex flex-wrap gap-3">
-                <Link
-                  to={`/equipements/${e.id}/historique`}
-                  aria-label={`Voir l'historique de ${e.name}`}
-                  className="rounded-lg border border-slate-600 px-3 py-1 text-sm text-slate-200"
-                >
-                  Historique
-                </Link>
-              {canManage && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => openForm(e)}
-                    aria-label={`Modifier ${e.name}`}
-                    className="rounded-lg border border-slate-600 px-3 py-1 text-sm text-slate-200"
-                  >
-                    Modifier
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPendingDelete(e)}
-                    aria-label={`Supprimer ${e.name}`}
-                    className="rounded-lg border border-red-400/60 px-3 py-1 text-sm text-red-300"
-                  >
-                    Supprimer
-                  </button>
-                  {role === "ADMIN" && (
-                    <Link
-                      to={`/equipements/${e.id}/collecte`}
-                      aria-label={`Configurer la collecte de ${e.name}`}
-                      className="rounded-lg border border-teal-400/60 px-3 py-1 text-sm text-teal-200"
-                    >
-                      Collecte
-                    </Link>
-                  )}
-                </>
+        <div className="panel panel-flush overflow-x-auto">
+          <table className="data-table">
+            <caption className="sr-only">Équipements supervisés</caption>
+            <thead>
+              <tr>
+                <th scope="col">Équipement</th>
+                <th scope="col">État</th>
+                <th scope="col">Type</th>
+                <th scope="col">Adresse</th>
+                <th scope="col">Site</th>
+                <th scope="col">
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && items.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="empty-state">
+                    Chargement…
+                  </td>
+                </tr>
               )}
-              </div>
-            </article>
-          ))}
+              {!loading && !error && items.length === 0 && (
+                <tr>
+                  <td colSpan={6}>
+                    <div className="empty-state">
+                      <ServerOff size={28} aria-hidden="true" />
+                      Aucun équipement.
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {items.map((e) => (
+                <tr key={e.id}>
+                  <td>
+                    <span className="cell-strong">{e.name}</span>
+                    <span className="cell-sub">{e.inventoryCode}</span>
+                  </td>
+                  <td>
+                    <StatusBadge status={e.status} />
+                  </td>
+                  <td>{label(EQUIPMENT_TYPE, e.type)}</td>
+                  <td className="cell-mono">{e.managementAddress}</td>
+                  <td>{e.site}</td>
+                  <td>
+                    <div className="row-actions">
+                      <Link
+                        to={`/equipements/${e.id}/historique`}
+                        aria-label={`Voir l'historique de ${e.name}`}
+                        className="btn btn-secondary btn-sm"
+                      >
+                        Historique
+                      </Link>
+                      {canManage && (
+                        <>
+                          {role === "ADMIN" && (
+                            <Link
+                              to={`/equipements/${e.id}/collecte`}
+                              aria-label={`Configurer la collecte de ${e.name}`}
+                              className="btn btn-secondary btn-sm"
+                            >
+                              Collecte
+                            </Link>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => openForm(e)}
+                            aria-label={`Modifier ${e.name}`}
+                            className="btn btn-secondary btn-sm btn-icon"
+                            title="Modifier"
+                          >
+                            <Pencil size={15} aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPendingDelete(e)}
+                            aria-label={`Supprimer ${e.name}`}
+                            className="btn btn-danger btn-sm btn-icon"
+                            title="Supprimer"
+                          >
+                            <Trash2 size={15} aria-hidden="true" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
-        {totalPages > 1 && (
-          <nav
-            aria-label="Pagination"
-            className="mt-6 flex items-center gap-4 text-slate-300"
-          >
-            <button
-              type="button"
-              disabled={page === 0}
-              onClick={() => setPage(page - 1)}
-              className="rounded-lg border border-slate-600 px-3 py-1 disabled:opacity-40"
-            >
-              Précédent
-            </button>
-            <span>
-              Page {page + 1} sur {totalPages}
-            </span>
-            <button
-              type="button"
-              disabled={page + 1 >= totalPages}
-              onClick={() => setPage(page + 1)}
-              className="rounded-lg border border-slate-600 px-3 py-1 disabled:opacity-40"
-            >
-              Suivant
-            </button>
-          </nav>
-        )}
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 
         {pendingDelete && (
           <div
@@ -221,7 +231,7 @@ function EquipmentPage() {
             aria-label="Confirmer la suppression"
             className="fixed inset-0 grid place-items-center bg-slate-950/80 px-6"
           >
-            <div className="status-card w-full max-w-md rounded-xl p-6">
+            <div className="panel w-full max-w-md">
               <p className="text-white">
                 Supprimer définitivement « {pendingDelete.name} » ?
               </p>
@@ -229,14 +239,14 @@ function EquipmentPage() {
                 <button
                   type="button"
                   onClick={confirmDelete}
-                  className="rounded-lg bg-red-400 px-4 py-2 font-semibold text-slate-950"
+                  className="btn btn-danger-solid"
                 >
                   Confirmer la suppression
                 </button>
                 <button
                   type="button"
                   onClick={() => setPendingDelete(null)}
-                  className="rounded-lg border border-slate-600 px-4 py-2 text-slate-200"
+                  className="btn btn-secondary"
                 >
                   Annuler
                 </button>

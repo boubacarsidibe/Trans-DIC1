@@ -61,7 +61,7 @@ function AgentSection({ equipmentId, onError, onNotice }) {
   }
 
   return (
-    <section aria-labelledby="agent-title" className="status-card mt-6 rounded-2xl p-6">
+    <section aria-labelledby="agent-title" className="panel mt-5">
       <h2 id="agent-title" className="text-xl font-semibold text-white">
         Agent Trans-DIC1
       </h2>
@@ -108,7 +108,7 @@ function AgentSection({ equipmentId, onError, onNotice }) {
           <button
             type="button"
             onClick={register}
-            className="rounded-lg bg-teal-400 px-4 py-2 font-semibold text-slate-950"
+            className="btn btn-primary"
           >
             {agent ? "Remplacer le jeton" : "Enregistrer un agent"}
           </button>
@@ -117,7 +117,7 @@ function AgentSection({ equipmentId, onError, onNotice }) {
           <button
             type="button"
             onClick={() => setConfirmRevoke(true)}
-            className="rounded-lg border border-red-400 px-4 py-2 text-red-200"
+            className="btn btn-danger"
           >
             Révoquer l'agent
           </button>
@@ -127,14 +127,14 @@ function AgentSection({ equipmentId, onError, onNotice }) {
             <button
               type="button"
               onClick={revoke}
-              className="rounded-lg bg-red-400 px-4 py-2 font-semibold text-slate-950"
+              className="btn btn-danger-solid"
             >
               Confirmer la révocation
             </button>
             <button
               type="button"
               onClick={() => setConfirmRevoke(false)}
-              className="rounded-lg border border-slate-600 px-4 py-2 text-slate-200"
+              className="btn btn-secondary"
             >
               Annuler
             </button>
@@ -213,7 +213,7 @@ function SnmpSection({ equipmentId, onError, onNotice }) {
         id={`snmp-${id}`}
         value={values[id]}
         onChange={set(id)}
-        className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+        className="field mt-2"
         {...props}
       />
       {errors[id] && <span className="block text-red-300">{errors[id]}</span>}
@@ -223,7 +223,7 @@ function SnmpSection({ equipmentId, onError, onNotice }) {
   const v3 = values.snmpVersion === "V3";
 
   return (
-    <section aria-labelledby="snmp-title" className="status-card mt-6 rounded-2xl p-6">
+    <section aria-labelledby="snmp-title" className="panel mt-5">
       <h2 id="snmp-title" className="text-xl font-semibold text-white">
         Collecte SNMP
       </h2>
@@ -246,7 +246,7 @@ function SnmpSection({ equipmentId, onError, onNotice }) {
             <select
               value={values.snmpVersion}
               onChange={set("snmpVersion")}
-              className="mt-2 w-full rounded-lg bg-slate-900 p-3"
+              className="field mt-2"
             >
               <option value="V2C">v2c (communauté)</option>
               <option value="V3">v3 (utilisateur et mot de passe)</option>
@@ -284,21 +284,21 @@ function SnmpSection({ equipmentId, onError, onNotice }) {
                   placeholder="cpu.usage"
                   value={m.key}
                   onChange={(e) => setMetric(index, "key", e.target.value)}
-                  className="rounded-lg bg-slate-900 p-2"
+                  className="field field-inline"
                 />
                 <input
                   aria-label={`Nom de l'indicateur ${index + 1}`}
                   placeholder="Charge CPU"
                   value={m.name}
                   onChange={(e) => setMetric(index, "name", e.target.value)}
-                  className="rounded-lg bg-slate-900 p-2"
+                  className="field field-inline"
                 />
                 <input
                   aria-label={`OID de l'indicateur ${index + 1}`}
                   placeholder="1.3.6.1.4.1.9.2.1.58.0"
                   value={m.oid}
                   onChange={(e) => setMetric(index, "oid", e.target.value)}
-                  className="rounded-lg bg-slate-900 p-2 md:col-span-2"
+                  className="field field-inline md:col-span-2"
                 />
                 <input
                   aria-label={`Unité de l'indicateur ${index + 1}`}
@@ -306,14 +306,14 @@ function SnmpSection({ equipmentId, onError, onNotice }) {
                   maxLength={24}
                   value={m.unit}
                   onChange={(e) => setMetric(index, "unit", e.target.value)}
-                  className="rounded-lg bg-slate-900 p-2"
+                  className="field field-inline"
                 />
                 <div className="flex gap-2">
                   <select
                     aria-label={`Type de l'indicateur ${index + 1}`}
                     value={m.valueType}
                     onChange={(e) => setMetric(index, "valueType", e.target.value)}
-                    className="rounded-lg bg-slate-900 p-2"
+                    className="field field-inline"
                   >
                     {VALUE_TYPES.map((t) => (
                       <option key={t.value} value={t.value}>
@@ -327,7 +327,7 @@ function SnmpSection({ equipmentId, onError, onNotice }) {
                     onClick={() =>
                       setValues({ ...values, metrics: values.metrics.filter((_, i) => i !== index) })
                     }
-                    className="rounded border border-slate-600 px-2"
+                    className="btn btn-secondary btn-sm"
                   >
                     ✕
                   </button>
@@ -354,7 +354,7 @@ function SnmpSection({ equipmentId, onError, onNotice }) {
           <div className="flex flex-wrap gap-3 md:col-span-2">
             <button
               disabled={saving}
-              className="rounded-lg bg-teal-400 px-4 py-2 font-semibold text-slate-950"
+              className="btn btn-primary"
             >
               Enregistrer la collecte
             </button>
@@ -362,7 +362,7 @@ function SnmpSection({ equipmentId, onError, onNotice }) {
               <button
                 type="button"
                 onClick={stop}
-                className="rounded-lg border border-red-400 px-4 py-2 text-red-200"
+                className="btn btn-danger"
               >
                 Arrêter la collecte
               </button>
@@ -409,12 +409,12 @@ function CollectionPage() {
         </p>
 
         {notice && (
-          <p role="status" className="mt-6 text-emerald-300">
+          <p role="status" className="notice notice-ok">
             {notice}
           </p>
         )}
         {error && (
-          <p role="alert" className="mt-6 text-red-300">
+          <p role="alert" className="notice notice-bad">
             {error}
           </p>
         )}

@@ -6,6 +6,7 @@ import {
   getPreferences,
   savePreferences,
 } from "../api/preferences.js";
+import PageHeader from "../ui/PageHeader.jsx";
 
 function NotificationsPage() {
   const [preferences, setPreferences] = useState(null);
@@ -43,28 +44,23 @@ function NotificationsPage() {
   }
 
   return (
-    <main className="app-shell px-6 py-10">
-      <div className="mx-auto max-w-2xl">
-        <h1 className="text-3xl font-semibold text-white">Mes notifications</h1>
-        <p className="mt-2 text-slate-400">
-          Choisissez si vous voulez recevoir un e-mail à l'ouverture et à la
-          résolution d'une alerte. Rien n'est envoyé tant que vous ne l'avez pas
-          activé.
-        </p>
+    <main className="app-shell page">
+      <div className="page-inner">
+        <PageHeader title="Mes notifications" description="Canal et sévérité des alertes que vous recevez." />
 
         {error && (
-          <p role="alert" className="mt-6 text-red-300">
+          <p role="alert" className="notice notice-bad">
             {error}
           </p>
         )}
         {notice && (
-          <p role="status" className="mt-6 text-emerald-300">
+          <p role="status" className="notice notice-ok">
             {notice}
           </p>
         )}
 
         {preferences && (
-          <form onSubmit={submit} className="status-card mt-6 rounded-2xl p-6">
+          <form onSubmit={submit} className="panel max-w-2xl">
             <label className="flex items-center gap-3 text-slate-200">
               <input
                 type="checkbox"
@@ -90,7 +86,7 @@ function NotificationsPage() {
                 onChange={(event) =>
                   setPreferences({ ...preferences, channel: event.target.value })
                 }
-                className="mt-2 block w-full rounded-lg bg-slate-900 p-3"
+                className="field mt-2"
               >
                 {CHANNEL_CHOICES.map((choice) => (
                   <option key={choice.value} value={choice.value}>
@@ -109,7 +105,7 @@ function NotificationsPage() {
                   }
                   placeholder="env:TEAMS_NOC_URL"
                   autoComplete="off"
-                  className="mt-2 block w-full rounded-lg bg-slate-900 p-3"
+                  className="field mt-2"
                 />
                 <span className="mt-1 block text-xs text-slate-400">
                   L'URL du canal reste dans la configuration du serveur ; on ne saisit que son nom.
@@ -127,7 +123,7 @@ function NotificationsPage() {
                     minimumSeverity: event.target.value,
                   })
                 }
-                className="mt-2 block w-full rounded-lg bg-slate-900 p-3"
+                className="field mt-2"
               >
                 {SEVERITY_CHOICES.map((choice) => (
                   <option key={choice.value} value={choice.value}>
@@ -139,7 +135,7 @@ function NotificationsPage() {
 
             <button
               disabled={saving}
-              className="mt-6 rounded-lg bg-teal-400 px-4 py-2 font-semibold text-slate-950"
+              className="btn btn-primary mt-6"
             >
               {saving ? "Enregistrement…" : "Enregistrer"}
             </button>

@@ -32,7 +32,7 @@ function MetricChart({ metric, history, periodHours, error, loading }) {
   const titleId = `chart-${metric.key}`;
 
   return (
-    <section aria-labelledby={titleId} className="status-card mt-6 rounded-2xl p-6">
+    <section aria-labelledby={titleId} className="panel mt-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 id={titleId} className="text-xl text-white">
           {metric.label}
@@ -47,7 +47,7 @@ function MetricChart({ metric, history, periodHours, error, loading }) {
       </div>
 
       {error && (
-        <p role="alert" className="mt-4 text-red-300">
+        <p role="alert" className="notice notice-bad mt-4">
           {error}
         </p>
       )}
@@ -126,7 +126,7 @@ function MetricChart({ metric, history, periodHours, error, loading }) {
               Voir les valeurs en tableau
             </summary>
             <div className="mt-2 max-h-64 overflow-auto">
-              <table className="w-full text-left text-sm">
+              <table className="data-table">
                 <caption className="sr-only">{`Valeurs de ${metric.label}`}</caption>
                 <thead className="text-slate-400">
                   <tr>
@@ -148,7 +148,7 @@ function MetricChart({ metric, history, periodHours, error, loading }) {
                   {series
                     .filter((p) => p.avg !== null)
                     .map((p) => (
-                      <tr key={p.at} className="border-t border-slate-700/50">
+                      <tr key={p.at}>
                         <td className="p-2">{new Date(p.at).toLocaleString("fr-FR")}</td>
                         <td className="p-2">{formatValue(p.avg, unit)}</td>
                         <td className="p-2">{formatValue(p.min, unit)}</td>
@@ -220,7 +220,7 @@ function MetricsPage() {
           Charge du processeur, de la mémoire et du disque sur la période choisie.
         </p>
         {loadError && (
-          <p role="alert" className="mt-4 text-red-300">
+          <p role="alert" className="notice notice-bad mt-4">
             {loadError}
           </p>
         )}

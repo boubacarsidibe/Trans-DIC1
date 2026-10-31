@@ -15,39 +15,39 @@
   --radius-2xl: 0.375rem;
   --radius-3xl: 0.5rem;
 
-  --color-white: #10203a;
-  --color-slate-100: #14243e;
-  --color-slate-200: #1d2f4a;
-  --color-slate-300: #34465f;
-  --color-slate-400: #566780;
-  --color-slate-500: #5f6f86;
-  --color-slate-600: #b9c6d6;
-  --color-slate-700: #d3dce7;
-  --color-slate-800: #e1e9f1;
-  --color-slate-900: #ffffff;
-  --color-slate-950: #ffffff;
+  --color-white: #edf1f6;
+  --color-slate-100: #e3e8ef;
+  --color-slate-200: #d3dae3;
+  --color-slate-300: #b8c2cf;
+  --color-slate-400: #95a1b2;
+  --color-slate-500: #7a8698;
+  --color-slate-600: #465163;
+  --color-slate-700: #343d4b;
+  --color-slate-800: #252c37;
+  --color-slate-900: #161b23;
+  --color-slate-950: #0f1319;
 
-  --color-teal-200: #084a66;
-  --color-teal-300: #0a5878;
-  --color-teal-400: #0a5878;
+  --color-teal-200: #a9d8ec;
+  --color-teal-300: #7cc3e3;
+  --color-teal-400: #3a9cc8;
 
-  --color-red-200: #8c1c15;
-  --color-red-300: #b3261e;
-  --color-red-400: #c4302b;
-  --color-red-500: #c4302b;
+  --color-red-200: #ffc2bc;
+  --color-red-300: #ff8d82;
+  --color-red-400: #f26b5e;
+  --color-red-500: #e5584b;
 
-  --color-amber-200: #7a4e00;
-  --color-amber-300: #8a5a00;
-  --color-amber-400: #c27b00;
-  --color-amber-500: #c27b00;
+  --color-amber-200: #ffe1a3;
+  --color-amber-300: #f5c55a;
+  --color-amber-400: #e5a92e;
+  --color-amber-500: #e5a92e;
 
-  --color-emerald-200: #0f5e3c;
-  --color-emerald-300: #16704a;
-  --color-emerald-400: #1f8a5b;
+  --color-emerald-200: #b5f0d3;
+  --color-emerald-300: #6fdba6;
+  --color-emerald-400: #3ecf8e;
 
-  --color-sky-200: #0b4f86;
-  --color-sky-300: #1160a8;
-  --color-sky-500: #1160a8;
+  --color-sky-200: #c4e0fa;
+  --color-sky-300: #8cc2f0;
+  --color-sky-500: #5aa5e6;
 }
 
 :root {
@@ -59,6 +59,7 @@
   --rail: #0b1726;
   --gutter: clamp(1.25rem, 2.5vw, 2rem);
   --photo: url("./assets/login/reseau-2000.webp");
+  --photo-gris: url("./assets/login/reseau-gris-1600.webp");
   --rail-ink: #c9d6e6;
   color: var(--ink);
   background: var(--paper);
@@ -1502,4 +1503,509 @@ thead {
 .btn-icon {
   width: 2.25rem;
   padding: 0;
+}
+
+
+/* ==== Habillage v4 : console sombre et grise, dans la continuité de la connexion (2026-10-31) ==== */
+.shell {
+  --ink: #e6ebf1;
+  --muted: #95a1b2;
+  --surface: rgb(22 27 35 / 82%);
+  --surface-solid: #161b23;
+  --line: rgb(255 255 255 / 8%);
+  --signal: #3a9cc8;
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg, rgb(15 19 25 / 88%), rgb(15 19 25 / 94%)),
+    var(--photo-gris) center / cover fixed;
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.shell .app-shell {
+  background: transparent;
+}
+
+/* Champs sur fond sombre. */
+.shell input:not([type="checkbox"]),
+.shell select,
+.shell textarea {
+  border-color: #3a4555;
+  background: #11161d;
+  color: var(--ink);
+}
+
+.shell input:not([type="checkbox"]):focus,
+.shell select:focus,
+.shell textarea:focus {
+  border-color: #3a9cc8;
+  outline-color: rgb(58 156 200 / 35%);
+}
+
+.shell input::placeholder {
+  color: #6b7789;
+}
+
+.shell code {
+  background: #252c37;
+}
+
+/* Menu : même photo en couleur, très sombre ; le fond gris prend le relais à droite. */
+.rail {
+  border-right: 1px solid rgb(255 255 255 / 6%);
+  background:
+    linear-gradient(180deg, rgb(9 16 26 / 90%), rgb(9 16 26 / 96%)),
+    var(--photo) 30% center / cover;
+}
+
+/* En-tête de page : plus de bandeau plein, le titre est posé sur le fond. */
+.page {
+  padding: 0 var(--gutter) 2rem;
+}
+
+.page-header {
+  margin: 0 0 1.1rem;
+  padding: 1.25rem 0 0.9rem;
+  border-bottom: 1px solid var(--line);
+  background: none;
+}
+
+.page-title {
+  font-size: 1.35rem;
+}
+
+.page-description {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.page-header .btn-primary,
+.btn-primary {
+  background: #2d87b3;
+  color: #fff;
+}
+
+.page-header .btn-primary:hover:not(:disabled),
+.btn-primary:hover:not(:disabled) {
+  background: #3a9cc8;
+}
+
+.btn-secondary,
+.page-header .btn-secondary {
+  border-color: #3a4555;
+  background: #1b212b;
+  color: var(--ink);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: #56637a;
+  background: #232a36;
+}
+
+.btn-danger {
+  border-color: rgb(242 107 94 / 45%);
+  background: transparent;
+  color: #ff8d82;
+}
+
+.btn-danger:hover:not(:disabled) {
+  border-color: #f26b5e;
+  background: rgb(242 107 94 / 10%);
+}
+
+.btn,
+.btn-sm {
+  min-height: 2rem;
+  border-radius: 4px;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.btn-icon {
+  width: 2rem;
+  padding: 0;
+}
+
+/* Surfaces : un fond translucide, un trait discret, des angles nets. */
+.status-card,
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+  box-shadow: none;
+}
+
+.panel {
+  padding: 0.9rem 1rem;
+}
+
+.panel-head {
+  margin: -0.9rem -1rem 0.9rem;
+  border-bottom: 1px solid var(--line);
+  padding: 0.6rem 1rem;
+}
+
+.panel-head h2 {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.panel-link {
+  color: #7cc3e3;
+}
+
+.notice-bad {
+  border: 1px solid rgb(242 107 94 / 40%);
+  background: rgb(242 107 94 / 12%);
+  color: #ffc2bc;
+}
+
+.notice-ok {
+  border: 1px solid rgb(62 207 142 / 35%);
+  background: rgb(62 207 142 / 12%);
+  color: #b5f0d3;
+}
+
+/* États : point de couleur + libellé. */
+.badge {
+  color: var(--ink) !important;
+  font-size: 0.88rem;
+}
+
+.badge-ok svg {
+  color: #3ecf8e;
+}
+
+.badge-warn svg {
+  color: #f0b232;
+}
+
+.badge-bad svg {
+  color: #f26b5e;
+}
+
+.badge-info svg {
+  color: #5aa5e6;
+}
+
+.badge-muted svg {
+  color: #7a8698;
+}
+
+.live,
+.page-header .live {
+  background: rgb(62 207 142 / 14%);
+  color: #8ce8bd;
+}
+
+.page-header .live-dot,
+.live-dot {
+  background: #3ecf8e;
+}
+
+.health-ok,
+.page-header .health-ok {
+  border-color: rgb(62 207 142 / 35%);
+  background: rgb(62 207 142 / 12%);
+  color: #8ce8bd;
+}
+
+.health-bad,
+.page-header .health-bad {
+  border-color: rgb(242 107 94 / 45%);
+  background: rgb(242 107 94 / 14%);
+  color: #ffb4ac;
+}
+
+.health {
+  min-height: 2.25rem;
+  border-radius: 4px;
+  padding: 0.3rem 0.85rem;
+  font-size: 0.9rem;
+}
+
+/* Tableaux façon logiciel d'exploitation : lignes serrées, en-tête sobre, lignes alternées,
+   sévérité en cellule colorée (repère classique des consoles comme Zabbix). */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.data-table thead,
+.panel-flush .data-table thead {
+  background: rgb(255 255 255 / 4%);
+}
+
+.data-table th {
+  border-bottom: 1px solid rgb(255 255 255 / 12%);
+  background: none;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.data-table td {
+  border-top: 1px solid rgb(255 255 255 / 5%);
+  padding: 0.4rem 0.75rem;
+  vertical-align: middle;
+}
+
+.data-table tbody tr:nth-child(even) {
+  background: rgb(255 255 255 / 2.5%);
+}
+
+.data-table tbody tr:hover {
+  background: rgb(58 156 200 / 10%);
+}
+
+.data-table .row-selected {
+  background: rgb(58 156 200 / 16%);
+}
+
+.sev-cell {
+  width: 1%;
+  padding: 0 !important;
+}
+
+.sev {
+  display: block;
+  min-width: 7.5rem;
+  padding: 0.5rem 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sev-CRITICAL {
+  background: #b8352b;
+  color: #fff;
+}
+
+.sev-WARNING {
+  background: #c98a16;
+  color: #1b1405;
+}
+
+.sev-INFO {
+  background: #2f6fa8;
+  color: #fff;
+}
+
+.cell-strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.cell-sub {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.cell-mono,
+.cell-message {
+  color: #c4ccd7;
+}
+
+.cell-message {
+  min-width: 14rem;
+  max-width: 32rem;
+}
+
+.empty-state {
+  padding: 2rem 1rem;
+  color: var(--muted);
+}
+
+.toolbar {
+  margin-bottom: 0.75rem;
+}
+
+.toolbar-field {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.toolbar-field select,
+.toolbar-field input {
+  min-height: 2.1rem;
+  min-width: 12rem;
+  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
+}
+
+.field {
+  min-height: 2.3rem;
+  border-radius: 4px;
+  padding: 0.4rem 0.65rem;
+}
+
+.timeline {
+  border-left-color: rgb(255 255 255 / 12%);
+}
+
+.timeline li::before {
+  border-color: #3a9cc8;
+  background: var(--surface-solid);
+}
+
+.timeline-date {
+  color: var(--muted);
+}
+
+.timeline-text {
+  color: #c4ccd7;
+}
+
+.timeline-text strong {
+  color: var(--ink);
+}
+
+.pagination-position {
+  color: var(--muted);
+}
+
+/* Synthèse du tableau de bord : des chiffres posés en texte et des anneaux de répartition. */
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 2.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.summary-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+}
+
+.summary-value {
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.summary-label {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.summary-alarm .summary-value {
+  color: #ff8d82;
+}
+
+.rings {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+}
+
+.ring-block {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.donut {
+  flex: none;
+}
+
+.donut-center {
+  font-size: 1.5rem;
+  font-weight: 600;
+  fill: var(--ink);
+}
+
+.donut-caption {
+  font-size: 0.62rem;
+  fill: var(--muted);
+}
+
+.legend {
+  display: grid;
+  flex: 1;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.9rem;
+}
+
+.legend-count {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.latest {
+  color: var(--muted);
+}
+
+.latest-value {
+  font-family: var(--font-sans);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    background-attachment: scroll;
+  }
+
+  .topbar {
+    background:
+      linear-gradient(180deg, rgb(9 16 26 / 92%), rgb(9 16 26 / 96%)),
+      var(--photo) center 30% / cover;
+  }
+
+  .rail {
+    background: #0b121c;
+  }
+
+  .summary {
+    gap: 0.75rem 1.5rem;
+  }
+
+  .summary-value {
+    font-size: 1.6rem;
+  }
+
+  .ring-block {
+    gap: 1rem;
+  }
+}
+
+.summary-item {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+}
+
+.breakdown-total {
+  border-top: 1px solid var(--line);
+  padding-top: 0.4rem;
+  color: var(--muted);
+}
+
+/* Les libellés masqués (sr-only) restent rattachés à leur tableau : sans ancêtre positionné, ils
+   élargissaient la page sur téléphone. */
+.overflow-x-auto,
+.data-table th,
+.data-table caption {
+  position: relative;
+}
+
+.legend-count {
+  white-space: nowrap;
 }

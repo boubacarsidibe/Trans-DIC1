@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Activity, AlertTriangle, BellRing, CheckCircle2, Cpu, Server, ServerOff } from "lucide-react";
+import { Activity, AlertTriangle, CheckCircle2 } from "lucide-react";
 import apiClient from "../api/client.js";
 import { useLiveUpdates } from "../hooks/useLiveUpdates.js";
 import { LiveIndicator, SeverityBadge, StatusBadge } from "../ui/Badges.jsx";
@@ -9,41 +9,67 @@ import { METRIC, label } from "../ui/labels.js";
 
 const STATUSES = ["UP", "DEGRADED", "MAINTENANCE", "DOWN", "UNKNOWN"];
 const STATUS_COLORS = {
-  UP: "#1f8a5b",
-  DEGRADED: "#c27b00",
-  MAINTENANCE: "#1160a8",
-  DOWN: "#c4302b",
-  UNKNOWN: "#9aa8ba",
+  UP: "#3ecf8e",
+  DEGRADED: "#f0b232",
+  MAINTENANCE: "#5aa5e6",
+  DOWN: "#f26b5e",
+  UNKNOWN: "#7a8698",
 };
 const SEVERITIES = ["CRITICAL", "WARNING", "INFO"];
-const SEVERITY_COLORS = { CRITICAL: "#c4302b", WARNING: "#c27b00", INFO: "#1160a8" };
+const SEVERITY_COLORS = { CRITICAL: "#f26b5e", WARNING: "#f0b232", INFO: "#5aa5e6" };
 
 const number = (value) => (typeof value === "number" ? String(value) : "—");
 
-/** Barre de répartition : proportions lisibles d'un coup d'œil, chiffres exacts dans la liste. */
-function Distribution({ items }) {
+/**
+ * Anneau de répartition : chaque segment est proportionnel à son nombre. Le chiffre central et la
+ * légende donnent les valeurs exactes (l'anneau seul est décoratif pour un lecteur d'écran).
+ */
+function Ring({ items, center, caption }) {
+  const radius = 42;
+  const length = 2 * Math.PI * radius;
   const total = items.reduce((sum, item) => sum + (item.value || 0), 0);
-  if (total === 0) return <div className="distribution distribution-empty" aria-hidden="true" />;
+  let offset = 0;
   return (
-    <div className="distribution" aria-hidden="true">
-      {items
-        .filter((item) => item.value > 0)
-        .map((item) => (
-          <span key={item.key} style={{ flexGrow: item.value, background: item.color }} />
-        ))}
-    </div>
+    <svg className="donut" width="124" height="124" viewBox="0 0 110 110" aria-hidden="true">
+      <circle cx="55" cy="55" r={radius} fill="none" stroke="rgb(255 255 255 / 9%)" strokeWidth="11" />
+      {total > 0 &&
+        items
+          .filter((item) => item.value > 0)
+          .map((item) => {
+            const part = (item.value / total) * length;
+            const segment = (
+              <circle
+                key={item.key}
+                cx="55"
+                cy="55"
+                r={radius}
+                fill="none"
+                stroke={item.color}
+                strokeWidth="11"
+                strokeDasharray={`${Math.max(part - 2, 1)} ${length}`}
+                strokeDashoffset={-offset}
+                transform="rotate(-90 55 55)"
+              />
+            );
+            offset += part;
+            return segment;
+          })}
+      <text x="55" y="56" textAnchor="middle" className="donut-center">
+        {center}
+      </text>
+      <text x="55" y="72" textAnchor="middle" className="donut-caption">
+        {caption}
+      </text>
+    </svg>
   );
 }
 
-function Kpi({ icon: Icon, label: text, value, alarm }) {
+function Figure({ label: text, value, alarm }) {
   return (
-    <article className={`kpi${alarm ? " kpi-alarm" : ""}`}>
-      <span className="kpi-icon" aria-hidden="true">
-        <Icon size={20} strokeWidth={2} />
-      </span>
-      <p className="kpi-label">{text}</p>
-      <p className="kpi-value">{value}</p>
-    </article>
+    <div className={`summary-item${alarm ? " summary-alarm" : ""}`}>
+      <span className="summary-label">{text}</span>
+      <span className="summary-value">{value}</span>
+    </div>
   );
 }
 
@@ -112,15 +138,15 @@ function DashboardPage() {
           </p>
         )}
 
-        <section aria-label="Chiffres clés" className="kpi-grid">
-          <Kpi icon={Server} label="Équipements supervisés" value={number(equipments?.total)} />
-          <Kpi icon={ServerOff} label="Équipements hors service" value={number(equipments?.byStatus?.DOWN)} alarm={down > 0} />
-          <Kpi icon={BellRing} label="Alertes actives" value={number(alerts?.active)} alarm={(alerts?.active ?? 0) > 0} />
-          <Kpi icon={Cpu} label="Agents actifs" value={number(overview?.activeAgents)} />
+        <section aria-label="Chiffres clés" className="summary">
+          <Figure label="Équipements supervisés" value={number(equipments?.total)} />
+          <Figure label="Équipements hors service" value={number(equipments?.byStatus?.DOWN)} alarm={down > 0} />
+          <Figure label="Alertes actives" value={number(alerts?.active)} alarm={(alerts?.active ?? 0) > 0} />
+          <Figure label="Agents actifs" value={number(overview?.activeAgents)} />
         </section>
 
         {overview && (
-          <div className="mt-6 grid gap-5 lg:grid-cols-2">
+          <div className="rings">
             <section aria-labelledby="statuts" className="panel">
               <div className="panel-head">
                 <h2 id="statuts">Équipements par statut</h2>
@@ -128,21 +154,25 @@ function DashboardPage() {
                   Voir le parc
                 </Link>
               </div>
-              <Distribution
-                items={STATUSES.map((status) => ({
-                  key: status,
-                  value: equipments.byStatus?.[status] ?? 0,
-                  color: STATUS_COLORS[status],
-                }))}
-              />
-              <ul className="breakdown">
-                {STATUSES.map((status) => (
-                  <li key={status}>
-                    <StatusBadge status={status} />
-                    <span className="breakdown-count">{number(equipments.byStatus?.[status])}</span>
-                  </li>
-                ))}
-              </ul>
+              <div className="ring-block">
+                <Ring
+                  items={STATUSES.map((status) => ({
+                    key: status,
+                    value: equipments.byStatus?.[status] ?? 0,
+                    color: STATUS_COLORS[status],
+                  }))}
+                  center={`${equipments.byStatus?.UP ?? 0}/${equipments.total ?? 0}`}
+                  caption="en service"
+                />
+                <ul className="legend">
+                  {STATUSES.map((status) => (
+                    <li key={status}>
+                      <StatusBadge status={status} />
+                      <span className="legend-count">{number(equipments.byStatus?.[status])}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </section>
 
             <section aria-labelledby="severites" className="panel">
@@ -152,27 +182,31 @@ function DashboardPage() {
                   Voir les alertes
                 </Link>
               </div>
-              <Distribution
-                items={SEVERITIES.map((severity) => ({
-                  key: severity,
-                  value: alerts.activeBySeverity?.[severity] ?? 0,
-                  color: SEVERITY_COLORS[severity],
-                }))}
-              />
-              <ul className="breakdown">
-                {SEVERITIES.map((severity) => (
-                  <li key={severity}>
-                    <SeverityBadge severity={severity} />
-                    <span className="breakdown-count">{number(alerts.activeBySeverity?.[severity])}</span>
+              <div className="ring-block">
+                <Ring
+                  items={SEVERITIES.map((severity) => ({
+                    key: severity,
+                    value: alerts.activeBySeverity?.[severity] ?? 0,
+                    color: SEVERITY_COLORS[severity],
+                  }))}
+                  center={number(alerts.active)}
+                  caption="actives"
+                />
+                <ul className="legend">
+                  {SEVERITIES.map((severity) => (
+                    <li key={severity}>
+                      <SeverityBadge severity={severity} />
+                      <span className="legend-count">{number(alerts.activeBySeverity?.[severity])}</span>
+                    </li>
+                  ))}
+                  <li className="breakdown-total">
+                    <span>Ouvertes · prises en charge</span>
+                    <span className="legend-count">
+                      {number(alerts.open)} · {number(alerts.inProgress)}
+                    </span>
                   </li>
-                ))}
-                <li className="breakdown-total">
-                  <span>Ouvertes · prises en charge</span>
-                  <span className="breakdown-count">
-                    {number(alerts.open)} · {number(alerts.inProgress)}
-                  </span>
-                </li>
-              </ul>
+                </ul>
+              </div>
             </section>
           </div>
         )}
