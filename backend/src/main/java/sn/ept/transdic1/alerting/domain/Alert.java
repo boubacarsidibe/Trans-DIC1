@@ -63,6 +63,13 @@ public class Alert {
   @Column(name = "resolution_type")
   private ResolutionType resolutionType;
 
+  /** Alerte racine qui explique celle-ci (regroupement), ou null. */
+  @Column(name = "parent_alert_id")
+  private UUID parentAlertId;
+
+  @Column(name = "correlation_reason", length = 255)
+  private String correlationReason;
+
   protected Alert() {}
 
   public Alert(
@@ -81,6 +88,20 @@ public class Alert {
     this.severity = severity;
     this.message = message;
     this.triggeredAt = triggeredAt;
+  }
+
+  public UUID getParentAlertId() {
+    return parentAlertId;
+  }
+
+  public String getCorrelationReason() {
+    return correlationReason;
+  }
+
+  /** Rattache l'alerte à sa racine, avec la raison affichée. */
+  public void correlateTo(UUID rootAlertId, String reason) {
+    this.parentAlertId = rootAlertId;
+    this.correlationReason = reason;
   }
 
   public UUID getId() {

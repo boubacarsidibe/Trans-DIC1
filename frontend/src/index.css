@@ -2975,3 +2975,11 @@ thead {
   font-weight: 700;
   color: #b3261e;
 }
+
+.cell-grouped {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--muted);
+}

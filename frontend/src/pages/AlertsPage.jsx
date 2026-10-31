@@ -193,7 +193,12 @@ function AlertsPage() {
                     <span className={`sev sev-${alert.severity}`}>{label(SEVERITY, alert.severity)}</span>
                   </td>
                   <td className="cell-strong">{alert.equipmentName}</td>
-                  <td className="cell-message">{readable(alert.message)}</td>
+                  <td className="cell-message">
+                    {readable(alert.message)}
+                    {alert.correlationReason && (
+                      <span className="cell-grouped">Regroupée, sans notification : {alert.correlationReason}</span>
+                    )}
+                  </td>
                   <td>
                     <AlertStateBadge state={alert.state} />
                   </td>

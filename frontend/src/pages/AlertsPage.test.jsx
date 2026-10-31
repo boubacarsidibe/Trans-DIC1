@@ -225,3 +225,25 @@ describe("page des alertes", () => {
     expect(await screen.findByText(/En direct/)).toBeInTheDocument();
   });
 });
+
+describe("alertes regroupées", () => {
+  it("explique pourquoi une alerte est regroupée", async () => {
+    saveSession({ accessToken: "jeton", role: "VIEWER", expiresIn: 3600 });
+    apiClient.get.mockResolvedValue({
+      data: {
+        content: [
+          { id: "a2", severity: "CRITICAL", state: "OPEN", equipmentName: "Commutateur", message: "Plus de réponse", triggeredAt: "2026-10-31T08:00:20Z", parentAlertId: "a1", correlationReason: "Amont injoignable : Routeur cœur" },
+        ],
+        page: { totalPages: 1 },
+      },
+    });
+    render(
+      <MemoryRouter initialEntries={["/alertes"]}>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText(/Regroupée, sans notification : Amont injoignable : Routeur cœur/)).toBeInTheDocument();
+  });
+});

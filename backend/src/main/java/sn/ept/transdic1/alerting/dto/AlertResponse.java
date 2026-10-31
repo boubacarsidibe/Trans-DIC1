@@ -21,7 +21,9 @@ public record AlertResponse(
     Instant takenAt,
     Instant resolvedAt,
     String assignee,
-    java.util.List<String> assignees) {
+    java.util.List<String> assignees,
+    UUID parentAlertId,
+    String correlationReason) {
 
   /** {@code assignee} reste le premier assigné, pour les clients qui n'en affichent qu'un. */
   public static AlertResponse from(Alert alert, java.util.List<String> assignees) {
@@ -38,6 +40,8 @@ public record AlertResponse(
         alert.getTakenAt(),
         alert.getResolvedAt(),
         assignees.isEmpty() ? null : assignees.get(0),
-        java.util.List.copyOf(assignees));
+        java.util.List.copyOf(assignees),
+        alert.getParentAlertId(),
+        alert.getCorrelationReason());
   }
 }

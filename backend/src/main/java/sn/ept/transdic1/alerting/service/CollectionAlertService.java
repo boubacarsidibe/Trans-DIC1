@@ -36,12 +36,15 @@ public class CollectionAlertService {
   private final AlertEventRepository events;
   private final MaintenanceRepository maintenances;
   private final ApplicationEventPublisher publisher;
+  private final AlertCorrelationService correlation;
 
   public CollectionAlertService(
       AlertRepository alerts,
       AlertEventRepository events,
       MaintenanceRepository maintenances,
-      ApplicationEventPublisher publisher) {
+      ApplicationEventPublisher publisher,
+      AlertCorrelationService correlation) {
+    this.correlation = correlation;
     this.alerts = alerts;
     this.events = events;
     this.maintenances = maintenances;
@@ -91,8 +94,24 @@ public class CollectionAlertService {
     if (!notify) {
       event.setComment("Maintenance en cours : aucune notification");
     }
+    // Regroupement : une alerte expliquée par une panne déjà connue ne notifie personne.
+    var root = correlation.find(equipment, at);
+    if (root.isPresent()) {
+      alert.correlateTo(root.get().rootAlertId(), root.get().reason());
+      notify = false;
+    } else {
+      alert.correlateTo(null, null);
+    }
     alerts.save(alert);
     events.save(event);
+    if (root.isPresent()) {
+      var grouped = new AlertEvent(alert, AlertEventType.CORRELATED, at);
+      grouped.setComment("Regroupée, sans notification : " + root.get().reason());
+      events.save(grouped);
+    } else {
+      alerts.flush();
+      correlation.adoptDownstream(alert.getId(), equipment, at);
+    }
     if (notify) {
       publisher.publishEvent(new AlertChangedEvent(alert.getId(), AlertEventType.OPENED));
     }

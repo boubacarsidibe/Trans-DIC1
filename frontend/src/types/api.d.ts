@@ -1554,6 +1554,9 @@ export interface components {
             resolvedAt?: string;
             assignee?: string;
             assignees?: string[];
+            /** Format: uuid */
+            parentAlertId?: string;
+            correlationReason?: string;
         };
         PagedModelAlertResponse: {
             content?: components["schemas"]["AlertResponse"][];

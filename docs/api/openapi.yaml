@@ -3765,6 +3765,11 @@ components:
           type: array
           items:
             type: string
+        parentAlertId:
+          type: string
+          format: uuid
+        correlationReason:
+          type: string
     PagedModelAlertResponse:
       type: object
       properties:
