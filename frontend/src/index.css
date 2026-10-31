@@ -15,39 +15,39 @@
   --radius-2xl: 0.375rem;
   --radius-3xl: 0.5rem;
 
-  --color-white: #edf1f6;
-  --color-slate-100: #e3e8ef;
-  --color-slate-200: #d3dae3;
-  --color-slate-300: #b8c2cf;
-  --color-slate-400: #95a1b2;
-  --color-slate-500: #7a8698;
-  --color-slate-600: #465163;
-  --color-slate-700: #343d4b;
-  --color-slate-800: #252c37;
-  --color-slate-900: #161b23;
-  --color-slate-950: #0f1319;
+  --color-white: #1d232c;
+  --color-slate-100: #222a35;
+  --color-slate-200: #2b3440;
+  --color-slate-300: #3a4350;
+  --color-slate-400: #59626f;
+  --color-slate-500: #646d79;
+  --color-slate-600: #b3b0aa;
+  --color-slate-700: #cbc8c2;
+  --color-slate-800: #dcd9d4;
+  --color-slate-900: #ffffff;
+  --color-slate-950: #ffffff;
 
-  --color-teal-200: #a9d8ec;
-  --color-teal-300: #7cc3e3;
-  --color-teal-400: #3a9cc8;
+  --color-teal-200: #084a66;
+  --color-teal-300: #0a5878;
+  --color-teal-400: #0a5878;
 
-  --color-red-200: #ffc2bc;
-  --color-red-300: #ff8d82;
-  --color-red-400: #f26b5e;
-  --color-red-500: #e5584b;
+  --color-red-200: #8c1c15;
+  --color-red-300: #b3261e;
+  --color-red-400: #c4302b;
+  --color-red-500: #c4302b;
 
-  --color-amber-200: #ffe1a3;
-  --color-amber-300: #f5c55a;
-  --color-amber-400: #e5a92e;
-  --color-amber-500: #e5a92e;
+  --color-amber-200: #6e4600;
+  --color-amber-300: #7f5200;
+  --color-amber-400: #b87400;
+  --color-amber-500: #b87400;
 
-  --color-emerald-200: #b5f0d3;
-  --color-emerald-300: #6fdba6;
-  --color-emerald-400: #3ecf8e;
+  --color-emerald-200: #0f5e3c;
+  --color-emerald-300: #16704a;
+  --color-emerald-400: #1f8a5b;
 
-  --color-sky-200: #c4e0fa;
-  --color-sky-300: #8cc2f0;
-  --color-sky-500: #5aa5e6;
+  --color-sky-200: #0b4f86;
+  --color-sky-300: #1160a8;
+  --color-sky-500: #1160a8;
 }
 
 :root {
@@ -2008,4 +2008,332 @@ thead {
 
 .legend-count {
   white-space: nowrap;
+}
+
+
+/* ==== Habillage v5 : fond sombre tirant sur le brun, feuille de travail gris clair au centre ==== */
+.shell {
+  --ink: #1d232c;
+  --muted: #59626f;
+  --sheet: #e2dfda;
+  --surface: #ebe9e5;
+  --surface-solid: #ebe9e5;
+  --line: #cbc7c0;
+  --signal: #0a5878;
+  background:
+    linear-gradient(180deg, rgb(38 33 29 / 84%), rgb(30 26 23 / 90%)),
+    var(--photo-gris) center / cover fixed;
+  color: var(--ink);
+}
+
+/* La zone de travail : une feuille gris clair, plus petite que l'écran, qui laisse voir le fond. */
+.shell > .min-w-0 {
+  padding: 0.9rem 0.9rem 0.9rem 0;
+}
+
+.shell .app-shell.page {
+  min-height: calc(100vh - 1.8rem);
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 8px;
+  background: var(--sheet);
+  padding: 0 1.5rem 1.75rem;
+  box-shadow: 0 10px 40px rgb(0 0 0 / 30%);
+}
+
+.shell input:not([type="checkbox"]),
+.shell select,
+.shell textarea {
+  border-color: #b9b5ae;
+  background: #fff;
+  color: var(--ink);
+}
+
+.shell input:not([type="checkbox"]):focus,
+.shell select:focus,
+.shell textarea:focus {
+  border-color: #0a5878;
+  outline-color: rgb(10 88 120 / 25%);
+}
+
+.shell input::placeholder {
+  color: #8a8f97;
+}
+
+.shell code {
+  background: #d6d3cd;
+}
+
+.page-header {
+  border-bottom-color: var(--line);
+}
+
+.page-title {
+  color: var(--ink);
+}
+
+.page-description {
+  color: var(--muted);
+}
+
+.page-header .btn-primary,
+.btn-primary {
+  background: #0a5878;
+  color: #fff;
+}
+
+.page-header .btn-primary:hover:not(:disabled),
+.btn-primary:hover:not(:disabled) {
+  background: #084a66;
+}
+
+.btn-secondary,
+.page-header .btn-secondary {
+  border-color: #b9b5ae;
+  background: #f4f3f1;
+  color: var(--ink);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: #8f8b84;
+  background: #fff;
+}
+
+.btn-danger {
+  border-color: #dba7a2;
+  background: #f4f3f1;
+  color: #a5241f;
+}
+
+.btn-danger:hover:not(:disabled) {
+  border-color: #c4302b;
+  background: #fbeceb;
+}
+
+.status-card,
+.panel {
+  border-color: var(--line);
+  background: var(--surface);
+}
+
+.panel-head {
+  border-bottom-color: var(--line);
+}
+
+.panel-head h2 {
+  color: var(--ink);
+}
+
+.panel-link {
+  color: #0a5878;
+}
+
+.notice-bad {
+  border-color: #e3b3ae;
+  background: #f7e3e1;
+  color: #8c1c15;
+}
+
+.notice-ok {
+  border-color: #b2d8c3;
+  background: #dff0e6;
+  color: #0f5e3c;
+}
+
+.badge-ok svg {
+  color: #1f8a5b;
+}
+
+.badge-warn svg {
+  color: #c27b00;
+}
+
+.badge-bad svg {
+  color: #c4302b;
+}
+
+.badge-info svg {
+  color: #1160a8;
+}
+
+.badge-muted svg {
+  color: #8a8f97;
+}
+
+.live,
+.page-header .live {
+  background: #d3eadc;
+  color: #0f5e3c;
+}
+
+.page-header .live-dot,
+.live-dot {
+  background: #1f8a5b;
+}
+
+.health-ok,
+.page-header .health-ok {
+  border-color: #b2d8c3;
+  background: #dff0e6;
+  color: #0f5e3c;
+}
+
+.health-bad,
+.page-header .health-bad {
+  border-color: #e3b3ae;
+  background: #f7e3e1;
+  color: #8c1c15;
+}
+
+.page-header .badge-muted {
+  background: #d6d3cd;
+  color: var(--muted);
+}
+
+/* Tableaux sur la feuille grise : en-tête plus soutenu, lignes alternées claires. */
+.data-table thead,
+.panel-flush .data-table thead {
+  background: #d8d5cf;
+}
+
+.data-table th {
+  border-bottom-color: #c3bfb8;
+  color: #4d5662;
+}
+
+.data-table td {
+  border-top-color: #d9d6d0;
+}
+
+.data-table tbody tr {
+  background: #efeeeb;
+}
+
+.data-table tbody tr:nth-child(even) {
+  background: #e8e6e2;
+}
+
+.data-table tbody tr:hover {
+  background: #dce7ee;
+}
+
+.data-table .row-selected {
+  background: #d3e2ec;
+}
+
+.cell-strong {
+  color: var(--ink);
+}
+
+.cell-sub {
+  color: var(--muted);
+}
+
+.cell-mono,
+.cell-message {
+  color: #3a4350;
+}
+
+.empty-state {
+  color: var(--muted);
+}
+
+.toolbar-field {
+  color: var(--muted);
+}
+
+.timeline {
+  border-left-color: var(--line);
+}
+
+.timeline li::before {
+  border-color: #0a5878;
+  background: var(--surface);
+}
+
+.timeline-date {
+  color: var(--muted);
+}
+
+.timeline-text {
+  color: #3a4350;
+}
+
+.timeline-text strong {
+  color: var(--ink);
+}
+
+.summary-value,
+.legend-count {
+  color: var(--ink);
+}
+
+.summary-label {
+  color: var(--muted);
+}
+
+.summary-alarm .summary-value {
+  color: #b3261e;
+}
+
+.donut circle:first-of-type {
+  stroke: rgb(0 0 0 / 10%);
+}
+
+.donut-center {
+  fill: var(--ink);
+}
+
+.donut-caption {
+  fill: var(--muted);
+}
+
+.latest {
+  color: var(--muted);
+}
+
+.latest-value {
+  color: var(--ink);
+}
+
+.breakdown-total {
+  color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .shell > .min-w-0 {
+    padding: 0.5rem;
+  }
+
+  .shell .app-shell.page {
+    min-height: calc(100vh - 4.5rem);
+    padding: 0 1rem 1.25rem;
+  }
+}
+
+/* Le menu laisse voir le même fond brun texturé : un seul cadre sombre autour de la feuille. */
+.rail {
+  border-right: 0;
+  background: rgb(10 8 7 / 28%);
+}
+
+.shell > .min-w-0 {
+  padding: 1.25rem 1.25rem 1.25rem 0.25rem;
+}
+
+.shell .app-shell.page {
+  min-height: calc(100vh - 2.5rem);
+}
+
+@media (max-width: 900px) {
+  .topbar {
+    background: rgb(20 17 15 / 92%);
+  }
+
+  .rail {
+    background: #1d1916;
+  }
+
+  .shell > .min-w-0 {
+    padding: 0.5rem;
+  }
 }

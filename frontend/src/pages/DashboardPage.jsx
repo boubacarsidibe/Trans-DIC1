@@ -9,14 +9,14 @@ import { METRIC, label } from "../ui/labels.js";
 
 const STATUSES = ["UP", "DEGRADED", "MAINTENANCE", "DOWN", "UNKNOWN"];
 const STATUS_COLORS = {
-  UP: "#3ecf8e",
-  DEGRADED: "#f0b232",
-  MAINTENANCE: "#5aa5e6",
-  DOWN: "#f26b5e",
-  UNKNOWN: "#7a8698",
+  UP: "#1f8a5b",
+  DEGRADED: "#c27b00",
+  MAINTENANCE: "#1160a8",
+  DOWN: "#c4302b",
+  UNKNOWN: "#9aa0a8",
 };
 const SEVERITIES = ["CRITICAL", "WARNING", "INFO"];
-const SEVERITY_COLORS = { CRITICAL: "#f26b5e", WARNING: "#f0b232", INFO: "#5aa5e6" };
+const SEVERITY_COLORS = { CRITICAL: "#c4302b", WARNING: "#c27b00", INFO: "#1160a8" };
 
 const number = (value) => (typeof value === "number" ? String(value) : "—");
 

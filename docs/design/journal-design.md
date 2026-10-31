@@ -103,6 +103,23 @@ Décisions :
   390 px ; un libellé masqué `sr-only` non rattaché élargissait la page, corrigé).
 - **Icônes** : `lucide-react` 1.45.0 (licence ISC), version figée de plus de six semaines.
 
+## 2026-10-31 — Correction : feuille gris clair sur fond sombre brun (version retenue)
+
+La console entièrement noire **ne correspondait pas** à la demande. Ce que Boubacar voulait :
+réduire la zone centrale et la passer en gris assez clair, posée sur un fond sombre qui tire vers
+le brun.
+
+- **Fond** : photo réseau désaturée sous un voile brun très sombre (`rgb(38 33 29 / 84%)` →
+  `rgb(30 26 23 / 90%)`). Le menu est transparent sur ce fond : un seul cadre sombre et texturé.
+- **Feuille de travail** : gris clair chaud `#e2dfda`, plus petite que l'écran (marge de 1,25 rem),
+  coins de 8 px, ombre portée douce ; texte foncé `#1d232c`. Les bords sombres restent visibles
+  tout autour.
+- **Sur la feuille** : sections `#ebe9e5`, tableaux à en-tête `#d8d5cf` et lignes alternées claires,
+  boutons secondaires presque blancs, bouton principal bleu signal (le même que la connexion).
+  Les anneaux, chiffres en texte, cellules de sévérité et la compacité de la version précédente sont
+  conservés.
+- Vérifié : 140 tests frontend, build, aucune page ne déborde à 390 px.
+
 ## Dépendances
 
 - Ajout de `@playwright/test` 1.64.1 (publié le 14/10/2026) en dépendance de développement : captures
