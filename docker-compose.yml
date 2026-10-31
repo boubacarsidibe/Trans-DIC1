@@ -17,7 +17,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
     ports:
       # Port 5433 côté hôte pour ne pas entrer en conflit avec un PostgreSQL local.
-      - "127.0.0.1:5433:5432"
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -91,7 +91,7 @@ services:
       # Découverte automatique (FEAT-07) : plages autorisées par l'exploitation.
       DISCOVERY_ALLOWED_RANGES: ${DISCOVERY_ALLOWED_RANGES:-}
     ports:
-      - "8080:8080"
+      - "${BACKEND_HOST_PORT:-8080}:8080"
 
   frontend:
     build:
@@ -103,7 +103,7 @@ services:
       backend:
         condition: service_healthy
     ports:
-      - "5173:8080"
+      - "${FRONTEND_HOST_PORT:-5173}:8080"
 
   # --- Observabilité (ARCH-08), profil « observability » ---------------------------------------
   # docker compose --profile observability up -d --build

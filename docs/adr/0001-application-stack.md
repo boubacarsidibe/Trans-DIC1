@@ -19,6 +19,8 @@ Trans-DIC1 supervise les équipements réseau et serveurs de l'EPT. Le socle doi
 | Tests | JUnit/Spring Boot Test et H2 isolé ; Vitest/Testing Library |
 | Exécution locale | Services natifs Java, Node.js et PostgreSQL, sans virtualisation |
 
+Options considérées pour le backend : Java et Spring Boot (retenu : écosystème mûr pour la sécurité, JPA, Flyway, planification et observabilité, langage maîtrisé par l'équipe), Node.js et NestJS (même langage que le frontend, mais écosystème de sécurité et de planification moins homogène), Python et Django (rapide à écrire, mais concurrence et typage moins adaptés à une collecte parallèle). Pour les données : PostgreSQL (retenu : relationnel pour l'inventaire, l'audit et les alertes, et partitionnement natif pour les métriques, ADR-0004) face à une base de séries temporelles dédiée, écartée pour ne pas exploiter deux moteurs.
+
 Le dépôt reste un monorepo : `backend/` porte l'API et les modules métier, `frontend/` l'interface, et les adaptateurs de collecte restent derrière des ports applicatifs afin de ne pas coupler le métier à l'agent Trans-DIC1 ou à SNMP. Chaque module backend sépare `controller`, `service`, `repository`, `domain` et `dto`.
 
 ## Contrats

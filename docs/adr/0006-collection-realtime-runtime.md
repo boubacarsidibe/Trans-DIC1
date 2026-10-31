@@ -41,6 +41,17 @@ Quatre choix techniques restaient implicites ou contradictoires entre le backlog
 - WebSocket n'est introduit que si un besoin bidirectionnel apparaît. Les sources sont des blogs, sans mesure de charge pour ce cas.
 - Le flux est authentifié par le jeton d'accès ; comme `EventSource` ne permet pas d'en-tête personnalisé, le frontend utilise `fetch` avec lecture du flux.
 
+## Options
+
+Récapitulatif des options comparées dans chaque décision ci-dessus.
+
+| Sujet | Options envisagées | Retenue |
+| --- | --- | --- |
+| Version de Java | 17 (LTS précédente), 21 (LTS), 25 (LTS la plus récente) | 21, passage à 25 prévu après validation de l'outillage |
+| Bibliothèque SNMP | SNMP4J, iReasoning (propriétaire), écrire le protocole | SNMP4J 3.x, derrière un port applicatif |
+| Mode de l'agent | passif (le serveur interroge chaque agent), actif (l'agent envoie) | actif ; le serveur n'interroge que les équipements SNMP |
+| Temps réel | interrogation périodique, WebSocket, SSE | SSE, WebSocket seulement si un besoin bidirectionnel apparaît |
+
 ## Conséquences
 
 - `pom.xml`, Dockerfile, CI et README passent à Java 21 (appliqué).

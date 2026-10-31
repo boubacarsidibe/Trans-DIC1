@@ -1,8 +1,15 @@
 [CmdletBinding()]
 param(
-    [string]$EnvFile = (Join-Path (Join-Path $PSScriptRoot '..') '.env'),
-    [string]$ExampleFile = (Join-Path (Join-Path $PSScriptRoot '..') '.env.example')
+    [string]$EnvFile,
+    [string]$ExampleFile
 )
+
+# Valeurs par défaut calculées ici : sous Windows PowerShell 5.1, $PSScriptRoot est vide dans le
+# bloc param() quand le script est lancé avec -File.
+$repositoryRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repositoryRoot = Split-Path -Parent $repositoryRoot
+if (-not $EnvFile) { $EnvFile = Join-Path $repositoryRoot '.env' }
+if (-not $ExampleFile) { $ExampleFile = Join-Path $repositoryRoot '.env.example' }
 
 # Prépare le fichier .env pour le développement local et pour docker compose :
 # crée .env depuis .env.example s'il manque, puis génère uniquement les valeurs

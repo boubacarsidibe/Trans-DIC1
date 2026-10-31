@@ -1,8 +1,10 @@
-# ADR 0007 : événements internes, file d'envoi (Outbox) et canaux de notification
+# ADR-0008 — Événements internes, file d'envoi (Outbox) et canaux de notification
 
 - Statut : accepté
 - Date : 2026-10-29
 - Tâches : ARCH-07 (#55), FEAT-05 (#60)
+- Précise : ADR-0007 (e-mail) ; la file en base devient une Outbox commune à tous les canaux
+- Numérotation : publié d'abord sous le numéro 0007, déjà pris par l'ADR des e-mails ; renuméroté 0008 le 2026-11-01 sans changement de décision
 
 ## Contexte
 
@@ -44,6 +46,14 @@ l'alerte : l'alerte et ses messages sont validés ensemble ou pas du tout. Un wo
   URL ni adresse IP.
 - Les modèles de messages sont en base (`notification_template`) et modifiables par un
   administrateur sans redéploiement.
+
+## Options
+
+| Option | Avantages | Inconvénients |
+| --- | --- | --- |
+| Appels directs entre modules (l'alerte appelle les notifications) | Simple à lire | Couple `alerting` à `reporting` (interdit par ArchUnit) ; une panne d'un canal bloque l'alerte |
+| **Événements Spring et file d'envoi en base (Outbox), retenue** | Alerte et messages validés ensemble ; envoi asynchrone avec reprises ; idempotence par `eventId` ; aucune infrastructure de plus | File limitée au processus et à la base ; débit borné par le worker planifié |
+| Broker de messages (RabbitMQ, Kafka) | Découplage fort, plusieurs consommateurs, rejeu | Infrastructure à exploiter, disproportionnée pour le volume de l'EPT ; envisagé plus tard (ARCH-10) |
 
 ## Conséquences
 

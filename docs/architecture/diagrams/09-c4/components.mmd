@@ -1,0 +1,35 @@
+C4Component
+    title Composants de l'API (modules de backend/src/main/java/sn/ept/transdic1)
+
+    Container(web, "Application web", "React", "Interface utilisateur")
+    System_Ext(agent, "Agent Trans-DIC1", "Envoie ses mesures")
+    System_Ext(devices, "Équipements réseau", "SNMP")
+    System_Ext(channels, "SMTP, Teams, Slack, webhooks", "Canaux")
+    ContainerDb(db, "PostgreSQL 16", "Base de données")
+
+    Container_Boundary(api, "API et collecte (Spring Boot)") {
+        Component(security, "security", "Spring Security, JWT", "Connexion, renouvellement par cookie, comptes et rôles, chaînes agents et métriques")
+        Component(inventory, "inventory", "REST, JPA", "Sites, équipements, import CSV")
+        Component(collection, "collection", "SNMP4J, ports", "Collecte SNMP, réception des agents, source simulée, découverte, contrôle de silence")
+        Component(monitoring, "monitoring", "JPA, partitions", "Métriques, historique, partitions et rétention")
+        Component(alerting, "alerting", "Règles, machine à états", "Évaluation des seuils, cycle de vie, escalade, maintenances")
+        Component(reporting, "reporting", "Outbox, OpenPDF", "Notifications multicanal, rapports PDF et CSV")
+        Component(overview, "overview", "SseEmitter", "Vue d'ensemble et flux temps réel")
+        Component(audit, "audit", "Trigger d'immutabilité", "Journal des actions sensibles")
+        Component(common, "common", "JobGuard, SecretResolver", "Verrou des tâches, secrets env:NOM, corrélation, erreurs, observabilité")
+    }
+
+    Rel(web, security, "Se connecte", "REST")
+    Rel(web, inventory, "Gère l'inventaire", "REST")
+    Rel(web, alerting, "Traite les alertes", "REST")
+    Rel(web, overview, "Reçoit les changements", "SSE")
+    Rel(agent, collection, "POST /agent/measures", "HTTPS")
+    Rel(collection, devices, "Lit les OID", "SNMP")
+    Rel(collection, monitoring, "Dépose les mesures", "MetricIngestedEvent")
+    Rel(collection, alerting, "Fait évaluer les seuils", "Service")
+    Rel(alerting, reporting, "Publie les changements d'alerte", "AlertChangedEvent")
+    Rel(alerting, overview, "Publie l'activité", "AlertActivityEvent")
+    Rel(reporting, channels, "Envoie", "SMTP, HTTPS")
+    Rel(inventory, audit, "Trace", "Service")
+    Rel(collection, db, "Lit et écrit", "JDBC")
+    Rel(monitoring, db, "Lit et écrit", "JDBC")
