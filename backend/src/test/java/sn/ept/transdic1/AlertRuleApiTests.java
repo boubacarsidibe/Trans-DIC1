@@ -54,6 +54,7 @@ class AlertRuleApiTests {
   @Autowired private EquipmentRepository equipments;
   @Autowired private AlertRepository alerts;
   @Autowired private MeasureIngestionService ingestion;
+  @Autowired private sn.ept.transdic1.audit.repository.AuditEntryRepository auditEntries;
 
   private Site site;
   private Equipment equipment;
@@ -275,6 +276,19 @@ class AlertRuleApiTests {
         .andExpect(jsonPath("$.threshold").value(70))
         .andExpect(jsonPath("$.siteIds.length()").value(1))
         .andExpect(jsonPath("$.equipmentIds.length()").value(0));
+    // Le journal garde l'ancienne et la nouvelle valeur (retour arrière d'un seuil, S4-SEUILS).
+    String details =
+        auditEntries
+            .findByTargetTypeAndTargetIdOrderByPerformedAtDesc(
+                "ALERT_RULE",
+                UUID.fromString(id),
+                org.springframework.data.domain.Pageable.ofSize(1))
+            .getContent()
+            .getFirst()
+            .getDetailsSanitized();
+    org.assertj.core.api.Assertions.assertThat(details)
+        .contains("avant: cpu.usage GREATER_THAN 90", "retour 80")
+        .contains("après: cpu.usage GREATER_OR_EQUAL 70", "retour 60");
     send("PUT", admin, BASE + "/" + UUID.randomUUID(), ruleOnEquipment("x-" + UUID.randomUUID()))
         .andExpect(status().isNotFound());
   }

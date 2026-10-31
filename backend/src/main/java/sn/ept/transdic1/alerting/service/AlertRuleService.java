@@ -77,7 +77,11 @@ public class AlertRuleService {
     apply(rule, request);
     rules.saveAndFlush(rule);
     replaceScopes(rule, request);
-    audit.record("RULE_CREATED", "ALERT_RULE", rule.getId(), "nom=" + rule.getName());
+    audit.record(
+        "RULE_CREATED",
+        "ALERT_RULE",
+        rule.getId(),
+        "nom=" + rule.getName() + " ; " + summary(rule));
     return toResponse(rule);
   }
 
@@ -87,6 +91,7 @@ public class AlertRuleService {
     if (rules.existsByNameAndIdNot(request.name(), id)) {
       throw conflict("Une règle porte déjà ce nom");
     }
+    String before = summary(rule);
     rule.setName(request.name());
     rule.setMetricType(request.metricType());
     rule.setOperator(request.operator());
@@ -96,7 +101,12 @@ public class AlertRuleService {
     apply(rule, request);
     rules.saveAndFlush(rule);
     replaceScopes(rule, request);
-    audit.record("RULE_UPDATED", "ALERT_RULE", id, "nom=" + rule.getName());
+    // Ancienne et nouvelle valeur : le retour à un seuil précédent se lit dans le journal.
+    audit.record(
+        "RULE_UPDATED",
+        "ALERT_RULE",
+        id,
+        "nom=" + rule.getName() + " ; avant: " + before + " ; après: " + summary(rule));
     return toResponse(rule);
   }
 
@@ -115,6 +125,24 @@ public class AlertRuleService {
   }
 
   // ------------------------------------------------------------------ outils
+
+  /** Résumé lisible des valeurs qui comptent pour le CRI (sans donnée sensible). */
+  private static String summary(AlertRule rule) {
+    return rule.getMetricType()
+        + " "
+        + rule.getOperator()
+        + " "
+        + rule.getThreshold().stripTrailingZeros().toPlainString()
+        + (rule.getUnit() == null ? "" : " " + rule.getUnit())
+        + (rule.getRecoveryThreshold() == null
+            ? ""
+            : ", retour " + rule.getRecoveryThreshold().stripTrailingZeros().toPlainString())
+        + ", confirmation "
+        + rule.getConfirmationDuration().toSeconds()
+        + " s, "
+        + rule.getInitialSeverity()
+        + (rule.isActive() ? "" : ", inactive");
+  }
 
   private void apply(AlertRule rule, AlertRuleRequest request) {
     rule.setUnit(blankToNull(request.unit()));
