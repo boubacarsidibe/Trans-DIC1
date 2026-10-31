@@ -9,6 +9,9 @@ lerna-debug.log*
 
 node_modules
 dist
+# Résultats des tests de bout en bout (Playwright)
+playwright-report
+test-results
 dist-ssr
 *.local
 
