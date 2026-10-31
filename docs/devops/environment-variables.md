@@ -47,6 +47,8 @@
 | `TRACING_EXPORT_ENABLED` | Non | Tous | `false` par défaut ; `true` exporte les traces OpenTelemetry vers `TRACING_OTLP_ENDPOINT` |
 | `TRACING_OTLP_ENDPOINT` | Selon topologie | Tous | Collecteur OTLP HTTP, `http://localhost:4318/v1/traces` par défaut (`http://jaeger:4318/v1/traces` dans Compose) |
 | `TRACING_SAMPLING_PROBABILITY` | Non | Tous | Part des requêtes tracées, 0.1 par défaut |
+| `DISCOVERY_ALLOWED_RANGES` | Selon topologie | Tous | Plages CIDR IPv4 que la découverte automatique peut parcourir, séparées par des virgules, fixées par l'exploitation ; vide, aucune découverte n'est possible |
+| `DISCOVERY_MAX_HOSTS`, `DISCOVERY_CONCURRENCY`, `DISCOVERY_HOST_TIMEOUT_MS`, `DISCOVERY_MAX_DURATION_SECONDS` | Non | Tous | Limites de la découverte : 256 adresses, 8 en parallèle, 1000 ms par adresse, 300 s par recherche |
 | `GRAFANA_ADMIN_PASSWORD` | Oui | Tous | Mot de passe du compte `admin` de Grafana (profil Compose `observability`) |
 
 Les variables non retenues par la stack devront être supprimées du contrat plutôt que laissées inactives.

@@ -340,6 +340,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/equipements/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Importer un fichier CSV
+         * @description Refait la validation et crée les seules lignes valides, en une transaction. Chaque création et le bilan sont tracés dans le journal d'audit.
+         */
+        post: operations["importCsv"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipements/import/apercu": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Aperçu d'un import CSV
+         * @description Valide chaque ligne et sépare valides, erreurs et ignorées. Rien n'est créé.
+         */
+        post: operations["preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/decouverte": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dernières recherches */
+        get: operations["recent"];
+        put?: never;
+        /**
+         * Lancer une recherche
+         * @description La plage doit être incluse dans une plage autorisée (DISCOVERY_ALLOWED_RANGES). La communauté ou la phrase SNMPv3 se donne par référence env:NOM. La recherche tourne en arrière-plan : suivre son avancement avec GET /{id}.
+         */
+        post: operations["start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/canaux/test": {
         parameters: {
             query?: never;
@@ -665,6 +726,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/decouverte/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Consulter une recherche et les équipements trouvés */
+        get: operations["get_5"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/decouverte/parametres": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Plages autorisées et limites de la découverte */
+        get: operations["settings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/canaux/modeles": {
         parameters: {
             query?: never;
@@ -793,7 +888,7 @@ export interface paths {
             cookie?: never;
         };
         /** Consulter une alerte et son historique */
-        get: operations["get_5"];
+        get: operations["get_6"];
         put?: never;
         post?: never;
         /**
@@ -1006,6 +1101,41 @@ export interface components {
             identifier?: string;
             token?: string;
         };
+        DiscoveryRequest: {
+            cidr: string;
+            /** @enum {string} */
+            snmpVersion: "V2C" | "V3";
+            credentialReference: string;
+            securityIdentity?: string;
+        };
+        DiscoveryCandidateResponse: {
+            address?: string;
+            sysName?: string;
+            sysDescr?: string;
+            /** @enum {string} */
+            suggestedType?: "SERVER" | "ROUTER" | "SWITCH" | "VIRTUAL_MACHINE" | "WIFI_ACCESS_POINT";
+            /** Format: uuid */
+            existingEquipmentId?: string;
+        };
+        DiscoveryScanResponse: {
+            /** Format: uuid */
+            id?: string;
+            cidr?: string;
+            /** @enum {string} */
+            snmpVersion?: "V2C" | "V3";
+            status?: string;
+            requestedBy?: string;
+            /** Format: int32 */
+            hostsTotal?: number;
+            /** Format: int32 */
+            hostsScanned?: number;
+            error?: string;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            candidates?: components["schemas"]["DiscoveryCandidateResponse"][];
+        };
         TestRequest: {
             /** @enum {string} */
             channel: "EMAIL" | "WEBHOOK" | "TEAMS" | "SLACK";
@@ -1148,6 +1278,13 @@ export interface components {
             lastValue?: number;
             /** Format: date-time */
             lastAt?: string;
+        };
+        DiscoverySettingsResponse: {
+            allowedRanges?: string[];
+            /** Format: int32 */
+            maxHosts?: number;
+            /** Format: int32 */
+            maxDurationSeconds?: number;
         };
         TemplateResponse: {
             kind?: string;
@@ -2720,6 +2857,182 @@ export interface operations {
             };
         };
     };
+    importCsv: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "text/csv": string;
+                "text/plain": string;
+            };
+        };
+        responses: {
+            /** @description Fichier vide, trop long ou en-tête invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "text/csv": string;
+                "text/plain": string;
+            };
+        };
+        responses: {
+            /** @description Fichier vide, trop long ou en-tête invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    recent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DiscoveryScanResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiscoveryRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DiscoveryScanResponse"];
+                };
+            };
+            /** @description Plage ou secret invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Recherche déjà en cours */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     test: {
         parameters: {
             query?: never;
@@ -3390,6 +3703,82 @@ export interface operations {
             };
         };
     };
+    get_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Recherche introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DiscoverySettingsResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     templates: {
         parameters: {
             query?: never;
@@ -3621,7 +4010,7 @@ export interface operations {
             };
         };
     };
-    get_5: {
+    get_6: {
         parameters: {
             query?: never;
             header?: never;
