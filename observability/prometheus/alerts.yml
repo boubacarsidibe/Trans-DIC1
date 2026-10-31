@@ -1,0 +1,90 @@
+# Alertes techniques de la plateforme Trans-DIC1 (ARCH-08). Seuils dérivés des objectifs de
+# docs/devops/operations.md. Les étiquettes « job » de l'application deviennent « exported_job »
+# dans Prometheus, qui réserve « job » au nom de la cible collectée.
+groups:
+  - name: trans-dic1-plateforme
+    rules:
+      - alert: TransDic1BackendIndisponible
+        expr: up{job="trans-dic1-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Le backend ne répond plus à la collecte des métriques"
+          description: "Vérifier le conteneur backend, /actuator/health et le jeton METRICS_SCRAPE_TOKEN."
+
+      - alert: TransDic1TauxErreursEleve
+        expr: |
+          sum(rate(http_server_requests_seconds_count{job="trans-dic1-backend", status=~"5.."}[5m]))
+            / sum(rate(http_server_requests_seconds_count{job="trans-dic1-backend"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Plus de 5 % des requêtes de l'API échouent (erreurs 5xx)"
+          description: "Consulter les logs du backend par correlationId et le tableau Grafana."
+
+      - alert: TransDic1LatenceElevee
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job="trans-dic1-backend", uri!~"/actuator.*|/api/v1/flux.*"}[5m]))) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Latence p95 de l'API supérieure à 500 ms"
+          description: "Objectif MVP : p95 < 500 ms en lecture. Le flux SSE et l'actuator sont exclus."
+
+      - alert: TransDic1TacheEnEchec
+        expr: scheduled_job_last_success{job="trans-dic1-backend"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "La dernière exécution de {{ $labels.exported_job }} a échoué"
+          description: "Voir la table job_run et les logs de la tâche (sauvegarde : restore-checks.log)."
+
+      - alert: TransDic1SauvegardeAncienne
+        expr: time() - scheduled_job_last_run_seconds{exported_job="backup.postgres"} > 26 * 3600
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Aucune sauvegarde PostgreSQL depuis plus de 26 heures (RPO : 24 h)"
+          description: "Vérifier le service backup : docker compose logs backup."
+
+      - alert: TransDic1CollecteLente
+        expr: |
+          histogram_quantile(0.95, sum by (le, exported_job) (rate(scheduled_job_duration_seconds_bucket{exported_job=~"collection.*"}[15m]))) > 60
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "La tâche {{ $labels.exported_job }} dure plus de 60 s (p95)"
+          description: "Des équipements injoignables ou trop nombreux ralentissent la collecte."
+
+      - alert: TransDic1AucuneMesure
+        expr: sum(rate(measures_received_total{job="trans-dic1-backend"}[15m])) == 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Aucune mesure reçue depuis 15 minutes"
+          description: "Vérifier les agents, la collecte SNMP et la source simulée."
+
+      - alert: TransDic1NotificationsEnRetard
+        expr: notifications_pending_oldest_age_seconds{job="trans-dic1-backend"} > 300
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Une notification attend depuis plus de 5 minutes"
+          description: "Objectif : notification moins de 5 minutes après l'ouverture d'une alerte. Vérifier le SMTP et les canaux."
+
+      - alert: TransDic1ConnexionsBaseSaturees
+        expr: hikaricp_connections_pending{job="trans-dic1-backend"} > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Des requêtes attendent une connexion PostgreSQL"
+          description: "Pool de connexions saturé : base lente ou requêtes trop longues."

@@ -13,4 +13,12 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
 
   /** Notifications à envoyer ou à relancer, de la plus ancienne à la plus récente. */
   Page<Notification> findByStateOrderByCreatedAtAsc(NotificationState state, Pageable pageable);
+
+  long countByState(NotificationState state);
+
+  /** Date de création de la plus ancienne notification dans cet état (âge de la file). */
+  @org.springframework.data.jpa.repository.Query(
+      "select min(n.createdAt) from Notification n where n.state = :state")
+  java.time.Instant oldestCreatedAt(
+      @org.springframework.data.repository.query.Param("state") NotificationState state);
 }

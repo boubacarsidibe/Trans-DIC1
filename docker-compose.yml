@@ -83,6 +83,11 @@ services:
       SMTP_PORT: 1025
       NOTIFICATION_FROM: ${NOTIFICATION_FROM:-trans-dic1@ept.sn}
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:5173}
+      # Observabilité (ARCH-08) : jeton de collecte Prometheus et export des traces vers Jaeger.
+      METRICS_SCRAPE_TOKEN: ${METRICS_SCRAPE_TOKEN:-}
+      TRACING_EXPORT_ENABLED: ${TRACING_EXPORT_ENABLED:-false}
+      TRACING_OTLP_ENDPOINT: ${TRACING_OTLP_ENDPOINT:-http://jaeger:4318/v1/traces}
+      TRACING_SAMPLING_PROBABILITY: ${TRACING_SAMPLING_PROBABILITY:-0.1}
     ports:
       - "8080:8080"
 
@@ -98,6 +103,68 @@ services:
     ports:
       - "5173:8080"
 
+  # --- Observabilité (ARCH-08), profil « observability » ---------------------------------------
+  # docker compose --profile observability up -d --build
+  # Interfaces accessibles depuis le poste uniquement (127.0.0.1).
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    profiles: ["observability"]
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+    configs:
+      - source: scrape-token
+        target: /etc/prometheus/scrape-token
+        mode: 0444
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    profiles: ["observability"]
+    restart: unless-stopped
+    volumes:
+      - ./observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "127.0.0.1:9093:9093"
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    profiles: ["observability"]
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      # Vide : compte admin/admin, changement imposé à la première connexion.
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  jaeger:
+    image: jaegertracing/jaeger:2.9.0
+    profiles: ["observability"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:16686:16686" # interface des traces
+
+configs:
+  # Le jeton de collecte reste dans .env ; Prometheus le lit dans un fichier monté.
+  scrape-token:
+    content: ${METRICS_SCRAPE_TOKEN:-}
+
 volumes:
   postgres-data:
   backup-data:
+  prometheus-data:
+  grafana-data:

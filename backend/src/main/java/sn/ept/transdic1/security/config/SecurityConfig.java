@@ -96,6 +96,9 @@ public class SecurityConfig {
             a ->
                 a.requestMatchers(
                         "/actuator/health",
+                        // Sondes de vivacité et de disponibilité (orchestrateur, reverse proxy).
+                        "/actuator/health/liveness",
+                        "/actuator/health/readiness",
                         "/api/v1/auth/login",
                         "/api/v1/auth/refresh",
                         "/api/v1/auth/logout",
