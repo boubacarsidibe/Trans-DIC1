@@ -26,7 +26,7 @@ Navigateur / agents ── HTTPS 443 ──> proxy (Nginx, uid 101)
 
 Les services applicatifs tournent sans root, avec un système de fichiers en lecture seule (`/tmp` en mémoire), sans aucune capacité Linux (`cap_drop: ALL`) et avec `no-new-privileges`. Les logs Docker tournent (5 fichiers de 10 Mo par service).
 
-Le collecteur n'est pas un service séparé : c'est le module `collection` du backend (ADR-0006). Les agents Trans-DIC1 envoient leurs mesures à `https://<PUBLIC_HOSTNAME>/api/v1/agent/measures`, en passant par le proxy.
+Le collecteur n'est pas un service séparé : c'est le module `collection` du backend (ADR-0006). Les agents Trans-DIC1 envoient leurs mesures à `https://<PUBLIC_HOSTNAME>/api/v1/agent/measures`, en passant par le proxy. Leur installation sur les serveurs supervisés est décrite dans [agent.md](agent.md).
 
 ## Prérequis sur le serveur
 
