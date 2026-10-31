@@ -50,7 +50,7 @@ try {
     }
 
     if (Test-Path -LiteralPath '.env.example') {
-        $sensitiveVariablePattern = '(?i)(PASSWORD|SECRET|TOKEN|COMMUNITY|PRIVATE_KEY|API_KEY)$'
+        $sensitiveVariablePattern = '(?i)(PASSWORD|SECRET|TOKEN|COMMUNITY|PRIVATE_KEY|API_KEY|ENCRYPTION_KEY)$'
         foreach ($line in Get-Content -LiteralPath '.env.example') {
             if ($line -match '^\s*([A-Za-z_][A-Za-z0-9_]*)=(.*)$') {
                 $name = $Matches[1]

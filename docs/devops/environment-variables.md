@@ -32,6 +32,12 @@
 | `NOTIFICATION_FROM` | Non | Tous | Adresse d'expéditeur des e-mails d'alerte |
 | `PUBLIC_URL` | Non | Tous | Adresse de l'application, citée dans les e-mails |
 | `WEBHOOK_URL` | Oui | Selon notification | URL de notification signée ou secrète |
+| `BACKUP_ENCRYPTION_KEY` | Oui | Staging, production | Clé de chiffrement des sauvegardes (32 caractères minimum), conservée aussi hors du serveur : sans elle, aucune sauvegarde n'est restaurable |
+| `BACKUP_INTERVAL_SECONDS` | Non | Staging, production | Intervalle entre deux sauvegardes, 86400 (24 h) par défaut, soit le RPO |
+| `BACKUP_RETENTION_DAYS` | Non | Staging, production | Durée de conservation des sauvegardes, 14 jours par défaut ; la plus récente est toujours gardée |
+| `BACKUP_RESTORE_CHECK` | Non | Staging, production | `true` par défaut : chaque sauvegarde est suivie d'une restauration de contrôle sur une base jetable |
+| `RTO_SECONDS` | Non | Staging, production | Objectif de durée de restauration, 14400 (4 h) par défaut ; un contrôle plus long est en échec |
+| `BACKUP_HOST_DIR` | Non | Staging, production | Dossier hôte des sauvegardes, sur un stockage distinct du serveur applicatif ; vide = volume Docker `backup-data` |
 
 Les variables non retenues par la stack devront être supprimées du contrat plutôt que laissées inactives.
 
