@@ -19,10 +19,10 @@
 
 | # | Dette | Conséquence | Remboursement prévu |
 | --- | --- | --- | --- |
-| D1 | Authentification JWT maison | Ni SSO ni gestion centralisée des comptes | OIDC avec Keycloak (ARCH-09) |
-| D2 | Événements internes Spring, sans broker | Un seul processus consomme les événements ; pas de rejeu au-delà de la file des notifications | Broker de messages si plusieurs instances ou consommateurs (ARCH-10) |
+| D1 | Authentification JWT maison | Ni SSO ni gestion centralisée des comptes | Résolu le 2026-10-31 : connexion unique OIDC, Keycloak de développement (ARCH-09, ADR 0017) |
+| D2 | Événements internes Spring, sans broker | Un seul processus consomme les événements ; pas de rejeu au-delà de la file des notifications | Résolu le 2026-10-31 : relais entre instances par PostgreSQL LISTEN/NOTIFY (ARCH-10, ADR 0016) |
 | D3 | Java 21 au lieu de 25 | Threads virtuels non activés (épinglage corrigé seulement à partir de Java 24) | Passage à Java 25 après validation de JaCoCo, Spotless et ArchUnit (ADR-0006) |
-| D4 | Incidents assignés à un seul opérateur, commentaires liés aux transitions | Critères FEAT-03 partiellement couverts | Assignation multiple et commentaire libre (FEAT-03, #58) |
+| D4 | Incidents assignés à un seul opérateur, commentaires liés aux transitions | Critères FEAT-03 partiellement couverts | Résolu le 2026-10-31 : plusieurs assignés par alerte (FEAT-03) |
 | D5 | Avertissements oxlint `react(set-state-in-effect)` sur plusieurs pages | Rendus en cascade possibles, sans erreur visible | Dériver l'état au rendu ou à l'événement, page par page |
 | D6 | Paquet de l'agent et images non publiés dans un registre | Construction sur le serveur (`--build`) ou chargement manuel des archives | Publication GHCR avec scan Trivy (OPS-01) |
 | D7 | Cible Prometheus statique (`backend:8080`) | Ne suit pas plusieurs instances | Découverte de cibles de l'orchestrateur (OPS-03) |
