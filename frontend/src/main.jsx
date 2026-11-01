@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import { AuthProvider } from "./auth/AuthContext.jsx";
 import App from "./App.jsx";
+import { installTableFit } from "./ui/fitTables.js";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -14,3 +15,5 @@ createRoot(document.getElementById("root")).render(
     </BrowserRouter>
   </StrictMode>,
 );
+
+installTableFit();

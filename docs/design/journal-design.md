@@ -155,6 +155,20 @@ quel que soit le zoom.
   marges verticales en `vh`. Aucun défilement en 1366×768, 1852×909, 1920×1080, 2560×1440, 390×844.
 - Icônes du formulaire à la taille du texte.
 
+## Zoom du navigateur sans barre de défilement (01/11/2026)
+
+- Constat : à partir de 175 % de zoom, les tableaux (alertes, équipements, règles, audit) devenaient
+  plus larges que leur cadre, qui affichait une barre de défilement horizontale ; la connexion
+  défilait verticalement à partir de 200 %.
+- Tableaux : `ui/fitTables.js` mesure chaque `.data-table` ; s'il déborde, il passe en fiches
+  (une par ligne, nom de colonne devant chaque valeur, actions en bas), et redevient un tableau dès
+  qu'il tient. Libellés repris des en-têtes : aucune page modifiée. Préféré au masquage de
+  colonnes (on perdait de l'information) et au défilement (refusé).
+- Connexion : plus de plancher `1rem` sur la police ni de hauteur minimale ; la mise en page
+  téléphone ne s'applique qu'en portrait. La carte garde la même taille à l'écran (789 px) de 100 %
+  à 300 % de zoom, sans défilement.
+- Vérifié sur 16 pages à 100, 125, 150, 175, 200, 250 et 300 % : aucun débordement horizontal.
+
 ## Dépendances
 
 - Ajout de `@playwright/test` 1.64.1 (publié le 14/10/2026) en dépendance de développement : captures
