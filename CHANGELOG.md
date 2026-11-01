@@ -6,6 +6,7 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 
 ### Added
 
+- Périmètre d'accès par site : un opérateur ou un lecteur peut être limité à certains sites ; filtrage côté serveur des équipements, alertes, maintenances, mesures, topologie, tableau de bord, rapports et notifications ; bouton « Sites » dans la page Utilisateurs (FEAT-01, ADR 0018).
 - Connexion unique OIDC avec le fournisseur d'identité de l'EPT : Authorization Code + PKCE côté écran, jetons du fournisseur validés côté serveur, rôles convertis, connexion locale gardée en secours, Keycloak de développement (ARCH-09, ADR 0017).
 - Relais des événements entre instances du backend par PostgreSQL LISTEN/NOTIFY avec table d'envoi et rattrapage (ARCH-10, ADR 0016).
 - Chaîne de livraison par scripts (construction, analyse des images, déploiement en staging, promotion) et chart Helm pour Kubernetes (OPS-01, OPS-03).

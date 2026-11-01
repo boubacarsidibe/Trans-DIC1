@@ -60,4 +60,14 @@ public interface AlertRepository
   Page<Alert> findByEquipmentIdOrderByTriggeredAtDesc(UUID equipmentId, Pageable pageable);
 
   long countByStateIn(Collection<AlertState> states);
+
+  /** Les deux comptages du tableau de bord, limités au périmètre d'accès (ADR 0018). */
+  @org.springframework.data.jpa.repository.Query(
+      "select a.severity, count(a) from Alert a where a.state in :states"
+          + " and a.equipment.site.id in :sites group by a.severity")
+  java.util.List<Object[]> countBySeverityForStatesInSites(
+      @org.springframework.data.repository.query.Param("states") Collection<AlertState> states,
+      @org.springframework.data.repository.query.Param("sites") Collection<UUID> sites);
+
+  long countByStateInAndEquipment_Site_IdIn(Collection<AlertState> states, Collection<UUID> sites);
 }

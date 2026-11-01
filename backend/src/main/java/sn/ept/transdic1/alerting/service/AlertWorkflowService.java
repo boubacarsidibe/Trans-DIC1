@@ -26,6 +26,7 @@ import sn.ept.transdic1.alerting.repository.AlertAssignmentRepository;
 import sn.ept.transdic1.alerting.repository.AlertEventRepository;
 import sn.ept.transdic1.alerting.repository.AlertRepository;
 import sn.ept.transdic1.audit.service.AuditService;
+import sn.ept.transdic1.common.scope.SiteScope;
 import sn.ept.transdic1.security.domain.AppUser;
 import sn.ept.transdic1.security.domain.Role;
 import sn.ept.transdic1.security.repository.UserRepository;
@@ -44,6 +45,7 @@ public class AlertWorkflowService {
   private final AuditService audit;
   private final Clock clock;
   private final ApplicationEventPublisher publisher;
+  private final SiteScope scope;
 
   public AlertWorkflowService(
       AlertRepository alerts,
@@ -52,7 +54,9 @@ public class AlertWorkflowService {
       UserRepository users,
       AuditService audit,
       Clock clock,
-      ApplicationEventPublisher publisher) {
+      ApplicationEventPublisher publisher,
+      SiteScope scope) {
+    this.scope = scope;
     this.alerts = alerts;
     this.events = events;
     this.assignments = assignments;
@@ -66,6 +70,7 @@ public class AlertWorkflowService {
 
   @Transactional(readOnly = true)
   public Page<AlertResponse> list(AlertState state, UUID equipmentId, Pageable pageable) {
+    var visible = scope.restriction();
     Specification<Alert> spec =
         (root, query, cb) -> {
           var predicates = new ArrayList<Predicate>();
@@ -78,6 +83,9 @@ public class AlertWorkflowService {
           if (equipmentId != null) {
             predicates.add(cb.equal(root.get("equipment").get("id"), equipmentId));
           }
+          // Périmètre d'accès (ADR 0018) : alertes des équipements des sites attribués.
+          visible.ifPresent(
+              ids -> predicates.add(root.get("equipment").get("site").get("id").in(ids)));
           return cb.and(predicates.toArray(Predicate[]::new));
         };
     return alerts.findAll(spec, pageable).map(alert -> AlertResponse.from(alert, assignees(alert)));
@@ -112,7 +120,7 @@ public class AlertWorkflowService {
   public AlertResponse assign(UUID id, UUID assigneeId, String byUsername, String comment) {
     Alert alert = find(id);
     requireState(alert, "assigner", AlertState.OPEN, AlertState.IN_PROGRESS);
-    AppUser assignee = eligible(assigneeId);
+    AppUser assignee = eligible(assigneeId, alert);
     AppUser by = user(byUsername);
     var now = clock.instant();
     for (var current : assignments.findAllByAlertIdAndEndedAtIsNullOrderByAssignedAtAsc(id)) {
@@ -150,7 +158,7 @@ public class AlertWorkflowService {
   public AlertResponse addAssignee(UUID id, UUID assigneeId, String byUsername, String comment) {
     Alert alert = find(id);
     requireState(alert, "assigner", AlertState.OPEN, AlertState.IN_PROGRESS);
-    AppUser assignee = eligible(assigneeId);
+    AppUser assignee = eligible(assigneeId, alert);
     boolean already =
         assignments.findAllByAlertIdAndEndedAtIsNullOrderByAssignedAtAsc(id).stream()
             .anyMatch(a -> a.getUser().getId().equals(assignee.getId()));
@@ -281,19 +289,28 @@ public class AlertWorkflowService {
     return alerts
         .findById(id)
         .filter(alert -> alert.getState() != AlertState.DELETED)
+        .filter(alert -> scope.allows(siteOf(alert)))
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Alerte introuvable"));
   }
 
-  private AppUser eligible(UUID assigneeId) {
+  private static UUID siteOf(Alert alert) {
+    var site = alert.getEquipment().getSite();
+    return site == null ? null : site.getId();
+  }
+
+  /** Opérateur ou administrateur actif, et qui voit le site de l'alerte. */
+  private AppUser eligible(UUID assigneeId, Alert alert) {
     return users
         .findById(assigneeId)
         .filter(AppUser::isActive)
         .filter(u -> u.getRole() == Role.NOC_OPERATOR || u.getRole() == Role.ADMIN)
+        .filter(u -> scope.allowsUser(u.getId(), siteOf(alert)))
         .orElseThrow(
             () ->
                 new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "L'assigné doit être un opérateur ou un administrateur actif"));
+                    "L'assigné doit être un opérateur ou un administrateur actif qui voit ce"
+                        + " site"));
   }
 
   private AppUser user(String username) {

@@ -130,7 +130,9 @@ class ArchitectureTests {
   //   security, common            -> aucun module
   //   inventory                   -> audit
   //   audit                       -> security
-  //   monitoring, access          -> inventory.domain, security.domain
+  //   monitoring                  -> inventory.domain, security.domain
+  //   access                      -> inventory (domain, repository), security (domain,
+  // repository), audit.service, common.scope
   //   alerting                    -> inventory.domain, security.domain
   //   reporting                   -> inventory.domain, security.domain, alerting.domain
   //   collection                  -> inventory (domain, repository), monitoring (domain,
@@ -161,7 +163,10 @@ class ArchitectureTests {
           .dependOnClassesThat()
           .resideInAnyPackage(
               ROOT + ".monitoring..",
-              ROOT + ".audit..",
+              // L'attribution des sites est tracée : seul le service d'audit est autorisé.
+              ROOT + ".audit.controller..",
+              ROOT + ".audit.repository..",
+              ROOT + ".audit.domain..",
               ROOT + ".alerting..",
               ROOT + ".reporting..",
               ROOT + ".security.service..",

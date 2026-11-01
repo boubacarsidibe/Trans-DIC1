@@ -25,7 +25,7 @@ security, common   (indépendants)
 audit            → security
 inventory        → audit
 monitoring       → inventory.domain
-access           → security.domain, inventory.domain
+access           → security (domain, repository), inventory (domain, repository), audit.service
 alerting         → security.domain, security.repository, inventory.domain, audit.service
 reporting        → security.domain, inventory.domain, alerting.domain
 collection       → inventory (domain, repository), monitoring (domain, repository),
@@ -36,7 +36,7 @@ collection       → inventory (domain, repository), monitoring (domain, reposit
 
 `collection` orchestre la réception des mesures : aucun autre module ne la connaît. Le moteur d'alertes lit l'historique des mesures par le port `MetricHistory`, implémenté par `collection`, ce qui évite tout cycle avec `monitoring`.
 
-Les modules de base (`inventory`, `monitoring`, `security`, `audit`) ne dépendent jamais de `alerting`, `reporting` ni `access`. Le détail du modèle est dans [persistence-mapping.md](persistence-mapping.md).
+Les modules de base (`inventory`, `monitoring`, `security`, `audit`) ne dépendent jamais de `alerting`, `reporting` ni `access`. Le périmètre d'accès par site leur parvient par le port `common.scope.SiteScope`, implémenté par `access` (ADR 0018). Le détail du modèle est dans [persistence-mapping.md](persistence-mapping.md).
 
 ## Si une règle échoue
 

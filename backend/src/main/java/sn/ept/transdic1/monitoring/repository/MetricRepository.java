@@ -1,6 +1,7 @@
 package sn.ept.transdic1.monitoring.repository;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -11,6 +12,9 @@ import sn.ept.transdic1.monitoring.domain.Metric;
 
 public interface MetricRepository extends JpaRepository<Metric, Long> {
   List<Metric> findTop20ByOrderByCollectedAtDesc();
+
+  /** Les mêmes, limitées aux sites du périmètre d'accès (ADR 0018). */
+  List<Metric> findTop20ByEquipment_Site_IdInOrderByCollectedAtDesc(Collection<UUID> siteIds);
 
   /** Historique paginé d'un indicateur sur une période, pour les graphiques. */
   Page<Metric> findByEquipmentIdAndKeyAndCollectedAtBetweenOrderByCollectedAtAsc(

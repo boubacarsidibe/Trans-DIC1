@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import sn.ept.transdic1.audit.service.AuditService;
+import sn.ept.transdic1.common.scope.SiteScope;
 import sn.ept.transdic1.inventory.domain.Site;
 import sn.ept.transdic1.inventory.domain.SiteStatus;
 import sn.ept.transdic1.inventory.dto.SiteRequest;
@@ -21,17 +22,28 @@ public class SiteService {
   private final SiteRepository sites;
   private final EquipmentRepository equipments;
   private final AuditService audit;
+  private final SiteScope scope;
 
-  public SiteService(SiteRepository sites, EquipmentRepository equipments, AuditService audit) {
+  public SiteService(
+      SiteRepository sites, EquipmentRepository equipments, AuditService audit, SiteScope scope) {
     this.sites = sites;
     this.equipments = equipments;
     this.audit = audit;
+    this.scope = scope;
   }
 
   @Transactional(readOnly = true)
   public Page<SiteResponse> list(SiteStatus status, Pageable pageable) {
-    Page<Site> page =
-        status == null ? sites.findAll(pageable) : sites.findByStatus(status, pageable);
+    var visible = scope.restriction();
+    Page<Site> page;
+    if (visible.isPresent()) {
+      page =
+          status == null
+              ? sites.findByIdIn(visible.get(), pageable)
+              : sites.findByStatusAndIdIn(status, visible.get(), pageable);
+    } else {
+      page = status == null ? sites.findAll(pageable) : sites.findByStatus(status, pageable);
+    }
     return page.map(site -> SiteResponse.from(site, equipments.countBySiteId(site.getId())));
   }
 
@@ -42,6 +54,11 @@ public class SiteService {
 
   @Transactional
   public SiteResponse create(SiteRequest request) {
+    // Un compte limité ne verrait pas le site qu'il vient de créer : la création lui est fermée.
+    if (scope.restricted()) {
+      throw new ResponseStatusException(
+          HttpStatus.FORBIDDEN, "Votre compte est limité à certains sites : création impossible.");
+    }
     String code = request.code() == null ? "" : request.code().trim();
     if (code.isEmpty()) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le code du site est obligatoire");
@@ -101,6 +118,7 @@ public class SiteService {
   }
 
   private Site find(UUID id) {
+    scope.requireVisible(id, "Site introuvable");
     return sites
         .findById(id)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Site introuvable"));

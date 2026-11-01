@@ -27,6 +27,7 @@ import sn.ept.transdic1.alerting.domain.Severity;
 import sn.ept.transdic1.alerting.repository.AlertEventRepository;
 import sn.ept.transdic1.alerting.repository.AlertRepository;
 import sn.ept.transdic1.alerting.repository.MaintenanceRepository;
+import sn.ept.transdic1.common.scope.SiteScope;
 import sn.ept.transdic1.inventory.domain.Equipment;
 import sn.ept.transdic1.inventory.repository.EquipmentRepository;
 import sn.ept.transdic1.reporting.dto.AvailabilityReport;
@@ -51,13 +52,16 @@ public class ReportService {
   private final AlertEventRepository events;
   private final MaintenanceRepository maintenances;
   private final Clock clock;
+  private final SiteScope scope;
 
   public ReportService(
       EquipmentRepository equipments,
       AlertRepository alerts,
       AlertEventRepository events,
       MaintenanceRepository maintenances,
-      Clock clock) {
+      Clock clock,
+      SiteScope scope) {
+    this.scope = scope;
     this.equipments = equipments;
     this.alerts = alerts;
     this.events = events;
@@ -68,6 +72,7 @@ public class ReportService {
   @Transactional(readOnly = true)
   public AvailabilityReport availability(Instant from, Instant to, UUID siteId) {
     validate(from, to);
+    requireVisibleSite(siteId);
     Instant now = clock.instant();
     // Une coupure encore ouverte compte jusqu'à la fin de la période, ou jusqu'à maintenant si la
     // période n'est pas terminée : on ne compte pas une indisponibilité qui n'a pas encore eu lieu.
@@ -80,6 +85,7 @@ public class ReportService {
     var monitored =
         equipments.findByMonitoringEnabledTrue().stream()
             .filter(e -> siteId == null || e.getSite().getId().equals(siteId))
+            .filter(this::visible)
             .sorted(Comparator.comparing(Equipment::getName))
             .toList();
     for (Equipment equipment : monitored) {
@@ -111,12 +117,14 @@ public class ReportService {
   @Transactional(readOnly = true)
   public IncidentReport incidents(Instant from, Instant to, UUID siteId) {
     validate(from, to);
+    requireVisibleSite(siteId);
     var triggered =
         alerts
             .findByTriggeredAtGreaterThanEqualAndTriggeredAtLessThanOrderByTriggeredAtDesc(from, to)
             .stream()
             .filter(a -> a.getState() != AlertState.DELETED)
             .filter(a -> siteId == null || a.getEquipment().getSite().getId().equals(siteId))
+            .filter(a -> visible(a.getEquipment()))
             .toList();
 
     var bySeverity = new EnumMap<Severity, Long>(Severity.class);
@@ -204,6 +212,9 @@ public class ReportService {
 
     var bySite = new java.util.TreeMap<String, List<Equipment>>();
     for (Equipment equipment : equipments.findByMonitoringEnabledTrue()) {
+      if (!visible(equipment)) {
+        continue;
+      }
       bySite.computeIfAbsent(equipment.getSite().getName(), k -> new ArrayList<>()).add(equipment);
     }
     var rows = new ArrayList<SlaReport.SiteRow>();
@@ -393,6 +404,17 @@ public class ReportService {
     return BigDecimal.valueOf(up)
         .multiply(BigDecimal.valueOf(100))
         .divide(BigDecimal.valueOf(total), 3, RoundingMode.HALF_UP);
+  }
+
+  /** Périmètre d'accès (ADR 0018) : un rapport ne montre que les sites attribués. */
+  private boolean visible(Equipment equipment) {
+    return scope.allows(equipment.getSite() == null ? null : equipment.getSite().getId());
+  }
+
+  private void requireVisibleSite(UUID siteId) {
+    if (siteId != null) {
+      scope.requireVisible(siteId, "Site introuvable");
+    }
   }
 
   private static void validate(Instant from, Instant to) {

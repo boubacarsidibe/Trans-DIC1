@@ -3113,3 +3113,31 @@ thead {
   border-radius: 4px;
   padding: 0.15rem 0.55rem;
 }
+
+/* Périmètre d'accès : une case par site, en colonnes qui suivent la largeur. */
+.scope-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.4rem 1rem;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.scope-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.35rem 0;
+  cursor: pointer;
+}
+
+.scope-choice input {
+  margin-top: 0.25rem;
+}
+
+.scope-code {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+}

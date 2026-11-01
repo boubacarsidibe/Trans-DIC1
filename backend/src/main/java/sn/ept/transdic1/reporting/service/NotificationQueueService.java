@@ -13,6 +13,7 @@ import sn.ept.transdic1.alerting.domain.AlertChangedEvent;
 import sn.ept.transdic1.alerting.domain.AlertEventType;
 import sn.ept.transdic1.alerting.domain.Severity;
 import sn.ept.transdic1.alerting.repository.AlertRepository;
+import sn.ept.transdic1.common.scope.SiteScope;
 import sn.ept.transdic1.reporting.domain.Notification;
 import sn.ept.transdic1.reporting.domain.NotificationChannel;
 import sn.ept.transdic1.reporting.domain.NotificationPreference;
@@ -43,13 +44,16 @@ public class NotificationQueueService {
   private final NotificationRepository notifications;
   private final UserRepository users;
   private final MessageTemplateService renderer;
+  private final SiteScope scope;
 
   public NotificationQueueService(
       AlertRepository alerts,
       NotificationPreferenceRepository preferences,
       NotificationRepository notifications,
       UserRepository users,
-      MessageTemplateService renderer) {
+      MessageTemplateService renderer,
+      SiteScope scope) {
+    this.scope = scope;
     this.alerts = alerts;
     this.preferences = preferences;
     this.notifications = notifications;
@@ -84,7 +88,9 @@ public class NotificationQueueService {
     } else {
       for (NotificationPreference preference : recipients(alert.getSeverity())) {
         AppUser user = preference.getUser();
-        if (!user.isActive()) {
+        // Périmètre d'accès (ADR 0018) : personne n'est prévenu d'une alerte qu'il ne peut pas
+        // voir.
+        if (!user.isActive() || !scope.allowsUser(user.getId(), siteOf(alert))) {
           continue;
         }
         String destination =
@@ -124,6 +130,11 @@ public class NotificationQueueService {
     notification.setDedupKey(dedupKey);
     notifications.save(notification);
     return true;
+  }
+
+  private static UUID siteOf(Alert alert) {
+    var site = alert.getEquipment().getSite();
+    return site == null ? null : site.getId();
   }
 
   private List<NotificationPreference> recipients(Severity severity) {

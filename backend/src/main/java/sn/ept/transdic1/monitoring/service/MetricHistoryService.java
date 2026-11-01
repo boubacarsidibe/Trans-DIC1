@@ -12,6 +12,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import sn.ept.transdic1.common.scope.SiteScope;
 import sn.ept.transdic1.monitoring.dto.MetricHistoryResponse;
 import sn.ept.transdic1.monitoring.dto.MetricHistoryResponse.Point;
 import sn.ept.transdic1.monitoring.dto.MetricKeyResponse;
@@ -51,9 +52,12 @@ public class MetricHistoryService {
   private final JdbcTemplate jdbc;
   private final Clock clock;
 
-  public MetricHistoryService(JdbcTemplate jdbc, Clock clock) {
+  private final SiteScope scope;
+
+  public MetricHistoryService(JdbcTemplate jdbc, Clock clock, SiteScope scope) {
     this.jdbc = jdbc;
     this.clock = clock;
+    this.scope = scope;
   }
 
   @Transactional(readOnly = true)
@@ -185,6 +189,12 @@ public class MetricHistoryService {
             "SELECT count(*) FROM equipment WHERE id = ?", Integer.class, equipmentId);
     if (found == null || found == 0) {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Équipement inconnu");
+    }
+    if (scope.restricted()) {
+      UUID site =
+          jdbc.queryForObject(
+              "SELECT site_id FROM equipment WHERE id = ?", UUID.class, equipmentId);
+      scope.requireVisible(site, "Équipement inconnu");
     }
   }
 

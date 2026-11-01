@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import sn.ept.transdic1.audit.service.AuditService;
+import sn.ept.transdic1.common.scope.SiteScope;
 import sn.ept.transdic1.inventory.domain.Equipment;
 import sn.ept.transdic1.inventory.domain.EquipmentStatus;
 import sn.ept.transdic1.inventory.domain.EquipmentType;
@@ -48,12 +49,14 @@ public class EquipmentImportService {
   private final EquipmentRepository equipment;
   private final SiteRepository sites;
   private final AuditService audit;
+  private final SiteScope scope;
 
   public EquipmentImportService(
-      EquipmentRepository equipment, SiteRepository sites, AuditService audit) {
+      EquipmentRepository equipment, SiteRepository sites, AuditService audit, SiteScope scope) {
     this.equipment = equipment;
     this.sites = sites;
     this.audit = audit;
+    this.scope = scope;
   }
 
   @Transactional(readOnly = true)
@@ -228,7 +231,8 @@ public class EquipmentImportService {
     }
     String siteCode = cells.get(5).trim();
     Site site = siteCache.computeIfAbsent(siteCode, c -> sites.findByCode(c).orElse(null));
-    if (site == null) {
+    // Hors périmètre d'accès : même réponse qu'un site inconnu (ADR 0018).
+    if (site == null || !scope.allows(site.getId())) {
       return "Site inconnu : " + abbreviate(siteCode);
     }
     return null;

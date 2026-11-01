@@ -13,6 +13,12 @@ public interface EquipmentRepository
       "select e.status, count(e) from Equipment e group by e.status")
   List<Object[]> countByStatus();
 
+  /** Même calcul limité au périmètre d'accès (ADR 0018). */
+  @org.springframework.data.jpa.repository.Query(
+      "select e.status, count(e) from Equipment e where e.site.id in :sites group by e.status")
+  List<Object[]> countByStatusInSites(
+      @org.springframework.data.repository.query.Param("sites") java.util.Collection<UUID> sites);
+
   boolean existsByInventoryCodeOrManagementAddress(String code, String address);
 
   boolean existsByManagementAddressAndIdNot(String address, UUID id);

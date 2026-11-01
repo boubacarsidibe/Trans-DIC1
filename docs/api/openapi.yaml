@@ -56,6 +56,9 @@ tags:
 - name: Vues de tableau de bord
   description: Vues personnelles (widgets ordonnés) pour le tableau de bord et le
     mur d'écran NOC. Chaque utilisateur ne voit et ne modifie que ses propres vues.
+- name: Périmètres d'accès
+  description: "Sites visibles par un opérateur ou un lecteur ; sans site attribué\
+    , tout le parc."
 - name: Topologie
   description: "Dépendances entre équipements et impact d'une panne. Consultation\
     \ pour tous les rôles, modification des liens par les administrateurs."
@@ -317,6 +320,44 @@ paths:
           description: La règle a produit des alertes
         "204":
           description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/perimetres/{userId}:
+    put:
+      tags:
+      - Périmètres d'accès
+      summary: Définir les sites d'un compte
+      description: "Remplace la liste ; une liste vide rend l'accès à tout le parc.\
+        \ Effet immédiat, tracé dans le journal d'audit."
+      operationId: replace
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserScopeRequest"
+        required: true
+      responses:
+        "400":
+          description: Site inconnu ou compte administrateur
+        "404":
+          description: Utilisateur introuvable
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -2134,6 +2175,33 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/perimetres:
+    get:
+      tags:
+      - Périmètres d'accès
+      summary: Comptes limités à certains sites
+      operationId: list_6
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserScope"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/metrics/latest:
     get:
       tags:
@@ -2450,7 +2518,7 @@ paths:
       summary: Consulter le journal
       description: "Liste paginée (50 par page, plus récentes d'abord), filtrable\
         \ par période (from inclus, to exclu), compte, action et cible."
-      operationId: list_6
+      operationId: list_7
       parameters:
       - name: from
         in: query
@@ -2593,7 +2661,7 @@ paths:
       summary: Lister les alertes
       description: "Liste paginée (20 par page, plus récentes d'abord), filtrable\
         \ par état et par équipement. Les alertes supprimées sont masquées."
-      operationId: list_7
+      operationId: list_8
       parameters:
       - name: state
         in: query
@@ -2867,6 +2935,18 @@ components:
       - name
       - operator
       - threshold
+    UserScopeRequest:
+      type: object
+      properties:
+        siteIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 500
+          minItems: 0
+      required:
+      - siteIds
     PreferenceRequest:
       type: object
       properties:
@@ -3700,6 +3780,17 @@ components:
             $ref: "#/components/schemas/AlertRuleResponse"
         page:
           $ref: "#/components/schemas/PageMetadata"
+    UserScope:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        siteIds:
+          type: array
+          items:
+            type: string
+            format: uuid
     MetricResponse:
       type: object
       properties:

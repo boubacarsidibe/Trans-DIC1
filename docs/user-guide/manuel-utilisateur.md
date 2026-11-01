@@ -137,7 +137,7 @@ Une ligne dont le code d'inventaire ou l'adresse existe déjà est refusée comm
 
 Changer le rôle, désactiver un compte ou réinitialiser son mot de passe ferme ses sessions ouvertes, immédiatement : la personne est renvoyée à l'écran de connexion dès sa requête suivante. Le mot de passe saisi à la création ou à la réinitialisation est **temporaire** : la personne doit le changer à sa première connexion. Le transmettre par un canal sûr.
 
-Limiter un compte à certains sites n'est pas encore possible : chaque compte voit tout le parc (voir la dette technique).
+**Limiter un compte à certains sites** : bouton **Sites** sur la ligne d'un opérateur ou d'un lecteur, cocher les sites dont il a la charge, **Enregistrer**. Il ne voit alors que les équipements, alertes, maintenances, mesures et rapports de ces sites, et ne reçoit de notification que pour eux. Aucun site coché (ou **Tout le parc**) : il voit tout. Un administrateur voit toujours tout. Le changement s'applique tout de suite et figure dans le journal d'audit ; la colonne **Sites** du tableau le résume.
 
 ### Règles d'alerte
 

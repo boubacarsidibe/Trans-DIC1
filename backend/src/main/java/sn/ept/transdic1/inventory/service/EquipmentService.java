@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import sn.ept.transdic1.audit.service.AuditService;
+import sn.ept.transdic1.common.scope.SiteScope;
 import sn.ept.transdic1.inventory.domain.*;
 import sn.ept.transdic1.inventory.dto.*;
 import sn.ept.transdic1.inventory.repository.*;
@@ -19,11 +20,14 @@ public class EquipmentService {
   private final EquipmentRepository equipment;
   private final SiteRepository sites;
   private final AuditService audit;
+  private final SiteScope scope;
 
-  public EquipmentService(EquipmentRepository e, SiteRepository s, AuditService audit) {
+  public EquipmentService(
+      EquipmentRepository e, SiteRepository s, AuditService audit, SiteScope scope) {
     equipment = e;
     sites = s;
     this.audit = audit;
+    this.scope = scope;
   }
 
   @Transactional(readOnly = true)
@@ -34,6 +38,13 @@ public class EquipmentService {
       spec = spec.and((root, query, cb) -> cb.equal(root.get("site").get("id"), siteId));
     if (type != null) spec = spec.and((root, query, cb) -> cb.equal(root.get("type"), type));
     if (status != null) spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
+    // Périmètre d'accès (ADR 0018) : seulement les sites attribués ; un équipement sans site
+    // reste caché à un compte limité.
+    var visible = scope.restriction();
+    if (visible.isPresent()) {
+      var ids = visible.get();
+      spec = spec.and((root, query, cb) -> root.get("site").get("id").in(ids));
+    }
     return equipment.findAll(spec, p).map(EquipmentResponse::from);
   }
 
@@ -43,6 +54,7 @@ public class EquipmentService {
   }
 
   public EquipmentResponse create(EquipmentRequest r) {
+    scope.requireAssignable(r.siteId());
     if (equipment.existsByInventoryCodeOrManagementAddress(
         r.inventoryCode(), r.managementAddress()))
       throw new ResponseStatusException(HttpStatus.CONFLICT, "Code ou adresse déjà utilisé");
@@ -65,6 +77,7 @@ public class EquipmentService {
 
   public EquipmentResponse update(UUID id, EquipmentRequest r) {
     var e = find(id);
+    scope.requireAssignable(r.siteId());
     if (equipment.existsByManagementAddressAndIdNot(r.managementAddress(), id))
       throw new ResponseStatusException(HttpStatus.CONFLICT, "Adresse déjà utilisée");
     e.update(r.name(), r.managementAddress(), r.type(), r.status(), site(r.siteId()));
@@ -83,10 +96,14 @@ public class EquipmentService {
   }
 
   private Equipment find(UUID id) {
-    return equipment
-        .findById(id)
-        .orElseThrow(
-            () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Équipement introuvable"));
+    var found =
+        equipment
+            .findById(id)
+            .orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Équipement introuvable"));
+    scope.requireVisible(
+        found.getSite() == null ? null : found.getSite().getId(), "Équipement introuvable");
+    return found;
   }
 
   private Site site(UUID id) {

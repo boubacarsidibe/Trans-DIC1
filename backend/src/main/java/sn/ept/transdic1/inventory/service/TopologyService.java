@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import sn.ept.transdic1.audit.service.AuditService;
+import sn.ept.transdic1.common.scope.SiteScope;
 import sn.ept.transdic1.inventory.dto.TopologyDtos.Graph;
 import sn.ept.transdic1.inventory.dto.TopologyDtos.Impact;
 import sn.ept.transdic1.inventory.dto.TopologyDtos.Link;
@@ -37,15 +38,22 @@ public class TopologyService {
 
   private final JdbcTemplate jdbc;
   private final AuditService audit;
+  private final SiteScope scope;
 
-  public TopologyService(JdbcTemplate jdbc, AuditService audit) {
+  public TopologyService(JdbcTemplate jdbc, AuditService audit, SiteScope scope) {
     this.jdbc = jdbc;
     this.audit = audit;
+    this.scope = scope;
   }
 
   @Transactional(readOnly = true)
   public Graph graph() {
-    List<Node> nodes = jdbc.query(NODE_SELECT + " ORDER BY s.name, e.name", (rs, i) -> node(rs));
+    // Périmètre d'accès : seuls les équipements visibles, et les liens entre deux d'entre eux.
+    List<Node> nodes =
+        jdbc.query(NODE_SELECT + " ORDER BY s.name, e.name", (rs, i) -> node(rs)).stream()
+            .filter(n -> scope.allows(n.siteId()))
+            .toList();
+    var visible = nodes.stream().map(Node::id).collect(java.util.stream.Collectors.toSet());
     List<Link> links =
         jdbc.query(
             "SELECT id, equipment_id, upstream_id FROM equipment_link ORDER BY created_at",
@@ -54,6 +62,10 @@ public class TopologyService {
                     rs.getObject(1, UUID.class),
                     rs.getObject(2, UUID.class),
                     rs.getObject(3, UUID.class)));
+    links =
+        links.stream()
+            .filter(l -> visible.contains(l.equipmentId()) && visible.contains(l.upstreamId()))
+            .toList();
     return new Graph(nodes, links);
   }
 
@@ -117,7 +129,8 @@ public class TopologyService {
                 + " JOIN nearest n ON n.id = e.id ORDER BY n.depth, e.name",
             (rs, i) -> node(rs),
             equipmentId);
-    return new Impact(equipmentId, dependents);
+    return new Impact(
+        equipmentId, dependents.stream().filter(n -> scope.allows(n.siteId())).toList());
   }
 
   private void requireEquipment(UUID id) {
@@ -125,6 +138,10 @@ public class TopologyService {
         jdbc.queryForObject("SELECT count(*) FROM equipment WHERE id = ?", Integer.class, id);
     if (found == null || found == 0) {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Équipement inconnu");
+    }
+    if (scope.restricted()) {
+      UUID site = jdbc.queryForObject("SELECT site_id FROM equipment WHERE id = ?", UUID.class, id);
+      scope.requireVisible(site, "Équipement inconnu");
     }
   }
 

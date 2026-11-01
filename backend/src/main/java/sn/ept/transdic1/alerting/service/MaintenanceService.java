@@ -1,5 +1,6 @@
 package sn.ept.transdic1.alerting.service;
 
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import java.time.Clock;
 import java.time.Instant;
@@ -19,6 +20,7 @@ import sn.ept.transdic1.alerting.dto.MaintenanceRequest;
 import sn.ept.transdic1.alerting.dto.MaintenanceResponse;
 import sn.ept.transdic1.alerting.repository.MaintenanceRepository;
 import sn.ept.transdic1.audit.service.AuditService;
+import sn.ept.transdic1.common.scope.SiteScope;
 import sn.ept.transdic1.inventory.repository.EquipmentRepository;
 import sn.ept.transdic1.inventory.repository.SiteRepository;
 import sn.ept.transdic1.security.repository.UserRepository;
@@ -35,6 +37,7 @@ public class MaintenanceService {
   private final UserRepository users;
   private final AuditService audit;
   private final Clock clock;
+  private final SiteScope scope;
 
   public MaintenanceService(
       MaintenanceRepository maintenances,
@@ -42,7 +45,9 @@ public class MaintenanceService {
       EquipmentRepository equipments,
       UserRepository users,
       AuditService audit,
-      Clock clock) {
+      Clock clock,
+      SiteScope scope) {
+    this.scope = scope;
     this.maintenances = maintenances;
     this.sites = sites;
     this.equipments = equipments;
@@ -56,6 +61,7 @@ public class MaintenanceService {
   public Page<MaintenanceResponse> list(
       MaintenanceState state, UUID equipmentId, UUID siteId, Pageable pageable) {
     Instant now = clock.instant();
+    var visible = scope.restriction();
     Specification<Maintenance> spec =
         (root, query, cb) -> {
           var predicates = new ArrayList<Predicate>();
@@ -84,6 +90,15 @@ public class MaintenanceService {
           if (siteId != null) {
             predicates.add(cb.equal(root.get("site").get("id"), siteId));
           }
+          // Périmètre d'accès (ADR 0018) : maintenance d'un site attribué ou d'un de ses
+          // équipements.
+          visible.ifPresent(
+              ids -> {
+                var site = root.join("site", JoinType.LEFT);
+                var equipmentSite =
+                    root.join("equipment", JoinType.LEFT).join("site", JoinType.LEFT);
+                predicates.add(cb.or(site.get("id").in(ids), equipmentSite.get("id").in(ids)));
+              });
           return cb.and(predicates.toArray(Predicate[]::new));
         };
     return maintenances
@@ -118,10 +133,13 @@ public class MaintenanceService {
             request.reason().trim(),
             MaintenanceState.PLANNED);
     if (onSite) {
+      scope.requireAssignable(request.siteId());
       maintenance.setSite(sites.findById(request.siteId()).orElseThrow(() -> bad("Site inconnu")));
     } else {
-      maintenance.setEquipment(
-          equipments.findById(request.equipmentId()).orElseThrow(() -> bad("Équipement inconnu")));
+      var equipment =
+          equipments.findById(request.equipmentId()).orElseThrow(() -> bad("Équipement inconnu"));
+      scope.requireAssignable(equipment.getSite() == null ? null : equipment.getSite().getId());
+      maintenance.setEquipment(equipment);
     }
     maintenance.setState(effective(maintenance, now));
     maintenances.save(maintenance);
@@ -143,6 +161,7 @@ public class MaintenanceService {
     var maintenance =
         maintenances
             .findById(id)
+            .filter(m -> scope.allows(targetSite(m)))
             .orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Maintenance introuvable"));
     Instant now = clock.instant();
@@ -158,6 +177,15 @@ public class MaintenanceService {
     maintenances.save(maintenance);
     audit.record("MAINTENANCE_CANCELLED", "MAINTENANCE", id, "par=" + username);
     return MaintenanceResponse.from(maintenance, MaintenanceState.CANCELLED);
+  }
+
+  private static UUID targetSite(Maintenance m) {
+    if (m.getSite() != null) {
+      return m.getSite().getId();
+    }
+    return m.getEquipment() == null || m.getEquipment().getSite() == null
+        ? null
+        : m.getEquipment().getSite().getId();
   }
 
   /**

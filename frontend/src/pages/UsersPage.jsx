@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { listAllSites, listScopes, scopeSummary, setScope } from "../api/scopes.js";
+import SiteScopeEditor from "./SiteScopeEditor.jsx";
 import {
   ROLE_CHOICES,
   changeRole,
@@ -118,6 +120,45 @@ function UsersPage() {
   const [creating, setCreating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [resetting, setResetting] = useState(null); // { user, password, error }
+  const [sites, setSites] = useState([]);
+  const [scopes, setScopes] = useState(new Map()); // userId -> siteIds
+  const [scoping, setScoping] = useState(null); // { user, saving, error }
+  const [scopeError, setScopeError] = useState("");
+
+  const loadScopes = useCallback(async () => {
+    try {
+      const [allSites, list] = await Promise.all([listAllSites(), listScopes()]);
+      setSites(allSites);
+      setScopes(new Map(list.map((s) => [s.userId, s.siteIds])));
+    } catch {
+      setScopeError("Impossible de charger les périmètres d’accès.");
+    }
+  }, []);
+
+  useEffect(() => {
+    loadScopes();
+  }, [loadScopes]);
+
+  async function saveScope(siteIds) {
+    const { user } = scoping;
+    setScoping({ ...scoping, saving: true, error: "" });
+    try {
+      const saved = await setScope(user.id, siteIds);
+      setScopes((current) => new Map(current).set(user.id, saved.siteIds));
+      setScoping(null);
+      setNotice(
+        saved.siteIds.length
+          ? `${user.username} ne voit plus que ${saved.siteIds.length} site(s).`
+          : `${user.username} voit tout le parc.`,
+      );
+    } catch (e) {
+      setScoping({
+        ...scoping,
+        saving: false,
+        error: e?.response?.data?.error || "L’enregistrement du périmètre a échoué.",
+      });
+    }
+  }
 
   const load = useCallback(async (targetPage) => {
     setLoading(true);
@@ -178,6 +219,7 @@ function UsersPage() {
   }
 
   const totalPages = data.page?.totalPages ?? 0;
+  const sitesById = new Map(sites.map((site) => [site.id, site]));
 
   return (
     <main className="app-shell page">
@@ -207,6 +249,12 @@ function UsersPage() {
         {error && (
           <p role="alert" className="notice notice-bad">
             {error}
+          </p>
+        )}
+
+        {scopeError && (
+          <p role="status" className="notice notice-warn">
+            {scopeError}
           </p>
         )}
 
@@ -252,6 +300,19 @@ function UsersPage() {
           </form>
         )}
 
+        {scoping && (
+          <SiteScopeEditor
+            key={scoping.user.id}
+            user={scoping.user}
+            sites={sites}
+            selected={scopes.get(scoping.user.id) ?? []}
+            saving={scoping.saving}
+            error={scoping.error}
+            onSave={saveScope}
+            onCancel={() => setScoping(null)}
+          />
+        )}
+
         <div className="panel panel-flush mt-5 overflow-x-auto">
           <table className="data-table">
             <thead className="text-slate-400">
@@ -259,6 +320,7 @@ function UsersPage() {
                 <th className="p-3">Compte</th>
                 <th className="p-3">E-mail</th>
                 <th className="p-3">Rôle</th>
+                <th className="p-3">Sites</th>
                 <th className="p-3">État</th>
                 <th className="p-3">Actions</th>
               </tr>
@@ -266,7 +328,7 @@ function UsersPage() {
             <tbody>
               {!loading && data.content.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="p-6 text-center text-slate-400">
+                  <td colSpan={6} className="p-6 text-center text-slate-400">
                     Aucun compte.
                   </td>
                 </tr>
@@ -294,6 +356,9 @@ function UsersPage() {
                         </option>
                       ))}
                     </select>
+                  </td>
+                  <td className="p-3">
+                    {scopeSummary(user, scopes.get(user.id), sitesById)}
                   </td>
                   <td className="p-3">
                     <Badge tone={user.active ? "ok" : "muted"}>{user.active ? "Actif" : "Désactivé"}</Badge>
@@ -324,6 +389,19 @@ function UsersPage() {
                       >
                         Mot de passe
                       </button>
+                      {user.role !== "ADMIN" && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNotice("");
+                            setScoping({ user, saving: false, error: "" });
+                          }}
+                          aria-label={`Sites visibles par ${user.username}`}
+                          className="btn btn-secondary btn-sm"
+                        >
+                          Sites
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

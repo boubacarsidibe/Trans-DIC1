@@ -40,8 +40,21 @@ function renderPage(role = "ADMIN") {
 beforeEach(() => {
   clearSession();
   vi.resetAllMocks();
-  apiClient.get.mockResolvedValue(pageOf([user()]));
+  mockGets();
 });
+
+const SITES = [
+  { id: "s1", code: "AMPHI", name: "Amphithéâtre" },
+  { id: "s2", code: "LABO", name: "Laboratoire réseau" },
+];
+
+function mockGets(scopes = []) {
+  apiClient.get.mockImplementation((url) => {
+    if (url === "/perimetres") return Promise.resolve({ data: scopes });
+    if (url === "/sites") return Promise.resolve(pageOf(SITES));
+    return Promise.resolve(pageOf([user()]));
+  });
+}
 
 describe("validation d'un compte", () => {
   it("accepte un compte correct", () => {
@@ -161,5 +174,39 @@ describe("page des utilisateurs", () => {
     apiClient.get.mockRejectedValue(new Error("boom"));
     renderPage();
     expect(await screen.findByRole("alert")).toHaveTextContent("Impossible de charger les comptes.");
+  });
+
+  it("limite un compte à certains sites puis lui rend tout le parc", async () => {
+    apiClient.put.mockResolvedValueOnce({ data: { userId: "u1", siteIds: ["s2"] } });
+    renderPage();
+
+    const row = (await screen.findByText("khadija")).closest("tr");
+    expect(row).toHaveTextContent("Tout le parc");
+    await userEvent.click(screen.getByRole("button", { name: "Sites visibles par khadija" }));
+    expect(screen.getByText(/Aucun site coché : ce compte voit tout le parc/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("checkbox", { name: /Laboratoire réseau/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    expect(apiClient.put).toHaveBeenCalledWith("/perimetres/u1", { siteIds: ["s2"] });
+    expect(await screen.findByRole("status")).toHaveTextContent("ne voit plus que 1 site(s)");
+    expect(row).toHaveTextContent("Laboratoire réseau");
+
+    apiClient.put.mockResolvedValueOnce({ data: { userId: "u1", siteIds: [] } });
+    await userEvent.click(screen.getByRole("button", { name: "Sites visibles par khadija" }));
+    await userEvent.click(screen.getByRole("button", { name: "Tout le parc" }));
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    expect(apiClient.put).toHaveBeenLastCalledWith("/perimetres/u1", { siteIds: [] });
+    await waitFor(() => expect(row).toHaveTextContent("Tout le parc"));
+  });
+
+  it("ne propose pas de périmètre pour un administrateur", async () => {
+    apiClient.get.mockImplementation((url) => {
+      if (url === "/perimetres") return Promise.resolve({ data: [] });
+      if (url === "/sites") return Promise.resolve(pageOf(SITES));
+      return Promise.resolve(pageOf([user({ role: "ADMIN" })]));
+    });
+    renderPage();
+    await screen.findByText("khadija");
+    expect(screen.queryByRole("button", { name: "Sites visibles par khadija" })).toBeNull();
   });
 });

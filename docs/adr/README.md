@@ -21,6 +21,7 @@ Chaque décision structurante est consignée dans un ADR : contexte, options com
 | [0015](0015-anomaly-detection.md) | Détection d'anomalies des métriques par profil horaire | acceptée, implémentée |
 | [0016](0016-broker.md) | Relais des événements entre instances par PostgreSQL LISTEN/NOTIFY | acceptée, implémentée |
 | [0017](0017-oidc.md) | Connexion unique OIDC : client public PKCE, backend serveur de ressources | acceptée, implémentée (fournisseur réel à valider) |
+| [0018](0018-perimetre-par-site.md) | Périmètre d'accès par site : port `SiteScope`, filtrage côté serveur partout | acceptée, implémentée |
 
 L'ADR 0008 a d'abord été publié sous le numéro 0007, déjà attribué aux e-mails : il a été renuméroté sans changement de décision.
 

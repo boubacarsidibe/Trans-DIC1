@@ -66,6 +66,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/perimetres/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Définir les sites d'un compte
+         * @description Remplace la liste ; une liste vide rend l'accès à tout le parc. Effet immédiat, tracé dans le journal d'audit.
+         */
+        put: operations["replace"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/mes-preferences": {
         parameters: {
             query?: never;
@@ -819,6 +839,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/perimetres": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Comptes limités à certains sites */
+        get: operations["list_6"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/metrics/latest": {
         parameters: {
             query?: never;
@@ -1021,7 +1058,7 @@ export interface paths {
          * Consulter le journal
          * @description Liste paginée (50 par page, plus récentes d'abord), filtrable par période (from inclus, to exclu), compte, action et cible.
          */
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1081,7 +1118,7 @@ export interface paths {
          * Lister les alertes
          * @description Liste paginée (20 par page, plus récentes d'abord), filtrable par état et par équipement. Les alertes supprimées sont masquées.
          */
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1177,6 +1214,9 @@ export interface components {
             active?: boolean;
             siteIds?: string[];
             equipmentIds?: string[];
+        };
+        UserScopeRequest: {
+            siteIds: string[];
         };
         PreferenceRequest: {
             /** @enum {string} */
@@ -1533,6 +1573,11 @@ export interface components {
         PagedModelAlertRuleResponse: {
             content?: components["schemas"]["AlertRuleResponse"][];
             page?: components["schemas"]["PageMetadata"];
+        };
+        UserScope: {
+            /** Format: uuid */
+            userId?: string;
+            siteIds?: string[];
         };
         MetricResponse: {
             /** Format: int64 */
@@ -2045,6 +2090,55 @@ export interface operations {
             };
             /** @description La règle a produit des alertes */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    replace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserScopeRequest"];
+            };
+        };
+        responses: {
+            /** @description Site inconnu ou compte administrateur */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Utilisateur introuvable */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4354,6 +4448,44 @@ export interface operations {
             };
         };
     };
+    list_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserScope"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     latest: {
         parameters: {
             query?: never;
@@ -4725,7 +4857,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query: {
                 from?: string;
@@ -4836,7 +4968,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query: {
                 state?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ARCHIVED" | "DELETED";

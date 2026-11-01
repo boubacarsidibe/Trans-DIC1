@@ -10,6 +10,9 @@ public interface CollectionAgentRepository extends JpaRepository<CollectionAgent
 
   long countByStatus(AgentStatus status);
 
+  long countByStatusAndEquipment_Site_IdIn(
+      AgentStatus status, java.util.Collection<java.util.UUID> sites);
+
   java.util.List<CollectionAgent> findByStatus(AgentStatus status);
 
   Optional<CollectionAgent> findByEquipmentIdAndStatus(UUID equipmentId, AgentStatus status);
