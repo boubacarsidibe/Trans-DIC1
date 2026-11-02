@@ -90,8 +90,7 @@ public class HttpProbe implements Probe {
 
     Socket plain = new Socket();
     Socket socket = plain;
-    ScheduledFuture<?> guard =
-        WATCHDOG.schedule(() -> closeQuietly(plain), timeoutNanos, TimeUnit.NANOSECONDS);
+    ScheduledFuture<?> guard = closeAtDeadline(plain, timeoutNanos);
     try {
       // Adresse déjà résolue et validée : connexion uniquement à elle.
       plain.connect(new InetSocketAddress(request.address(), port), remainingMillis(deadline));
@@ -134,24 +133,39 @@ public class HttpProbe implements Probe {
         (SSLSocket) sslContext.getSocketFactory().createSocket(plain, peerHost, port, true);
     SSLParameters parameters = ssl.getSSLParameters();
     parameters.setEndpointIdentificationAlgorithm("HTTPS");
-    if (!isIpLiteral(peerHost)) {
-      try {
-        parameters.setServerNames(List.of(new SNIHostName(peerHost)));
-      } catch (IllegalArgumentException e) {
-        // nom non admissible en SNI : la vérification du certificat reste active
-      }
-    }
+    applySni(parameters, peerHost);
     ssl.setSSLParameters(parameters);
     ssl.setSoTimeout(remainingMillis(deadline));
     ssl.startHandshake();
     return ssl;
   }
 
+  /** Renseigne le SNI avec le nom d'hôte (sauf littéral IP ou nom non admissible). */
+  static void applySni(SSLParameters parameters, String peerHost) {
+    if (!isIpLiteral(peerHost)) {
+      try {
+        parameters.setServerNames(List.of(new SNIHostName(peerHost)));
+      } catch (IllegalArgumentException e) {
+        // nom non admissible en SNI : on n'en envoie pas
+      }
+    }
+  }
+
+  /** Planifie la fermeture du socket à l'échéance (garde partagée, thread démon unique). */
+  static ScheduledFuture<?> closeAtDeadline(Socket socket, long timeoutNanos) {
+    return WATCHDOG.schedule(() -> closeQuietly(socket), timeoutNanos, TimeUnit.NANOSECONDS);
+  }
+
+  /** Jours restants avant expiration, arrondis vers le bas, négatifs si expiré. */
+  static int daysLeft(X509Certificate certificate) {
+    long seconds =
+        Duration.between(Instant.now(), certificate.getNotAfter().toInstant()).getSeconds();
+    return (int) Math.floorDiv(seconds, 86_400L);
+  }
+
   private static Integer daysLeft(SSLSocket ssl) throws IOException {
     if (ssl.getSession().getPeerCertificates()[0] instanceof X509Certificate certificate) {
-      long seconds =
-          Duration.between(Instant.now(), certificate.getNotAfter().toInstant()).getSeconds();
-      return (int) Math.floorDiv(seconds, 86_400L);
+      return daysLeft(certificate);
     }
     return null;
   }
@@ -370,7 +384,7 @@ public class HttpProbe implements Probe {
                     || c == '%');
   }
 
-  private static String stripBrackets(String host) {
+  static String stripBrackets(String host) {
     return host.startsWith("[") && host.endsWith("]") ? host.substring(1, host.length() - 1) : host;
   }
 
@@ -378,7 +392,7 @@ public class HttpProbe implements Probe {
     return host.indexOf(':') >= 0 || IPV4.matcher(host).matches();
   }
 
-  private static int remainingMillis(long deadline) throws SocketTimeoutException {
+  static int remainingMillis(long deadline) throws SocketTimeoutException {
     long remaining = TimeUnit.NANOSECONDS.toMillis(deadline - System.nanoTime());
     if (remaining <= 0) {
       throw new SocketTimeoutException();
@@ -386,7 +400,7 @@ public class HttpProbe implements Probe {
     return (int) Math.min(Integer.MAX_VALUE, remaining);
   }
 
-  private static void closeQuietly(Socket socket) {
+  static void closeQuietly(Socket socket) {
     try {
       socket.close();
     } catch (IOException e) {
