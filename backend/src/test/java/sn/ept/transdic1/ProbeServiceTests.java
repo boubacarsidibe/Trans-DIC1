@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -58,11 +59,13 @@ class ProbeServiceTests {
   @Autowired private SiteRepository sites;
   @Autowired private EquipmentRepository equipments;
   @Autowired private MetricRepository metrics;
+  @Autowired private JdbcTemplate jdbc;
 
   /** Fausse sonde : enregistre les cibles reçues, lève une exception pour les hôtes piégés. */
   private static final class FakeProbe implements Probe {
     private final ServiceType type;
     private final List<String> calls = Collections.synchronizedList(new ArrayList<>());
+    private final List<ProbeRequest> requests = Collections.synchronizedList(new ArrayList<>());
     private final Set<String> exploding = new HashSet<>();
     private Runnable onRun = () -> {};
 
@@ -79,6 +82,7 @@ class ProbeServiceTests {
     public ProbeResult run(ProbeRequest request) {
       String host = request.address().getHostAddress();
       calls.add(host);
+      requests.add(request);
       onRun.run();
       if (exploding.contains(host)) {
         throw new IllegalStateException("panne simulée");
@@ -103,19 +107,26 @@ class ProbeServiceTests {
   @BeforeEach
   void data() {
     now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-    probeService =
-        new ProbeService(
-            List.of(tcp, http, https, icmp, tls, dns, other),
-            targets,
-            services,
-            ingestion,
-            transaction,
-            Clock.fixed(now, ZoneOffset.UTC),
-            jobGuard,
-            1);
+    // Isole le test des services laissés par d'autres suites (annulé avec la transaction du test) :
+    // seuls les services créés ici sont exécutés, ce qui permet des comptes exacts.
+    jdbc.update("UPDATE monitored_service SET active = FALSE WHERE active");
+    probeService = probeService(500);
     site =
         sites.save(
             new Site("PSV-" + UUID.randomUUID().toString().substring(0, 8), "Site des sondes"));
+  }
+
+  private ProbeService probeService(int maxPerScan) {
+    return new ProbeService(
+        List.of(tcp, http, https, icmp, tls, dns, other),
+        targets,
+        services,
+        ingestion,
+        transaction,
+        Clock.fixed(now, ZoneOffset.UTC),
+        jobGuard,
+        1,
+        maxPerScan);
   }
 
   private Equipment equipment() {
@@ -172,14 +183,14 @@ class ProbeServiceTests {
 
     int executed = probeService.runDue();
 
-    assertThat(executed).isGreaterThanOrEqualTo(1);
-    assertThat(tcp.calls).contains(ip(due));
-    assertThat(tcp.calls).doesNotContain(ip(later), ip(inactive), ip(neverScheduled));
+    // Une échéance absente (service jamais exécuté) compte comme échue.
+    assertThat(executed).isEqualTo(2);
+    assertThat(tcp.calls).containsExactlyInAnyOrder(ip(due), ip(neverScheduled));
     assertThat(stored(due, "probe.up")).hasSize(1);
     assertThat(stored(due, "probe.up").get(0).getValue()).isEqualByComparingTo("100");
+    assertThat(stored(neverScheduled, "probe.up")).hasSize(1);
     assertThat(stored(later, "probe.up")).isEmpty();
     assertThat(stored(inactive, "probe.up")).isEmpty();
-    assertThat(stored(neverScheduled, "probe.up")).isEmpty();
   }
 
   @Test
@@ -188,7 +199,7 @@ class ProbeServiceTests {
     service.setIntervalSeconds(120);
     services.saveAndFlush(service);
 
-    probeService.runDue();
+    assertThat(probeService.runDue()).isEqualTo(1);
 
     var reloaded = reload(service);
     assertThat(icmp.calls).contains(ip(service));
@@ -204,12 +215,12 @@ class ProbeServiceTests {
     service.setIntervalSeconds(60);
     services.saveAndFlush(service);
 
-    probeService.runDue();
+    assertThat(probeService.runDue()).isEqualTo(1);
 
     assertThat(tcp.calls).containsOnlyOnce(ip(service));
     assertThat(reload(service).getNextRunAt()).isEqualTo(now.plusSeconds(60));
 
-    probeService.runDue();
+    assertThat(probeService.runDue()).isEqualTo(0);
 
     assertThat(tcp.calls.stream().filter(ip(service)::equals)).hasSize(1);
     assertThat(stored(service, "probe.up")).hasSize(1);
@@ -221,7 +232,7 @@ class ProbeServiceTests {
     service.setAccessPoint("http://127.0.0.1/sante");
     services.saveAndFlush(service);
 
-    probeService.runDue();
+    assertThat(probeService.runDue()).isEqualTo(1);
 
     assertThat(http.calls).doesNotContain("127.0.0.1");
     var reloaded = reload(service);
@@ -238,7 +249,7 @@ class ProbeServiceTests {
     var healthy = service(ServiceType.TCP_PORT, now.minusSeconds(1));
     tcp.exploding.add(ip(broken));
 
-    probeService.runDue();
+    assertThat(probeService.runDue()).isEqualTo(2);
 
     assertThat(tcp.calls).contains(ip(broken), ip(healthy));
     var failed = reload(broken);
@@ -254,7 +265,7 @@ class ProbeServiceTests {
     var dnsService = service(ServiceType.DNS, now.minusSeconds(1));
     var otherService = service(ServiceType.OTHER, now.minusSeconds(1));
 
-    probeService.runDue();
+    assertThat(probeService.runDue()).isEqualTo(0);
 
     assertThat(dns.calls).doesNotContain(ip(dnsService));
     assertThat(other.calls).doesNotContain(ip(otherService));
@@ -280,7 +291,7 @@ class ProbeServiceTests {
     owner.setMonitoringEnabled(false);
     equipments.saveAndFlush(owner);
 
-    probeService.runDue();
+    assertThat(probeService.runDue()).isEqualTo(1);
 
     assertThat(tcp.calls).contains(ip(service));
     assertThat(stored(service, "probe.up")).isEmpty();
@@ -305,5 +316,142 @@ class ProbeServiceTests {
     assertThat(reloaded.getLastCheckedAt()).isNull();
     assertThat(reloaded.getLastUp()).isNull();
     assertThat(reloaded.getConsecutiveFailures()).isZero();
+  }
+
+  private MonitoredService web(ServiceType type, String accessPoint) {
+    var service = service(type, now.minusSeconds(1));
+    service.setAccessPoint(accessPoint);
+    return services.saveAndFlush(service);
+  }
+
+  @Test
+  void nullNextRunAtRunsOnceThenFollowsInterval() {
+    var service = service(ServiceType.ICMP, null);
+    service.setIntervalSeconds(90);
+    services.saveAndFlush(service);
+
+    assertThat(probeService.runDue()).isEqualTo(1);
+
+    assertThat(icmp.calls).containsExactly(ip(service));
+    assertThat(reload(service).getNextRunAt()).isEqualTo(now.plusSeconds(90));
+    assertThat(probeService.runDue()).isEqualTo(0);
+    assertThat(icmp.calls).hasSize(1);
+  }
+
+  @Test
+  void maxPerScanCapsClaimsOldestFirst() {
+    var never = service(ServiceType.TCP_PORT, null);
+    var oldest = service(ServiceType.TCP_PORT, now.minus(2, ChronoUnit.HOURS));
+    var recent = service(ServiceType.TCP_PORT, now.minusSeconds(1));
+    ProbeService capped = probeService(2);
+
+    assertThat(capped.runDue()).isEqualTo(2);
+
+    assertThat(tcp.calls).containsExactlyInAnyOrder(ip(never), ip(oldest));
+    assertThat(reload(recent).getNextRunAt()).isEqualTo(now.minusSeconds(1));
+
+    assertThat(capped.runDue()).isEqualTo(1);
+    assertThat(tcp.calls).containsExactlyInAnyOrder(ip(never), ip(oldest), ip(recent));
+  }
+
+  @Test
+  void refusesLoopbackUrlsInAllForms() {
+    var userInfo = web(ServiceType.HTTP, "http://evil@127.0.0.1/");
+    var fragment = web(ServiceType.HTTP, "http://127.0.0.1#@good.example");
+    var ipv6 = web(ServiceType.HTTP, "http://[::1]/");
+
+    assertThat(probeService.runDue()).isEqualTo(3);
+
+    assertThat(http.calls).isEmpty();
+    for (var service : List.of(userInfo, fragment, ipv6)) {
+      var reloaded = reload(service);
+      assertThat(reloaded.getLastUp()).isFalse();
+      assertThat(reloaded.getLastError()).startsWith("Cible interdite");
+      assertThat(stored(service, "probe.up").get(0).getValue()).isEqualByComparingTo("0");
+    }
+  }
+
+  @Test
+  void passesHostPortAndPathFromUrl() {
+    web(ServiceType.HTTPS, "https://10.243.200.7:8443/sante?complet=1");
+
+    assertThat(probeService.runDue()).isEqualTo(1);
+
+    assertThat(https.requests).hasSize(1);
+    ProbeRequest request = https.requests.get(0);
+    assertThat(request.address().getHostAddress()).isEqualTo("10.243.200.7");
+    assertThat(request.host()).isEqualTo("10.243.200.7");
+    assertThat(request.port()).isEqualTo(8443);
+    assertThat(request.path()).isEqualTo("/sante?complet=1");
+    assertThat(request.timeout()).isEqualTo(Duration.ofMillis(5000));
+  }
+
+  @Test
+  void appliesDefaultPorts() {
+    web(ServiceType.HTTP, "http://10.243.201.1/");
+    web(ServiceType.HTTPS, "10.243.201.2");
+    web(ServiceType.TLS_CERT, "10.243.201.3");
+
+    assertThat(probeService.runDue()).isEqualTo(3);
+
+    assertThat(http.requests)
+        .singleElement()
+        .satisfies(
+            r -> {
+              assertThat(r.port()).isEqualTo(80);
+              assertThat(r.path()).isEqualTo("/");
+            });
+    assertThat(https.requests)
+        .singleElement()
+        .satisfies(
+            r -> {
+              assertThat(r.port()).isEqualTo(443);
+              assertThat(r.path()).isEqualTo("/");
+            });
+    assertThat(tls.requests).singleElement().satisfies(r -> assertThat(r.port()).isEqualTo(443));
+  }
+
+  @Test
+  void clampsTimeoutIntoAllowedRange() {
+    Equipment owner = equipment();
+    var tooShort = new MonitoredService(owner, "Délai nul", ServiceType.ICMP);
+    tooShort.setTimeoutMs(0);
+    var tooLong = new MonitoredService(owner, "Délai énorme", ServiceType.ICMP);
+    tooLong.setTimeoutMs(99999);
+
+    assertThat(probeService.runOnce(tooShort).up()).isTrue();
+    assertThat(probeService.runOnce(tooLong).up()).isTrue();
+
+    assertThat(icmp.requests)
+        .extracting(ProbeRequest::timeout)
+        .containsExactly(Duration.ofMillis(1), Duration.ofSeconds(30));
+  }
+
+  @Test
+  void tcpWithoutPortFails() {
+    var service = service(ServiceType.TCP_PORT, now.minusSeconds(1));
+    service.setPort(null);
+    services.saveAndFlush(service);
+
+    assertThat(probeService.runDue()).isEqualTo(1);
+
+    assertThat(tcp.calls).isEmpty();
+    var reloaded = reload(service);
+    assertThat(reloaded.getLastUp()).isFalse();
+    assertThat(reloaded.getLastError()).isEqualTo("Port manquant");
+    assertThat(stored(service, "probe.up").get(0).getValue()).isEqualByComparingTo("0");
+  }
+
+  @Test
+  void preparationErrorBecomesFailedResult() {
+    // Sans équipement ni point d'accès, préparer la cible échoue : résultat en échec, pas
+    // d'exception.
+    var orphan = new MonitoredService(null, "Sans équipement", ServiceType.HTTP);
+
+    ProbeResult result = probeService.runOnce(orphan);
+
+    assertThat(result.up()).isFalse();
+    assertThat(result.error()).isEqualTo("Erreur interne");
+    assertThat(http.calls).isEmpty();
   }
 }
