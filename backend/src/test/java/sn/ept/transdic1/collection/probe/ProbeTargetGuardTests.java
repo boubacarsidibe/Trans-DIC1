@@ -3,6 +3,7 @@ package sn.ept.transdic1.collection.probe;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.function.Function;
@@ -16,6 +17,8 @@ class ProbeTargetGuardTests {
         try {
           return switch (host) {
             case "evil.example" -> new InetAddress[] {InetAddress.getByName("127.0.0.1")};
+            case "mapped-loopback.example" -> new InetAddress[] {mapped(127, 0, 0, 1)};
+            case "mapped-metadata.example" -> new InetAddress[] {mapped(169, 254, 169, 254)};
             case "example.org" -> new InetAddress[] {InetAddress.getByName("93.184.216.34")};
             case "mixed.example" ->
                 new InetAddress[] {
@@ -27,6 +30,18 @@ class ProbeTargetGuardTests {
           throw new IllegalStateException(e);
         }
       };
+
+  /** Vraie Inet6Address IPv4-mappée (::ffff:a.b.c.d), que Java ne ramène pas à une IPv4. */
+  private static InetAddress mapped(int a, int b, int c, int d) throws UnknownHostException {
+    byte[] bytes = new byte[16];
+    bytes[10] = (byte) 0xff;
+    bytes[11] = (byte) 0xff;
+    bytes[12] = (byte) a;
+    bytes[13] = (byte) b;
+    bytes[14] = (byte) c;
+    bytes[15] = (byte) d;
+    return Inet6Address.getByAddress(null, bytes, -1);
+  }
 
   private final ProbeTargetGuard guard = new ProbeTargetGuard(fakeDns);
 
@@ -52,6 +67,12 @@ class ProbeTargetGuardTests {
   @Test
   void rejectsLinkLocalMetadata() {
     assertRejected("169.254.169.254");
+  }
+
+  @Test
+  void rejectsMappedInet6AddressFromDns() {
+    assertRejected("mapped-loopback.example");
+    assertRejected("mapped-metadata.example");
   }
 
   @Test
