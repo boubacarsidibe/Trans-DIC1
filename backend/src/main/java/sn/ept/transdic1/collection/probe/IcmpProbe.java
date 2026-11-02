@@ -13,7 +13,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
+import java.util.function.BiPredicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +27,6 @@ import sn.ept.transdic1.inventory.domain.ServiceType;
 @Component
 public class IcmpProbe implements Probe {
   private static final int MAX_OUTPUT_BYTES = 4096;
-  private static final int FALLBACK_TIMEOUT_MS = 5000;
   private static final Duration GRACE = Duration.ofSeconds(2);
   private static final Pattern LATENCY =
       Pattern.compile(
@@ -48,7 +47,7 @@ public class IcmpProbe implements Probe {
   public record CommandOutput(int exitCode, String stdout) {}
 
   private final CommandRunner runner;
-  private final Predicate<InetAddress> fallback;
+  private final BiPredicate<InetAddress, Duration> fallback;
   private final boolean windows;
 
   @Autowired
@@ -60,7 +59,8 @@ public class IcmpProbe implements Probe {
     this(runner, IcmpProbe::reachable, isWindows());
   }
 
-  public IcmpProbe(CommandRunner runner, Predicate<InetAddress> fallback, boolean windows) {
+  public IcmpProbe(
+      CommandRunner runner, BiPredicate<InetAddress, Duration> fallback, boolean windows) {
     this.runner = runner;
     this.fallback = fallback;
     this.windows = windows;
@@ -70,9 +70,9 @@ public class IcmpProbe implements Probe {
     return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
   }
 
-  private static boolean reachable(InetAddress address) {
+  private static boolean reachable(InetAddress address, Duration timeout) {
     try {
-      return address.isReachable(FALLBACK_TIMEOUT_MS);
+      return address.isReachable((int) timeout.toMillis());
     } catch (IOException e) {
       return false;
     }
@@ -109,7 +109,7 @@ public class IcmpProbe implements Probe {
 
   private ProbeResult fallbackProbe(ProbeRequest request, long start) {
     try {
-      return fallback.test(request.address())
+      return fallback.test(request.address(), request.timeout())
           ? ProbeResult.up(elapsedMs(start))
           : ProbeResult.down("Hôte injoignable");
     } catch (RuntimeException e) {
@@ -124,10 +124,30 @@ public class IcmpProbe implements Probe {
       ip = ip.substring(0, zone);
     }
     if (windows) {
-      return List.of("ping", "-n", "1", "-w", Long.toString(timeoutMs), ip);
+      return List.of(pingExecutable(true), "-n", "1", "-w", Long.toString(timeoutMs), ip);
     }
     long seconds = Math.max(1L, (timeoutMs + 999L) / 1000L);
-    return List.of("ping", "-c", "1", "-W", Long.toString(seconds), ip);
+    return List.of(pingExecutable(false), "-c", "1", "-W", Long.toString(seconds), ip);
+  }
+
+  /** Chemin absolu de ping s'il existe (évite le PATH), sinon le nom simple. */
+  static String pingExecutable(boolean windows) {
+    if (windows) {
+      String root = System.getenv("SystemRoot");
+      if (root != null) {
+        File exe = new File(new File(root, "System32"), "PING.EXE");
+        if (exe.isFile()) {
+          return exe.getPath();
+        }
+      }
+      return "ping";
+    }
+    for (String path : List.of("/bin/ping", "/usr/bin/ping")) {
+      if (new File(path).isFile()) {
+        return path;
+      }
+    }
+    return "ping";
   }
 
   private static int elapsedMs(long start) {
@@ -146,7 +166,7 @@ public class IcmpProbe implements Probe {
       return 1;
     }
     try {
-      return (int) Math.round(Double.parseDouble(m.group(2).replace(',', '.')));
+      return Math.max(1, (int) Math.round(Double.parseDouble(m.group(2).replace(',', '.'))));
     } catch (NumberFormatException e) {
       return null;
     }
