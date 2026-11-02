@@ -6,5 +6,6 @@ public enum ServiceType {
   HTTPS,
   ICMP,
   DNS,
+  TLS_CERT,
   OTHER
 }
