@@ -63,7 +63,7 @@ public class RuleSimulationService {
     int opened = 0;
     for (Equipment equipment : scope) {
       List<MetricHistory.Sample> past =
-          new ArrayList<>(history.samples(equipment.getId(), rule.getMetricType(), from, to));
+          new ArrayList<>(history.samples(equipment.getId(), null, rule.getMetricType(), from, to));
       past.sort(Comparator.comparing(MetricHistory.Sample::at));
       List<SimulatedAlert> alerts = replay(rule, past);
       samples += past.size();

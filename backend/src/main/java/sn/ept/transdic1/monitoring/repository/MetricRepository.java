@@ -20,9 +20,15 @@ public interface MetricRepository extends JpaRepository<Metric, Long> {
   Page<Metric> findByEquipmentIdAndKeyAndCollectedAtBetweenOrderByCollectedAtAsc(
       UUID equipmentId, String key, Instant from, Instant to, Pageable pageable);
 
-  /** Mesures d'un indicateur sur une période, de la plus récente à la plus ancienne. */
-  List<Metric> findByEquipmentIdAndKeyAndCollectedAtBetweenOrderByCollectedAtDesc(
+  /**
+   * Mesures sans service d'un indicateur sur une période, de la plus récente à la plus ancienne.
+   */
+  List<Metric> findByEquipmentIdAndServiceIsNullAndKeyAndCollectedAtBetweenOrderByCollectedAtDesc(
       UUID equipmentId, String key, Instant from, Instant to, Pageable pageable);
+
+  /** Mesures d'un service sur une période, de la plus récente à la plus ancienne. */
+  List<Metric> findByEquipmentIdAndServiceIdAndKeyAndCollectedAtBetweenOrderByCollectedAtDesc(
+      UUID equipmentId, UUID serviceId, String key, Instant from, Instant to, Pageable pageable);
 
   Optional<Metric> findFirstByEquipmentIdAndKeyOrderByCollectedAtDesc(UUID equipmentId, String key);
 }

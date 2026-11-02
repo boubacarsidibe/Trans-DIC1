@@ -16,7 +16,9 @@ public interface MetricHistory {
 
   /**
    * Mesures de l'indicateur entre les deux instants (bornes incluses), de la plus récente à la plus
-   * ancienne.
+   * ancienne. {@code serviceId} désigne le service mesuré ; nul, seules les mesures sans service
+   * sont renvoyées (celles des sondes n'y sont pas mêlées).
    */
-  List<Sample> samples(UUID equipmentId, String metricKey, Instant from, Instant to);
+  List<Sample> samples(
+      UUID equipmentId, UUID serviceId, String metricKey, Instant from, Instant to);
 }

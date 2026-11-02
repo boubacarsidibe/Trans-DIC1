@@ -21,6 +21,43 @@ public interface AlertRepository
   Optional<Alert> findFirstByEquipmentIdAndRuleIdAndStateOrderByResolvedAtDesc(
       UUID equipmentId, UUID ruleId, AlertState state);
 
+  /** Alerte active d'un service pour une règle (sondes). */
+  Optional<Alert> findFirstByEquipmentIdAndRuleIdAndServiceIdAndStateIn(
+      UUID equipmentId, UUID ruleId, UUID serviceId, Collection<AlertState> states);
+
+  /** Alerte active d'une règle pour les mesures sans service. */
+  Optional<Alert> findFirstByEquipmentIdAndRuleIdAndServiceIsNullAndStateIn(
+      UUID equipmentId, UUID ruleId, Collection<AlertState> states);
+
+  /** Dernière alerte résolue d'un service pour une règle. */
+  Optional<Alert> findFirstByEquipmentIdAndRuleIdAndServiceIdAndStateOrderByResolvedAtDesc(
+      UUID equipmentId, UUID ruleId, UUID serviceId, AlertState state);
+
+  /** Dernière alerte résolue d'une règle pour les mesures sans service. */
+  Optional<Alert> findFirstByEquipmentIdAndRuleIdAndServiceIsNullAndStateOrderByResolvedAtDesc(
+      UUID equipmentId, UUID ruleId, AlertState state);
+
+  /**
+   * Alerte active du triplet équipement-règle-service ; {@code serviceId} nul désigne les mesures
+   * sans service (requête explicite {@code service IS NULL}).
+   */
+  default Optional<Alert> findActiveForRule(
+      UUID equipmentId, UUID ruleId, UUID serviceId, Collection<AlertState> states) {
+    return serviceId == null
+        ? findFirstByEquipmentIdAndRuleIdAndServiceIsNullAndStateIn(equipmentId, ruleId, states)
+        : findFirstByEquipmentIdAndRuleIdAndServiceIdAndStateIn(
+            equipmentId, ruleId, serviceId, states);
+  }
+
+  /** Dernière alerte résolue du triplet équipement-règle-service (service nul compris). */
+  default Optional<Alert> findLastResolvedForRule(UUID equipmentId, UUID ruleId, UUID serviceId) {
+    return serviceId == null
+        ? findFirstByEquipmentIdAndRuleIdAndServiceIsNullAndStateOrderByResolvedAtDesc(
+            equipmentId, ruleId, AlertState.RESOLVED)
+        : findFirstByEquipmentIdAndRuleIdAndServiceIdAndStateOrderByResolvedAtDesc(
+            equipmentId, ruleId, serviceId, AlertState.RESOLVED);
+  }
+
   boolean existsByRuleId(UUID ruleId);
 
   /** Alerte active dont la clé d'occurrence commence par ce préfixe (anomalies). */

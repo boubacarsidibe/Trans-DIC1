@@ -23,11 +23,18 @@ class RepositoryMetricHistory implements MetricHistory {
 
   @Override
   @Transactional(readOnly = true)
-  public List<Sample> samples(UUID equipmentId, String metricKey, Instant from, Instant to) {
-    return metrics
-        .findByEquipmentIdAndKeyAndCollectedAtBetweenOrderByCollectedAtDesc(
-            equipmentId, metricKey, from, to, PageRequest.of(0, MAX_SAMPLES))
-        .stream()
+  public List<Sample> samples(
+      UUID equipmentId, UUID serviceId, String metricKey, Instant from, Instant to) {
+    var page = PageRequest.of(0, MAX_SAMPLES);
+    var found =
+        serviceId == null
+            ? metrics
+                .findByEquipmentIdAndServiceIsNullAndKeyAndCollectedAtBetweenOrderByCollectedAtDesc(
+                    equipmentId, metricKey, from, to, page)
+            : metrics
+                .findByEquipmentIdAndServiceIdAndKeyAndCollectedAtBetweenOrderByCollectedAtDesc(
+                    equipmentId, serviceId, metricKey, from, to, page);
+    return found.stream()
         .map(metric -> new Sample(metric.getCollectedAt(), metric.getValue()))
         .toList();
   }
