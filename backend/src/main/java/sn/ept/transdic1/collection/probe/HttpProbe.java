@@ -121,9 +121,10 @@ public class HttpProbe implements Probe {
     } catch (IOException | RuntimeException e) {
       return ProbeResult.down(classify(e, deadline));
     } finally {
-      guard.cancel(false);
+      // Fermeture d'abord (close_notify TLS encore sous la garde du délai), puis annulation.
       closeQuietly(socket);
       closeQuietly(plain);
+      guard.cancel(false);
     }
   }
 
