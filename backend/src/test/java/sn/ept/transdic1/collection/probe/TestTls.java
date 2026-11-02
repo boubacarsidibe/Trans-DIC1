@@ -40,6 +40,21 @@ final class TestTls {
    * @param validityDays durée de validité en jours
    */
   static TestTls generate(String san, String startDate, int validityDays) {
+    return generate(
+        san, startDate, validityDays, List.of("-keyalg", "EC", "-groupname", "secp256r1"));
+  }
+
+  /** Certificat ancien : RSA 1024 bits signé en SHA-1 (désactivé par les contraintes du JDK). */
+  static TestTls weakLegacy(String san, int validityDays) {
+    return generate(
+        san,
+        null,
+        validityDays,
+        List.of("-keyalg", "RSA", "-keysize", "1024", "-sigalg", "SHA1withRSA"));
+  }
+
+  private static TestTls generate(
+      String san, String startDate, int validityDays, List<String> keyOptions) {
     try {
       Path dir = Files.createTempDirectory("test-tls");
       Path file = dir.resolve("keystore.p12");
@@ -52,10 +67,6 @@ final class TestTls {
                   "-genkeypair",
                   "-alias",
                   ALIAS,
-                  "-keyalg",
-                  "EC",
-                  "-groupname",
-                  "secp256r1",
                   "-dname",
                   "CN=localhost",
                   "-ext",
@@ -70,6 +81,7 @@ final class TestTls {
                   new String(PASSWORD),
                   "-keypass",
                   new String(PASSWORD)));
+      command.addAll(keyOptions);
       if (startDate != null) {
         command.add("-startdate");
         command.add(startDate);

@@ -11,10 +11,11 @@ import java.security.cert.X509Certificate;
 import java.util.Locale;
 import java.util.concurrent.ScheduledFuture;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.X509ExtendedTrustManager;
 import org.springframework.stereotype.Component;
 import sn.ept.transdic1.inventory.domain.ServiceType;
 
@@ -104,17 +105,43 @@ public class TlsCertProbe implements Probe {
    * certificat serveur (y compris expiré ou auto-signé) et n'envoie ni ne reçoit aucune donnée
    * applicative. Ce contexte reste privé à cette classe et ne doit jamais servir à une connexion
    * qui transmet des données.
+   *
+   * <p>Le gestionnaire étend {@link X509ExtendedTrustManager} : un simple {@code X509TrustManager}
+   * serait enveloppé par le JDK, qui appliquerait alors les contraintes d'algorithmes (SHA-1, clés
+   * faibles) et rejetterait justement les vieux certificats que la sonde doit pouvoir lire.
    */
   private static SSLContext newReadOnlyContext() {
     TrustManager acceptAll =
-        new X509TrustManager() {
+        new X509ExtendedTrustManager() {
           @Override
           public void checkClientTrusted(X509Certificate[] chain, String authType) {
             // jamais utilisé côté client
           }
 
           @Override
+          public void checkClientTrusted(X509Certificate[] chain, String authType, Socket socket) {
+            // jamais utilisé côté client
+          }
+
+          @Override
+          public void checkClientTrusted(
+              X509Certificate[] chain, String authType, SSLEngine engine) {
+            // jamais utilisé côté client
+          }
+
+          @Override
           public void checkServerTrusted(X509Certificate[] chain, String authType) {
+            // acceptation volontaire : on ne lit que la date d'expiration
+          }
+
+          @Override
+          public void checkServerTrusted(X509Certificate[] chain, String authType, Socket socket) {
+            // acceptation volontaire : on ne lit que la date d'expiration
+          }
+
+          @Override
+          public void checkServerTrusted(
+              X509Certificate[] chain, String authType, SSLEngine engine) {
             // acceptation volontaire : on ne lit que la date d'expiration
           }
 

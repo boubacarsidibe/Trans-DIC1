@@ -118,6 +118,16 @@ class TlsCertProbeTests {
   }
 
   @Test
+  void weakLegacyCertStillReadable() throws Exception {
+    int port = startTlsServer(TestTls.weakLegacy(SAN, 30));
+
+    ProbeResult result = new TlsCertProbe().run(request(port));
+
+    assertThat(result.up()).as(result.error()).isTrue();
+    assertThat(result.tlsDaysLeft()).isBetween(29, 30);
+  }
+
+  @Test
   void downWhenNoTlsOnPort() throws Exception {
     int port = startPlainServer();
 
