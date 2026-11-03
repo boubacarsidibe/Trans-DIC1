@@ -183,6 +183,13 @@ function EquipmentPage() {
                       >
                         Historique
                       </Link>
+                      <Link
+                        to={`/equipements/${e.id}/sondes`}
+                        aria-label={`Voir les sondes de ${e.name}`}
+                        className="btn btn-secondary btn-sm"
+                      >
+                        Sondes
+                      </Link>
                       {canManage && (
                         <>
                           {role === "ADMIN" && (
