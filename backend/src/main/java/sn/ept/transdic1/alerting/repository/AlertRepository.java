@@ -62,6 +62,9 @@ public interface AlertRepository
 
   boolean existsByServiceId(UUID serviceId);
 
+  /** Alertes d'un service dans ces états (sonde désactivée). */
+  java.util.List<Alert> findByServiceIdAndStateIn(UUID serviceId, Collection<AlertState> states);
+
   /** Alerte active dont la clé d'occurrence commence par ce préfixe (anomalies). */
   Optional<Alert> findFirstByOccurrenceKeyStartingWithAndStateIn(
       String prefix, Collection<AlertState> states);

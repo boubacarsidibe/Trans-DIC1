@@ -1,5 +1,8 @@
 package sn.ept.transdic1.collection.service;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -8,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import sn.ept.transdic1.alerting.repository.AlertRepository;
+import sn.ept.transdic1.alerting.service.AlertEvaluationService;
 import sn.ept.transdic1.audit.service.AuditService;
 import sn.ept.transdic1.collection.dto.ProbeRequestDto;
 import sn.ept.transdic1.collection.dto.ProbeResponse;
@@ -36,6 +40,7 @@ public class ProbeAdminService {
   private static final String AUDIT_TARGET = "PROBE";
   private static final String NOT_FOUND = "Sonde introuvable";
   private static final String EQUIPMENT_NOT_FOUND = "Équipement introuvable";
+  private static final String DISABLED_COMMENT = "Sonde désactivée";
 
   private final EquipmentRepository equipments;
   private final MonitoredServiceRepository services;
@@ -46,6 +51,8 @@ public class ProbeAdminService {
   private final AuditService audit;
   private final SiteScope scope;
   private final TransactionTemplate transaction;
+  private final AlertEvaluationService alerting;
+  private final Clock clock;
 
   public ProbeAdminService(
       EquipmentRepository equipments,
@@ -56,7 +63,9 @@ public class ProbeAdminService {
       ProbeService probes,
       AuditService audit,
       SiteScope scope,
-      TransactionTemplate transaction) {
+      TransactionTemplate transaction,
+      AlertEvaluationService alerting,
+      Clock clock) {
     this.equipments = equipments;
     this.services = services;
     this.metrics = metrics;
@@ -66,6 +75,8 @@ public class ProbeAdminService {
     this.audit = audit;
     this.scope = scope;
     this.transaction = transaction;
+    this.alerting = alerting;
+    this.clock = clock;
   }
 
   @Transactional(readOnly = true)
@@ -100,8 +111,10 @@ public class ProbeAdminService {
     validate(request);
     String name = request.name().trim();
     requireUniqueName(equipmentId, name, id);
-    boolean active = request.active() == null || request.active();
-    if (active && !service.isActive()) {
+    // Sans « active », l'état reste celui de la sonde (une sonde désactivée le reste).
+    boolean wasActive = service.isActive();
+    boolean active = request.active() == null ? wasActive : request.active();
+    if (active && !wasActive) {
       requireActiveSlot(equipmentId);
     }
     service.setName(name);
@@ -110,21 +123,29 @@ public class ProbeAdminService {
     // Nouvelle cible ou nouvel intervalle : pris en compte dès le prochain passage.
     service.setNextRunAt(null);
     services.saveAndFlush(service);
+    if (wasActive && !active) {
+      resolveAlerts(id);
+    }
     audit.record("PROBE_UPDATED", AUDIT_TARGET, id, details(equipmentId, service));
     return toResponse(service);
   }
 
   /**
    * Supprime la sonde. Si des mesures ou des alertes y renvoient déjà, elle est seulement
-   * désactivée pour garder l'historique (comme un indicateur SNMP retiré).
+   * désactivée pour garder l'historique (comme un indicateur SNMP retiré) et ses alertes actives
+   * sont résolues ; sur une sonde déjà désactivée, rien ne change.
    */
   @Transactional
   public void delete(UUID equipmentId, UUID id) {
     MonitoredService service = find(equipmentId, id);
     String details = details(equipmentId, service);
     if (metrics.existsByServiceId(id) || alerts.existsByServiceId(id)) {
+      if (!service.isActive()) {
+        return;
+      }
       service.setActive(false);
-      services.save(service);
+      services.saveAndFlush(service);
+      resolveAlerts(id);
       audit.record("PROBE_DISABLED", AUDIT_TARGET, id, details);
       return;
     }
@@ -175,6 +196,9 @@ public class ProbeAdminService {
         throw badRequest("Plage de statut attendu inversée");
       }
     }
+    if (!isBlank(request.accessPoint()) && hasUserInfo(request.accessPoint())) {
+      throw badRequest("Identifiants dans l'URL non pris en charge");
+    }
     String host = ProbeService.accessPointHost(type, request.accessPoint());
     if (host != null) {
       try {
@@ -195,13 +219,47 @@ public class ProbeAdminService {
     service.setActive(active);
   }
 
+  /**
+   * Le nom est unique par équipement pour tous les services (contrainte en base), y compris les
+   * services DNS ou autres qui ne sont pas des sondes et n'apparaissent pas dans la liste : le
+   * message dit alors pourquoi le nom est pris.
+   */
   private void requireUniqueName(UUID equipmentId, String name, UUID self) {
-    boolean taken =
+    var conflict =
         services.findByEquipmentIdOrderByName(equipmentId).stream()
-            .anyMatch(s -> s.getName().equals(name) && !s.getId().equals(self));
-    if (taken) {
-      throw new ResponseStatusException(
-          HttpStatus.CONFLICT, "Une sonde porte déjà ce nom sur cet équipement : " + name);
+            .filter(s -> s.getName().equals(name) && !s.getId().equals(self))
+            .findFirst();
+    if (conflict.isEmpty()) {
+      return;
+    }
+    MonitoredService existing = conflict.get();
+    String message;
+    if (!ProbeService.PROBE_TYPES.contains(existing.getType())) {
+      message =
+          "Un service non sondé (DNS ou autre) porte déjà ce nom sur cet équipement : " + name;
+    } else if (!existing.isActive()) {
+      message = "Une sonde de ce nom existe déjà (désactivée) : réactivez-la ou renommez-la";
+    } else {
+      message = "Une sonde porte déjà ce nom sur cet équipement : " + name;
+    }
+    throw new ResponseStatusException(HttpStatus.CONFLICT, message);
+  }
+
+  /** Une sonde désactivée ne reçoit plus de mesure : ses alertes actives sont closes. */
+  private void resolveAlerts(UUID serviceId) {
+    alerting.resolveForService(serviceId, clock.instant(), DISABLED_COMMENT);
+  }
+
+  /** Vrai si l'adresse porte des identifiants (« http://utilisateur:secret@hote »). */
+  private static boolean hasUserInfo(String accessPoint) {
+    String value = accessPoint.trim();
+    try {
+      URI uri = new URI(value.contains("://") ? value : "//" + value);
+      String authority = uri.getRawAuthority();
+      return uri.getRawUserInfo() != null || (authority != null && authority.contains("@"));
+    } catch (URISyntaxException e) {
+      // Illisible : la garde refusera l'hôte, sauf si un « @ » trahit des identifiants.
+      return value.contains("@");
     }
   }
 

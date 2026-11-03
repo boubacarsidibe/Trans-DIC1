@@ -31,6 +31,12 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.transaction.annotation.Transactional;
 import sn.ept.transdic1.access.domain.SiteAccess;
 import sn.ept.transdic1.access.repository.SiteAccessRepository;
+import sn.ept.transdic1.alerting.domain.Alert;
+import sn.ept.transdic1.alerting.domain.AlertState;
+import sn.ept.transdic1.alerting.domain.AlertType;
+import sn.ept.transdic1.alerting.domain.Severity;
+import sn.ept.transdic1.alerting.repository.AlertRepository;
+import sn.ept.transdic1.alerting.repository.AlertRuleRepository;
 import sn.ept.transdic1.inventory.domain.Equipment;
 import sn.ept.transdic1.inventory.domain.EquipmentStatus;
 import sn.ept.transdic1.inventory.domain.EquipmentType;
@@ -67,6 +73,8 @@ class ProbeApiTests {
   @Autowired private MonitoredServiceRepository services;
   @Autowired private SiteAccessRepository access;
   @Autowired private MetricRepository metrics;
+  @Autowired private AlertRepository alerts;
+  @Autowired private AlertRuleRepository rules;
   @Autowired private JdbcTemplate jdbc;
   @Autowired private EntityManager em;
 
@@ -230,8 +238,11 @@ class ProbeApiTests {
             admin)
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.error").value(containsString("Cible interdite")));
-    call(post(url).content(probe("ICMP", "\"accessPoint\":\"[::1]\"")), admin)
-        .andExpect(status().isBadRequest());
+    for (String loopback : List.of("::1", "127.0.0.1", "127.1.2.3")) {
+      call(post(url).content(probe("ICMP", "\"accessPoint\":\"" + loopback + "\"")), admin)
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.error").value(containsString("Cible interdite")));
+    }
 
     UUID id = createTcp("SSH", 22);
     call(
@@ -326,6 +337,114 @@ class ProbeApiTests {
                 Long.class,
                 id))
         .isEqualTo(1);
+
+    // Une sonde déjà désactivée : rien ne change, aucune nouvelle entrée d'audit.
+    long auditBefore = countAudit();
+    call(delete(url + "/" + id), admin).andExpect(status().isNoContent());
+    assertThat(countAudit()).isEqualTo(auditBefore);
+  }
+
+  @Test
+  void updateWithoutActiveKeepsTheProbeDisabled() throws Exception {
+    String created =
+        call(post(url).content(probe("ICMP", "\"active\":false")), admin)
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.active").value(false))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    UUID id = UUID.fromString(JsonPath.read(created, "$.id"));
+    call(put(url + "/" + id).content(probe("ICMP", "\"intervalSeconds\":120")), admin)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.intervalSeconds").value(120))
+        .andExpect(jsonPath("$.active").value(false));
+    call(put(url + "/" + id).content(probe("ICMP", "\"active\":true")), admin)
+        .andExpect(jsonPath("$.active").value(true));
+    call(put(url + "/" + id).content(probe("ICMP", "\"timeoutMs\":1000")), admin)
+        .andExpect(jsonPath("$.active").value(true));
+  }
+
+  @Test
+  void rejectsCredentialsInTheTarget() throws Exception {
+    for (String target :
+        List.of(
+            "http://admin:secret@192.0.2.50/", "https://admin@192.0.2.50", "admin:x@192.0.2.50")) {
+      call(post(url).content(probe("HTTP", "\"accessPoint\":\"" + target + "\"")), admin)
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.error").value("Identifiants dans l'URL non pris en charge"));
+    }
+    UUID id = createTcp("SSH", 22);
+    call(
+            put(url + "/" + id)
+                .content(
+                    "{\"name\":\"SSH\",\"type\":\"TCP_PORT\",\"port\":22,"
+                        + "\"accessPoint\":\"tcp://u:p@192.0.2.50\"}"),
+            admin)
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error").value("Identifiants dans l'URL non pris en charge"));
+  }
+
+  @Test
+  void nameConflictsExplainDisabledAndHiddenServices() throws Exception {
+    call(post(url).content("{\"name\":\"Vieux\",\"type\":\"ICMP\",\"active\":false}"), admin)
+        .andExpect(status().isCreated());
+    call(post(url).content("{\"name\":\"Vieux\",\"type\":\"ICMP\"}"), admin)
+        .andExpect(status().isConflict())
+        .andExpect(
+            jsonPath("$.error")
+                .value(
+                    "Une sonde de ce nom existe déjà (désactivée) : réactivez-la ou renommez-la"));
+
+    services.saveAndFlush(new MonitoredService(equipmentA, "Résolveur", ServiceType.DNS));
+    call(post(url).content("{\"name\":\"Résolveur\",\"type\":\"ICMP\"}"), admin)
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.error").value(containsString("non sondé")));
+  }
+
+  @Test
+  void disablingAProbeResolvesItsOpenAlerts() throws Exception {
+    UUID byPut = createTcp("SSH", 22);
+    UUID byDelete = createTcp("HTTP local", 80);
+    Alert alertPut = alerts.saveAndFlush(alertOn(byPut, AlertState.OPEN));
+    Alert alertDelete = alerts.saveAndFlush(alertOn(byDelete, AlertState.IN_PROGRESS));
+
+    call(put(url + "/" + byPut).content(probe("TCP_PORT", "\"port\":22,\"active\":false")), admin)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.active").value(false));
+    call(delete(url + "/" + byDelete), admin).andExpect(status().isNoContent());
+    em.flush();
+
+    for (Alert alert : List.of(alertPut, alertDelete)) {
+      assertThat(
+              jdbc.queryForObject(
+                  "SELECT state FROM alert WHERE id = ?", String.class, alert.getId()))
+          .isEqualTo("RESOLVED");
+      assertThat(
+              jdbc.queryForList(
+                  "SELECT comment FROM alert_event WHERE alert_id = ? AND type = 'RESOLVED'",
+                  String.class,
+                  alert.getId()))
+          .containsExactly("Sonde désactivée");
+    }
+    call(get(url), admin).andExpect(jsonPath("$[?(@.active == true)]").isEmpty());
+  }
+
+  private Alert alertOn(UUID serviceId, AlertState state) {
+    var alert =
+        new Alert(
+            equipmentA,
+            "probe-test-" + UUID.randomUUID(),
+            AlertType.THRESHOLD,
+            state,
+            Severity.CRITICAL,
+            "Sonde injoignable",
+            Instant.now().minusSeconds(600));
+    alert.setService(services.findById(serviceId).orElseThrow());
+    UUID ruleId =
+        jdbc.queryForObject(
+            "SELECT id FROM alert_rule WHERE name = 'Sonde injoignable'", UUID.class);
+    alert.setRule(rules.findById(ruleId).orElseThrow());
+    return alert;
   }
 
   @Test

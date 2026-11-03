@@ -93,7 +93,7 @@ public class AlertEvaluationService {
       var active = alerts.findActiveForRule(equipment.getId(), rule.getId(), serviceId, ACTIVE);
       if (active.isPresent()) {
         if (rule.isRecoveredBy(value)) {
-          changes.add(resolve(active.get(), at));
+          changes.add(resolve(active.get(), at, "Retour à la normale détecté"));
         }
       } else if (rule.isBreachedBy(value)
           && breachConfirmed(rule, equipment, serviceId, metricKey, at)) {
@@ -185,7 +185,20 @@ public class AlertEvaluationService {
     return new AlertChange(alert.getId(), AlertEventType.OPENED, notify);
   }
 
-  private AlertChange resolve(Alert alert, Instant at) {
+  /**
+   * Résout automatiquement les alertes actives d'un service qui n'est plus surveillé (sonde
+   * désactivée) : sinon elles resteraient ouvertes, faute de mesure pour les clore.
+   */
+  @Transactional
+  public List<AlertChange> resolveForService(UUID serviceId, Instant at, String comment) {
+    var changes = new ArrayList<AlertChange>();
+    for (Alert alert : alerts.findByServiceIdAndStateIn(serviceId, ACTIVE)) {
+      changes.add(resolve(alert, at, comment));
+    }
+    return changes;
+  }
+
+  private AlertChange resolve(Alert alert, Instant at, String comment) {
     AlertState previous = alert.getState();
     alert.setState(AlertState.RESOLVED);
     alert.setResolvedAt(at);
@@ -193,7 +206,7 @@ public class AlertEvaluationService {
     var event = new AlertEvent(alert, AlertEventType.RESOLVED, at);
     event.setPreviousState(previous);
     event.setNewState(AlertState.RESOLVED);
-    event.setComment("Retour à la normale détecté");
+    event.setComment(comment);
     alerts.save(alert);
     events.save(event);
     publisher.publishEvent(new AlertChangedEvent(alert.getId(), AlertEventType.RESOLVED));
