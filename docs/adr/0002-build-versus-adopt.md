@@ -32,3 +32,7 @@ Pas de découverte automatique du réseau, pas de bibliothèque de modèles par 
 - Le rapport doit comparer Trans-DIC1 à Zabbix et LibreNMS sur des critères mesurables : fonctions couvertes, effort de mise en route, limites.
 - À vérifier avec le CRI : Zabbix ou LibreNMS sont-ils déjà en place ? Si oui, Trans-DIC1 doit pouvoir cohabiter, par exemple en important des mesures.
 - Sources : [Zabbix vs LibreNMS](https://industrialmonitordirect.com/blogs/knowledgebase/zabbix-vs-librenms-network-monitoring-system-comparison), [Zabbix vs Grafana](https://last9.io/blog/zabbix-vs-grafana.md), [collecteurs SNMP auto-hébergés](https://www.pistack.xyz/posts/2026-04-26-snmp-collectors-snmp-exporter-snmpcollector-telegraf-self-hosted-guide-2026/).
+
+## Mise à jour du 2026-11-03
+
+Le périmètre exclu ci-dessus ne tient plus pour les contrôles de disponibilité : Trans-DIC1 sait maintenant lancer des sondes ICMP, TCP, HTTP, HTTPS et de certificat TLS depuis le serveur, sans agent ni SNMP ([ADR-0019](0019-sondes-actives.md), écart G1 du benchmark). La conclusion de la décision reste la même : Zabbix et LibreNMS demeurent plus complets en largeur (découverte, modèles par constructeur, sondes déportées, scénarios web, DNS) et en échelle, et redeviennent le bon choix au-delà du périmètre de l'EPT. Le texte d'origine est conservé tel qu'il a été décidé.

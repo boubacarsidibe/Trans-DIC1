@@ -49,6 +49,9 @@
 | `TRACING_SAMPLING_PROBABILITY` | Non | Tous | Part des requêtes tracées, 0.1 par défaut |
 | `DISCOVERY_ALLOWED_RANGES` | Selon topologie | Tous | Plages CIDR IPv4 que la découverte automatique peut parcourir, séparées par des virgules, fixées par l'exploitation ; vide, aucune découverte n'est possible |
 | `DISCOVERY_MAX_HOSTS`, `DISCOVERY_CONCURRENCY`, `DISCOVERY_HOST_TIMEOUT_MS`, `DISCOVERY_MAX_DURATION_SECONDS` | Non | Tous | Limites de la découverte : 256 adresses, 8 en parallèle, 1000 ms par adresse, 300 s par recherche |
+| `PROBE_SCAN_INTERVAL_MS` (propriété `collection.probe.scan-interval-ms`) | Non | Tous | Fréquence de recherche des sondes à échéance, 15000 ms par défaut |
+| `PROBE_PARALLELISM` (propriété `collection.probe.parallelism`) | Non | Tous | Sondes exécutées en même temps, 16 par défaut |
+| `PROBE_MAX_PER_SCAN` (propriété `collection.probe.max-per-scan`) | Non | Tous | Plafond de sondes lancées par passage, 500 par défaut (un passage doit finir dans le verrou de 5 minutes) |
 | `GRAFANA_ADMIN_PASSWORD` | Oui | Tous | Mot de passe du compte `admin` de Grafana (profil Compose `observability`) |
 
 Les variables non retenues par la stack devront être supprimées du contrat plutôt que laissées inactives.
