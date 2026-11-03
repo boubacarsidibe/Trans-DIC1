@@ -61,6 +61,8 @@ services:
     build:
       context: ./backend
     restart: unless-stopped
+    # NET_RAW : ping des sondes ICMP pour l'utilisateur non privilégié (ADR-0019).
+    cap_add: [NET_RAW]
     depends_on:
       postgres:
         condition: service_healthy

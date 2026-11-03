@@ -79,6 +79,11 @@ spec:
             {{- toYaml .Values.backend.resources | nindent 12 }}
           securityContext:
             {{- include "trans-dic1.securityContext" . | nindent 12 }}
+            {{- if .Values.backend.netRaw }}
+            capabilities:
+              drop: [ALL]
+              add: [NET_RAW]
+            {{- end }}
           volumeMounts:
             - name: tmp
               mountPath: /tmp

@@ -115,6 +115,8 @@ services:
       - /tmp
     read_only: true
     cap_drop: [ALL]
+    # NET_RAW : ping des sondes ICMP pour l'utilisateur non privilégié (ADR-0019).
+    cap_add: [NET_RAW]
     # front : reçoit le trafic du proxy et joint les équipements, SMTP et canaux de notification.
     # back : seul chemin vers PostgreSQL.
     networks: [front, back]
