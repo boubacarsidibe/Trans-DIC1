@@ -31,4 +31,7 @@ public interface MetricRepository extends JpaRepository<Metric, Long> {
       UUID equipmentId, UUID serviceId, String key, Instant from, Instant to, Pageable pageable);
 
   Optional<Metric> findFirstByEquipmentIdAndKeyOrderByCollectedAtDesc(UUID equipmentId, String key);
+
+  /** Vrai si un service a déjà des mesures (il ne peut alors plus être supprimé physiquement). */
+  boolean existsByServiceId(UUID serviceId);
 }

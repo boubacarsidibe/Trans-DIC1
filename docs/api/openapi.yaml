@@ -71,6 +71,10 @@ tags:
   description: Préférences de notification de l'utilisateur connecté.
 - name: Vue d'ensemble
   description: Chiffres clés du tableau de bord.
+- name: Sondes
+  description: "Contrôles de disponibilité lancés depuis le serveur, sans agent (port\
+    \ TCP, HTTP, HTTPS, ICMP, certificat TLS). Lecture selon le périmètre par site,\
+    \ écriture réservée aux administrateurs."
 - name: Authentification
   description: "Connexion, renouvellement et mot de passe."
 - name: Journal d'audit
@@ -527,6 +531,88 @@ paths:
           description: Équipement supprimé
         "404":
           description: Équipement introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/equipements/{equipmentId}/sondes/{id}:
+    put:
+      tags:
+      - Sondes
+      summary: Modifier une sonde
+      description: Prise en compte au prochain passage.
+      operationId: updateProbe
+      parameters:
+      - name: equipmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProbeRequestDto"
+        required: true
+      responses:
+        "400":
+          description: Sonde invalide
+        "404":
+          description: Sonde introuvable
+        "409":
+          description: Nom déjà utilisé sur cet équipement
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      tags:
+      - Sondes
+      summary: Supprimer une sonde
+      description: "Une sonde qui a déjà des mesures ou des alertes est désactivé\
+        e, pour garder l'historique."
+      operationId: deleteProbe
+      parameters:
+      - name: equipmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: Sonde supprimée ou désactivée
+        "404":
+          description: Sonde introuvable
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -1323,6 +1409,118 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/EquipmentResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/equipements/{equipmentId}/sondes:
+    get:
+      tags:
+      - Sondes
+      summary: Lister les sondes d'un équipement
+      description: "Avec le dernier résultat de chaque sonde (état, latence, derniè\
+        re erreur)."
+      operationId: listProbes
+      parameters:
+      - name: equipmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Équipement introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      tags:
+      - Sondes
+      summary: Créer une sonde
+      description: "Intervalle d'au moins 30 s, délai de 100 à 30 000 ms, 50 sondes\
+        \ actives au plus par équipement. La cible est contrôlée (boucle locale, lien\
+        \ local et métadonnées refusés). Première exécution au prochain passage."
+      operationId: createProbe
+      parameters:
+      - name: equipmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProbeRequestDto"
+        required: true
+      responses:
+        "201":
+          description: Sonde créée
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProbeResponse"
+        "400":
+          description: Sonde invalide
+        "404":
+          description: Équipement introuvable
+        "409":
+          description: Nom déjà utilisé sur cet équipement
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/equipements/{equipmentId}/sondes/{id}/tester:
+    post:
+      tags:
+      - Sondes
+      summary: Tester une sonde
+      description: Exécution immédiate ; rien n'est enregistré et aucune alerte n'est
+        ouverte.
+      operationId: testProbe
+      parameters:
+      - name: equipmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Sonde introuvable
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -3069,6 +3267,59 @@ components:
           format: uuid
         site:
           type: string
+    ProbeRequestDto:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+          minLength: 0
+        type:
+          type: string
+          description: "Types pris en charge : TCP_PORT, HTTP, HTTPS, ICMP, TLS_CERT"
+          enum:
+          - TCP_PORT
+          - HTTP
+          - HTTPS
+          - ICMP
+          - TLS_CERT
+        port:
+          type: integer
+          format: int32
+          description: Obligatoire pour TCP_PORT
+          maximum: 65535
+          minimum: 1
+        accessPoint:
+          type: string
+          maxLength: 255
+          minLength: 0
+        intervalSeconds:
+          type: integer
+          format: int32
+          description: 60 par défaut
+          maximum: 86400
+          minimum: 30
+        timeoutMs:
+          type: integer
+          format: int32
+          description: 5000 par défaut
+          maximum: 30000
+          minimum: 100
+        expectedStatus:
+          type: string
+          description: Code seul (200) ou plage (200-399) ; HTTP et HTTPS
+          pattern: "[1-5][0-9]{2}(-[1-5][0-9]{2})?"
+        expectedText:
+          type: string
+          description: Texte cherché dans la réponse ; HTTP et HTTPS seulement
+          maxLength: 200
+          minLength: 0
+        active:
+          type: boolean
+          description: Vrai par défaut
+      required:
+      - name
+      - type
     Metric:
       type: object
       properties:
@@ -3437,6 +3688,54 @@ components:
         cancelledAt:
           type: string
           format: date-time
+    ProbeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+          - TCP_PORT
+          - HTTP
+          - HTTPS
+          - ICMP
+          - DNS
+          - TLS_CERT
+          - OTHER
+        port:
+          type: integer
+          format: int32
+        accessPoint:
+          type: string
+        intervalSeconds:
+          type: integer
+          format: int32
+        timeoutMs:
+          type: integer
+          format: int32
+        expectedStatus:
+          type: string
+        expectedText:
+          type: string
+        active:
+          type: boolean
+        lastCheckedAt:
+          type: string
+          format: date-time
+        lastUp:
+          type: boolean
+        lastLatencyMs:
+          type: integer
+          format: int32
+        lastError:
+          type: string
+        consecutiveFailures:
+          type: integer
+          format: int32
     AgentRegistrationResponse:
       type: object
       properties:

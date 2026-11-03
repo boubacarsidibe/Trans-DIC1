@@ -7,6 +7,7 @@ import java.net.URISyntaxException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
@@ -48,13 +49,14 @@ public class ProbeService {
   private static final Logger LOG = LoggerFactory.getLogger(ProbeService.class);
 
   /** Types de service exécutés par les sondes ; DNS et OTHER sont ignorés. */
-  static final Set<ServiceType> PROBE_TYPES =
-      EnumSet.of(
-          ServiceType.TCP_PORT,
-          ServiceType.HTTP,
-          ServiceType.HTTPS,
-          ServiceType.ICMP,
-          ServiceType.TLS_CERT);
+  public static final Set<ServiceType> PROBE_TYPES =
+      Collections.unmodifiableSet(
+          EnumSet.of(
+              ServiceType.TCP_PORT,
+              ServiceType.HTTP,
+              ServiceType.HTTPS,
+              ServiceType.ICMP,
+              ServiceType.TLS_CERT));
 
   private static final String INTERNAL_ERROR = "Erreur interne";
 
@@ -247,7 +249,7 @@ public class ProbeService {
     String path = null;
     if (accessPoint.isEmpty()) {
       host = service.getEquipment().getManagementAddress();
-    } else if (isWeb(type) || accessPoint.contains("://")) {
+    } else if (isUrlForm(type, accessPoint)) {
       Target parsed = parseUrl(accessPoint);
       host = parsed.host();
       urlPort = parsed.port();
@@ -272,6 +274,24 @@ public class ProbeService {
         Duration.ofMillis(timeoutMs),
         service.getExpectedStatus(),
         service.getExpectedText());
+  }
+
+  /**
+   * Hôte visé par l'adresse d'accès d'un service, lu exactement comme à l'exécution (forme URL pour
+   * HTTP, HTTPS et TLS_CERT ou dès qu'un schéma est présent) ; {@code null} si l'adresse est vide
+   * (l'adresse de gestion de l'équipement est alors utilisée). Sert à valider la cible à la
+   * création, avec {@link ProbeTargetGuard}.
+   */
+  public static String accessPointHost(ServiceType type, String accessPoint) {
+    String value = accessPoint == null ? "" : accessPoint.trim();
+    if (value.isEmpty()) {
+      return null;
+    }
+    return isUrlForm(type, value) ? parseUrl(value).host() : value;
+  }
+
+  private static boolean isUrlForm(ServiceType type, String accessPoint) {
+    return isWeb(type) || accessPoint.contains("://");
   }
 
   private static boolean isWeb(ServiceType type) {

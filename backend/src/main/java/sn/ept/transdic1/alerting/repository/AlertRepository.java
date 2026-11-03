@@ -60,6 +60,8 @@ public interface AlertRepository
 
   boolean existsByRuleId(UUID ruleId);
 
+  boolean existsByServiceId(UUID serviceId);
+
   /** Alerte active dont la clé d'occurrence commence par ce préfixe (anomalies). */
   Optional<Alert> findFirstByOccurrenceKeyStartingWithAndStateIn(
       String prefix, Collection<AlertState> states);
