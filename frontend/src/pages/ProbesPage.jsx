@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getEquipment } from "../api/collection.js";
 import {
@@ -47,17 +47,23 @@ function ProbeForm({ initial, submitting, onSubmit, onCancel }) {
   }
 
   const field = (id, label, props = {}) => (
-    <label className="block text-sm text-slate-300" htmlFor={`probe-${id}`}>
-      {label}
+    <div className="block text-sm text-slate-300">
+      <label htmlFor={`probe-${id}`}>{label}</label>
       <input
         id={`probe-${id}`}
         value={values[id]}
         onChange={set(id)}
         className="field mt-2"
+        aria-invalid={errors[id] ? "true" : undefined}
+        aria-describedby={errors[id] ? `probe-${id}-error` : undefined}
         {...props}
       />
-      {errors[id] && <span className="block text-red-300">{errors[id]}</span>}
-    </label>
+      {errors[id] && (
+        <span id={`probe-${id}-error`} className="block text-red-300">
+          {errors[id]}
+        </span>
+      )}
+    </div>
   );
 
   return (
@@ -103,8 +109,7 @@ function ProbeForm({ initial, submitting, onSubmit, onCancel }) {
   );
 }
 
-function ProbesPage() {
-  const { id } = useParams();
+function ProbesView({ id }) {
   const { role } = useAuth();
   const canWrite = role === "ADMIN";
   const [equipment, setEquipment] = useState(null);
@@ -116,34 +121,58 @@ function ProbesPage() {
   const [pendingDelete, setPendingDelete] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [testingId, setTestingId] = useState(null);
+  const [testResult, setTestResult] = useState("");
+  const dialogRef = useRef(null);
 
-  const load = useCallback(async () => {
-    try {
-      setProbes(await listProbes(id));
-    } catch (e) {
-      setError(serverMessage(e, "Impossible de charger les sondes."));
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+  // `isStale` : la réponse d'un équipement quitté est ignorée.
+  const load = useCallback(
+    async (isStale = () => false) => {
+      try {
+        const found = await listProbes(id);
+        if (isStale()) return;
+        setProbes(found);
+      } catch (e) {
+        if (!isStale()) setError(serverMessage(e, "Impossible de charger les sondes."));
+      } finally {
+        if (!isStale()) setLoading(false);
+      }
+    },
+    [id],
+  );
+
+  // Changement d'équipement : la page est remontée (key), donc l'état repart de zéro.
+  useEffect(() => {
+    let stale = false;
+    getEquipment(id)
+      .then((found) => !stale && setEquipment(found))
+      .catch(() => !stale && setError("Équipement introuvable."));
+    load(() => stale);
+    return () => {
+      stale = true;
+    };
+  }, [id, load]);
+
+  function refresh() {
+    setError("");
+    setNotice("");
+    setTestResult("");
+    setLoading(true);
+    load();
+  }
 
   useEffect(() => {
-    getEquipment(id)
-      .then(setEquipment)
-      .catch(() => setError("Équipement introuvable."));
-    listProbes(id)
-      .then(setProbes)
-      .catch((e) => setError(serverMessage(e, "Impossible de charger les sondes.")))
-      .finally(() => setLoading(false));
-  }, [id]);
+    if (pendingDelete) dialogRef.current?.querySelector("button")?.focus();
+  }, [pendingDelete]);
 
   const succeed = (message) => {
     setNotice(message);
     setError("");
+    setTestResult("");
   };
   const fail = (e, fallback) => {
     setError(serverMessage(e, fallback));
     setNotice("");
+    setTestResult("");
   };
 
   async function save(values) {
@@ -178,6 +207,9 @@ function ProbesPage() {
 
   async function runTest(probe) {
     setTestingId(probe.id);
+    setNotice("");
+    setError("");
+    setTestResult("");
     try {
       const result = await testProbe(id, probe.id);
       const detail = result.up
@@ -185,7 +217,7 @@ function ProbesPage() {
             result.tlsDaysLeft != null ? `, certificat valide encore ${result.tlsDaysLeft} jours` : ""
           }`
         : `Injoignable${result.error ? ` (${result.error})` : ""}`;
-      succeed(`Test de « ${probe.name} » : ${detail}. Rien n'est enregistré.`);
+      setTestResult(`Test de « ${probe.name} » : ${detail}. Rien n'est enregistré.`);
     } catch (e) {
       fail(e, "Le test a échoué.");
     } finally {
@@ -214,7 +246,7 @@ function ProbesPage() {
           description="Le serveur vérifie lui-même ces services (port, page web, ping, certificat), sans agent."
           actions={
             <>
-              <button type="button" onClick={load} className="btn btn-secondary">
+              <button type="button" onClick={refresh} className="btn btn-secondary">
                 Actualiser
               </button>
               {canWrite && (
@@ -227,8 +259,13 @@ function ProbesPage() {
         />
 
         {notice && (
-          <p role="status" className="notice notice-ok">
+          <p role="status" data-testid="probe-notice" className="notice notice-ok">
             {notice}
+          </p>
+        )}
+        {testResult && (
+          <p role="status" data-testid="probe-test-result" className="notice notice-ok">
+            {testResult}
           </p>
         )}
         {error && (
@@ -248,9 +285,15 @@ function ProbesPage() {
         )}
 
         {canWrite && pendingDelete && (
-          <div role="alertdialog" className="panel mt-5">
-            <p className="text-white">Supprimer la sonde « {pendingDelete.name} » ?</p>
-            <p className="mt-1 text-sm text-slate-400">
+          <div
+            role="alertdialog"
+            ref={dialogRef}
+            aria-labelledby="probe-delete-title"
+            aria-describedby="probe-delete-help"
+            className="panel mt-5"
+          >
+            <p id="probe-delete-title" className="text-white">Supprimer la sonde « {pendingDelete.name} » ?</p>
+            <p id="probe-delete-help" className="mt-1 text-sm text-slate-400">
               Une sonde qui a un historique est désactivée, pas effacée : ses mesures restent consultables.
             </p>
             <div className="mt-4 flex gap-3">
@@ -308,6 +351,7 @@ function ProbesPage() {
                             <button
                               type="button"
                               disabled={testingId === probe.id}
+                              aria-busy={testingId === probe.id}
                               onClick={() => runTest(probe)}
                               aria-label={`Tester ${probe.name}`}
                               className="btn btn-secondary btn-sm"
@@ -352,6 +396,11 @@ function ProbesPage() {
       </div>
     </main>
   );
+}
+
+function ProbesPage() {
+  const { id } = useParams();
+  return <ProbesView key={id} id={id} />;
 }
 
 export default ProbesPage;

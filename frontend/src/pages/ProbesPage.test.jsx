@@ -113,12 +113,22 @@ describe("page des sondes d'un équipement", () => {
   });
 
   it("montre une sonde inactive grisée avec « Réactiver », qui la réactive", async () => {
+    let probes = [up, down, inactive];
     mockApi();
-    apiClient.put.mockResolvedValue({ data: { ...inactive, active: true } });
+    apiClient.get.mockImplementation(async (url) => {
+      if (url === "/equipements/e1") return { data: equipment };
+      return { data: probes };
+    });
+    apiClient.put.mockImplementation(async () => {
+      probes = [up, down, { ...inactive, active: true }];
+      return { data: probes[2] };
+    });
     renderPage();
 
     await screen.findByText("Ancienne");
     expect(within(rowOf("Ancienne")).getByText("Désactivée")).toBeInTheDocument();
+    // Les sondes actives n'ont pas de « Réactiver ».
+    expect(screen.getAllByRole("button", { name: /^Réactiver/ })).toHaveLength(1);
     await userEvent.click(screen.getByRole("button", { name: "Réactiver Ancienne" }));
 
     await waitFor(() =>
@@ -127,7 +137,8 @@ describe("page des sondes d'un équipement", () => {
         expect.objectContaining({ active: true, name: "Ancienne", type: "ICMP" }),
       ),
     );
-    expect(screen.queryByRole("button", { name: "Réactiver Web public" })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("button", { name: /^Réactiver/ })).not.toBeInTheDocument());
+    expect(within(rowOf("Ancienne")).queryByText("Désactivée")).not.toBeInTheDocument();
   });
 
   it("masque le port pour ICMP et le texte attendu hors HTTP/HTTPS", async () => {
@@ -179,14 +190,16 @@ describe("page des sondes d'un équipement", () => {
     await waitFor(() =>
       expect(apiClient.post).toHaveBeenCalledWith(
         "/equipements/e1/sondes",
-        expect.objectContaining({
+        {
           name: "SSH",
           type: "TCP_PORT",
           port: 22,
           accessPoint: "10.0.0.5",
           intervalSeconds: 60,
           timeoutMs: 5000,
-        }),
+          expectedStatus: null,
+          expectedText: null,
+        },
       ),
     );
   });
@@ -240,9 +253,69 @@ describe("page des sondes d'un équipement", () => {
     );
   });
 
-  it("n'offre aucune commande d'écriture à un lecteur", async () => {
+  it("modifier une sonde n'envoie pas « active » (le serveur garde l'état)", async () => {
     mockApi();
-    renderPage("VIEWER");
+    apiClient.put.mockResolvedValue({ data: up });
+    renderPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Modifier Web public" }));
+    const interval = screen.getByLabelText("Intervalle (secondes)");
+    await userEvent.clear(interval);
+    await userEvent.type(interval, "120");
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    await waitFor(() => expect(apiClient.put).toHaveBeenCalled());
+    const [url, payload] = apiClient.put.mock.calls[0];
+    expect(url).toBe("/equipements/e1/sondes/p1");
+    expect(payload).not.toHaveProperty("active");
+    expect(payload).toEqual({
+      name: "Web public",
+      type: "HTTPS",
+      port: null,
+      accessPoint: "https://exemple.sn",
+      intervalSeconds: 120,
+      timeoutMs: 5000,
+      expectedStatus: null,
+      expectedText: null,
+    });
+  });
+
+  it("affiche le motif précis d'un refus d'identifiants dans l'URL", async () => {
+    mockApi([]);
+    apiClient.post.mockRejectedValue({
+      response: { status: 400, data: { status: 400, error: "Identifiants dans l'URL non pris en charge", fields: null } },
+    });
+    renderPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ajouter une sonde" }));
+    await userEvent.type(screen.getByLabelText("Nom"), "Web");
+    await userEvent.selectOptions(screen.getByLabelText("Type"), "HTTP");
+    await userEvent.type(screen.getByLabelText("Adresse ou URL"), "http://u:p@exemple.sn");
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Identifiants dans l'URL non pris en charge");
+  });
+
+  it("préfère le message du champ au « Requête invalide » générique", async () => {
+    mockApi([]);
+    apiClient.post.mockRejectedValue({
+      response: { status: 400, data: { status: 400, error: "Requête invalide", fields: { name: "Nom trop long" } } },
+    });
+    renderPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ajouter une sonde" }));
+    await userEvent.type(screen.getByLabelText("Nom"), "X");
+    await userEvent.type(screen.getByLabelText("Port"), "22");
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Nom trop long");
+    expect(alert).not.toHaveTextContent("Requête invalide");
+  });
+
+  it.each(["VIEWER", "NOC_OPERATOR"])("n'offre aucune commande d'écriture au rôle %s", async (role) => {
+    mockApi();
+    renderPage(role);
 
     await screen.findByText("Web public");
     expect(within(rowOf("Web public")).getByText("En ligne")).toBeInTheDocument();

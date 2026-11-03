@@ -117,9 +117,13 @@ export function toProbePayload(values, active) {
   return payload;
 }
 
-/** Message du serveur (400/409 en français), sinon le texte de repli. */
+/**
+ * Message du serveur (400/409 en français). Le détail d'un champ invalide (`fields`) prime sur le
+ * `error` générique « Requête invalide » ; une ResponseStatusException (identifiants dans l'URL,
+ * cible interdite, type non pris en charge) n'a que `error`, qui porte le motif.
+ */
 export function serverMessage(error, fallback) {
   const data = error?.response?.data;
   const fields = data?.fields ? Object.values(data.fields).join(" ") : "";
-  return data?.error || data?.message || fields || fallback;
+  return fields || data?.error || data?.message || fallback;
 }

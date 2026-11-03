@@ -29,10 +29,10 @@ test.describe("sondes d'un équipement", () => {
     await form.getByLabel("Port").fill(BACKEND_PORT);
     await form.getByLabel("Adresse ou URL").fill(BACKEND_HOST);
     await form.getByRole("button", { name: "Enregistrer" }).click();
-    await expect(page.getByRole("status")).toContainText("Sonde créée");
+    await expect(page.getByTestId("probe-notice")).toContainText("Sonde créée");
 
     await page.getByRole("button", { name: `Tester ${name}` }).click();
-    await expect(page.getByRole("status")).toContainText(`Test de « ${name} » : En ligne`);
+    await expect(page.getByTestId("probe-test-result")).toContainText(`Test de « ${name} » : En ligne`);
   });
 
   test("un lecteur consulte les sondes sans pouvoir les modifier", async ({ page }) => {
