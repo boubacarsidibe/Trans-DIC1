@@ -2452,6 +2452,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/equipements/{equipmentId}/previsions:
+    get:
+      tags:
+      - Métriques
+      summary: Prévision de saturation d'un équipement
+      description: "Pour chaque indicateur suivi (disque et mémoire en pourcentage\
+        \ par défaut) : tendance linéaire sur les 14 derniers jours de moyennes horaires,\
+        \ jours restants avant 100 % et confiance. Lecture seule, ouverte à tous les\
+        \ rôles dans leur périmètre de sites."
+      operationId: forecasts
+      parameters:
+      - name: equipmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CapacityForecastResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/equipements/{equipmentId}/metriques:
     get:
       tags:
@@ -4130,6 +4168,64 @@ components:
             $ref: "#/components/schemas/EquipmentResponse"
         page:
           $ref: "#/components/schemas/PageMetadata"
+    CapacityForecastResponse:
+      type: object
+      properties:
+        key:
+          type: string
+          description: "Indicateur, par exemple disk.usage"
+        unit:
+          type: string
+          description: Unité des mesures (%)
+        current:
+          type: number
+          format: double
+          description: Valeur la plus récente (moyenne de la dernière heure mesurée)
+        slopePerDay:
+          type: number
+          format: double
+          description: Tendance en points par jour (pente de la droite)
+        r2:
+          type: number
+          format: double
+          description: "Coefficient de détermination r², de 0 à 1"
+        daysToLimit:
+          type: number
+          format: double
+          description: Jours avant d'atteindre la limite ; absent sans tendance à
+            la hausse
+        projectedAt:
+          type: string
+          format: date-time
+          description: Date estimée de saturation ; absente sans tendance à la hausse
+        status:
+          type: string
+          enum:
+          - OK
+          - NOT_ENOUGH_DATA
+          - NO_GROWTH
+          - ALREADY_FULL
+        confidence:
+          type: string
+          description: "Confiance : haute (r² ≥ 0,8), moyenne (≥ 0,5) ou faible"
+        limit:
+          type: number
+          format: double
+          description: Limite visée (100 pour un pourcentage)
+        windowDays:
+          type: integer
+          format: int32
+          description: Fenêtre d'observation en jours
+        points:
+          type: integer
+          format: int32
+          description: Nombre de points (moyennes horaires) utilisés
+        firstPointAt:
+          type: string
+          format: date-time
+        lastPointAt:
+          type: string
+          format: date-time
     MetricHistoryResponse:
       type: object
       properties:
@@ -4293,6 +4389,7 @@ components:
           - THRESHOLD
           - COLLECTION
           - ANOMALY
+          - FORECAST
         state:
           type: string
           enum:

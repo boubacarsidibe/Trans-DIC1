@@ -964,6 +964,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/equipements/{equipmentId}/previsions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Prévision de saturation d'un équipement
+         * @description Pour chaque indicateur suivi (disque et mémoire en pourcentage par défaut) : tendance linéaire sur les 14 derniers jours de moyennes horaires, jours restants avant 100 % et confiance. Lecture seule, ouverte à tous les rôles dans leur périmètre de sites.
+         */
+        get: operations["forecasts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/equipements/{equipmentId}/metriques": {
         parameters: {
             query?: never;
@@ -1723,6 +1743,60 @@ export interface components {
             content?: components["schemas"]["EquipmentResponse"][];
             page?: components["schemas"]["PageMetadata"];
         };
+        CapacityForecastResponse: {
+            /** @description Indicateur, par exemple disk.usage */
+            key?: string;
+            /** @description Unité des mesures (%) */
+            unit?: string;
+            /**
+             * Format: double
+             * @description Valeur la plus récente (moyenne de la dernière heure mesurée)
+             */
+            current?: number;
+            /**
+             * Format: double
+             * @description Tendance en points par jour (pente de la droite)
+             */
+            slopePerDay?: number;
+            /**
+             * Format: double
+             * @description Coefficient de détermination r², de 0 à 1
+             */
+            r2?: number;
+            /**
+             * Format: double
+             * @description Jours avant d'atteindre la limite ; absent sans tendance à la hausse
+             */
+            daysToLimit?: number;
+            /**
+             * Format: date-time
+             * @description Date estimée de saturation ; absente sans tendance à la hausse
+             */
+            projectedAt?: string;
+            /** @enum {string} */
+            status?: "OK" | "NOT_ENOUGH_DATA" | "NO_GROWTH" | "ALREADY_FULL";
+            /** @description Confiance : haute (r² ≥ 0,8), moyenne (≥ 0,5) ou faible */
+            confidence?: string;
+            /**
+             * Format: double
+             * @description Limite visée (100 pour un pourcentage)
+             */
+            limit?: number;
+            /**
+             * Format: int32
+             * @description Fenêtre d'observation en jours
+             */
+            windowDays?: number;
+            /**
+             * Format: int32
+             * @description Nombre de points (moyennes horaires) utilisés
+             */
+            points?: number;
+            /** Format: date-time */
+            firstPointAt?: string;
+            /** Format: date-time */
+            lastPointAt?: string;
+        };
         MetricHistoryResponse: {
             /** Format: uuid */
             equipmentId?: string;
@@ -1809,7 +1883,7 @@ export interface components {
             equipmentName?: string;
             ruleName?: string;
             /** @enum {string} */
-            type?: "THRESHOLD" | "COLLECTION" | "ANOMALY";
+            type?: "THRESHOLD" | "COLLECTION" | "ANOMALY" | "FORECAST";
             /** @enum {string} */
             state?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ARCHIVED" | "DELETED";
             /** @enum {string} */
@@ -4925,6 +4999,46 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    forecasts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CapacityForecastResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
             };
         };
     };
