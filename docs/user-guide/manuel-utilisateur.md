@@ -76,7 +76,17 @@ Une alerte de type **Anomalie** signale une mesure inhabituelle pour l'heure et 
 
 Une alerte de type **Prévision** annonce qu'un disque ou une mémoire sera plein dans moins de 14 jours si la tendance se poursuit, par exemple « Disque plein dans ~12 jours (tendance +2,0 %/jour, confiance haute) ». Elle devient **critique** à 3 jours ou moins, son message est actualisé au plus une fois par jour, et elle se résout seule quand la tendance disparaît ou que la saturation recule nettement (au-delà de 17 jours et demi).
 
+Une alerte de type **Événement** vient d'un trap SNMP ou d'un message syslog envoyé par l'équipement lui-même et retenu par une règle d'événement, par exemple « Événement réseau « Interface coupée (linkDown) » : linkDown (interface coupée) ». Elle se résout seule quand l'équipement annonce le retour (linkUp), sinon à la main.
+
 Le lecteur voit tout, mais aucun bouton d'action : c'est normal.
+
+### Événements
+
+**Supervision > Événements** liste les traps SNMP et les messages syslog reçus des équipements inventoriés, du plus récent au plus ancien : date de réception, équipement (lien vers son historique) et adresse d'envoi, source (Trap SNMP ou Syslog), sévérité et texte. Pour un trap, l'OID de la notification est affiché ; **Détails** déplie les variables du trap ou le message complet.
+
+Les filtres se combinent : équipement, source, **sévérité minimale** (de la plus grave, Urgence, à la moins grave, Débogage : « Erreur » montre Erreur, Critique, Alerte et Urgence), période (**Depuis**, **Jusqu'à**) et texte libre (titre, détails ou OID). Cliquez sur **Filtrer** ; **Réinitialiser** les efface.
+
+Un opérateur limité à certains sites ne voit que les événements de leurs équipements. Les événements sont conservés 30 jours. Un message venu d'une adresse qui n'est celle d'aucun équipement inventorié n'apparaît jamais : c'est voulu (voir [evenements-reseau.md](../devops/evenements-reseau.md)). La page est vide tant que l'exploitation n'a pas activé la réception.
 
 ### Topologie
 
@@ -200,6 +210,25 @@ Chaque sonde ouvre sa propre alerte : deux sondes en panne sur le même équipem
 **Interpréter `probe.tls.days_left`** : c'est le nombre de jours entiers qui restent avant la date de fin du certificat. 30 : il reste un mois ; 13 : la règle par défaut s'ouvre ; 0 : il expire dans moins de 24 heures ; une valeur négative : il est déjà expiré. La sonde Certificat TLS lit le certificat **sans en valider la chaîne**, exprès : elle mesure la date, même d'un certificat auto-signé ou d'une autorité inconnue. Une sonde HTTPS, elle, **valide** le certificat et échoue s'il est invalide.
 
 **Limites actuelles** : pas de sonde DNS, pas de scénario web à plusieurs étapes, pas d'en-têtes ni d'authentification HTTP, pas d'exécuteur par site. Le panneau « Tester sur l'historique » des règles ne rejoue pas encore les mesures `probe.*`. Le ping fonctionne sur un serveur Linux ou Windows (Windows en anglais, français, allemand ou espagnol) et, en conteneur, demande une configuration décrite dans [sondes-icmp-conteneur.md](../devops/sondes-icmp-conteneur.md).
+
+### Règles d'événements
+
+**Réglages > Règles d'événements** décide quels traps et messages syslog ouvrent une alerte de type Événement. Tout le monde peut lire les règles ; seul l'administrateur les modifie.
+
+Une règle combine les critères renseignés, qui doivent **tous** être vrais (au moins un des trois derniers est obligatoire) :
+
+- **Source** : Trap SNMP, Syslog ou toutes ;
+- **Sévérité minimale** : par exemple Erreur ;
+- **Préfixe d'OID du trap** : `1.3.6.1.6.3.1.1.5.3` (linkDown) couvre cet OID et ceux qui sont dessous, pas `…5.30` ;
+- **Expression sur le texte** : expression régulière, insensible à la casse, 200 caractères au plus, cherchée dans le message syslog ou dans le titre et les variables du trap. Inutile d'écrire `.*` autour : `disk (full|plein)` suffit. Une expression qui demanderait trop de calcul est refusée à l'enregistrement.
+
+Facultatif : **OID de retour** ou **expression de retour** (par exemple `1.3.6.1.6.3.1.1.5.4`, linkUp) : l'événement correspondant résout l'alerte automatiquement. Choisissez aussi la **sévérité de l'alerte** et la **fenêtre de déduplication** (300 s par défaut) : une seule alerte reste active par équipement et par règle ; si l'alerte se rouvre moins de 300 s après sa dernière ouverture (interface qui bagote), elle se rouvre sans nouvelle notification. Pendant une maintenance, l'alerte est tracée sans notification.
+
+**Sans site ni équipement coché, la règle vaut pour tous les équipements** (contrairement aux règles de seuil).
+
+Le cadre **Tester sur un exemple** indique si un événement d'exemple (source, sévérité, OID, texte) ouvrirait ou résoudrait l'alerte, sans rien enregistrer. Trois règles sont livrées **désactivées** : Interface coupée (linkDown, résolue par linkUp), Échec d'authentification SNMP, Erreur système (syslog de sévérité Erreur ou plus grave). Une règle qui a déjà ouvert des alertes ne se supprime pas : désactivez-la.
+
+**Limites** : une seule alerte par équipement et par règle, quelle que soit l'interface (un linkUp de l'interface 2 résout l'alerte du linkDown de l'interface 1) ; pas de traduction des OID propriétaires (affichés en chiffres).
 
 ### Découverte automatique
 
