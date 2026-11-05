@@ -1,133 +1,126 @@
-# Benchmark Trans-DIC1 face à Zabbix et aux autres outils, état et plan de dépassement
+# Benchmark Trans-DIC1 face à Zabbix et aux autres outils : état, écarts, améliorations
 
-Mis à jour le 2026-11-05 (première version le 2026-11-02, avant les sondes sans agent).
+Troisième version, le 2026-11-05 (après les sondes, la prévision de saturation et les récepteurs de traps et de syslog).
 
-Fiabilité des sources : les capacités de Trans-DIC1 viennent du code, des tests et des revues de la branche. Pour les autres outils, les points marqués (web) ont été revérifiés en ligne le 2026-11-05 ; les autres viennent de ma connaissance de ces produits et sont à recouper avant le rapport. Les recherches web ont surtout remonté des blogs de comparaison, pas les pages officielles des fonctions de déclencheurs Zabbix.
+Fiabilité des sources : les capacités de Trans-DIC1 viennent du code, des tests et des revues. Pour les autres outils, les points marqués (web) ont été vérifiés sur des pages en ligne le 2026-11-05 ; les autres viennent de ma connaissance de ces produits et sont à recouper avant le rapport.
 
-## 1. Ce qui est réalisé
+## 1. Où en est le projet
 
-### Backlog officiel
-59 Issues fermées, 8 ouvertes. Aucune des 8 n'est du développement neuf : #32 validation sur l'infrastructure EPT et #33 seuils avec le CRI (dépendent du CRI), #34 rapport, #35 slides, #36 répétition, #5 relecture croisée des diagrammes, #63 et #76 (livrés en scripts et chart Helm, jamais testés sur un cluster).
+### Fait et fusionné dans `develop` (en local, non poussé)
+- Tout le backlog de développement : 59 Issues fermées.
+- **Sondes sans agent** : ping, TCP, HTTP/HTTPS, certificat TLS, alertes par service, garde anti-SSRF, API, page dédiée, ADR-0019.
 
-### Sondes sans agent (écart G1 du premier benchmark)
-Faites sur la branche `feature/sondes-sans-agent` (24 commits, 73 fichiers, environ 8 100 lignes ajoutées). **Elle n'est pas fusionnée dans `develop`.** Tests au dernier passage : 483 côté serveur, 203 côté interface, 0 échec.
+### Fait sur la branche `feature/depassement` (pas encore fusionné)
+- **Contrôle local type intégration continue** : `scripts/verify-all.ps1` (serveur, interface, validation des fichiers de déploiement, parcours de bout en bout sur une pile native sans Docker). Dernier passage complet : serveur 611 tests, interface 220 tests, 12 parcours de bout en bout, 0 échec.
+- **Prévision de saturation** : régression linéaire sur l'historique, alerte « disque plein dans N jours » avec garde de confiance, carte « Prévision » dans l'historique, API (ADR-0020).
+- **Récepteurs de traps SNMP et de syslog** : désactivés par défaut, sources reconnues par l'adresse de gestion de l'équipement, règles d'événements qui ouvrent et ferment des alertes, pages Événements et Règles d'événements (ADR-0021).
+- **Ping corrigé** quand plusieurs sondes ping surveillent un même équipement (verrou et compteurs).
 
-- Sondes ICMP, TCP, HTTP/HTTPS (code attendu, texte attendu), certificat TLS (jours restants).
-- Garde anti-SSRF : refus de la boucle locale, des métadonnées cloud, des formes IPv4 déguisées en IPv6 ; connexion à l'adresse résolue seulement ; pas de redirection ; 64 Ko lus au plus.
-- Alertes propres à un service (un équipement peut avoir plusieurs sondes qui alertent séparément) ; deux règles livrées inactives (sonde injoignable, certificat bientôt expiré).
-- Planificateur borné, API d'administration (droits, audit, périmètre par site), page « Sondes », ADR-0019, manuel, déploiement (sysctl du ping en conteneur).
-- Chaque tâche a eu une revue indépendante, plusieurs corrections, une relecture finale puis une re-revue des corrections.
+### En cours
+Deux vagues de corrections issues des relectures : prévision de saturation (fausse alerte juste après un nettoyage de disque, tests manquants) et traps/syslog (course entre deux fils de traitement, rejet tardif des sources inconnues, coût des expressions régulières, cache des règles).
 
 ## 2. Ce qui ne va pas
 
-### Défaut connu non corrigé
-- **Deux sondes ping sur un même équipement font clignoter l'alerte de collecte** : chaque succès de l'une la résout, chaque échec de l'autre la rouvre avec une notification. Correctifs possibles : une seule sonde ping pilote l'état, ou la reprise exige qu'aucune autre sonde ping n'ait 3 échecs, ou on documente « une sonde ping par équipement ». À trancher.
-
-### Non vérifié, donc à ne pas annoncer comme acquis
-- Le test de bout en bout Playwright des sondes est écrit mais **jamais exécuté** (Docker éteint).
-- L'image Docker du serveur n'a pas été construite avec `ping`, et le ping par un utilisateur non-root n'a pas été essayé dans un conteneur. Le chart Helm n'a pas été rendu (helm absent).
-- Les codes de sortie réels de `ping` sous Linux ne sont testés qu'avec une fausse commande.
-- Aucune mesure réelle sur l'infrastructure de l'EPT : seuils, plages, charge. C'est ce qui rend la comparaison avec Zabbix invérifiable aujourd'hui.
-
-### Limites connues des sondes (documentées)
-- Pas de sonde DNS, pas de scénario web à étapes, pas d'en-têtes ni d'authentification HTTP.
-- L'écran d'historique mélange les séries de plusieurs sondes du même type sur un équipement (D15).
-- Le test d'une règle sur l'historique ne rejoue pas les mesures de sonde (D13).
-- La page Sondes ne se rafraîchit pas en direct (bouton « Actualiser »).
-- Seule la panne d'une sonde ping qui pilote l'état entre dans le SLA ; les autres alertes de sonde n'y comptent pas.
-- ICMP géré sous Linux et Windows seulement.
-
-### Dettes et risques du projet
-- Aucune intégration continue (R2) : les contrôles se font à la main.
-- Agent Linux seulement, quatre mesures (R7). Pas de modèles d'équipement, pas de traps SNMP ni de syslog, pas de prévision, pas de règles composées, pas de découverte des interfaces et disques, pas de proxys de collecte, pas de MFA, pas de jetons d'API, pas de rapports planifiés, un seul serveur sans haute disponibilité.
-- Ouvert aussi : D3 (Java 21), D5 (avertissements oxlint, un de plus avec la page Sondes), D6, D7, D8 (PDF d'architecture périmé).
-- Le journal de bord de la branche montre des écarts de comptage de tests entre agents (446, 454, 463, 493) : seul le chiffre mesuré à la fin (483) fait foi.
+- **Rien de ce travail n'a tourné chez un vrai utilisateur ni à l'EPT.** Pas de mesure réelle, pas d'essai avec un vrai MikroTik, Cisco ou serveur syslog. Les seuils proposés ne sont pas validés par le CRI.
+- **Les relectures trouvent des défauts à chaque fonction** (une dizaine de points importants au total, tous corrigés ou en cours). La qualité vient des relectures, pas du premier jet : il faut continuer à relire.
+- **Non vérifié** : Docker et Kubernetes (l'image, le ping sans privilèges en conteneur et le chart Helm n'ont jamais été exécutés, car ce poste n'a pas de virtualisation), le comportement réel d'un envoi UDP depuis du matériel, la charge, la lecture à l'écran des nouvelles pages dans un navigateur au-delà des tests.
+- **Limites connues** : pas de sonde DNS ni de scénario web, l'historique mélange les séries de plusieurs sondes du même type, le test de règle sur l'historique ne rejoue pas encore les sondes, l'usurpation d'adresse UDP reste possible pour les traps et le syslog (documentée), les ports UDP 1162 et 1514 ne sont pas publiés dans les fichiers de déploiement.
+- **Absents** : modèles d'équipement, agent Windows, découverte des interfaces et disques, règles composées, jetons d'API, rapports planifiés, MFA propre, proxys de collecte, haute disponibilité, astreinte, page de statut.
+- **Dette** : aucune intégration continue distante (le script local la remplace en partie), un test instable ancien (agrégation horaire), avertissements du linter en hausse lente, ADR et documents d'architecture à régénérer.
 
 ## 3. Benchmark
 
-Légende : ✅ présent, 🟡 partiel, ❌ absent. « Branche » = Trans-DIC1 avec les sondes (non fusionné).
+Légende : ✅ présent, 🟡 partiel, ❌ absent. « Trans-DIC1 » = état de la branche actuelle.
 
-| Domaine | Trans-DIC1 `develop` | Trans-DIC1 branche | Zabbix | LibreNMS | Prometheus + Grafana | Checkmk | PRTG | Uptime Kuma |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Collecte SNMP v2c/v3 | ✅ OID à la main | ✅ | ✅ + modèles | ✅ auto | 🟡 snmp_exporter | ✅ auto | ✅ | ❌ |
-| Agent | 🟡 Linux, 4 mesures | 🟡 | ✅ multi-OS, plugins | ❌ | 🟡 exporters | ✅ | ✅ | ❌ |
-| Windows | ❌ | ❌ | ✅ | 🟡 SNMP | ✅ windows_exporter | ✅ | ✅ | ❌ |
-| Découverte réseau | 🟡 plage + SNMP | 🟡 | ✅ règles + LLD imbriquée (web, 7.4) | ✅ (web) | ❌ | ✅ | ✅ | ❌ |
-| Modèles par constructeur | ❌ | ❌ | ✅ | ✅ | 🟡 | ✅ | ✅ | ❌ |
-| Ping, port, HTTP | ❌ | ✅ | ✅ | ✅ | 🟡 blackbox | ✅ | ✅ | ✅ cœur du produit |
-| Certificat TLS | ❌ | ✅ jours restants | ✅ modèles + agent 2 (web) | ✅ | 🟡 blackbox | ✅ | ✅ | ✅ |
-| Scénarios web à étapes | ❌ | ❌ | ✅ (web : depuis 2.4) | 🟡 | ❌ | ✅ | ✅ | ❌ |
-| Traps SNMP, syslog, journaux | ❌ | ❌ | ✅ | ✅ (web) | ❌ | ✅ | ✅ | ❌ |
-| Alertes à seuil + hystérésis | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 |
-| Test d'une règle sur l'historique | ✅ | ✅ (pas encore pour les sondes) | 🟡 | ❌ | 🟡 | ❌ | ❌ | ❌ |
-| Cycle d'incident (prise en charge, plusieurs assignés, escalade, audit) | ✅ | ✅ | 🟡 acquittement | 🟡 | ❌ (OnCall OSS archivé le 2026-03-24 (web)) | 🟡 | 🟡 | ❌ |
-| Corrélation par topologie | ✅ | ✅ | 🟡 | ✅ | ❌ | 🟡 | ✅ | ❌ |
-| Détection d'anomalies | ✅ | ✅ | 🟡 tendances | ❌ | 🟡 | 🟡 | ❌ | ❌ |
-| Prévision de saturation | ❌ | ❌ | ✅ | ❌ | ✅ | 🟡 | 🟡 | ❌ |
-| Notifications | ✅ e-mail, Teams, Slack, webhook | ✅ | ✅ + SMS, scripts | ✅ (web) | ✅ Alertmanager | ✅ | ✅ | ✅ |
-| SLA par site, maintenances exclues | ✅ | ✅ (partiel pour les sondes) | ✅ arbre de services | 🟡 | ❌ | 🟡 | ✅ | 🟡 |
-| Page de statut | ❌ | ❌ | 🟡 | ❌ | ❌ (web : pas d'outil intégré) | ❌ (web : outil à part) | ❌ | ✅ |
-| Astreinte, planning de garde | ❌ | ❌ | 🟡 scripts | ❌ | ❌ (OnCall OSS archivé) | 🟡 | 🟡 | ❌ |
-| Topologie / cartes | ✅ + impact d'une panne | ✅ | ✅ cartes manuelles | ✅ auto | ❌ | 🟡 | ✅ | ❌ |
-| Tableaux de bord, mur NOC | ✅ | ✅ | ✅ | 🟡 | ✅ très riche | ✅ | ✅ | 🟡 |
-| Rôles, périmètre par site | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 |
-| SSO OIDC / 2FA | ✅ / ❌ | ✅ / ❌ | ✅ / ✅ | ✅ / ✅ | selon outil | ✅ | ✅ | 🟡 |
-| Audit immuable | ✅ | ✅ | ✅ | 🟡 | ❌ | ✅ | 🟡 | ❌ |
-| API publique | 🟡 OpenAPI, sans jeton | 🟡 | ✅ | ✅ (web) | ✅ | ✅ | ✅ | 🟡 |
-| Passage à l'échelle (proxys, HA) | ❌ | ❌ | ✅ proxys, HA | 🟡 polling distribué (web) | ✅ | ✅ | 🟡 | ❌ |
-| Sauvegarde restaurée chaque jour | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Interface en français | ✅ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 |
-| Coût | gratuit | gratuit | gratuit | gratuit | gratuit | gratuit (version communautaire) | payant par capteur | gratuit |
+| Domaine | Trans-DIC1 | Zabbix | LibreNMS | Prometheus + Grafana | Checkmk | PRTG | Uptime Kuma |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Collecte SNMP v2c/v3 | ✅ OID à la main | ✅ + modèles | ✅ auto | 🟡 snmp_exporter | ✅ auto | ✅ | ❌ |
+| Agent | 🟡 Linux, 4 mesures | ✅ multi-OS, plugins | ❌ | 🟡 exporters | ✅ | ✅ | ❌ |
+| Windows | ❌ | ✅ | 🟡 SNMP | ✅ windows_exporter | ✅ | ✅ | ❌ |
+| Découverte réseau | 🟡 plage + SNMP | ✅ règles, découverte imbriquée (web, 7.4) | ✅ (web) | ❌ | ✅ | ✅ | ❌ |
+| Modèles par constructeur | ❌ | ✅ | ✅ | 🟡 | ✅ | ✅ | ❌ |
+| Ping, port, HTTP | ✅ | ✅ | ✅ | 🟡 blackbox | ✅ | ✅ | ✅ cœur du produit |
+| Certificat TLS | ✅ jours restants | ✅ modèles, agent 2 (web) | ✅ | 🟡 | ✅ | ✅ | ✅ |
+| Scénarios web à étapes | ❌ | ✅ (web) | 🟡 | ❌ | ✅ | ✅ | ❌ |
+| Traps SNMP | ✅ récepteur intégré, sans outil externe | ✅ mais indirect : `snmptrapd` écrit un fichier que Zabbix lit (web) | ✅ (web) | ❌ | ✅ | ✅ | ❌ |
+| Syslog | ✅ récepteur intégré | ✅ | ✅ (web) | ❌ | ✅ | ✅ | ❌ |
+| Alertes à seuil + hystérésis | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 |
+| Test d'une règle sur l'historique | ✅ (pas encore sondes) | 🟡 | ❌ | 🟡 | ❌ | ❌ | ❌ |
+| Prévision de saturation | ✅ linéaire, avec garde de confiance | ✅ `forecast()` et `timeleft()` (web) | ❌ | ✅ `predict_linear` | 🟡 | 🟡 | ❌ |
+| Absence de donnée | 🟡 silence de l'agent et des sondes | ✅ `nodata()` | 🟡 | ✅ | ✅ | ✅ | ✅ |
+| Conditions composées ET/OU | ❌ | ✅ expressions | 🟡 | ✅ | 🟡 | 🟡 | ❌ |
+| Cycle d'incident (prise en charge, plusieurs assignés, escalade, audit) | ✅ | 🟡 acquittement | 🟡 | ❌ (Grafana OnCall libre archivé le 2026-03-24 (web)) | 🟡 | 🟡 | ❌ |
+| Corrélation par topologie | ✅ | 🟡 | ✅ | ❌ | 🟡 | ✅ | ❌ |
+| Détection d'anomalies | ✅ | 🟡 tendances | ❌ | 🟡 | 🟡 | ❌ | ❌ |
+| Notifications | ✅ e-mail, Teams, Slack, webhook | ✅ + SMS, scripts | ✅ (web) | ✅ | ✅ | ✅ | ✅ |
+| SLA par site, maintenances exclues | ✅ | ✅ arbre de services | 🟡 | ❌ | 🟡 | ✅ | 🟡 |
+| Page de statut | ❌ | 🟡 | ❌ | ❌ (web) | ❌ (web) | ❌ | ✅ |
+| Astreinte | ❌ | 🟡 scripts | ❌ | ❌ | 🟡 | 🟡 | ❌ |
+| Topologie | ✅ + impact d'une panne | ✅ cartes manuelles | ✅ auto | ❌ | 🟡 | ✅ | ❌ |
+| Tableaux de bord, mur NOC | ✅ | ✅ | 🟡 | ✅ très riche | ✅ | ✅ | 🟡 |
+| Rôles, périmètre par site | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 |
+| SSO OIDC / MFA | ✅ / ❌ | ✅ / ✅ | ✅ / ✅ | selon outil | ✅ | ✅ | 🟡 |
+| Audit immuable | ✅ | ✅ | 🟡 | ❌ | ✅ | 🟡 | ❌ |
+| API publique | 🟡 OpenAPI, sans jeton | ✅ | ✅ (web) | ✅ | ✅ | ✅ | 🟡 |
+| Passage à l'échelle | ❌ un serveur | ✅ proxys | 🟡 polling distribué (web) | ✅ | ✅ | 🟡 | ❌ |
+| Haute disponibilité | ❌ | ✅ grappe active/veille, bascule de 10 s à 15 min (web) | 🟡 | ✅ | ✅ | 🟡 | ❌ |
+| Sauvegarde restaurée chaque jour | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Interface en français | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 |
+| Coût | gratuit | gratuit | gratuit | gratuit | gratuit (communautaire) | payant par capteur | gratuit |
 
-Lecture rapide :
-- Les sondes ferment l'écart que Zabbix, LibreNMS, Checkmk, PRTG et Uptime Kuma avaient tous sur les contrôles de disponibilité. Elles ne le dépassent pas : Zabbix garde les scénarios web, la découverte de bas niveau et l'échelle.
-- Deux espaces restent libres chez les concurrents libres : **l'astreinte** (Grafana OnCall en logiciel libre est archivé depuis le 2026-03-24 (web)) et **la page de statut intégrée** à une supervision d'infrastructure (Uptime Kuma la fait, mais ne supervise pas un parc).
+## 4. Comparaison honnête
 
-## 4. Forces réelles
+**Où Trans-DIC1 est devant**
+- Cycle d'incident complet et audit immuable, que les outils libres n'ont pas.
+- Récepteur de traps et de syslog intégré : Zabbix exige `snmptrapd`, un script récepteur et un fichier intermédiaire (web).
+- Test d'une règle sur l'historique, détection d'anomalies, corrélation par topologie, SLA par site.
+- Une seule application, sauvegarde restaurée chaque jour, interface en français.
 
-1. Cycle d'incident natif : prise en charge, plusieurs opérateurs, escalade, audit immuable.
-2. Test d'une règle sur l'historique avant activation ; pas encore pour les sondes.
-3. Impact d'une panne et alerte racine par la topologie.
-4. SLA par site avec maintenances exclues.
-5. Périmètre par site, connexion unique OIDC, rôles adaptés à l'école.
-6. Exploitation sérieuse : sauvegarde restaurée chaque jour, déploiement avec retour arrière, observabilité, tests automatisés.
-7. Une seule application cohérente à la place d'un assemblage de plusieurs outils.
+**À égalité (sur le papier)**
+- Contrôles ping, TCP, HTTP, certificat : tous les concurrents les ont ; nous avons rattrapé.
+- Prévision : Zabbix a `forecast()` et `timeleft()` avec des modes variés ; la nôtre est linéaire et plus simple, avec une garde de confiance.
 
-## 5. Écarts restants face à Zabbix, par priorité
+**Où Trans-DIC1 est derrière**
+- Largeur de collecte : modèles d'équipement, agent multi-système, découverte automatique, scénarios web.
+- Échelle et disponibilité : Zabbix a des proxys et une grappe de serveurs ; nous avons un serveur unique.
+- Expressions d'alerte : Zabbix combine librement fonctions, tendances et conditions ; nous avons des seuils simples.
+- Maturité : Zabbix et les autres ont des années d'usage réel ; nous n'avons aucune mesure en production.
 
-| # | Écart | Statut | Proposition |
-| --- | --- | --- | --- |
-| G1 | Contrôles sans agent | **Fait sur la branche**, reste DNS, scénarios web, en-têtes HTTP | Voir limites ci-dessus |
-| G2 | Agent Windows et plus de mesures | Ouvert (`agent-windows.py` existe, non suivi par git) | Terminer, tester, packager ; ajouter réseau, processus, services, température |
-| G3 | Modèles d'équipement | Ouvert | Bibliothèque JSON/YAML versionnée (MikroTik, Cisco, HP, Ubiquiti, onduleurs, imprimantes) |
-| G4 | Traps SNMP, syslog | Ouvert | Récepteurs UDP vers des événements reliés aux règles |
-| G5 | Règles composées, absence de donnée | Ouvert | Conditions ET/OU, fenêtres, dépendances |
-| G6 | Prévision de saturation | Ouvert | Régression linéaire sur l'historique |
-| G7 | Découverte des interfaces et disques | Ouvert | Après la découverte SNMP |
-| G8 | Proxys de collecte par site | Ouvert | Réutiliser l'interface `Probe` et l'agent actif |
-| G9 | MFA, jetons d'API, rapports planifiés, SMS/Telegram | Ouvert | Voir premier benchmark |
-| G10 | Haute disponibilité | Ouvert | Tester à deux instances (relais LISTEN/NOTIFY prêt) |
+## 5. Ce qu'il faut améliorer
 
-## 6. Plan pour dépasser ces outils
+### Tout de suite (crédibilité)
+1. Finir les deux vagues de corrections en cours, puis fusionner la branche dans `develop` après un passage complet de `verify-all.ps1`.
+2. Ajouter des parcours de bout en bout pour les pages Événements, Règles d'événements et la carte Prévision.
+3. Publier les ports UDP 1162 et 1514 dans les fichiers de déploiement, avec la mise en garde sur l'adresse source.
+4. Mesurer la charge sur le poste : équipements, mesures par seconde, événements par seconde. Un chiffre honnête vaut mieux qu'une promesse.
+5. Réaliser la validation à l'EPT (#32, #33) : c'est la seule preuve qui compte face à un jury.
 
-1. **Avant tout : rendre le travail acquis crédible.** Corriger le défaut des deux sondes ping, fusionner la branche, exécuter le test de bout en bout, construire l'image Docker et vérifier le ping dans un conteneur, rétablir une intégration continue, puis valider avec le CRI. Sans mesures réelles de l'EPT, aucune comparaison avec Zabbix ne tient en soutenance.
-2. **Combler l'essentiel (4 semaines)** : G2 agent Windows, G3 modèles, G4 traps et syslog, G6 prévision.
-3. **Ce que les autres font mal ou pas du tout (4 semaines de plus)** :
-   - assistant de diagnostic d'incident (équipements touchés, cause racine probable, alertes voisines, changements récents) ;
-   - astreinte avec planning de garde et escalade vers la personne de garde ;
-   - page de statut intégrée à la supervision, pour les services de l'école (ENT, Wi-Fi, messagerie) ;
-   - réglage automatique des seuils avec simulation (le test sur historique existe déjà ; l'étendre aux sondes) ;
-   - score de santé par site ;
-   - runbooks liés aux règles avec action en un clic ;
-   - rapport de capacité ;
-   - PWA mobile avec notifications.
-4. **Chiffres à produire pour la soutenance** : temps de mise en route d'un site contre Zabbix, nombre d'alertes évitées par la corrélation et le test de règle sur l'historique réel du CRI, délai de prise en charge avant/après, capacité testée (équipements, mesures par seconde, mémoire de l'agent).
-5. **Réviser l'ADR-0002 (déjà mis à jour pour les sondes) pour les modèles, traps et agent Windows** : sinon la soutenance se contredit sur le périmètre exclu.
+### Écarts à combler (priorité décroissante)
+1. Modèles d'équipement (MikroTik, Cisco, HP, Ubiquiti, onduleurs, imprimantes) et leur application en un clic.
+2. Agent Windows (`agent/agent-windows.py` existe mais n'est pas suivi par git) et davantage de mesures.
+3. Absence de donnée par indicateur et conditions composées ET/OU.
+4. Découverte des interfaces et disques par SNMP.
+5. Jetons d'API et rapports de SLA planifiés par e-mail.
+6. Proxys de collecte par site, puis haute disponibilité (besoin de plusieurs machines).
+
+### Pour dépasser les concurrents
+1. **Assistant de diagnostic d'incident** : équipements touchés, cause racine probable, alertes voisines, événements récents (traps, syslog), tendance de saturation. Nous avons maintenant toutes les données pour le faire.
+2. **Astreinte** avec planning de garde et escalade vers la personne de garde : Grafana OnCall libre est archivé (web), c'est un espace libre.
+3. **Page de statut** des services de l'école, branchée sur les sondes : Uptime Kuma la fait mais ne supervise pas un parc.
+4. **Réglage automatique des seuils** avec simulation, étendu aux mesures de sondes.
+5. **Score de santé** par site et par équipement, **runbooks** liés aux règles, **rapport de capacité** fondé sur la prévision, **application installable** avec notifications.
+
+### À corriger dans le discours de soutenance
+- Ne pas dire « mieux que Zabbix » : dire « plus adapté à l'exploitation d'une école avec un petit NOC ». Zabbix reste supérieur en largeur et à grande échelle.
+- Réviser l'ADR-0002 : le périmètre exclu (découverte, modèles, grande échelle) évolue avec ce qui a été ajouté.
 
 ## Sources consultées le 2026-11-05
 
-- [Zabbix 7.4.0alpha1](https://www.zabbix.com/rn/rn7.4.0alpha1), [Zabbix 7.4 (Linuxiac)](https://linuxiac.com/?p=175514) : découverte de bas niveau imbriquée, assistant d'hôte, nouveaux modèles.
+- [Fonctions prédictives de déclencheurs Zabbix](https://www.zabbix.com/documentation/current/en/manual/config/triggers/prediction) : `forecast` et `timeleft`.
+- [Grappe haute disponibilité Zabbix](https://www.zabbix.com/documentation/current/en/manual/concepts/server/ha) : nœud actif et nœuds de veille, bascule de 10 s à 15 min, proxys.
+- [Traps SNMP dans Zabbix](https://www.zabbix.com/documentation/current/en/manual/config/items/itemtypes/snmptrap) : passage par `snmptrapd`, fichier intermédiaire, clés `snmptrap[regexp]` et `snmptrap.fallback`.
+- [Zabbix 7.4.0alpha1](https://www.zabbix.com/rn/rn7.4.0alpha1), [Zabbix 7.4 (Linuxiac)](https://linuxiac.com/?p=175514) : découverte imbriquée, assistant d'hôte.
 - [Surveiller l'expiration SSL avec Zabbix](https://medium.com/zabbix-tutorials/monitor-ssl-certificate-expiry-with-zabbix-860279519238), [modèle certificat agent 2](https://www.zabbix.com/forum/zabbix-help/494951-template-website-certificate-by-zabbix-agent-2).
-- [Documentation LibreNMS](https://docs.librenms.org/) : découverte automatique, transports d'alertes, module de facturation, syslog, traps SNMP.
-- [Comparatifs auto-hébergés](https://toolradar.com/guides/best-self-hosted-monitoring), [Uptime Kuma contre PRTG](https://toolradar.com/compare/uptime-kuma-vs-prtg), [outils de disponibilité open source](https://codeboxr.com/best-open-source-uptime-monitoring-tools-2024-complete-guide-self-hosted-solutions/) : pages de statut, positionnement ; sources commerciales ou d'opinion.
-- [Annonce Grafana OnCall](https://grafana.com/blog/announcing-grafana-oncall/?pg=blog), [Grafana et OneUptime](https://oneuptime.com/blog/post/2026-04-15-grafana-stack-vs-oneuptime-unified-observability/markdown) : archivage de Grafana OnCall OSS le 2026-03-24 et absence de gestion d'incident et de page de statut en auto-hébergé ; à confirmer sur le dépôt `grafana/oncall`.
+- [Documentation LibreNMS](https://docs.librenms.org/) : découverte, transports d'alertes, syslog, traps, API, polling distribué.
+- [Comparatifs auto-hébergés](https://toolradar.com/guides/best-self-hosted-monitoring), [Uptime Kuma contre PRTG](https://toolradar.com/compare/uptime-kuma-vs-prtg) : sources commerciales ou d'opinion.
+- [Annonce Grafana OnCall](https://grafana.com/blog/announcing-grafana-oncall/?pg=blog), [Grafana et OneUptime](https://oneuptime.com/blog/post/2026-04-15-grafana-stack-vs-oneuptime-unified-observability/markdown) : archivage de Grafana OnCall libre le 2026-03-24 ; à confirmer sur le dépôt `grafana/oncall`.
