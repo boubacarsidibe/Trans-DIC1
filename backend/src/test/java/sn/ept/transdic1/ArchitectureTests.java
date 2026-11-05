@@ -314,6 +314,49 @@ class ArchitectureTests {
                   + " l'audit par son API");
 
   @ArchTest
+  static final ArchRule noModuleDependsOnOncall =
+      noClasses()
+          .that()
+          .resideOutsideOfPackage(ROOT + ".oncall..")
+          .and()
+          .resideInAPackage(ROOT + "..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage(ROOT + ".oncall..")
+          .because(
+              "l'astreinte (F2.2, ADR 0025) écoute les alertes et passe par la file des"
+                  + " notifications : personne ne dépend d'elle, ce qui évite tout cycle");
+
+  @ArchTest
+  static final ArchRule oncallOnlyUsesDomainsAndAllowedServices =
+      noClasses()
+          .that()
+          .resideInAPackage(ROOT + ".oncall..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              ROOT + ".inventory.controller..",
+              ROOT + ".inventory.service..",
+              ROOT + ".inventory.dto..",
+              ROOT + ".monitoring..",
+              ROOT + ".collection..",
+              ROOT + ".events..",
+              ROOT + ".diagnostic..",
+              ROOT + ".overview..",
+              ROOT + ".access..",
+              ROOT + ".alerting.controller..",
+              ROOT + ".alerting.service..",
+              ROOT + ".alerting.dto..",
+              ROOT + ".reporting.controller..",
+              ROOT + ".reporting.repository..",
+              ROOT + ".reporting.dto..",
+              ROOT + ".security.service..",
+              ROOT + ".security.controller..")
+          .because(
+              "l'astreinte lit les entités, met ses messages en file par NotificationQueueService"
+                  + " et lit le périmètre par le port SiteScope");
+
+  @ArchTest
   static final ArchRule noModuleDependsOnOverview =
       noClasses()
           .that()
