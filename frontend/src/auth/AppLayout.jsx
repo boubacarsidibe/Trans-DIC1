@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import {
+  Activity,
   Bell,
   BellRing,
   Building2,
   FileBarChart2,
+  Funnel,
   LayoutDashboard,
   LayoutTemplate,
   Network,
@@ -35,6 +37,7 @@ const SECTIONS = [
       { to: "/tableau-de-bord", label: "Tableau de bord", icon: LayoutDashboard },
       { to: "/vues", label: "Mes vues", icon: LayoutTemplate },
       { to: "/alertes", label: "Alertes", icon: BellRing },
+      { to: "/evenements", label: "Événements", icon: Activity },
       { to: "/rapports", label: "Rapports", icon: FileBarChart2 },
     ],
   },
@@ -53,6 +56,7 @@ const SECTIONS = [
     title: "Réglages",
     links: [
       { to: "/regles", label: "Règles", icon: SlidersHorizontal },
+      { to: "/regles-evenements", label: "Règles d'événements", icon: Funnel },
       { to: "/notifications", label: "Mes notifications", icon: Bell },
     ],
   },

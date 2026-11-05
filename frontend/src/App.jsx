@@ -3,6 +3,8 @@ import ViewsPage from "./pages/ViewsPage.jsx";
 import OidcCallbackPage from "./pages/OidcCallbackPage.jsx";
 import TopologyPage from "./pages/TopologyPage.jsx";
 import WallPage from "./pages/WallPage.jsx";
+import EventsPage from "./pages/EventsPage.jsx";
+import EventRulesPage from "./pages/EventRulesPage.jsx";
 import AppLayout from "./auth/AppLayout.jsx";
 import ProtectedRoute from "./auth/ProtectedRoute.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
@@ -44,6 +46,8 @@ function App() {
           <Route path="/maintenances" element={<MaintenancesPage />} />
           <Route path="/rapports" element={<ReportsPage />} />
           <Route path="/regles" element={<RulesPage />} />
+          <Route path="/evenements" element={<EventsPage />} />
+          <Route path="/regles-evenements" element={<EventRulesPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route element={<ProtectedRoute roles={["ADMIN", "NOC_OPERATOR"]} />}>
             <Route path="/import" element={<ImportPage />} />

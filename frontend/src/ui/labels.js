@@ -39,7 +39,27 @@ export const ALERT_TYPE = {
   COLLECTION: "Collecte",
   ANOMALY: "Anomalie",
   FORECAST: "Prévision",
+  EVENT: "Événement",
 };
+
+// Événements réseau (ADR 0021) : origine et sévérité syslog (RFC 5424), de la plus grave à la moins.
+export const EVENT_SOURCE = {
+  SNMP_TRAP: "Trap SNMP",
+  SYSLOG: "Syslog",
+};
+
+export const EVENT_SEVERITY = {
+  EMERGENCY: "Urgence",
+  ALERT: "Alerte",
+  CRITICAL: "Critique",
+  ERROR: "Erreur",
+  WARNING: "Avertissement",
+  NOTICE: "Notice",
+  INFO: "Information",
+  DEBUG: "Débogage",
+};
+
+export const EVENT_SEVERITY_ORDER = Object.keys(EVENT_SEVERITY);
 
 export const METRIC = {
   "cpu.usage": "Processeur",
