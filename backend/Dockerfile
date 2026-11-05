@@ -15,7 +15,8 @@ RUN --mount=type=cache,target=/root/.m2 mvn -B -q -DskipTests package
 FROM eclipse-temurin:21-jre-alpine AS runtime
 
 # iputils : commande ping des sondes ICMP (ADR-0019), exécutée par l'utilisateur non privilégié ;
-# elle demande la capacité NET_RAW ou le sysctl net.ipv4.ping_group_range (docs/devops/sondes-icmp-conteneur.md).
+# elle demande le sysctl net.ipv4.ping_group_range, réglé par Compose et Helm (NET_RAW ne suffit pas :
+# docs/devops/sondes-icmp-conteneur.md).
 RUN apk add --no-cache iputils \
     && addgroup -S -g 10001 app && adduser -S -u 10001 -G app app
 WORKDIR /app

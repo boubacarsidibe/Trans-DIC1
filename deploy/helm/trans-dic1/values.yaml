@@ -13,9 +13,11 @@ existingSecret: trans-dic1-secrets
 
 backend:
   replicas: 2
-  # Ping des sondes ICMP pour l'utilisateur non privilégié (ADR-0019) ; false si le sysctl
-  # net.ipv4.ping_group_range est réglé sur le nœud.
-  netRaw: true
+  # Ping des sondes ICMP pour l'utilisateur non privilégié (ADR-0019) : sysctl de pod
+  # net.ipv4.ping_group_range="0 2147483647" (sysctl sûr, Kubernetes 1.18 et plus). false si une
+  # politique interdit les sysctls de pod ; les sondes ICMP sont alors indéterminées ou passent
+  # par le repli isReachable (voir docs/devops/sondes-icmp-conteneur.md).
+  pingSysctl: true
   resources:
     requests: { cpu: 250m, memory: 512Mi }
     limits: { cpu: "1", memory: 1Gi }

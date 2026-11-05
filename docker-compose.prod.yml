@@ -115,8 +115,11 @@ services:
       - /tmp
     read_only: true
     cap_drop: [ALL]
-    # NET_RAW : ping des sondes ICMP pour l'utilisateur non privilégié (ADR-0019).
-    cap_add: [NET_RAW]
+    # Ping des sondes ICMP pour l'utilisateur non privilégié (ADR-0019) : sockets ICMP « datagramme »
+    # ouvertes à tous les groupes, dans l'espace réseau du conteneur seulement. NET_RAW ne suffirait pas
+    # (pas de capacité ambiante pour l'uid 10001). Invalide avec network_mode: host : retirer alors la
+    # ligne « sysctls » et régler le sysctl sur l'hôte.
+    sysctls: ["net.ipv4.ping_group_range=0 2147483647"]
     # front : reçoit le trafic du proxy et joint les équipements, SMTP et canaux de notification.
     # back : seul chemin vers PostgreSQL.
     networks: [front, back]
