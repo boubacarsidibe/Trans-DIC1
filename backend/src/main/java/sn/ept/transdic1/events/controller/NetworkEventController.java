@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -25,6 +26,9 @@ import sn.ept.transdic1.events.service.NetworkEventQueryService;
 @RestController
 @RequestMapping("/api/v1/evenements")
 public class NetworkEventController {
+  /** Taille de page maximale : au-delà, la demande est ramenée à cette valeur. */
+  static final int MAX_PAGE_SIZE = 200;
+
   private final NetworkEventQueryService service;
 
   public NetworkEventController(NetworkEventQueryService service) {
@@ -36,7 +40,7 @@ public class NetworkEventController {
       description =
           "Liste paginée (50 par page, plus récents d'abord), filtrable par équipement, source,"
               + " sévérité minimale (EMERGENCY la plus grave), période [from, to[ et texte"
-              + " (titre, détails, OID).")
+              + " (titre, détails, OID). 200 événements par page au plus.")
   @GetMapping
   public Page<NetworkEventResponse> list(
       @RequestParam(required = false) UUID equipmentId,
@@ -47,6 +51,10 @@ public class NetworkEventController {
       @RequestParam(required = false) String q,
       @PageableDefault(size = 50, sort = "receivedAt", direction = Sort.Direction.DESC)
           Pageable pageable) {
-    return service.list(equipmentId, source, minSeverity, from, to, q, pageable);
+    Pageable capped =
+        pageable.getPageSize() > MAX_PAGE_SIZE
+            ? PageRequest.of(pageable.getPageNumber(), MAX_PAGE_SIZE, pageable.getSort())
+            : pageable;
+    return service.list(equipmentId, source, minSeverity, from, to, q, capped);
   }
 }

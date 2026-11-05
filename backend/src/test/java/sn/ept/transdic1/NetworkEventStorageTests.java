@@ -153,6 +153,26 @@ class NetworkEventStorageTests {
   }
 
   @Test
+  void laPurgeProcèdeParLotsJusquÀÉpuisement() {
+    Timestamp old = Timestamp.from(Instant.now().minus(Duration.ofDays(40)));
+    int rows = 5_000 + 10;
+    jdbc.batchUpdate(
+        "INSERT INTO network_event(id, equipment_id, source, severity, source_address, title,"
+            + " received_at) VALUES (?, ?, 'SYSLOG', 'INFO', '10.0.0.1', 'vieux', ?)",
+        java.util.stream.IntStream.range(0, rows)
+            .mapToObj(i -> new Object[] {UUID.randomUUID(), equipment.getId(), old})
+            .toList());
+
+    assertThat(retention.purgeExpired()).isGreaterThanOrEqualTo(rows);
+    Integer left =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM network_event WHERE equipment_id = ?",
+            Integer.class,
+            equipment.getId());
+    assertThat(left).isZero();
+  }
+
+  @Test
   void supprimerLÉquipementSupprimeSesÉvénements() {
     insertEvent("SYSLOG", "INFO", Instant.now());
     jdbc.update("DELETE FROM equipment WHERE id = ?", equipment.getId());

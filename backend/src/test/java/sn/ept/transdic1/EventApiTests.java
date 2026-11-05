@@ -198,6 +198,13 @@ class EventApiTests {
   }
 
   @Test
+  void laTailleDePageEstPlafonnéeÀDeuxCents() throws Exception {
+    call(get("/api/v1/evenements?size=5000"), admin)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.page.size").value(200));
+  }
+
+  @Test
   void laListeExigeUneAuthentification() throws Exception {
     mockMvc.perform(get("/api/v1/evenements")).andExpect(status().isUnauthorized());
   }
