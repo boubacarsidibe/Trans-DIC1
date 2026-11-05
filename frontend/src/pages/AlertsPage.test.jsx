@@ -226,6 +226,31 @@ describe("page des alertes", () => {
   });
 });
 
+describe("types d'alerte", () => {
+  it("affiche en français le type d'une alerte de prévision, pas celui d'une alerte de seuil", async () => {
+    signIn("VIEWER");
+    apiClient.get.mockResolvedValue(
+      pageOf([
+        alert(),
+        alert({
+          id: "a3",
+          equipmentName: "Serveur de fichiers",
+          ruleName: null,
+          type: "FORECAST",
+          severity: "WARNING",
+          message: "Disque plein dans ~12 jours (tendance +2,0 %/jour, confiance haute)",
+        }),
+      ]),
+    );
+    renderAlerts();
+
+    const forecastRow = (await screen.findByText("Serveur de fichiers")).closest("tr");
+    expect(forecastRow).toHaveTextContent("Prévision · Disque plein dans ~12 jours");
+    const thresholdRow = screen.getByText("Routeur cœur").closest("tr");
+    expect(thresholdRow).not.toHaveTextContent("Seuil ·");
+  });
+});
+
 describe("alertes regroupées", () => {
   it("explique pourquoi une alerte est regroupée", async () => {
     saveSession({ accessToken: "jeton", role: "VIEWER", expiresIn: 3600 });

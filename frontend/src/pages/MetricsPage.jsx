@@ -15,8 +15,10 @@ import { getEquipment } from "../api/collection.js";
 import {
   CHART_METRICS,
   PERIODS,
+  describeForecast,
   formatTime,
   formatValue,
+  getForecasts,
   getHistory,
   periodRange,
   summarize,
@@ -166,6 +168,30 @@ function MetricChart({ metric, history, periodHours, error, loading }) {
   );
 }
 
+// Une carte par indicateur suivi : valeur actuelle, tendance et date de saturation estimée.
+function ForecastCard({ forecast }) {
+  const text = describeForecast(forecast);
+  const titleId = `forecast-${forecast.key}`;
+  return (
+    <section aria-labelledby={titleId} className="panel">
+      <h2 id={titleId} className="text-base text-white">
+        {text.title}
+      </h2>
+      <p className="mt-2 text-sm text-slate-300">
+        {text.current && (
+          <>
+            Actuel : <strong className="text-white">{text.current}</strong>
+          </>
+        )}
+        {text.current && text.trend && " · "}
+        {text.trend && <>Tendance : {text.trend}</>}
+      </p>
+      <p className="mt-2 text-white">{text.outlook}</p>
+      {text.confidence && <p className="mt-1 text-xs text-slate-400">{text.confidence}</p>}
+    </section>
+  );
+}
+
 function MetricsPage() {
   const { id } = useParams();
   const [equipment, setEquipment] = useState(null);
@@ -174,11 +200,23 @@ function MetricsPage() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [forecasts, setForecasts] = useState([]);
+  const [forecastError, setForecastError] = useState(false);
 
   useEffect(() => {
     getEquipment(id)
       .then(setEquipment)
       .catch(() => setLoadError("Équipement introuvable."));
+  }, [id]);
+
+  // Les prévisions sont recalculées par heure : un chargement par équipement suffit.
+  useEffect(() => {
+    getForecasts(id)
+      .then((data) => {
+        setForecasts(Array.isArray(data) ? data : []);
+        setForecastError(false);
+      })
+      .catch(() => setForecastError(true));
   }, [id]);
 
   const load = useCallback(async () => {
@@ -235,6 +273,17 @@ function MetricsPage() {
             </button>
           ))}
         </div>
+
+        {forecastError && (
+          <p className="mt-4 text-sm text-slate-400">Prévisions de saturation indisponibles.</p>
+        )}
+        {forecasts.length > 0 && (
+          <div aria-label="Prévisions de saturation" role="group" className="mt-5 grid gap-4 sm:grid-cols-2">
+            {forecasts.map((forecast) => (
+              <ForecastCard key={forecast.key} forecast={forecast} />
+            ))}
+          </div>
+        )}
 
         {CHART_METRICS.map((metric) => (
           <MetricChart

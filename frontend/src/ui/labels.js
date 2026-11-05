@@ -34,6 +34,13 @@ export const ALERT_STATE = {
   DELETED: "Supprimée",
 };
 
+export const ALERT_TYPE = {
+  THRESHOLD: "Seuil",
+  COLLECTION: "Collecte",
+  ANOMALY: "Anomalie",
+  FORECAST: "Prévision",
+};
+
 export const METRIC = {
   "cpu.usage": "Processeur",
   "memory.usage": "Mémoire",

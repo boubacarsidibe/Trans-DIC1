@@ -3034,6 +3034,12 @@ thead {
   color: var(--muted);
 }
 
+/* Type d'alerte (anomalie, prévision, collecte) devant le message. */
+.cell-type {
+  font-weight: 600;
+  color: var(--muted);
+}
+
 /* ==== Tableaux trop larges pour leur cadre : une fiche par ligne, sans défilement horizontal ====
    La classe is-stacked est posée par ui/fitTables.js seulement quand le tableau déborde (zoom du
    navigateur, fenêtre étroite, téléphone). Chaque valeur garde le nom de sa colonne devant elle. */

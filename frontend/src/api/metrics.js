@@ -35,6 +35,64 @@ export async function listIndicators(equipmentId) {
   return data;
 }
 
+/** Prévision de saturation de chaque indicateur suivi (disque, mémoire) : ADR 0020. */
+export async function getForecasts(equipmentId) {
+  const { data } = await apiClient.get(`/equipements/${equipmentId}/previsions`);
+  return data;
+}
+
+const FORECAST_SUBJECTS = [
+  { family: "disk.usage", label: "Disque", full: "Plein" },
+  { family: "memory.usage", label: "Mémoire", full: "Pleine" },
+];
+
+function forecastSubject(key) {
+  const subject = FORECAST_SUBJECTS.find((s) => key === s.family || key.startsWith(`${s.family}.`));
+  if (!subject) return { label: key, full: "Plein" };
+  return { label: key === subject.family ? subject.label : `${subject.label} (${key})`, full: subject.full };
+}
+
+const formatDay = (iso) =>
+  new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+/**
+ * Textes d'une carte de prévision : titre, valeur actuelle, tendance par jour et conclusion
+ * (« plein dans ~N jours le … », pas de tendance, pas assez de données ou déjà plein).
+ */
+export function describeForecast(forecast) {
+  const { label, full } = forecastSubject(forecast.key);
+  const unit = forecast.unit || "%";
+  const slope = forecast.slopePerDay;
+  const trend =
+    slope === null || slope === undefined
+      ? null
+      : `${slope > 0 ? "+" : ""}${formatValue(slope, unit)} par jour`;
+  let outlook;
+  switch (forecast.status) {
+    case "OK": {
+      const days = forecast.daysToLimit;
+      const when = days < 1 ? "moins d'un jour" : `~${Math.round(days)} jour${Math.round(days) > 1 ? "s" : ""}`;
+      outlook = `${full} dans ${when} le ${formatDay(forecast.projectedAt)}`;
+      break;
+    }
+    case "ALREADY_FULL":
+      outlook = `${full} : la limite de ${formatValue(forecast.limit, unit)} est atteinte`;
+      break;
+    case "NO_GROWTH":
+      outlook = "Pas de tendance à la hausse";
+      break;
+    default:
+      outlook = "Pas assez de données (il faut 3 jours de mesures)";
+  }
+  return {
+    title: `Prévision : ${label}`,
+    current: forecast.current === null || forecast.current === undefined ? null : formatValue(forecast.current, unit),
+    trend,
+    outlook,
+    confidence: forecast.status === "OK" && forecast.confidence ? `Confiance ${forecast.confidence}` : null,
+  };
+}
+
 const STEP_MS = {
   RAW: 30_000,
   MIN5: 5 * 60_000,

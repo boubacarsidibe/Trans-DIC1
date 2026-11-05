@@ -14,7 +14,7 @@ import { canAdministerAlerts, canHandleAlerts } from "../auth/permissions.js";
 import { Archive, BellOff, CheckCircle2, History } from "lucide-react";
 import { useLiveUpdates } from "../hooks/useLiveUpdates.js";
 import { AlertStateBadge, LiveIndicator } from "../ui/Badges.jsx";
-import { SEVERITY, label } from "../ui/labels.js";
+import { ALERT_TYPE, SEVERITY, label } from "../ui/labels.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import AssigneesEditor from "./AssigneesEditor.jsx";
 import Pagination from "../ui/Pagination.jsx";
@@ -194,6 +194,9 @@ function AlertsPage() {
                   </td>
                   <td className="cell-strong">{alert.equipmentName}</td>
                   <td className="cell-message">
+                    {alert.type && alert.type !== "THRESHOLD" && (
+                      <span className="cell-type">{`${label(ALERT_TYPE, alert.type)} · `}</span>
+                    )}
                     {readable(alert.message)}
                     {alert.correlationReason && (
                       <span className="cell-grouped">Regroupée, sans notification : {alert.correlationReason}</span>
