@@ -145,6 +145,15 @@ class CommandLineTests(unittest.TestCase):
             server.responses = [(503, None)]
             self.assertEqual(self.run_main(["--once"], self.env(server.url)), 1)
 
+    def test_la_boucle_attend_une_seconde_avant_le_premier_releve_cpu(self):
+        calls = []
+        with mock.patch.dict(os.environ, self.env("http://127.0.0.1:1"), clear=False), \
+                mock.patch("time.sleep", side_effect=lambda s: calls.append(("sleep", s))), \
+                mock.patch("signal.signal"), \
+                mock.patch.object(Agent, "run", lambda _self: calls.append(("run",))):
+            self.assertEqual(cli.main([]), 0)
+        self.assertEqual(calls, [("sleep", 1), ("run",)])
+
     def test_check_n_envoie_rien(self):
         with FakeServer() as server:
             self.assertEqual(self.run_main(["--check"], self.env(server.url)), 0)

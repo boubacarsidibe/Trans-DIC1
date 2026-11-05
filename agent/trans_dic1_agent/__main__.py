@@ -47,9 +47,9 @@ def main(argv=None):
         return 2
 
     collector = create_collector(proc_root=config.proc_root, disk_path=config.disk_path)
-    if args.check or args.once:
-        # Le CPU se mesure entre deux relevés : une seconde d'écart suffit pour un relevé unique.
-        time.sleep(1)
+    # Le CPU se mesure entre deux relevés : une seconde d'écart avant le premier, sinon le premier
+    # cycle de la boucle (quelques millisecondes après la création du collecteur) enverrait 0 % en GOOD.
+    time.sleep(1)
     if args.check:
         for item in collector.collect():
             log.info("%s = %s %s", item["key"], item["value"], item["unit"])
