@@ -17,6 +17,7 @@ import { AlertStateBadge, LiveIndicator } from "../ui/Badges.jsx";
 import { ALERT_TYPE, SEVERITY, label } from "../ui/labels.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import AssigneesEditor from "./AssigneesEditor.jsx";
+import DiagnosticPanel from "./DiagnosticPanel.jsx";
 import Pagination from "../ui/Pagination.jsx";
 
 // Les messages des règles citent l'opérateur technique : on l'affiche en symbole.
@@ -106,6 +107,15 @@ function AlertsPage() {
       setDetail(await getAlert(alert.id));
     } catch {
       setError("Impossible de charger l'historique de l'alerte.");
+    }
+  }
+
+  // Une alerte voisine citée par le diagnostic s'ouvre à la place de l'alerte affichée.
+  async function openAlert(id) {
+    try {
+      setDetail(await getAlert(id));
+    } catch {
+      setError("Impossible d'ouvrir cette alerte.");
     }
   }
 
@@ -267,6 +277,7 @@ function AlertsPage() {
                 Fermer
               </button>
             </div>
+            <DiagnosticPanel key={detail.alert.id} alertId={detail.alert.id} onOpenAlert={openAlert} />
             {canAdminister && (
               <AssigneesEditor
                 alert={detail.alert}

@@ -34,6 +34,19 @@ test.describe("cycle de vie d'une alerte", () => {
     await expect(history).toContainText("e2e-noc");
   });
 
+  test("le détail d'une alerte explique l'incident par un diagnostic", async ({ page }) => {
+    await loginAs(page, ACCOUNTS.viewer);
+    await openMenu(page, "Alertes");
+
+    await page.getByRole("button", { name: `Historique de l'alerte ${equipment.name}` }).click();
+    const diagnostic = page.getByRole("region", { name: "Diagnostic de l'alerte" });
+    await expect(diagnostic.getByRole("heading", { name: "Diagnostic" })).toBeVisible();
+    // Le résumé, en tête, ne cite que des faits : l'équipement et la règle qui a ouvert l'alerte.
+    await expect(diagnostic).toContainText(equipment.name);
+    await expect(diagnostic).toContainText("est en alerte sur la règle");
+    await expect(diagnostic.getByRole("heading", { name: "Pistes de vérification" })).toBeVisible();
+  });
+
   test("un lecteur voit l'alerte sans pouvoir la traiter", async ({ page }) => {
     await loginAs(page, ACCOUNTS.viewer);
     await openMenu(page, "Alertes");

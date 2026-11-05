@@ -50,6 +50,12 @@ export async function getAlert(id) {
   return data;
 }
 
+/** Diagnostic calculé à la demande (ADR 0024) : résumé, impact, causes et preuves, voisinage. */
+export async function getAlertDiagnostic(id) {
+  const { data } = await apiClient.get(`/alertes/${id}/diagnostic`);
+  return data;
+}
+
 export async function takeAlert(id) {
   const { data } = await apiClient.post(`/alertes/${id}/prise-en-charge`);
   return data;

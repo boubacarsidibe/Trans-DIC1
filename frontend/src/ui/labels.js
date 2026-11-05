@@ -95,4 +95,26 @@ export const METRIC = {
   latency: "Latence",
 };
 
+// Diagnostic d'incident (ADR 0024) : origine d'une cause probable et lien avec une alerte voisine.
+export const CAUSE_SOURCE = {
+  AMONT_EN_ALERTE: "Équipement amont en panne",
+  EVENEMENT_RECENT: "Événement réseau récent",
+  CHANGEMENT_RECENT: "Changement récent",
+  SILENCE_COLLECTE: "Silence de collecte",
+  TENDANCE_SATURATION: "Tendance de saturation",
+  ANOMALIE: "Anomalie",
+};
+
+export const RELATION = {
+  MEME_EQUIPEMENT: "Même équipement",
+  AMONT: "En amont",
+  AVAL: "En aval",
+  MEME_SITE: "Même site",
+};
+
+export const SIMILAR_CRITERION = {
+  MEME_EQUIPEMENT: "même règle sur le même équipement",
+  MEME_SITE: "même règle sur le même site",
+};
+
 export const label = (map, value) => (value == null ? "—" : (map[value] ?? value));

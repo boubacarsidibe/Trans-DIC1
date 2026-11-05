@@ -194,6 +194,45 @@ describe("page des alertes", () => {
     expect(history).toHaveTextContent("Prise en charge par khadija : Je regarde");
   });
 
+  it("montre le diagnostic dans le détail et ouvre une alerte voisine", async () => {
+    signIn("VIEWER");
+    const neighbour = alert({ id: "a9", equipmentName: "Routeur amont" });
+    apiClient.get.mockImplementation(async (url) => {
+      if (url === "/alertes/a1/diagnostic") {
+        return {
+          data: {
+            alerteId: "a1",
+            fenetreMinutes: 30,
+            resume: "Le routeur Routeur cœur est en alerte sur la règle « CPU haut » depuis 10:00.",
+            impact: { racine: true, equipementsEnAval: 0, equipements: [], services: [], sites: [] },
+            causesProbables: [],
+            alertesVoisines: [
+              { id: "a9", equipementId: "e9", equipementNom: "Routeur amont", type: "COLLECTION", severite: "CRITICAL", etat: "OPEN", message: "Plus de réponse", declencheeLe: "2026-10-28T09:59:00Z", relation: "AMONT" },
+            ],
+            evenementsRecents: [],
+            changementsRecents: [],
+            contexteMetrique: null,
+            incidentsSimilaires: { nombre: 0, dernieres: [] },
+            pistes: ["Consulter l'historique.", "Noter la résolution."],
+          },
+        };
+      }
+      if (url === "/alertes/a1") return { data: { alert: alert(), events: [] } };
+      if (url === "/alertes/a9") return { data: { alert: neighbour, events: [] } };
+      if (url === "/alertes/a9/diagnostic") return { data: { alerteId: "a9", resume: "Diagnostic du routeur amont." } };
+      return pageOf([alert()]);
+    });
+    renderAlerts();
+
+    await userEvent.click(await screen.findByRole("button", { name: /Historique de l'alerte/ }));
+    const panel = await screen.findByRole("region", { name: "Diagnostic de l'alerte" });
+    expect(panel).toHaveTextContent("est en alerte sur la règle « CPU haut »");
+
+    await userEvent.click(screen.getByRole("button", { name: "Ouvrir l'alerte de Routeur amont" }));
+    expect(await screen.findByText("Diagnostic du routeur amont.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Historique : Routeur amont" })).toBeInTheDocument();
+  });
+
   it("se recharge quand le serveur signale un changement d'alerte", async () => {
     signIn("VIEWER");
     apiClient.get.mockResolvedValue(pageOf([alert()]));
