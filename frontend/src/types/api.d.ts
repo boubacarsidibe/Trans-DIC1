@@ -1036,7 +1036,7 @@ export interface paths {
         };
         /**
          * Lister les événements réseau
-         * @description Liste paginée (50 par page, plus récents d'abord), filtrable par équipement, source, sévérité minimale (EMERGENCY la plus grave), période [from, to[ et texte (titre, détails, OID).
+         * @description Liste paginée (50 par page, plus récents d'abord), filtrable par équipement, source, sévérité minimale (EMERGENCY la plus grave), période [from, to[ et texte (titre, détails, OID). 200 événements par page au plus.
          */
         get: operations["list_8"];
         put?: never;

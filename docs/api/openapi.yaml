@@ -2657,7 +2657,7 @@ paths:
       summary: Lister les événements réseau
       description: "Liste paginée (50 par page, plus récents d'abord), filtrable par\
         \ équipement, source, sévérité minimale (EMERGENCY la plus grave), période\
-        \ [from, to[ et texte (titre, détails, OID)."
+        \ [from, to[ et texte (titre, détails, OID). 200 événements par page au plus."
       operationId: list_8
       parameters:
       - name: equipmentId
