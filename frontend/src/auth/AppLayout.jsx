@@ -9,6 +9,7 @@ import {
   Funnel,
   LayoutDashboard,
   LayoutTemplate,
+  LibraryBig,
   Network,
   LogOut,
   Menu,
@@ -45,6 +46,7 @@ const SECTIONS = [
     title: "Parc",
     links: [
       { to: "/equipements", label: "Équipements", icon: Server },
+      { to: "/modeles", label: "Modèles", icon: LibraryBig },
       { to: "/sites", label: "Sites", icon: Building2 },
       { to: "/topologie", label: "Topologie", icon: Network },
       { to: "/maintenances", label: "Maintenances", icon: Wrench },

@@ -61,6 +61,30 @@ export const EVENT_SEVERITY = {
 
 export const EVENT_SEVERITY_ORDER = Object.keys(EVENT_SEVERITY);
 
+// Modèles d'équipement (ADR 0022).
+export const TEMPLATE_CATEGORY = {
+  ROUTER: "Routeur",
+  SWITCH: "Commutateur",
+  ACCESS_POINT: "Point d'accès Wi-Fi",
+  SERVER: "Serveur",
+  UPS: "Onduleur",
+  PRINTER: "Imprimante",
+  SERVICE: "Service",
+  GENERIC: "Générique",
+};
+
+export const TEMPLATE_ACTION = {
+  CREATE: "À créer",
+  PRESENT: "Déjà présent",
+  SKIPPED: "Ignoré",
+};
+
+export const SNMP_CONFIGURATION_ACTION = {
+  CREATED: "Collecte SNMP créée avec les options indiquées",
+  EXISTING: "Collecte SNMP existante complétée",
+  NOT_NEEDED: "Aucune collecte SNMP nécessaire",
+};
+
 export const METRIC = {
   "cpu.usage": "Processeur",
   "memory.usage": "Mémoire",

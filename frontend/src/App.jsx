@@ -20,6 +20,7 @@ import AlertsPage from "./pages/AlertsPage.jsx";
 import CollectionPage from "./pages/CollectionPage.jsx";
 import ProbesPage from "./pages/ProbesPage.jsx";
 import EquipmentPage from "./pages/EquipmentPage.jsx";
+import TemplatesPage from "./pages/TemplatesPage.jsx";
 import AuditPage from "./pages/AuditPage.jsx";
 import ChannelsPage from "./pages/ChannelsPage.jsx";
 import DiscoveryPage from "./pages/DiscoveryPage.jsx";
@@ -40,6 +41,7 @@ function App() {
           <Route path="/equipements" element={<EquipmentPage />} />
           <Route path="/equipements/:id/historique" element={<MetricsPage />} />
           <Route path="/equipements/:id/sondes" element={<ProbesPage />} />
+          <Route path="/modeles" element={<TemplatesPage />} />
           <Route path="/sites" element={<SitesPage />} />
           <Route path="/topologie" element={<TopologyPage />} />
           <Route path="/alertes" element={<AlertsPage />} />

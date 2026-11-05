@@ -10,6 +10,7 @@ import {
 import { useAuth } from "../auth/AuthContext.jsx";
 import { canManageEquipment } from "../auth/permissions.js";
 import EquipmentForm from "./EquipmentForm.jsx";
+import TemplateApplyPanel from "./TemplateApplyPanel.jsx";
 import PageHeader from "../ui/PageHeader.jsx";
 import { Pencil, ServerOff, Trash2 } from "lucide-react";
 import { StatusBadge } from "../ui/Badges.jsx";
@@ -28,6 +29,7 @@ function EquipmentPage() {
   const [sites, setSites] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [templating, setTemplating] = useState(null); // équipement du panneau « Appliquer un modèle »
 
   const load = useCallback(async (targetPage) => {
     setLoading(true);
@@ -123,6 +125,14 @@ function EquipmentPage() {
           />
         )}
 
+        {templating && (
+          <TemplateApplyPanel
+            key={templating.id}
+            equipment={templating}
+            onClose={() => setTemplating(null)}
+          />
+        )}
+
         {error && (
           <p role="alert" className="notice notice-bad">
             {error}
@@ -200,6 +210,16 @@ function EquipmentPage() {
                             >
                               Collecte
                             </Link>
+                          )}
+                          {role === "ADMIN" && (
+                            <button
+                              type="button"
+                              onClick={() => setTemplating(e)}
+                              aria-label={`Appliquer un modèle à ${e.name}`}
+                              className="btn btn-secondary btn-sm"
+                            >
+                              Modèle
+                            </button>
                           )}
                           <button
                             type="button"
