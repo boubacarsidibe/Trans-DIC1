@@ -136,7 +136,9 @@ public class MeasureIngestionService {
    * probe.tls.days_left} (ces deux dernières si présentes) avec le service, évalue les règles et
    * met à jour le dernier état du service. Une sonde ne prouve pas que la source de collecte répond
    * : ni le statut de l'équipement ni l'alerte de collecte ne bougent, sauf pour une sonde ICMP sur
-   * un équipement sans agent actif ni collecte SNMP active, qui pilote alors le statut.
+   * un équipement sans agent actif ni collecte SNMP active, qui pilote alors le statut et l'alerte
+   * de collecte (ouverte au 3e échec consécutif, résolue au premier succès). Un résultat
+   * indéterminé ne stocke aucune mesure et ne change pas le compte des échecs consécutifs.
    */
   @Transactional
   public IngestionResult ingestProbe(UUID serviceId, ProbeResult result, Instant at) {
@@ -154,6 +156,15 @@ public class MeasureIngestionService {
     }
 
     var tally = new Tally();
+    if (result.indeterminate()) {
+      // La sonde n'a pas pu conclure : ni mesure trompeuse à 0, ni échec de plus au compteur.
+      service.setLastCheckedAt(at);
+      service.setLastUp(null);
+      service.setLastLatencyMs(null);
+      service.setLastError(truncate(result.error()));
+      publisher.publishEvent(new MetricIngestedEvent(equipment.getId(), 0, 0, clock.instant()));
+      return tally.result();
+    }
     store(equipment, service, "probe.up", percent(result.up()), "%", at, tally);
     if (result.latencyMs() != null) {
       store(
@@ -183,11 +194,27 @@ public class MeasureIngestionService {
     service.setConsecutiveFailures(result.up() ? 0 : service.getConsecutiveFailures() + 1);
 
     if (service.getType() == ServiceType.ICMP && icmpDrivesStatus(equipment)) {
-      // markReachable et markUnreachable laissent un équipement en maintenance inchangé.
+      // Même chemin qu'un agent muet : alerte de collecte (SLA, topologie, notifications, pas de
+      // notification en maintenance). markReachable et markUnreachable, appelé par reportFailure,
+      // laissent un équipement en maintenance inchangé ; les deux appels sont idempotents.
       if (result.up()) {
         equipment.markReachable();
+        if (collectionAlerts.reportRecovery(equipment, at).isPresent()) {
+          tally.resolved++;
+        }
       } else if (service.getConsecutiveFailures() >= ICMP_FAILURES_BEFORE_DOWN) {
-        equipment.markUnreachable();
+        if (collectionAlerts
+            .reportFailure(
+                equipment,
+                "Équipement injoignable : "
+                    + service.getConsecutiveFailures()
+                    + " échecs consécutifs de la sonde ICMP « "
+                    + service.getName()
+                    + " »",
+                at)
+            .isPresent()) {
+          tally.opened++;
+        }
       }
     }
     publisher.publishEvent(

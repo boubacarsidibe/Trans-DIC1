@@ -96,7 +96,7 @@ public class AlertEvaluationService {
           changes.add(resolve(active.get(), at, "Retour à la normale détecté"));
         }
       } else if (rule.isBreachedBy(value)
-          && breachConfirmed(rule, equipment, serviceId, metricKey, at)) {
+          && breachConfirmed(rule, equipment, service, metricKey, at)) {
         changes.add(open(rule, equipment, service, metricKey, value, at));
       }
     }
@@ -104,7 +104,7 @@ public class AlertEvaluationService {
   }
 
   private boolean breachConfirmed(
-      AlertRule rule, Equipment equipment, UUID serviceId, String metricKey, Instant at) {
+      AlertRule rule, Equipment equipment, MonitoredService service, String metricKey, Instant at) {
     Duration confirmation = rule.getConfirmationDuration();
     if (confirmation.isZero()) {
       return true;
@@ -114,7 +114,11 @@ public class AlertEvaluationService {
     Instant runStart = at;
     var past =
         history.samples(
-            equipment.getId(), serviceId, metricKey, at.minus(confirmation.multipliedBy(2)), at);
+            equipment.getId(),
+            service == null ? null : service.getId(),
+            metricKey,
+            at.minus(lookBack(confirmation, service)),
+            at);
     for (var sample : past) {
       if (!sample.at().isBefore(at)) {
         continue;
@@ -125,6 +129,20 @@ public class AlertEvaluationService {
       runStart = sample.at();
     }
     return !Duration.between(runStart, at).minus(confirmation).isNegative();
+  }
+
+  /**
+   * Fenêtre d'historique pour confirmer un dépassement : deux fois la durée de confirmation, et
+   * pour une sonde au moins deux intervalles plus une minute, sinon une sonde lente (jusqu'à 24 h
+   * entre deux exécutions) ne verrait jamais sa mesure précédente et n'alerterait jamais.
+   */
+  static Duration lookBack(Duration confirmation, MonitoredService service) {
+    Duration window = confirmation.multipliedBy(2);
+    if (service == null) {
+      return window;
+    }
+    Duration probe = Duration.ofSeconds(2L * service.getIntervalSeconds() + 60);
+    return probe.compareTo(window) > 0 ? probe : window;
   }
 
   private AlertChange open(

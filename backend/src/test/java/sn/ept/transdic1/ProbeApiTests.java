@@ -429,6 +429,49 @@ class ProbeApiTests {
     call(get(url), admin).andExpect(jsonPath("$[?(@.active == true)]").isEmpty());
   }
 
+  @Test
+  void changingTheTypeResolvesTheOpenAlerts() throws Exception {
+    UUID id = createTcp("Web", 80);
+    Alert open = alerts.saveAndFlush(alertOn(id, AlertState.OPEN));
+
+    call(put(url + "/" + id).content("{\"name\":\"Web\",\"type\":\"ICMP\"}"), admin)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.type").value("ICMP"))
+        .andExpect(jsonPath("$.active").value(true));
+    em.flush();
+
+    assertThat(
+            jdbc.queryForObject("SELECT state FROM alert WHERE id = ?", String.class, open.getId()))
+        .isEqualTo("RESOLVED");
+  }
+
+  @Test
+  void rejectsASchemeThatDoesNotMatchTheType() throws Exception {
+    Map<String, String> refused =
+        Map.of(
+            "HTTP", "https://192.0.2.60/",
+            "HTTPS", "http://192.0.2.60/",
+            "TLS_CERT", "http://192.0.2.60",
+            "TCP_PORT", "tcp://192.0.2.60",
+            "ICMP", "icmp://192.0.2.60");
+    for (var entry : refused.entrySet()) {
+      String port = entry.getKey().equals("TCP_PORT") ? "\"port\":22," : "";
+      call(
+              post(url)
+                  .content(
+                      probe(entry.getKey(), port + "\"accessPoint\":\"" + entry.getValue() + "\"")),
+              admin)
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.error").value(containsString("schéma")));
+    }
+    call(post(url).content(probe("HTTP", "\"accessPoint\":\"http://192.0.2.60/\"")), admin)
+        .andExpect(status().isCreated());
+    call(post(url).content(probe("TLS_CERT", "\"accessPoint\":\"https://192.0.2.60\"")), admin)
+        .andExpect(status().isCreated());
+    call(post(url).content(probe("ICMP", "\"accessPoint\":\"192.0.2.61\"")), admin)
+        .andExpect(status().isCreated());
+  }
+
   private Alert alertOn(UUID serviceId, AlertState state) {
     var alert =
         new Alert(

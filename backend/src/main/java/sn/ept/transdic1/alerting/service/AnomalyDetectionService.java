@@ -39,7 +39,8 @@ import sn.ept.transdic1.inventory.repository.EquipmentRepository;
  * à la normale du même créneau : moyennes horaires des 4 dernières semaines au même jour et à la
  * même heure (heure de Dakar), ou, faute de données, à la même heure tous les jours. Un écart d'au
  * moins {@code sensitivity} écarts-types ouvre une alerte {@code ANOMALY} ; elle se résout seule
- * quand la valeur revient sous 70 % de ce seuil.
+ * quand la valeur revient sous 70 % de ce seuil. Les mesures de sondes sans agent (avec service) ne
+ * sont pas examinées.
  */
 @Service
 public class AnomalyDetectionService {
@@ -98,11 +99,14 @@ public class AnomalyDetectionService {
   @Transactional
   public int scan() {
     Instant now = clock.instant();
+    // Les mesures de sondes (service renseigné) sont exclues : un seul échec d'une série toujours
+    // à 100 % serait sinon une « anomalie », et plusieurs sondes d'un même équipement partagent la
+    // même clé. Leurs pannes passent par les règles d'alerte et le statut piloté par ICMP.
     var recent =
         jdbc.query(
             "SELECT m.equipment_id, m.metric_key, avg(m.metric_value), max(m.unit) FROM metric m"
                 + " JOIN equipment e ON e.id = m.equipment_id AND e.monitoring_enabled"
-                + " WHERE m.collected_at >= ? AND m.quality <> 'BAD'"
+                + " WHERE m.collected_at >= ? AND m.quality <> 'BAD' AND m.service_id IS NULL"
                 + " GROUP BY m.equipment_id, m.metric_key",
             (rs, i) ->
                 new Recent(

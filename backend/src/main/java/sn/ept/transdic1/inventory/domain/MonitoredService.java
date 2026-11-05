@@ -3,10 +3,17 @@ package sn.ept.transdic1.inventory.domain;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+/**
+ * Service supervisé d'un équipement (sondes sans agent comprises). {@code @DynamicUpdate} : le
+ * dépôt d'un résultat de sonde n'écrit que les colonnes changées (dernier résultat, compteur) et ne
+ * réécrit pas, avec une valeur périmée, une modification faite entre-temps par un administrateur.
+ */
 @Entity
+@DynamicUpdate
 @Table(name = "monitored_service")
 public class MonitoredService {
   @Id private UUID id;

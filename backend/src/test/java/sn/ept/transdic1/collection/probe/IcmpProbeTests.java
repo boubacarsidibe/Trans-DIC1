@@ -120,6 +120,85 @@ class IcmpProbeTests {
   }
 
   @Test
+  void exitOneMeansNoReplyAndSkipsTheFallback() throws Exception {
+    AtomicBoolean fallbackCalled = new AtomicBoolean();
+    RecordingRunner runner = new RecordingRunner(new IcmpProbe.CommandOutput(1, ""), null);
+    ProbeResult result =
+        new IcmpProbe(
+                runner,
+                (a, t) -> {
+                  fallbackCalled.set(true);
+                  return true;
+                },
+                false)
+            .run(request(ip("192.0.2.10"), null, Duration.ofSeconds(2)));
+    assertThat(result.up()).isFalse();
+    assertThat(result.indeterminate()).isFalse();
+    assertThat(fallbackCalled).isFalse();
+  }
+
+  @Test
+  void errorExitOnLinuxUsesTheFallback() throws Exception {
+    // iputils : code 2 pour une erreur (« Operation not permitted »), pas pour une absence de
+    // réponse.
+    List<InetAddress> asked = new ArrayList<>();
+    RecordingRunner runner =
+        new RecordingRunner(
+            new IcmpProbe.CommandOutput(2, "ping: socket: Operation not permitted"), null);
+    InetAddress address = ip("192.0.2.10");
+    ProbeResult up =
+        new IcmpProbe(
+                runner,
+                (a, t) -> {
+                  asked.add(a);
+                  return true;
+                },
+                false)
+            .run(request(address, null, Duration.ofSeconds(2)));
+    assertThat(up.up()).isTrue();
+    assertThat(asked).containsExactly(address);
+  }
+
+  @Test
+  void errorExitWithUnusableFallbackIsIndeterminate() throws Exception {
+    RecordingRunner runner = new RecordingRunner(new IcmpProbe.CommandOutput(2, ""), null);
+    ProbeResult result =
+        new IcmpProbe(runner, (a, t) -> false, false)
+            .run(request(ip("192.0.2.10"), null, Duration.ofSeconds(2)));
+    assertThat(result.up()).isFalse();
+    assertThat(result.indeterminate()).isTrue();
+    assertThat(result.error()).isEqualTo("Ping non autorisé sur le serveur");
+
+    ProbeResult failing =
+        new IcmpProbe(
+                runner,
+                (a, t) -> {
+                  throw new IllegalStateException("x");
+                },
+                false)
+            .run(request(ip("192.0.2.10"), null, Duration.ofSeconds(2)));
+    assertThat(failing.indeterminate()).isTrue();
+  }
+
+  @Test
+  void errorExitOnWindowsStaysDownWithoutFallback() throws Exception {
+    AtomicBoolean fallbackCalled = new AtomicBoolean();
+    RecordingRunner runner = new RecordingRunner(new IcmpProbe.CommandOutput(2, ""), null);
+    ProbeResult result =
+        new IcmpProbe(
+                runner,
+                (a, t) -> {
+                  fallbackCalled.set(true);
+                  return true;
+                },
+                true)
+            .run(request(ip("192.0.2.10"), null, Duration.ofSeconds(2)));
+    assertThat(result.up()).isFalse();
+    assertThat(result.indeterminate()).isFalse();
+    assertThat(fallbackCalled).isFalse();
+  }
+
+  @Test
   void downOnTimeout() throws Exception {
     AtomicBoolean fallbackCalled = new AtomicBoolean();
     RecordingRunner runner = new RecordingRunner(null, new InterruptedIOException("boom"));

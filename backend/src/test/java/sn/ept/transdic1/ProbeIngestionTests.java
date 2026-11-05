@@ -2,6 +2,7 @@ package sn.ept.transdic1;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
@@ -13,9 +14,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import sn.ept.transdic1.alerting.domain.Alert;
+import sn.ept.transdic1.alerting.domain.AlertEvent;
 import sn.ept.transdic1.alerting.domain.AlertRule;
 import sn.ept.transdic1.alerting.domain.AlertState;
 import sn.ept.transdic1.alerting.domain.AlertType;
@@ -73,6 +76,8 @@ class ProbeIngestionTests {
   @Autowired private MaintenanceRepository maintenances;
   @Autowired private MetricRepository metrics;
   @Autowired private UserRepository users;
+  @Autowired private JdbcTemplate jdbc;
+  @Autowired private EntityManager em;
 
   private Site site;
   private Instant base;
@@ -137,6 +142,11 @@ class ProbeIngestionTests {
     return alerts
         .findByEquipmentIdOrderByTriggeredAtDesc(owner.getId(), Pageable.unpaged())
         .getContent();
+  }
+
+  private List<Alert> collectionAlertsOf(Equipment owner) {
+    em.flush();
+    return alertsOf(owner).stream().filter(a -> a.getType() == AlertType.COLLECTION).toList();
   }
 
   private EquipmentStatus statusOf(Equipment owner) {
@@ -253,9 +263,15 @@ class ProbeIngestionTests {
       ingestion.ingestProbe(ping.getId(), ProbeResult.down("Délai dépassé"), at(minute));
     }
 
-    var alert = alertsOf(equipment).get(0);
-    assertThat(events.findByAlertIdOrderByOccurredAtAsc(alert.getId()).get(0).getComment())
-        .contains("Maintenance");
+    // Alerte de seuil et alerte de collecte (ICMP seul pilote) : aucune ne notifie.
+    var opened = alertsOf(equipment);
+    assertThat(opened)
+        .extracting(Alert::getType)
+        .containsExactlyInAnyOrder(AlertType.THRESHOLD, AlertType.COLLECTION);
+    for (Alert alert : opened) {
+      assertThat(events.findByAlertIdOrderByOccurredAtAsc(alert.getId()).get(0).getComment())
+          .contains("Maintenance");
+    }
     assertThat(statusOf(equipment)).isEqualTo(EquipmentStatus.MAINTENANCE);
   }
 
@@ -267,12 +283,146 @@ class ProbeIngestionTests {
     ingestion.ingestProbe(ping.getId(), ProbeResult.down("Délai dépassé"), at(0));
     ingestion.ingestProbe(ping.getId(), ProbeResult.down("Délai dépassé"), at(1));
     assertThat(statusOf(equipment)).isEqualTo(EquipmentStatus.UP);
+    assertThat(collectionAlertsOf(equipment)).isEmpty();
 
     ingestion.ingestProbe(ping.getId(), ProbeResult.down("Délai dépassé"), at(2));
     assertThat(statusOf(equipment)).isEqualTo(EquipmentStatus.DOWN);
+    // Comme pour un agent muet : alerte de collecte (SLA, topologie, notifications).
+    var collection = collectionAlertsOf(equipment);
+    assertThat(collection).hasSize(1);
+    assertThat(collection.get(0).getState()).isEqualTo(AlertState.OPEN);
+    assertThat(collection.get(0).getMessage()).contains(ping.getName());
+    assertThat(collection.get(0).getTriggeredAt()).isEqualTo(at(2));
 
-    ingestion.ingestProbe(ping.getId(), ProbeResult.up(3), at(3));
+    // Un 4e échec n'ouvre rien de plus.
+    ingestion.ingestProbe(ping.getId(), ProbeResult.down("Délai dépassé"), at(3));
+    assertThat(collectionAlertsOf(equipment)).hasSize(1);
+
+    ingestion.ingestProbe(ping.getId(), ProbeResult.up(3), at(4));
     assertThat(statusOf(equipment)).isEqualTo(EquipmentStatus.UP);
+    var resolved = collectionAlertsOf(equipment);
+    assertThat(resolved).hasSize(1);
+    assertThat(resolved.get(0).getState()).isEqualTo(AlertState.RESOLVED);
+    assertThat(resolved.get(0).getResolvedAt()).isEqualTo(at(4));
+  }
+
+  @Test
+  void icmpUnderMaintenanceOpensCollectionAlertWithoutNotificationAndKeepsStatus() {
+    Equipment equipment = equipment(EquipmentStatus.MAINTENANCE);
+    MonitoredService ping = service(equipment, ServiceType.ICMP);
+    AppUser planner =
+        users.saveAndFlush(
+            new AppUser(
+                "maint-" + UUID.randomUUID().toString().substring(0, 8),
+                UUID.randomUUID() + "@example.test",
+                "hash",
+                Role.ADMIN));
+    var maintenance =
+        new Maintenance(
+            planner,
+            base.minus(1, ChronoUnit.HOURS),
+            base.plus(1, ChronoUnit.HOURS),
+            "Mise à jour",
+            MaintenanceState.IN_PROGRESS);
+    maintenance.setEquipment(equipment);
+    maintenances.saveAndFlush(maintenance);
+
+    for (long minute = 0; minute < 3; minute++) {
+      ingestion.ingestProbe(ping.getId(), ProbeResult.down("Délai dépassé"), at(minute));
+    }
+
+    var collection = collectionAlertsOf(equipment);
+    assertThat(collection).hasSize(1);
+    assertThat(events.findByAlertIdOrderByOccurredAtAsc(collection.get(0).getId()))
+        .extracting(AlertEvent::getComment)
+        .contains("Maintenance en cours : aucune notification");
+    assertThat(statusOf(equipment)).isEqualTo(EquipmentStatus.MAINTENANCE);
+
+    ingestion.ingestProbe(ping.getId(), ProbeResult.up(2), at(3));
+    assertThat(collectionAlertsOf(equipment).get(0).getState()).isEqualTo(AlertState.RESOLVED);
+    assertThat(statusOf(equipment)).isEqualTo(EquipmentStatus.MAINTENANCE);
+  }
+
+  @Test
+  void indeterminateResultStoresNoUpAndKeepsTheFailureCount() {
+    Equipment equipment = equipment(EquipmentStatus.UP);
+    MonitoredService ping = service(equipment, ServiceType.ICMP);
+    probeUpRule(equipment);
+    ingestion.ingestProbe(ping.getId(), ProbeResult.down("Délai dépassé"), at(0));
+    ingestion.ingestProbe(ping.getId(), ProbeResult.down("Délai dépassé"), at(1));
+
+    var result =
+        ingestion.ingestProbe(
+            ping.getId(), ProbeResult.indeterminate("Ping non autorisé sur le serveur"), at(2));
+
+    assertThat(result.stored()).isZero();
+    assertThat(stored(equipment, ping, "probe.up")).hasSize(2);
+    var reloaded = services.findById(ping.getId()).orElseThrow();
+    assertThat(reloaded.getConsecutiveFailures()).isEqualTo(2);
+    assertThat(reloaded.getLastError()).isEqualTo("Ping non autorisé sur le serveur");
+    assertThat(reloaded.getLastCheckedAt()).isEqualTo(at(2));
+    assertThat(reloaded.getLastUp()).isNull();
+    // Ni 3e échec ni alerte de collecte : l'équipement reste en service.
+    assertThat(statusOf(equipment)).isEqualTo(EquipmentStatus.UP);
+    assertThat(collectionAlertsOf(equipment)).isEmpty();
+
+    // Le prochain vrai échec reprend le décompte là où il était.
+    ingestion.ingestProbe(ping.getId(), ProbeResult.down("Délai dépassé"), at(3));
+    assertThat(services.findById(ping.getId()).orElseThrow().getConsecutiveFailures()).isEqualTo(3);
+    assertThat(statusOf(equipment)).isEqualTo(EquipmentStatus.DOWN);
+  }
+
+  @Test
+  void slowProbeConfirmsTheBreachAcrossItsInterval() {
+    Equipment equipment = equipment(EquipmentStatus.UP);
+    MonitoredService web = service(equipment, ServiceType.HTTP);
+    web.setIntervalSeconds(600);
+    services.saveAndFlush(web);
+    var rule =
+        rules.save(
+            new AlertRule(
+                "probe-" + UUID.randomUUID(),
+                "probe.up",
+                ComparisonOperator.LESS_THAN,
+                new BigDecimal("100"),
+                Duration.ofSeconds(180),
+                Severity.CRITICAL));
+    equipmentScopes.save(new RuleEquipmentScope(rule, equipment));
+
+    var first = ingestion.ingestProbe(web.getId(), ProbeResult.down("Délai dépassé"), at(0));
+    assertThat(first.alertsOpened()).isZero();
+
+    var second = ingestion.ingestProbe(web.getId(), ProbeResult.down("Délai dépassé"), at(10));
+    assertThat(second.alertsOpened()).isEqualTo(1);
+  }
+
+  @Test
+  void storingTheLastResultDoesNotRevertConcurrentChanges() {
+    Equipment equipment = equipment(EquipmentStatus.UP);
+    MonitoredService ping = service(equipment, ServiceType.ICMP);
+    // Entités déjà chargées : la sonde est désactivée et l'équipement renommé ailleurs.
+    jdbc.update("UPDATE monitored_service SET active = false WHERE id = ?", ping.getId());
+    jdbc.update("UPDATE equipment SET name = 'Renommé ailleurs' WHERE id = ?", equipment.getId());
+
+    for (long minute = 0; minute < 3; minute++) {
+      ingestion.ingestProbe(ping.getId(), ProbeResult.down("Délai dépassé"), at(minute));
+    }
+    em.flush();
+
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT active FROM monitored_service WHERE id = ?", Boolean.class, ping.getId()))
+        .isFalse();
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT name FROM equipment WHERE id = ?", String.class, equipment.getId()))
+        .isEqualTo("Renommé ailleurs");
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT operational_status FROM equipment WHERE id = ?",
+                String.class,
+                equipment.getId()))
+        .isEqualTo("DOWN");
   }
 
   @Test

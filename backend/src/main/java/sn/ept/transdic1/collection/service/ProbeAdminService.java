@@ -4,6 +4,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Clock;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -41,6 +42,7 @@ public class ProbeAdminService {
   private static final String NOT_FOUND = "Sonde introuvable";
   private static final String EQUIPMENT_NOT_FOUND = "Équipement introuvable";
   private static final String DISABLED_COMMENT = "Sonde désactivée";
+  private static final String TYPE_CHANGED_COMMENT = "Type de sonde modifié";
 
   private final EquipmentRepository equipments;
   private final MonitoredServiceRepository services;
@@ -113,6 +115,7 @@ public class ProbeAdminService {
     requireUniqueName(equipmentId, name, id);
     // Sans « active », l'état reste celui de la sonde (une sonde désactivée le reste).
     boolean wasActive = service.isActive();
+    boolean typeChanged = service.getType() != request.type();
     boolean active = request.active() == null ? wasActive : request.active();
     if (active && !wasActive) {
       requireActiveSlot(equipmentId);
@@ -123,8 +126,10 @@ public class ProbeAdminService {
     // Nouvelle cible ou nouvel intervalle : pris en compte dès le prochain passage.
     service.setNextRunAt(null);
     services.saveAndFlush(service);
-    if (wasActive && !active) {
-      resolveAlerts(id);
+    // Désactivée, ou d'un autre type : les alertes ouvertes ne correspondent plus à ce qui est
+    // mesuré (un échec HTTP n'est pas un échec ICMP) et ne se refermeraient jamais seules.
+    if ((wasActive && !active) || typeChanged) {
+      resolveAlerts(id, typeChanged && active ? TYPE_CHANGED_COMMENT : DISABLED_COMMENT);
     }
     audit.record("PROBE_UPDATED", AUDIT_TARGET, id, details(equipmentId, service));
     return toResponse(service);
@@ -145,7 +150,7 @@ public class ProbeAdminService {
       }
       service.setActive(false);
       services.saveAndFlush(service);
-      resolveAlerts(id);
+      resolveAlerts(id, DISABLED_COMMENT);
       audit.record("PROBE_DISABLED", AUDIT_TARGET, id, details);
       return;
     }
@@ -199,6 +204,9 @@ public class ProbeAdminService {
     if (!isBlank(request.accessPoint()) && hasUserInfo(request.accessPoint())) {
       throw badRequest("Identifiants dans l'URL non pris en charge");
     }
+    if (!isBlank(request.accessPoint())) {
+      requireMatchingScheme(type, request.accessPoint().trim());
+    }
     String host = ProbeService.accessPointHost(type, request.accessPoint());
     if (host != null) {
       try {
@@ -245,9 +253,39 @@ public class ProbeAdminService {
     throw new ResponseStatusException(HttpStatus.CONFLICT, message);
   }
 
-  /** Une sonde désactivée ne reçoit plus de mesure : ses alertes actives sont closes. */
-  private void resolveAlerts(UUID serviceId) {
-    alerting.resolveForService(serviceId, clock.instant(), DISABLED_COMMENT);
+  /** Sonde désactivée ou changée de type : ses alertes actives sont closes. */
+  private void resolveAlerts(UUID serviceId, String comment) {
+    alerting.resolveForService(serviceId, clock.instant(), comment);
+  }
+
+  /**
+   * Le schéma éventuel doit correspondre au type : http:// pour HTTP, https:// pour HTTPS et
+   * TLS_CERT, aucun pour TCP_PORT et ICMP (hôte seul). Sinon la sonde ne testerait pas ce que
+   * l'adresse annonce (une sonde HTTP sur « https://… » parlerait en clair au port 443).
+   */
+  private static void requireMatchingScheme(ServiceType type, String accessPoint) {
+    int separator = accessPoint.indexOf("://");
+    if (separator < 0) {
+      return;
+    }
+    String scheme = accessPoint.substring(0, separator).toLowerCase(Locale.ROOT);
+    String expected =
+        switch (type) {
+          case HTTP -> "http";
+          case HTTPS, TLS_CERT -> "https";
+          default -> null;
+        };
+    if (expected == null) {
+      throw badRequest("Pas de schéma (« " + scheme + ":// ») pour ce type : indiquez l'hôte seul");
+    }
+    if (!expected.equals(scheme)) {
+      throw badRequest(
+          "Le schéma « "
+              + scheme
+              + ":// » ne correspond pas au type : utilisez "
+              + expected
+              + "://");
+    }
   }
 
   /** Vrai si l'adresse porte des identifiants (« http://utilisateur:secret@hote »). */

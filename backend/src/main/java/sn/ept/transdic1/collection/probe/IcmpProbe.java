@@ -22,12 +22,15 @@ import sn.ept.transdic1.inventory.domain.ServiceType;
 
 /**
  * Sonde ICMP : lance la commande {@code ping} du système (jamais via un shell, tableau d'arguments)
- * avec la seule adresse IP validée. Si la commande est absente, repli sur {@code isReachable}.
+ * avec la seule adresse IP validée. Si la commande est absente, repli sur {@code isReachable}
+ * (négatif = injoignable). Si elle se lance mais sort en erreur (code 2 ou plus, hors Windows),
+ * repli aussi sur {@code isReachable} ; un repli négatif donne alors un résultat indéterminé.
  */
 @Component
 public class IcmpProbe implements Probe {
   private static final int MAX_OUTPUT_BYTES = 4096;
   private static final Duration GRACE = Duration.ofSeconds(2);
+  static final String PING_NOT_ALLOWED = "Ping non autorisé sur le serveur";
   private static final Pattern LATENCY =
       Pattern.compile(
           "(?:time|temps|zeit|tiempo)\\s*([=<])\\s*(\\d+(?:[.,]\\d+)?)\\s*ms",
@@ -89,6 +92,11 @@ public class IcmpProbe implements Probe {
     long start = System.nanoTime();
     try {
       CommandOutput output = runner.run(command, request.timeout());
+      if (!windows && output.exitCode() >= 2) {
+        // iputils sort en 2 sur une erreur (« Operation not permitted » sans droit ICMP), en 1
+        // seulement quand l'hôte ne répond pas : une erreur ne dit rien de l'hôte.
+        return errorFallback(request, start);
+      }
       if (output.exitCode() != 0) {
         return ProbeResult.down("Hôte injoignable");
       }
@@ -115,6 +123,22 @@ public class IcmpProbe implements Probe {
     } catch (RuntimeException e) {
       return ProbeResult.down("Ping impossible");
     }
+  }
+
+  /**
+   * Ping lancé mais en erreur : repli sur {@code isReachable}. Un repli négatif ne prouve pas la
+   * panne (sans droit ICMP, Java tente le port TCP 7, fermé presque partout) : résultat
+   * indéterminé, qui ne compte pas comme un échec.
+   */
+  private ProbeResult errorFallback(ProbeRequest request, long start) {
+    try {
+      if (fallback.test(request.address(), request.timeout())) {
+        return ProbeResult.up(elapsedMs(start));
+      }
+    } catch (RuntimeException e) {
+      // repli inutilisable : même conclusion
+    }
+    return ProbeResult.indeterminate(PING_NOT_ALLOWED);
   }
 
   private List<String> buildCommand(InetAddress address, long timeoutMs) {

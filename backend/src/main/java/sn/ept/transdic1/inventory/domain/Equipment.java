@@ -3,8 +3,14 @@ package sn.ept.transdic1.inventory.domain;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
+import org.hibernate.annotations.DynamicUpdate;
 
+/**
+ * Équipement inventorié. {@code @DynamicUpdate} : un changement de statut (collecte, sonde ICMP)
+ * n'écrit que la colonne changée et n'écrase pas une modification d'inventaire faite entre-temps.
+ */
 @Entity
+@DynamicUpdate
 public class Equipment {
   @Id private UUID id;
 
