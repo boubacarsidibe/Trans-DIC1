@@ -2,16 +2,9 @@ package sn.ept.transdic1.events.service;
 
 import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.ept.transdic1.alerting.service.EventAlertService;
@@ -20,16 +13,21 @@ import sn.ept.transdic1.events.domain.EventSource;
 import sn.ept.transdic1.events.domain.EventText;
 import sn.ept.transdic1.events.domain.NetworkEvent;
 import sn.ept.transdic1.events.receiver.ReceivedEvent;
-import sn.ept.transdic1.events.repository.EventRuleRepository;
 import sn.ept.transdic1.events.repository.NetworkEventRepository;
+import sn.ept.transdic1.events.service.EventSourceDirectory.SourceEquipment;
 import sn.ept.transdic1.inventory.domain.Equipment;
 import sn.ept.transdic1.inventory.repository.EquipmentRepository;
 
 /**
  * Traitement d'un événement reçu (ADR 0021) : authentification de la source par son adresse (un
- * équipement supervisé dont l'adresse de gestion est l'adresse IP de l'émetteur), stockage, puis
- * évaluation des règles d'événements actives. Une source inconnue est rejetée et comptée, jamais
- * stockée. Si plusieurs équipements partagent l'adresse, l'événement est rattaché à chacun.
+ * équipement supervisé dont l'adresse de gestion, sous forme canonique, est l'adresse IP de
+ * l'émetteur), stockage, puis évaluation des règles d'événements actives. Une source inconnue est
+ * rejetée et comptée, jamais stockée. Si plusieurs équipements partagent l'adresse, l'événement est
+ * rattaché à chacun.
+ *
+ * <p>Sources et règles viennent de caches ({@link EventSourceDirectory}, {@link ActiveEventRules})
+ * : en régime établi, un événement ne coûte que ses écritures, sans requête de lecture d'inventaire
+ * ni de règles.
  */
 @Service
 public class NetworkEventIngestionService {
@@ -37,49 +35,50 @@ public class NetworkEventIngestionService {
 
   private final EquipmentRepository equipments;
   private final NetworkEventRepository events;
-  private final EventRuleRepository rules;
+  private final EventSourceDirectory directory;
+  private final ActiveEventRules activeRules;
   private final EventRuleMatcher matcher;
   private final EventAlertService eventAlerts;
   private final EventMetrics metrics;
   private final Clock clock;
-  private final Duration cacheTtl;
-
-  private volatile Map<String, List<UUID>> addressCache = Map.of();
-  private volatile Instant cacheLoadedAt = Instant.MIN;
+  private final WarningThrottle abortWarnings = new WarningThrottle(60_000);
 
   public NetworkEventIngestionService(
       EquipmentRepository equipments,
       NetworkEventRepository events,
-      EventRuleRepository rules,
+      EventSourceDirectory directory,
+      ActiveEventRules activeRules,
       EventRuleMatcher matcher,
       EventAlertService eventAlerts,
       EventMetrics metrics,
-      Clock clock,
-      @Value("${events.source-cache-seconds:30}") long cacheSeconds) {
+      Clock clock) {
     this.equipments = equipments;
     this.events = events;
-    this.rules = rules;
+    this.directory = directory;
+    this.activeRules = activeRules;
     this.matcher = matcher;
     this.eventAlerts = eventAlerts;
     this.metrics = metrics;
     this.clock = clock;
-    this.cacheTtl = Duration.ofSeconds(Math.max(0, cacheSeconds));
   }
 
   /** Stocke l'événement pour chaque équipement de la source ; retourne le nombre stocké. */
   @Transactional
   public int ingest(ReceivedEvent received) {
-    List<Equipment> targets = sources(received.sourceAddress());
+    List<SourceEquipment> targets = directory.lookup(received.sourceAddress());
     if (targets.isEmpty()) {
       metrics.dropped("unknown_source");
       LOG.debug("Événement ignoré : source inconnue {}", received.sourceAddress());
       return 0;
     }
-    List<EventRule> active = rules.findByActiveTrue();
-    for (Equipment equipment : targets) {
+    List<EventRule> active = activeRules.get();
+    long[] budget = {SafeRegex.EVENT_BUDGET};
+    for (SourceEquipment target : targets) {
+      // Référence sans lecture : l'identifiant suffit pour les clés étrangères.
+      Equipment equipment = equipments.getReferenceById(target.equipmentId());
       store(equipment, received);
       metrics.stored(received.source());
-      evaluate(equipment, received, active);
+      evaluate(equipment, target, received, active, budget);
     }
     return targets.size();
   }
@@ -106,26 +105,36 @@ public class NetworkEventIngestionService {
     return title == null ? "(message vide)" : title;
   }
 
-  private void evaluate(Equipment equipment, ReceivedEvent received, List<EventRule> active) {
+  private void evaluate(
+      Equipment equipment,
+      SourceEquipment target,
+      ReceivedEvent received,
+      List<EventRule> active,
+      long[] budget) {
     var facts =
         new EventFacts(
             received.source(),
             received.severity(),
             received.trapOid(),
             text(received),
-            equipment.getId(),
-            equipment.getSite() == null ? null : equipment.getSite().getId());
+            target.equipmentId(),
+            target.siteId());
     for (EventRule rule : active) {
-      var verdict = matcher.evaluate(rule, facts);
+      var verdict = matcher.evaluate(rule, facts, budget);
       if (verdict.aborted()) {
         metrics.regexAborted();
-        LOG.warn(
-            "Règle d'événement « {} » : expression interrompue (trop coûteuse)", rule.getName());
+        if (abortWarnings.allow(rule.getId(), clock.millis())) {
+          LOG.warn(
+              "Règle d'événement « {} » : expression interrompue (trop coûteuse) ; avertissement"
+                  + " limité à un par minute et par règle",
+              WarningThrottle.loggable(rule.getName()));
+        }
       }
       switch (verdict.decision()) {
         case OPEN ->
             eventAlerts.raise(
                 equipment,
+                target.siteId(),
                 rule.getId(),
                 rule.getAlertSeverity(),
                 message(rule, received),
@@ -156,32 +165,5 @@ public class NetworkEventIngestionService {
   private static String message(EventRule rule, ReceivedEvent received) {
     return EventText.clean(
         "Événement réseau « " + rule.getName() + " » : " + title(received), 2000);
-  }
-
-  /**
-   * Équipements supervisés à cette adresse, par le cache (ou la base si le cache est désactivé).
-   */
-  private List<Equipment> sources(String address) {
-    if (address == null) {
-      return List.of();
-    }
-    String key = address.trim().toLowerCase(Locale.ROOT);
-    if (cacheTtl.isZero()) {
-      return equipments.findByManagementAddressAndMonitoringEnabledTrue(key);
-    }
-    Instant now = clock.instant();
-    if (Duration.between(cacheLoadedAt, now).compareTo(cacheTtl) >= 0) {
-      Map<String, List<UUID>> fresh = new HashMap<>();
-      for (Object[] row : equipments.findMonitoredAddresses()) {
-        fresh
-            .computeIfAbsent(
-                ((String) row[0]).trim().toLowerCase(Locale.ROOT), k -> new ArrayList<>())
-            .add((UUID) row[1]);
-      }
-      addressCache = Map.copyOf(fresh);
-      cacheLoadedAt = now;
-    }
-    List<UUID> ids = addressCache.get(key);
-    return ids == null ? List.of() : equipments.findAllById(ids);
   }
 }

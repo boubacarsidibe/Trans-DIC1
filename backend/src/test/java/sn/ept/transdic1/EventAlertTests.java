@@ -54,7 +54,7 @@ import sn.ept.transdic1.security.repository.UserRepository;
 @ActiveProfiles("test")
 @Transactional
 @RecordApplicationEvents
-@TestPropertySource(properties = "events.source-cache-seconds=0")
+@TestPropertySource(properties = {"events.source-cache-seconds=0", "events.rule-cache-seconds=0"})
 class EventAlertTests {
   private static final String LINK_DOWN = "1.3.6.1.6.3.1.1.5.3";
   private static final String LINK_UP = "1.3.6.1.6.3.1.1.5.4";
@@ -245,6 +245,53 @@ class EventAlertTests {
         .anyMatch(e -> e.getComment() != null && e.getComment().contains("Maintenance"));
   }
 
+  @Test
+  void uneOuvertureSilencieuseEnMaintenanceSeRésoutSansNotification() {
+    AppUser planner =
+        users.save(
+            new AppUser(
+                "evm-" + UUID.randomUUID().toString().substring(0, 8),
+                UUID.randomUUID() + "@example.test",
+                "x",
+                Role.ADMIN));
+    var maintenance =
+        new Maintenance(
+            planner,
+            Instant.now().minusSeconds(600),
+            Instant.now().plusSeconds(3600),
+            "Travaux",
+            MaintenanceState.IN_PROGRESS);
+    maintenance.setEquipment(equipment);
+    maintenances.saveAndFlush(maintenance);
+    Instant t0 = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+
+    ingestion.ingest(trap(address, LINK_DOWN, t0));
+    ingestion.ingest(trap(address, LINK_UP, t0.plusSeconds(30)));
+
+    assertThat(eventAlerts())
+        .singleElement()
+        .extracting(a -> a.getState())
+        .isEqualTo(AlertState.RESOLVED);
+    assertThat(notifications(AlertEventType.OPENED)).isZero();
+    assertThat(notifications(AlertEventType.RESOLVED)).isZero();
+  }
+
+  @Test
+  void uneRechuteSilencieuseSeRésoutSansNotification() {
+    Instant t0 = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+    ingestion.ingest(trap(address, LINK_DOWN, t0));
+    ingestion.ingest(trap(address, LINK_UP, t0.plusSeconds(10)));
+    ingestion.ingest(trap(address, LINK_DOWN, t0.plusSeconds(20))); // rechute silencieuse
+    ingestion.ingest(trap(address, LINK_UP, t0.plusSeconds(30)));
+
+    assertThat(notifications(AlertEventType.OPENED)).isEqualTo(1);
+    assertThat(notifications(AlertEventType.RESOLVED)).isEqualTo(1);
+  }
+
+  /**
+   * Seule l'existence de l'index est vérifiée ici ; son effet (deux alertes actives refusées) est
+   * testé dans NetworkEventStorageTests.
+   */
   @Test
   void laContrainteRefuseDeuxAlertesEventActivesPourLaMêmeRègle() {
     ingestion.ingest(trap(address, LINK_DOWN, Instant.now()));

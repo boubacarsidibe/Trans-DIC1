@@ -6,6 +6,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.ept.transdic1.alerting.domain.Alert;
@@ -33,7 +35,13 @@ import sn.ept.transdic1.inventory.domain.Equipment;
  *       moins que la fenêtre de déduplication de la règle (interface qui bagote), elle est rouverte
  *       sans nouvelle notification.
  *   <li>Maintenance : l'alerte est tracée mais personne n'est notifié.
- *   <li>Résolution automatique par un événement de retour (linkUp après linkDown).
+ *   <li>Résolution automatique par un événement de retour (linkUp après linkDown). Si l'ouverture
+ *       n'a pas été notifiée (maintenance, rechute), la résolution ne l'est pas non plus.
+ *   <li>Concurrence : ouverture et résolution prennent un verrou consultatif transactionnel
+ *       PostgreSQL sur (équipement, règle). Avec les files par source (EventIntake), aucune course
+ *       n'a lieu dans une instance ; le verrou couvre plusieurs instances du backend. Une violation
+ *       de l'index unique ne peut pas être absorbée ici (PostgreSQL annule toute la transaction) :
+ *       le travailleur rejoue alors l'événement une fois, et l'alerte est trouvée active.
  * </ul>
  */
 @Service
@@ -42,46 +50,68 @@ public class EventAlertService {
   private static final Set<MaintenanceState> MAINTENANCE_STATES =
       Set.of(MaintenanceState.PLANNED, MaintenanceState.IN_PROGRESS);
 
+  /** Commentaires des ouvertures non notifiées : leur résolution n'est pas notifiée non plus. */
+  static final String SILENT_MAINTENANCE = "Maintenance en cours : aucune notification";
+
+  static final String SILENT_FLAPPING =
+      "Rechute dans la fenêtre de déduplication : alerte rouverte sans notification";
+
   private final AlertRepository alerts;
   private final AlertEventRepository events;
   private final MaintenanceRepository maintenances;
   private final ApplicationEventPublisher publisher;
+  private final JdbcTemplate jdbc;
 
   public EventAlertService(
       AlertRepository alerts,
       AlertEventRepository events,
       MaintenanceRepository maintenances,
-      ApplicationEventPublisher publisher) {
+      ApplicationEventPublisher publisher,
+      JdbcTemplate jdbc) {
     this.alerts = alerts;
     this.events = events;
     this.maintenances = maintenances;
     this.publisher = publisher;
+    this.jdbc = jdbc;
   }
 
-  /** Ouvre (ou rouvre) l'alerte de la règle ; vide si une alerte est déjà active. */
+  /** Verrou transactionnel sur (équipement, règle), libéré à la fin de la transaction. */
+  private void lock(UUID equipmentId, UUID eventRuleId) {
+    jdbc.query(
+        "SELECT pg_advisory_xact_lock(?, ?)",
+        (RowCallbackHandler) rs -> {},
+        equipmentId.hashCode(),
+        eventRuleId.hashCode());
+  }
+
+  /**
+   * Ouvre (ou rouvre) l'alerte de la règle ; vide si une alerte est déjà active. {@code siteId} est
+   * le site de l'équipement (lu dans le cache des sources : l'équipement peut être une simple
+   * référence).
+   */
   @Transactional
   public Optional<AlertChange> raise(
       Equipment equipment,
+      UUID siteId,
       UUID eventRuleId,
       Severity severity,
       String message,
       Duration dedupWindow,
       Instant at) {
+    lock(equipment.getId(), eventRuleId);
     if (alerts
         .findFirstByEquipmentIdAndEventRuleIdAndStateIn(equipment.getId(), eventRuleId, ACTIVE)
         .isPresent()) {
       return Optional.empty();
     }
     boolean notify =
-        maintenances
-            .findCovering(equipment.getId(), equipment.getSite().getId(), at, MAINTENANCE_STATES)
-            .isEmpty();
+        maintenances.findCovering(equipment.getId(), siteId, at, MAINTENANCE_STATES).isEmpty();
     var resolved =
         alerts.findFirstByEquipmentIdAndEventRuleIdAndStateOrderByResolvedAtDesc(
             equipment.getId(), eventRuleId, AlertState.RESOLVED);
     Alert alert;
     AlertEvent event;
-    String comment = notify ? null : "Maintenance en cours : aucune notification";
+    String comment = notify ? null : SILENT_MAINTENANCE;
     if (resolved.isPresent()) {
       alert = resolved.get();
       boolean flapping =
@@ -98,7 +128,7 @@ public class EventAlertService {
       event.setPreviousState(AlertState.RESOLVED);
       if (flapping && notify) {
         notify = false;
-        comment = "Rechute dans la fenêtre de déduplication : alerte rouverte sans notification";
+        comment = SILENT_FLAPPING;
       } else if (notify) {
         comment = "Nouvel événement avant archivage : alerte rouverte";
       }
@@ -130,6 +160,7 @@ public class EventAlertService {
   @Transactional
   public Optional<AlertChange> clear(
       Equipment equipment, UUID eventRuleId, String comment, Instant at) {
+    lock(equipment.getId(), eventRuleId);
     return alerts
         .findFirstByEquipmentIdAndEventRuleIdAndStateIn(equipment.getId(), eventRuleId, ACTIVE)
         .map(
@@ -142,12 +173,27 @@ public class EventAlertService {
               event.setPreviousState(previous);
               event.setNewState(AlertState.RESOLVED);
               event.setComment(comment);
+              boolean notify = openingWasNotified(alert.getId());
               alerts.save(alert);
               events.save(event);
-              publisher.publishEvent(new AlertChangedEvent(alert.getId(), AlertEventType.RESOLVED));
+              if (notify) {
+                publisher.publishEvent(
+                    new AlertChangedEvent(alert.getId(), AlertEventType.RESOLVED));
+              }
               publisher.publishEvent(
                   new AlertActivityEvent(alert.getId(), AlertEventType.RESOLVED));
-              return new AlertChange(alert.getId(), AlertEventType.RESOLVED, true);
+              return new AlertChange(alert.getId(), AlertEventType.RESOLVED, notify);
             });
+  }
+
+  /** Faux si la dernière ouverture a été tracée sans notification (maintenance, rechute). */
+  private boolean openingWasNotified(UUID alertId) {
+    return events
+        .findFirstByAlertIdAndTypeOrderByOccurredAtDesc(alertId, AlertEventType.OPENED)
+        .map(
+            opened ->
+                !SILENT_MAINTENANCE.equals(opened.getComment())
+                    && !SILENT_FLAPPING.equals(opened.getComment()))
+        .orElse(true);
   }
 }

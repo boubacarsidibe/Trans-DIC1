@@ -129,6 +129,66 @@ class EventRuleMatcherTests {
   }
 
   @Test
+  void lesMotifsPolynomiauxSontRefusésÀLEnregistrement() {
+    assertThatThrownBy(() -> SafeRegex.validate(".*a.*b.*c"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("coûteuse");
+    assertThatThrownBy(() -> SafeRegex.validate("(\\w+\\s?)+:"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("coûteuse");
+    // Les motifs usuels restent acceptés.
+    SafeRegex.validate("power supply (fail|down)");
+    SafeRegex.validate("link (down|up)");
+    SafeRegex.validate("%LINK-3-UPDOWN: Interface \\S+, changed state to down");
+  }
+
+  @Test
+  void leBudgetDExécutionEstDeLOrdreDUnMillionDAccès() {
+    assertThat(SafeRegex.BUDGET).isLessThanOrEqualTo(1_000_000L);
+    assertThat(SafeRegex.EVENT_BUDGET).isGreaterThanOrEqualTo(SafeRegex.BUDGET);
+    var pattern = SafeRegex.compile(".*a.*b.*c");
+    long start = System.nanoTime();
+    assertThat(SafeRegex.find(pattern, "a".repeat(4096) + "!"))
+        .isEqualTo(SafeRegex.Outcome.ABORTED);
+    assertThat((System.nanoTime() - start) / 1_000_000).isLessThan(1_000);
+  }
+
+  @Test
+  void leBudgetTotalParÉvénementEstPartagéEntreLesRègles() {
+    long[] eventBudget = {SafeRegex.EVENT_BUDGET};
+    String text = "a".repeat(4096) + "!";
+    int aborted = 0;
+    for (int i = 0; i < 20; i++) {
+      var rule = rule();
+      rule.setMessageRegex(".*a.*b.*c" + i); // motif distinct, non validé (déjà en base)
+      if (matcher.evaluate(rule, syslog(text, EventSeverity.INFO), eventBudget).aborted()) {
+        aborted++;
+      }
+    }
+    assertThat(aborted).isEqualTo(20);
+    assertThat(eventBudget[0]).isLessThanOrEqualTo(0);
+    // Budget épuisé : la règle suivante est interrompue sans rien lire.
+    var cheap = rule();
+    cheap.setMessageRegex("zzz");
+    assertThat(matcher.evaluate(cheap, syslog(text, EventSeverity.INFO), eventBudget).aborted())
+        .isTrue();
+  }
+
+  @Test
+  void lAvertissementDUneRègleInterrompueEstÉmisAuPlusUneFoisParMinute() {
+    var throttle = new WarningThrottle(60_000);
+    UUID rule = UUID.randomUUID();
+    assertThat(throttle.allow(rule, 0)).isTrue();
+    assertThat(throttle.allow(rule, 30_000)).isFalse();
+    assertThat(throttle.allow(UUID.randomUUID(), 30_000)).isTrue();
+    assertThat(throttle.allow(rule, 60_000)).isTrue();
+    assertThat(WarningThrottle.loggable("règle\nfausse ligne\u001b[31m" + "x".repeat(300)))
+        .doesNotContain("\n")
+        .doesNotContain("\u001b")
+        .hasSizeLessThanOrEqualTo(120);
+  }
+
+  @Test
   void validationDesExpressions() {
     assertThatThrownBy(() -> SafeRegex.compile("x".repeat(SafeRegex.MAX_LENGTH + 1)))
         .isInstanceOf(IllegalArgumentException.class)

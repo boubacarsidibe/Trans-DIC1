@@ -14,22 +14,31 @@ import java.util.regex.PatternSyntaxException;
  *       caractères et interrompt la recherche au-delà d'un budget ({@value #BUDGET} accès), quel
  *       que soit le motif ; le résultat est alors « interrompu », traité comme « pas de
  *       correspondance » et compté ;
- *   <li>à l'enregistrement, le motif est essayé sur des textes piégés : s'il dépasse déjà le
- *       budget, il est refusé comme trop coûteux.
+ *   <li>un budget total par événement ({@value #EVENT_BUDGET} accès) est partagé entre toutes les
+ *       règles : un événement ne coûte jamais plus que quelques millions d'accès, quel que soit le
+ *       nombre de règles ;
+ *   <li>à l'enregistrement, le motif est essayé sur des textes piégés, dont un texte de 4 Kio (la
+ *       taille maximale des détails) : un motif polynomial ({@code .*a.*b.*c}) ou exponentiel qui
+ *       dépasse déjà le budget est refusé comme trop coûteux, au lieu de brûler le budget à chaque
+ *       événement.
  * </ul>
  */
 public final class SafeRegex {
   public static final int MAX_LENGTH = 200;
 
-  /** Accès aux caractères autorisés pour une recherche (quelques dizaines de millisecondes). */
-  public static final long BUDGET = 10_000_000L;
+  /** Accès aux caractères autorisés pour une recherche (quelques millisecondes). */
+  public static final long BUDGET = 1_000_000L;
+
+  /** Accès autorisés pour toutes les règles évaluées sur un même événement. */
+  public static final long EVENT_BUDGET = 4_000_000L;
 
   private static final String[] PROBES = {
     "a".repeat(64) + "!",
     "1".repeat(64) + "!",
     " ".repeat(64) + "!",
     "ab".repeat(32) + "!",
-    ",".repeat(64) + "!"
+    ",".repeat(64) + "!",
+    "a".repeat(4096) + "!"
   };
 
   public enum Outcome {
@@ -63,7 +72,8 @@ public final class SafeRegex {
     for (String probe : PROBES) {
       if (find(pattern, probe) == Outcome.ABORTED) {
         throw new IllegalArgumentException(
-            "Expression régulière trop coûteuse (retour arrière excessif) : simplifiez-la");
+            "Expression régulière trop coûteuse (retour arrière excessif) : simplifiez-la, par"
+                + " exemple sans .* en tête ni répétition imbriquée");
       }
     }
     return pattern;
@@ -74,8 +84,19 @@ public final class SafeRegex {
   }
 
   public static Outcome find(Pattern pattern, CharSequence text, long budget) {
+    return find(pattern, text, new long[] {budget});
+  }
+
+  /**
+   * Recherche qui décompte sur {@code remaining[0]} (budget partagé, décrémenté de ce qui a été
+   * consommé ; négatif si la recherche a été interrompue).
+   */
+  public static Outcome find(Pattern pattern, CharSequence text, long[] remaining) {
+    if (remaining[0] <= 0) {
+      return Outcome.ABORTED;
+    }
     try {
-      return pattern.matcher(new BudgetedSequence(text, new long[] {budget})).find()
+      return pattern.matcher(new BudgetedSequence(text, remaining)).find()
           ? Outcome.MATCH
           : Outcome.NO_MATCH;
     } catch (BudgetExceeded e) {

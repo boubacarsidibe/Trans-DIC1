@@ -174,10 +174,14 @@ public class SnmpTrapReceiver implements SmartLifecycle, CommandResponder {
     if (!authenticated(event)) {
       return;
     }
-    if (pdu.getType() == PDU.INFORM) {
+    boolean accepted =
+        intake.submit(
+            TrapDecoder.decode(pdu, peer.getInetAddress().getHostAddress(), clock.instant()));
+    // Accusé seulement pour un inform accepté (source connue, débit et file respectés) : jamais de
+    // réponse vers une adresse usurpée (pas de réflecteur), et un inform rejeté sera réémis.
+    if (accepted && pdu.getType() == PDU.INFORM) {
       acknowledge(event, pdu);
     }
-    intake.submit(TrapDecoder.decode(pdu, peer.getInetAddress().getHostAddress(), clock.instant()));
   }
 
   private boolean authenticated(CommandResponderEvent<?> event) {

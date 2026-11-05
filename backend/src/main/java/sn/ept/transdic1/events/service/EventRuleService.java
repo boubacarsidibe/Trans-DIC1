@@ -33,6 +33,7 @@ public class EventRuleService {
   private final EquipmentRepository equipments;
   private final EventRuleMatcher matcher;
   private final AuditService audit;
+  private final ActiveEventRules activeRules;
 
   public EventRuleService(
       EventRuleRepository rules,
@@ -40,13 +41,15 @@ public class EventRuleService {
       SiteRepository sites,
       EquipmentRepository equipments,
       EventRuleMatcher matcher,
-      AuditService audit) {
+      AuditService audit,
+      ActiveEventRules activeRules) {
     this.rules = rules;
     this.alerts = alerts;
     this.sites = sites;
     this.equipments = equipments;
     this.matcher = matcher;
     this.audit = audit;
+    this.activeRules = activeRules;
   }
 
   @Transactional(readOnly = true)
@@ -67,6 +70,7 @@ public class EventRuleService {
     var rule = new EventRule(request.name().trim(), request.alertSeverity());
     apply(rule, request, true);
     rules.saveAndFlush(rule);
+    activeRules.evict();
     audit.record("EVENT_RULE_CREATED", "EVENT_RULE", rule.getId(), summary(rule));
     return EventRuleResponse.from(rule);
   }
@@ -80,6 +84,7 @@ public class EventRuleService {
     String before = summary(rule);
     apply(rule, request, true);
     rules.saveAndFlush(rule);
+    activeRules.evict();
     audit.record(
         "EVENT_RULE_UPDATED", "EVENT_RULE", id, "avant: " + before + " ; après: " + summary(rule));
     return EventRuleResponse.from(rule);
@@ -93,6 +98,7 @@ public class EventRuleService {
       throw conflict("Cette règle a ouvert des alertes : désactivez-la plutôt que de la supprimer");
     }
     rules.delete(rule);
+    activeRules.evict();
     audit.record("EVENT_RULE_DELETED", "EVENT_RULE", id, "nom=" + rule.getName());
   }
 

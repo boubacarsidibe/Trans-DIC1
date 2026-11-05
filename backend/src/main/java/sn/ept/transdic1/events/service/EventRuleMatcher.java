@@ -28,6 +28,15 @@ public class EventRuleMatcher {
   private final Map<String, Pattern> patterns = new ConcurrentHashMap<>();
 
   public Verdict evaluate(EventRule rule, EventFacts facts) {
+    return evaluate(rule, facts, new long[] {SafeRegex.EVENT_BUDGET});
+  }
+
+  /**
+   * Comme {@link #evaluate(EventRule, EventFacts)}, les expressions décomptant sur {@code
+   * eventBudget} (budget partagé par toutes les règles d'un même événement, chaque expression
+   * plafonnée à {@link SafeRegex#BUDGET}).
+   */
+  public Verdict evaluate(EventRule rule, EventFacts facts, long[] eventBudget) {
     if (!inScope(rule, facts) || (rule.getSource() != null && rule.getSource() != facts.source())) {
       return new Verdict(Decision.NONE, false);
     }
@@ -35,14 +44,14 @@ public class EventRuleMatcher {
     boolean opens =
         (rule.getMinSeverity() == null || facts.severity().atLeast(rule.getMinSeverity()))
             && oidMatches(rule.getOidPrefix(), facts.trapOid())
-            && regexMatches(rule.getMessageRegex(), facts.text(), aborted);
+            && regexMatches(rule.getMessageRegex(), facts.text(), aborted, eventBudget);
     if (opens) {
       return new Verdict(Decision.OPEN, aborted[0]);
     }
     boolean resolves =
         rule.hasResolveCondition()
             && oidMatches(rule.getResolveOid(), facts.trapOid())
-            && regexMatches(rule.getResolveRegex(), facts.text(), aborted);
+            && regexMatches(rule.getResolveRegex(), facts.text(), aborted, eventBudget);
     return new Verdict(resolves ? Decision.RESOLVE : Decision.NONE, aborted[0]);
   }
 
@@ -72,7 +81,7 @@ public class EventRuleMatcher {
     return trimmed.startsWith(".") ? trimmed.substring(1) : trimmed;
   }
 
-  private boolean regexMatches(String regex, String text, boolean[] aborted) {
+  private boolean regexMatches(String regex, String text, boolean[] aborted, long[] eventBudget) {
     if (regex == null) {
       return true;
     }
@@ -88,7 +97,10 @@ public class EventRuleMatcher {
       }
       patterns.put(regex, pattern);
     }
-    var outcome = SafeRegex.find(pattern, text == null ? "" : text);
+    long allowance = Math.min(SafeRegex.BUDGET, eventBudget[0]);
+    long[] remaining = {allowance};
+    var outcome = SafeRegex.find(pattern, text == null ? "" : text, remaining);
+    eventBudget[0] -= allowance - Math.max(0, remaining[0]);
     if (outcome == SafeRegex.Outcome.ABORTED) {
       aborted[0] = true;
     }
