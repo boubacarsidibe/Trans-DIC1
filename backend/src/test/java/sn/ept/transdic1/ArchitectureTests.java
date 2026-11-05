@@ -139,6 +139,8 @@ class ArchitectureTests {
   // repository),
   //                                  alerting (service, domain, repository) ; personne ne dépend
   // d'elle
+  //   events                      -> inventory (domain, repository), alerting (service, domain,
+  //                                  repository), audit.service, common ; personne ne dépend d'elle
 
   @ArchTest
   static final ArchRule auditOnlyDependsOnSecurity =
@@ -238,6 +240,40 @@ class ArchitectureTests {
           .because(
               "collection orchestre monitoring et alerting : eux ne la connaissent pas, ce qui"
                   + " évite tout cycle");
+
+  @ArchTest
+  static final ArchRule noModuleDependsOnEvents =
+      noClasses()
+          .that()
+          .resideOutsideOfPackage(ROOT + ".events..")
+          .and()
+          .resideInAPackage(ROOT + "..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage(ROOT + ".events..")
+          .because(
+              "events (traps, syslog, ADR 0021) ouvre des alertes via alerting : personne ne"
+                  + " dépend d'elle, ce qui évite tout cycle");
+
+  @ArchTest
+  static final ArchRule eventsOnlyUsesDomainsAndServicesOfOtherModules =
+      noClasses()
+          .that()
+          .resideInAPackage(ROOT + ".events..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              ROOT + ".inventory.controller..",
+              ROOT + ".inventory.service..",
+              ROOT + ".monitoring..",
+              ROOT + ".collection..",
+              ROOT + ".alerting.controller..",
+              ROOT + ".alerting.dto..",
+              ROOT + ".security.service..",
+              ROOT + ".reporting..",
+              ROOT + ".access..")
+          .because(
+              "events lit les entités et passe par les services d'alerting, pas par leurs API");
 
   @ArchTest
   static final ArchRule noModuleDependsOnOverview =

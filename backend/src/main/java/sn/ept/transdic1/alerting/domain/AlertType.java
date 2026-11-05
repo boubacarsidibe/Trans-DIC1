@@ -4,5 +4,6 @@ public enum AlertType {
   THRESHOLD,
   COLLECTION,
   ANOMALY,
-  FORECAST
+  FORECAST,
+  EVENT
 }

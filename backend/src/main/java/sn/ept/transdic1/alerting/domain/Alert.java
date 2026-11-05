@@ -23,6 +23,13 @@ public class Alert {
   @JoinColumn(name = "rule_id")
   private AlertRule rule;
 
+  /**
+   * Règle d'événement qui a ouvert l'alerte (type EVENT), ou null. Simple identifiant : le module
+   * events dépend d'alerting, jamais l'inverse.
+   */
+  @Column(name = "event_rule_id")
+  private UUID eventRuleId;
+
   @Column(name = "occurrence_key", nullable = false, unique = true, length = 255)
   private String occurrenceKey;
 
@@ -126,6 +133,14 @@ public class Alert {
 
   public void setRule(AlertRule rule) {
     this.rule = rule;
+  }
+
+  public UUID getEventRuleId() {
+    return eventRuleId;
+  }
+
+  public void setEventRuleId(UUID eventRuleId) {
+    this.eventRuleId = eventRuleId;
   }
 
   public String getOccurrenceKey() {

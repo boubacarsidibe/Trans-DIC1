@@ -282,8 +282,11 @@ class PersistenceModelTests {
             "ScheduleRecipient",
             "ScheduleSiteScope",
             "ScheduleEquipmentScope",
-            "AuditEntry")
-        .hasSize(29);
+            "AuditEntry",
+            // Événements réseau (ADR 0021), ajoutés après le diagramme initial.
+            "NetworkEvent",
+            "EventRule")
+        .hasSize(31);
   }
 
   @Test

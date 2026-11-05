@@ -44,6 +44,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/regles-evenements/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Consulter une règle d'événement */
+        get: operations["get_1"];
+        /** Remplacer une règle d'événement et sa portée */
+        put: operations["update_2"];
+        post?: never;
+        /**
+         * Supprimer une règle d'événement
+         * @description Refusé si la règle a déjà ouvert des alertes : désactivez-la.
+         */
+        delete: operations["delete_2"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/regles-alertes/{id}": {
         parameters: {
             query?: never;
@@ -52,15 +74,15 @@ export interface paths {
             cookie?: never;
         };
         /** Consulter une règle */
-        get: operations["get_1"];
+        get: operations["get_2"];
         /** Remplacer une règle et sa portée */
-        put: operations["update_2"];
+        put: operations["update_3"];
         post?: never;
         /**
          * Supprimer une règle
          * @description Refusé si la règle a déjà produit des alertes : désactivez-la.
          */
-        delete: operations["delete_2"];
+        delete: operations["delete_3"];
         options?: never;
         head?: never;
         patch?: never;
@@ -97,7 +119,7 @@ export interface paths {
          * Mes préférences de notification
          * @description Inactives par défaut : personne ne reçoit d'e-mail tant qu'il ne l'a pas demandé.
          */
-        get: operations["get_2"];
+        get: operations["get_3"];
         /**
          * Modifier mes préférences
          * @description Canal, sévérité minimale et activation. L'adresse est celle du compte.
@@ -118,12 +140,12 @@ export interface paths {
             cookie?: never;
         };
         /** Consulter un équipement */
-        get: operations["get_3"];
+        get: operations["get_4"];
         /** Modifier un équipement */
-        put: operations["update_3"];
+        put: operations["update_4"];
         post?: never;
         /** Supprimer un équipement */
-        delete: operations["delete_3"];
+        delete: operations["delete_4"];
         options?: never;
         head?: never;
         patch?: never;
@@ -161,7 +183,7 @@ export interface paths {
             cookie?: never;
         };
         /** Consulter la collecte SNMP d'un équipement */
-        get: operations["get_4"];
+        get: operations["get_5"];
         /**
          * Configurer la collecte SNMP
          * @description Crée ou remplace la configuration. Communauté et mots de passe se donnent par référence (env:NOM), jamais en clair. La première lecture a lieu à la prochaine passe.
@@ -172,7 +194,7 @@ export interface paths {
          * Arrêter la collecte SNMP
          * @description Désactive la collecte ; les mesures déjà reçues sont conservées.
          */
-        delete: operations["delete_4"];
+        delete: operations["delete_5"];
         options?: never;
         head?: never;
         patch?: never;
@@ -335,6 +357,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/regles-evenements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lister les règles d'événements
+         * @description 20 par page, par nom.
+         */
+        get: operations["list_3"];
+        put?: never;
+        /** Créer une règle d'événement */
+        post: operations["create_3"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/regles-evenements/tester": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tester une règle sur un exemple
+         * @description Indique si l'événement d'exemple ouvrirait ou résoudrait une alerte. Rien n'est enregistré : ni règle, ni événement, ni alerte.
+         */
+        post: operations["test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/regles-alertes": {
         parameters: {
             query?: never;
@@ -346,10 +409,10 @@ export interface paths {
          * Lister les règles
          * @description Liste paginée (20 par page, tri par nom).
          */
-        get: operations["list_3"];
+        get: operations["list_4"];
         put?: never;
         /** Créer une règle */
-        post: operations["create_3"];
+        post: operations["create_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -369,7 +432,7 @@ export interface paths {
          * Tester une règle sur l'historique
          * @description Rejoue la règle, enregistrée ou non, sur 1 à 7 jours de mesures et indique les alertes qu'elle aurait ouvertes. Rien n'est enregistré : ni règle, ni alerte, ni notification.
          */
-        post: operations["test"];
+        post: operations["test_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -387,10 +450,10 @@ export interface paths {
          * Lister les maintenances
          * @description Liste paginée (20 par page, début le plus récent d'abord), filtrable par état, site et équipement.
          */
-        get: operations["list_4"];
+        get: operations["list_5"];
         put?: never;
         /** Planifier une maintenance */
-        post: operations["create_4"];
+        post: operations["create_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -425,10 +488,10 @@ export interface paths {
          * Lister les équipements
          * @description Liste paginée (20 par page, tri par nom), filtrable par site, type et statut.
          */
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         /** Créer un équipement */
-        post: operations["create_5"];
+        post: operations["create_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -578,7 +641,7 @@ export interface paths {
          * Envoyer un message de test
          * @description Envoie un message fictif immédiatement et indique si le canal répond. Rien n'est enregistré dans l'historique.
          */
-        post: operations["test_1"];
+        post: operations["test_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -915,7 +978,7 @@ export interface paths {
             cookie?: never;
         };
         /** Comptes limités à certains sites */
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -956,6 +1019,26 @@ export interface paths {
          * @description Flux text/event-stream. Événements : ready (connexion établie) et alerts (une alerte a changé, à recharger par l'API). Le navigateur doit envoyer l'en-tête Authorization : utiliser fetch plutôt qu'EventSource.
          */
         get: operations["stream"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evenements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lister les événements réseau
+         * @description Liste paginée (50 par page, plus récents d'abord), filtrable par équipement, source, sévérité minimale (EMERGENCY la plus grave), période [from, to[ et texte (titre, détails, OID).
+         */
+        get: operations["list_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1032,7 +1115,7 @@ export interface paths {
             cookie?: never;
         };
         /** Consulter une recherche et les équipements trouvés */
-        get: operations["get_5"];
+        get: operations["get_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1146,7 +1229,7 @@ export interface paths {
          * Consulter le journal
          * @description Liste paginée (50 par page, plus récentes d'abord), filtrable par période (from inclus, to exclu), compte, action et cible.
          */
-        get: operations["list_7"];
+        get: operations["list_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1206,7 +1289,7 @@ export interface paths {
          * Lister les alertes
          * @description Liste paginée (20 par page, plus récentes d'abord), filtrable par état et par équipement. Les alertes supprimées sont masquées.
          */
-        get: operations["list_8"];
+        get: operations["list_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1223,14 +1306,14 @@ export interface paths {
             cookie?: never;
         };
         /** Consulter une alerte et son historique */
-        get: operations["get_6"];
+        get: operations["get_7"];
         put?: never;
         post?: never;
         /**
          * Supprimer une alerte
          * @description Suppression logique : l'alerte et son historique restent en base.
          */
-        delete: operations["delete_5"];
+        delete: operations["delete_6"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1286,6 +1369,24 @@ export interface components {
             /** @enum {string} */
             status?: "ACTIVE" | "INACTIVE";
             slaTarget?: number;
+        };
+        EventRuleRequest: {
+            name: string;
+            /** @enum {string} */
+            source?: "SNMP_TRAP" | "SYSLOG";
+            /** @enum {string} */
+            minSeverity?: "EMERGENCY" | "ALERT" | "CRITICAL" | "ERROR" | "WARNING" | "NOTICE" | "INFO" | "DEBUG";
+            oidPrefix?: string;
+            messageRegex?: string;
+            resolveOid?: string;
+            resolveRegex?: string;
+            /** @enum {string} */
+            alertSeverity: "INFO" | "WARNING" | "CRITICAL";
+            /** Format: int32 */
+            dedupWindowSeconds?: number;
+            active?: boolean;
+            siteIds?: string[];
+            equipmentIds?: string[];
         };
         AlertRuleRequest: {
             name: string;
@@ -1471,6 +1572,39 @@ export interface components {
             /** Format: int64 */
             equipmentCount?: number;
             slaTarget?: number;
+        };
+        EventRuleResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            /** @enum {string} */
+            source?: "SNMP_TRAP" | "SYSLOG";
+            /** @enum {string} */
+            minSeverity?: "EMERGENCY" | "ALERT" | "CRITICAL" | "ERROR" | "WARNING" | "NOTICE" | "INFO" | "DEBUG";
+            oidPrefix?: string;
+            messageRegex?: string;
+            resolveOid?: string;
+            resolveRegex?: string;
+            /** @enum {string} */
+            alertSeverity?: "INFO" | "WARNING" | "CRITICAL";
+            /** Format: int32 */
+            dedupWindowSeconds?: number;
+            active?: boolean;
+            siteIds?: string[];
+            equipmentIds?: string[];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        EventRuleTestRequest: {
+            rule: components["schemas"]["EventRuleRequest"];
+            /** @enum {string} */
+            source: "SNMP_TRAP" | "SYSLOG";
+            /** @enum {string} */
+            severity: "EMERGENCY" | "ALERT" | "CRITICAL" | "ERROR" | "WARNING" | "NOTICE" | "INFO" | "DEBUG";
+            trapOid?: string;
+            text?: string;
         };
         AlertRuleResponse: {
             /** Format: uuid */
@@ -1713,6 +1847,10 @@ export interface components {
             content?: components["schemas"]["SiteResponse"][];
             page?: components["schemas"]["PageMetadata"];
         };
+        PagedModelEventRuleResponse: {
+            content?: components["schemas"]["EventRuleResponse"][];
+            page?: components["schemas"]["PageMetadata"];
+        };
         PagedModelAlertRuleResponse: {
             content?: components["schemas"]["AlertRuleResponse"][];
             page?: components["schemas"]["PageMetadata"];
@@ -1737,6 +1875,31 @@ export interface components {
         };
         PagedModelMaintenanceResponse: {
             content?: components["schemas"]["MaintenanceResponse"][];
+            page?: components["schemas"]["PageMetadata"];
+        };
+        NetworkEventResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            equipmentId?: string;
+            equipmentName?: string;
+            /** @enum {string} */
+            source?: "SNMP_TRAP" | "SYSLOG";
+            /** @enum {string} */
+            severity?: "EMERGENCY" | "ALERT" | "CRITICAL" | "ERROR" | "WARNING" | "NOTICE" | "INFO" | "DEBUG";
+            title?: string;
+            details?: string;
+            trapOid?: string;
+            sourceAddress?: string;
+            hostname?: string;
+            appName?: string;
+            /** Format: int32 */
+            facility?: number;
+            /** Format: date-time */
+            receivedAt?: string;
+        };
+        PagedModelNetworkEventResponse: {
+            content?: components["schemas"]["NetworkEventResponse"][];
             page?: components["schemas"]["PageMetadata"];
         };
         PagedModelEquipmentResponse: {
@@ -1883,7 +2046,7 @@ export interface components {
             equipmentName?: string;
             ruleName?: string;
             /** @enum {string} */
-            type?: "THRESHOLD" | "COLLECTION" | "ANOMALY" | "FORECAST";
+            type?: "THRESHOLD" | "COLLECTION" | "ANOMALY" | "FORECAST" | "EVENT";
             /** @enum {string} */
             state?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ARCHIVED" | "DELETED";
             /** @enum {string} */
@@ -2197,7 +2360,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AlertRuleRequest"];
+                "application/json": components["schemas"]["EventRuleRequest"];
             };
         };
         responses: {
@@ -2243,6 +2406,152 @@ export interface operations {
         };
     };
     delete_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Règle introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description La règle a ouvert des alertes */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Règle introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AlertRuleRequest"];
+            };
+        };
+        responses: {
+            /** @description Règle invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Règle introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nom déjà utilisé */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -2343,7 +2652,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    get_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -2423,7 +2732,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -2463,7 +2772,7 @@ export interface operations {
             };
         };
     };
-    update_3: {
+    update_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -2525,7 +2834,7 @@ export interface operations {
             };
         };
     };
-    delete_3: {
+    delete_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -2673,7 +2982,7 @@ export interface operations {
             };
         };
     };
-    get_4: {
+    get_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -2760,7 +3069,7 @@ export interface operations {
             };
         };
     };
-    delete_4: {
+    delete_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -3347,7 +3656,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PagedModelAlertRuleResponse"];
+                    "*/*": components["schemas"]["PagedModelEventRuleResponse"];
                 };
             };
             /** @description Authentification requise ou jeton expiré */
@@ -3371,6 +3680,142 @@ export interface operations {
         };
     };
     create_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventRuleRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EventRuleResponse"];
+                };
+            };
+            /** @description Règle invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Nom déjà utilisé */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    test: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventRuleTestRequest"];
+            };
+        };
+        responses: {
+            /** @description Règle ou exemple invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    list_4: {
+        parameters: {
+            query: {
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelAlertRuleResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    create_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -3426,7 +3871,7 @@ export interface operations {
             };
         };
     };
-    test: {
+    test_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -3466,7 +3911,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_5: {
         parameters: {
             query: {
                 state?: "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
@@ -3509,7 +3954,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    create_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -3603,7 +4048,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query: {
                 siteId?: string;
@@ -3646,7 +4091,7 @@ export interface operations {
             };
         };
     };
-    create_5: {
+    create_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -4154,7 +4599,7 @@ export interface operations {
             };
         };
     };
-    test_1: {
+    test_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -4890,7 +5335,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -4999,6 +5444,52 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    list_8: {
+        parameters: {
+            query: {
+                equipmentId?: string;
+                source?: "SNMP_TRAP" | "SYSLOG";
+                minSeverity?: "EMERGENCY" | "ALERT" | "CRITICAL" | "ERROR" | "WARNING" | "NOTICE" | "INFO" | "DEBUG";
+                from?: string;
+                to?: string;
+                q?: string;
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelNetworkEventResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
             };
         };
     };
@@ -5127,7 +5618,7 @@ export interface operations {
             };
         };
     };
-    get_5: {
+    get_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -5339,7 +5830,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_9: {
         parameters: {
             query: {
                 from?: string;
@@ -5450,7 +5941,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_10: {
         parameters: {
             query: {
                 state?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ARCHIVED" | "DELETED";
@@ -5492,7 +5983,7 @@ export interface operations {
             };
         };
     };
-    get_6: {
+    get_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -5530,7 +6021,7 @@ export interface operations {
             };
         };
     };
-    delete_5: {
+    delete_6: {
         parameters: {
             query?: never;
             header?: never;

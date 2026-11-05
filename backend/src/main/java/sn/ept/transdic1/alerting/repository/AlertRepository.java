@@ -52,6 +52,16 @@ public interface AlertRepository
 
   boolean existsByRuleId(UUID ruleId);
 
+  /** Alerte EVENT active d'une règle d'événement sur un équipement (déduplication). */
+  Optional<Alert> findFirstByEquipmentIdAndEventRuleIdAndStateIn(
+      UUID equipmentId, UUID eventRuleId, Collection<AlertState> states);
+
+  /** Dernière alerte EVENT résolue (non archivée) d'une règle d'événement sur un équipement. */
+  Optional<Alert> findFirstByEquipmentIdAndEventRuleIdAndStateOrderByResolvedAtDesc(
+      UUID equipmentId, UUID eventRuleId, AlertState state);
+
+  boolean existsByEventRuleId(UUID eventRuleId);
+
   boolean existsByServiceId(UUID serviceId);
 
   /** Alertes d'un service dans ces états (sonde désactivée). */
