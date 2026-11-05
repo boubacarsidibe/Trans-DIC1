@@ -49,6 +49,14 @@ Les chiffres clés en haut : équipements, alertes actives, alertes critiques. E
 - Le trait montre la moyenne, la zone claire l'écart entre minimum et maximum, le pointillé rouge le seuil d'alerte.
 - **Voir les valeurs en tableau** donne les chiffres exacts (utile aussi avec un lecteur d'écran).
 
+**Prévision de saturation.** Au-dessus des courbes, une carte **Prévision** par indicateur suivi (disque et mémoire) donne la valeur actuelle, la tendance par jour et la conclusion :
+
+- « Plein dans ~12 jours le 17/11/2026 » : si la tendance des 14 derniers jours se poursuit, la limite de 100 % sera atteinte vers cette date ; la **confiance** (haute, moyenne, faible) dit à quel point la tendance est régulière ;
+- « Pas de tendance à la hausse » : la valeur est stable ou baisse ;
+- « Pas assez de données (il faut 3 jours de mesures) » : l'équipement est suivi depuis trop peu de temps.
+
+La prévision suit une droite : elle ne connaît ni les cycles (sauvegardes de nuit) ni les purges à venir. C'est un ordre de grandeur pour planifier un nettoyage ou un agrandissement, pas une date exacte.
+
 ### Alertes
 
 ![Alertes vues par un lecteur](images/06-alertes-lecteur.png)
@@ -65,6 +73,8 @@ Les chiffres clés en haut : équipements, alertes actives, alertes critiques. E
 Quand un équipement de cœur (un routeur, un commutateur de distribution) tombe, les équipements situés derrière lui ne répondent plus non plus. Leurs alertes sont **regroupées sous l'alerte racine** : elles apparaissent en retrait, avec la mention « regroupée sous… », pour que l'opérateur traite d'abord la cause.
 
 Une alerte de type **Anomalie** signale une mesure inhabituelle pour l'heure et le jour (par exemple un processeur très chargé un dimanche à 3 h), même si aucun seuil n'est dépassé.
+
+Une alerte de type **Prévision** annonce qu'un disque ou une mémoire sera plein dans moins de 14 jours si la tendance se poursuit, par exemple « Disque plein dans ~12 jours (tendance +2,0 %/jour, confiance haute) ». Elle devient **critique** à 3 jours ou moins, son message est actualisé au plus une fois par jour, et elle se résout seule quand la tendance disparaît ou que la saturation recule nettement (au-delà de 17 jours et demi).
 
 Le lecteur voit tout, mais aucun bouton d'action : c'est normal.
 

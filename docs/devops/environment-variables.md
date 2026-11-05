@@ -52,6 +52,14 @@
 | `PROBE_SCAN_INTERVAL_MS` (propriété `collection.probe.scan-interval-ms`) | Non | Tous | Fréquence de recherche des sondes à échéance, 15000 ms par défaut |
 | `PROBE_PARALLELISM` (propriété `collection.probe.parallelism`) | Non | Tous | Sondes exécutées en même temps, 16 par défaut |
 | `PROBE_MAX_PER_SCAN` (propriété `collection.probe.max-per-scan`) | Non | Tous | Plafond de sondes lancées par passage, 500 par défaut (un passage doit finir dans le verrou de 5 minutes) |
+| `FORECAST_ENABLED` (propriété `forecast.enabled`) | Non | Tous | Alerte horaire de prévision de saturation (ADR 0020), `true` par défaut ; l'API de prévision reste disponible si elle est désactivée |
+| `FORECAST_CRON` (propriété `forecast.cron`) | Non | Tous | Planification de l'alerte de prévision (UTC), `0 7 * * * *` par défaut (toutes les heures, minute 7) |
+| `FORECAST_KEYS` (propriété `forecast.keys`) | Non | Tous | Familles d'indicateurs en pourcentage suivies, séparées par des virgules, `disk.usage,memory.usage` par défaut ; une famille couvre aussi ses sous-clés (`disk.usage.var`) |
+| `FORECAST_WINDOW_DAYS` (propriété `forecast.window-days`) | Non | Tous | Fenêtre d'observation, 14 jours par défaut |
+| `FORECAST_MIN_SPAN_DAYS`, `FORECAST_MIN_POINTS` (propriétés `forecast.min-span-days`, `forecast.min-points`) | Non | Tous | Données minimales pour prévoir : 3 jours entre le premier et le dernier point et 24 moyennes horaires par défaut |
+| `FORECAST_LIMIT` (propriété `forecast.limit`) | Non | Tous | Limite visée, 100 (%) par défaut |
+| `FORECAST_MIN_R2` (propriété `forecast.min-r2`) | Non | Tous | Coefficient de détermination minimal pour ouvrir une alerte, 0.6 par défaut |
+| `FORECAST_HORIZON_DAYS` (propriété `forecast.horizon-days`) | Non | Tous | Horizon d'alerte, 14 jours par défaut ; résolution au-delà de 1,25 fois l'horizon |
 | `GRAFANA_ADMIN_PASSWORD` | Oui | Tous | Mot de passe du compte `admin` de Grafana (profil Compose `observability`) |
 
 Les variables non retenues par la stack devront être supprimées du contrat plutôt que laissées inactives.
