@@ -67,7 +67,8 @@
 | `EVENTS_SNMP_TRAP_V3_USERNAME`, `EVENTS_SNMP_TRAP_V3_AUTH_REFERENCE`, `EVENTS_SNMP_TRAP_V3_PRIV_REFERENCE` (propriétés `events.snmp-trap.v3.*`) | Non | Tous | Utilisateur SNMPv3 unique (SHA, AES-128) et références `env:NOM` de ses mots de passe ; vide : v3 non chargé |
 | `EVENTS_RATE_LIMIT_PER_SOURCE` (propriété `events.rate-limit-per-source`) | Non | Tous | Événements acceptés par adresse source et par seconde, 100 par défaut ; le surplus est rejeté et compté |
 | `EVENTS_QUEUE_CAPACITY`, `EVENTS_WORKERS` (propriétés `events.queue-capacity`, `events.workers`) | Non | Tous | File d'attente (10 000) et travailleurs (2) entre les sockets et la base |
-| `EVENTS_SOURCE_CACHE_SECONDS` (propriété `events.source-cache-seconds`) | Non | Tous | Durée du cache des adresses d'équipements, 30 s par défaut (0 : lecture en base à chaque événement) |
+| `EVENTS_SOURCE_CACHE_SECONDS` (propriété `events.source-cache-seconds`) | Non | Tous | Durée du cache des adresses d'équipements (sous forme canonique, avec leur site), 30 s par défaut (0 : lecture en base à chaque événement). Un équipement ajouté ou dont l'adresse change est reconnu au plus tard après ce délai |
+| `EVENTS_RULE_CACHE_SECONDS` (propriété `events.rule-cache-seconds`) | Non | Tous | Durée du cache des règles d'événements actives, 10 s par défaut ; vidé à chaque modification de règle par l'API (0 : lecture en base à chaque événement) |
 | `EVENTS_RETENTION_DAYS`, `EVENTS_RETENTION_CRON` (propriétés `events.retention-days`, `events.retention-cron`) | Non | Tous | Conservation des événements, 30 jours ; purge `0 15 4 * * *` (UTC) |
 | `GRAFANA_ADMIN_PASSWORD` | Oui | Tous | Mot de passe du compte `admin` de Grafana (profil Compose `observability`) |
 

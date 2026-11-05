@@ -22,7 +22,7 @@ EVENTS_SYSLOG_PORT=1514                       # 514 demande des droits root
 
 Au démarrage, le journal du backend indique « Récepteur de traps SNMP à l'écoute sur 0.0.0.0:1162 » et « Récepteur syslog à l'écoute sur 0.0.0.0:1514 ». Sans `EVENTS_SNMP_TRAP_COMMUNITY`, un avertissement rappelle que les traps v1/v2c ne sont pas authentifiés.
 
-**Chaque équipement émetteur doit être inventorié avec, comme adresse de gestion, l'adresse IP d'où partent ses datagrammes** (souvent l'adresse de l'interface de sortie, ou l'adresse source configurée ci-dessous). Sinon ses événements sont rejetés (`events.dropped{reason="unknown_source"}`) et rien n'est stocké. La supervision de l'équipement doit être active.
+**Chaque équipement émetteur doit être inventorié avec, comme adresse de gestion, l'adresse IP d'où partent ses datagrammes** (souvent l'adresse de l'interface de sortie, ou l'adresse source configurée ci-dessous). Sinon ses événements sont rejetés (`events.dropped{reason="unknown_source"}`) dès la réception, sans place dans la file ni transaction, et rien n'est stocké. La supervision de l'équipement doit être active. Les adresses sont comparées sous forme canonique : `fe80::1` et `FE80:0:0:0:0:0:0:1`, ou `::ffff:10.0.0.1` et `10.0.0.1`, se valent ; un nom d'hôte n'est jamais résolu (inventorier par adresse IP). Un équipement ajouté est reconnu au plus tard après `EVENTS_SOURCE_CACHE_SECONDS` (30 s).
 
 Ensuite, dans **Réglages > Règles d'événements**, activer les règles voulues (les trois règles livrées sont inactives).
 
@@ -53,7 +53,40 @@ New-NetFirewallRule -DisplayName "Trans-DIC1 traps" -Direction Inbound -Protocol
 New-NetFirewallRule -DisplayName "Trans-DIC1 syslog" -Direction Inbound -Protocol UDP -LocalPort 1514 -RemoteAddress 10.10.0.0/16 -Action Allow
 ```
 
-Avec Compose ou Kubernetes, publier les ports en UDP (`1162:1162/udp`, `1514:1514/udp`) ; ces fichiers ne le font pas encore (à ajouter au moment de l'activation). Une traduction d'adresse entre l'équipement et le backend (NAT, équilibreur) masque l'adresse source : le récepteur verrait alors l'adresse du NAT et rejetterait tout.
+**Compose et Helm ne publient pas encore les ports UDP 1162 et 1514** : à ajouter au moment de l'activation.
+
+Compose (`docker-compose.yml` / `docker-compose.prod.yml`, service `backend`) :
+
+```yaml
+  backend:
+    environment:
+      EVENTS_SNMP_TRAP_ENABLED: "true"
+      EVENTS_SYSLOG_ENABLED: "true"
+    ports:
+      - "1162:1162/udp"
+      - "1514:1514/udp"
+```
+
+Helm (`deploy/helm/trans-dic1/templates/backend.yaml`), dans le conteneur puis dans le Service ; préférer un Service `LoadBalancer` ou `NodePort` avec `externalTrafficPolicy: Local`, sans quoi kube-proxy remplace l'adresse source par celle d'un nœud :
+
+```yaml
+          ports:
+            - name: traps
+              containerPort: 1162
+              protocol: UDP
+            - name: syslog
+              containerPort: 1514
+              protocol: UDP
+---
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  ports:
+    - { name: traps, port: 1162, targetPort: traps, protocol: UDP }
+    - { name: syslog, port: 1514, targetPort: syslog, protocol: UDP }
+```
+
+**Adresse source réécrite = tout rejeté.** Toute traduction d'adresse entre l'équipement et le backend (NAT, équilibreur, kube-proxy en mode `Cluster`) masque l'adresse source : le récepteur voit l'adresse du traducteur et compte chaque événement en `unknown_source`. C'est aussi le cas de **Docker ou Podman sans privilèges (rootless)** et du **proxy en espace utilisateur de Docker** (`userland-proxy`, utilisé quand la redirection par iptables n'est pas disponible) : les datagrammes semblent venir de la passerelle du pont ou du réseau utilisateur (par exemple 172.17.0.1 ou 10.0.2.2). Remèdes : réseau hôte (`network_mode: host`, Linux seulement), Docker avec privilèges et `"userland-proxy": false`, Podman rootless avec `--network slirp4netns:port_handler=slirp4netns` (qui conserve l'adresse source), ou un relais syslog/SNMP sur l'hôte. Vérifier `events_dropped_total{reason="unknown_source"}` après le premier message.
 
 ## 3. Configurer les émetteurs
 
@@ -105,4 +138,4 @@ puis `systemctl restart rsyslog`. Le gabarit `RSYSLOG_SyslogProtocol23Format` en
 
 ## 5. Rétention
 
-Les événements sont supprimés après `EVENTS_RETENTION_DAYS` jours (30 par défaut), chaque nuit à 4 h 15 UTC (`EVENTS_RETENTION_CRON`), sous le verrou des tâches planifiées.
+Les événements sont supprimés après `EVENTS_RETENTION_DAYS` jours (30 par défaut), chaque nuit à 4 h 15 UTC (`EVENTS_RETENTION_CRON`), sous le verrou des tâches planifiées, par lots de 5 000 lignes (une transaction par lot).
