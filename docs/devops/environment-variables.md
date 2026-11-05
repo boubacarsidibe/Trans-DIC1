@@ -61,6 +61,8 @@
 | `FORECAST_LIMIT` (propriété `forecast.limit`) | Non | Tous | Limite visée, 100 (%) par défaut |
 | `FORECAST_MIN_R2` (propriété `forecast.min-r2`) | Non | Tous | Coefficient de détermination minimal pour ouvrir une alerte, 0.6 par défaut |
 | `FORECAST_HORIZON_DAYS` (propriété `forecast.horizon-days`) | Non | Tous | Horizon d'alerte, 14 jours par défaut ; résolution au-delà de 1,25 fois l'horizon |
+| `DIAGNOSTIC_WINDOW_MINUTES` (propriété `diagnostic.window-minutes`) | Non | Tous | Demi-fenêtre d'analyse du diagnostic d'incident (ADR 0024) autour de l'ouverture de l'alerte : alertes voisines, événements et changements à ± N minutes, 30 par défaut, ramenée entre 1 et 1440 |
+| `DIAGNOSTIC_TIME_ZONE` (propriété `diagnostic.time-zone`) | Non | Tous | Fuseau des heures écrites dans le résumé du diagnostic, `Africa/Dakar` par défaut (identifiant IANA ; un identifiant invalide empêche le démarrage) |
 | `EVENTS_SNMP_TRAP_ENABLED`, `EVENTS_SYSLOG_ENABLED` (propriétés `events.snmp-trap.enabled`, `events.syslog.enabled`) | Non | Tous | Récepteurs de traps SNMP et de syslog (ADR 0021, [evenements-reseau.md](evenements-reseau.md)), `false` par défaut |
 | `EVENTS_SNMP_TRAP_PORT`, `EVENTS_SYSLOG_PORT` (propriétés `events.snmp-trap.port`, `events.syslog.port`) | Non | Tous | Ports UDP d'écoute, 1162 et 1514 par défaut (162 et 514 demandent des droits root) |
 | `EVENTS_SNMP_TRAP_BIND_ADDRESS`, `EVENTS_SYSLOG_BIND_ADDRESS` (propriétés `events.*.bind-address`) | Non | Tous | Adresse d'écoute, `0.0.0.0` par défaut |

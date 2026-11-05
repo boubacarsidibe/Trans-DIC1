@@ -80,6 +80,21 @@ Une alerte de type **Événement** vient d'un trap SNMP ou d'un message syslog e
 
 Le lecteur voit tout, mais aucun bouton d'action : c'est normal.
 
+### Diagnostic d'un incident
+
+Le bouton **Historique** d'une alerte ouvre son détail, qui commence par le panneau **Diagnostic**. Il est calculé au moment où vous l'ouvrez (bouton **Recalculer** pour le refaire), à partir des seules données de Trans-DIC1 : topologie, autres alertes, traps et messages syslog, journal d'audit, mesures et prévisions. Ce sont des règles fixes, pas une intelligence artificielle, et rien ne sort du serveur.
+
+- **Résumé**, en tête : ce qui se passe, ce que ça touche et la cause la plus probable, par exemple « Le routeur R1 est injoignable depuis 14:02. 3 équipements en aval sont touchés. Cause probable : Interface coupée sur R1 (trap linkDown) (14:01). » Le résumé ne cite que des faits présents plus bas ; sans indice, il le dit : « Aucune cause probable identifiée dans les données disponibles. »
+- **Impact** : alerte racine ou regroupée, équipements en aval (les dix plus proches, avec un lien vers leur historique), services supervisés concernés, sites.
+- **Causes probables** : cinq au plus, de la plus probable à la moins probable, avec leur origine (équipement amont en panne, événement réseau récent, changement récent, silence de collecte, tendance de saturation, anomalie) et une probabilité estimée. Le bouton **Pourquoi ?** déplie les preuves : quel équipement, à quelle heure, quel trap, qui a modifié quoi. **Lisez toujours les preuves** : une cause probable reste une hypothèse (une coïncidence dans le temps peut tromper).
+- **Alertes voisines** : autres alertes ouvertes 30 minutes avant ou après, sur le même équipement, en amont, en aval ou sur le même site. **Ouvrir** affiche leur détail.
+- **Événements récents** et **changements récents** : traps et syslog de l'équipement et de son amont, actions tracées dans l'audit (règle modifiée, modèle appliqué, maintenance, sonde modifiée...) avec l'auteur et l'heure. Les valeurs modifiées ne sont pas montrées : elles restent dans le journal d'audit réservé aux administrateurs.
+- **Contexte des mesures** : pour une alerte de seuil, la valeur à l'ouverture, le seuil, les dernières valeurs et l'écart à la moyenne des 7 jours précédents à la même heure (s'il y a au moins 3 jours d'historique) ; pour une prévision, la tendance et la date de saturation estimée.
+- **Incidents similaires** : même règle sur le même équipement (ou, à défaut, sur le même site) dans les 90 derniers jours, durée médiane et moyenne de résolution, et les trois dernières résolutions avec leur commentaire. D'où l'intérêt de **commenter vos résolutions**.
+- **Pistes de vérification** : deux à cinq actions conseillées selon la cause (par exemple « Vérifier l'alimentation et le câble du port signalé par le trap linkDown. »). Les cases servent d'aide-mémoire et ne sont pas enregistrées.
+
+Un compte limité à certains sites ne voit dans le diagnostic que ce qui concerne ses sites : un équipement amont d'un autre site n'est ni nommé ni proposé comme cause.
+
 ### Événements
 
 **Supervision > Événements** liste les traps SNMP et les messages syslog reçus des équipements inventoriés, du plus récent au plus ancien : date de réception, équipement (lien vers son historique) et adresse d'envoi, source (Trap SNMP ou Syslog), sévérité et texte. Pour un trap, l'OID de la notification est affiché ; **Détails** déplie les variables du trap ou le message complet.

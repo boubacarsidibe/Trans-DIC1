@@ -15,6 +15,7 @@ Fiabilité des sources : les capacités de Trans-DIC1 viennent du code, des test
 - **Prévision de saturation** : régression linéaire sur l'historique, alerte « disque plein dans N jours » avec garde de confiance, carte « Prévision » dans l'historique, API (ADR-0020).
 - **Récepteurs de traps SNMP et de syslog** : désactivés par défaut, sources reconnues par l'adresse de gestion de l'équipement, règles d'événements qui ouvrent et ferment des alertes, pages Événements et Règles d'événements (ADR-0021).
 - **Ping corrigé** quand plusieurs sondes ping surveillent un même équipement (verrou et compteurs).
+- **Diagnostic d'incident expliqué** : dans le détail d'une alerte, résumé, impact, causes probables classées par un score déterministe avec leurs preuves (amont en panne, trap, changement tracé, silence de collecte, prévision, anomalie), alertes voisines, événements et changements récents, incidents similaires et pistes ; règles fixes, sans IA ni appel réseau (F2.1, ADR-0024). Poids non validés sur incidents réels.
 
 ### En cours
 Deux vagues de corrections issues des relectures : prévision de saturation (fausse alerte juste après un nettoyage de disque, tests manquants) et traps/syslog (course entre deux fils de traitement, rejet tardif des sources inconnues, coût des expressions régulières, cache des règles).
@@ -51,6 +52,7 @@ Légende : ✅ présent, 🟡 partiel, ❌ absent. « Trans-DIC1 » = état de l
 | Conditions composées ET/OU | ❌ | ✅ expressions | 🟡 | ✅ | 🟡 | 🟡 | ❌ |
 | Cycle d'incident (prise en charge, plusieurs assignés, escalade, audit) | ✅ | 🟡 acquittement | 🟡 | ❌ (Grafana OnCall libre archivé le 2026-03-24 (web)) | 🟡 | 🟡 | ❌ |
 | Corrélation par topologie | ✅ | 🟡 | ✅ | ❌ | 🟡 | ✅ | ❌ |
+| Diagnostic d'incident expliqué (causes classées avec preuves, changements récents, incidents similaires) | ✅ branche, règles fixes, poids non validés sur incidents réels | 🟡 cause/symptômes par corrélation d'événements, sans explication ni changements | ❌ | ❌ (version libre) | 🟡 dépendances parent/enfant | 🟡 dépendances | ❌ |
 | Détection d'anomalies | ✅ | 🟡 tendances | ❌ | 🟡 | 🟡 | ❌ | ❌ |
 | Notifications | ✅ e-mail, Teams, Slack, webhook | ✅ + SMS, scripts | ✅ (web) | ✅ | ✅ | ✅ | ✅ |
 | SLA par site, maintenances exclues | ✅ | ✅ arbre de services | 🟡 | ❌ | 🟡 | ✅ | 🟡 |
@@ -74,6 +76,7 @@ Légende : ✅ présent, 🟡 partiel, ❌ absent. « Trans-DIC1 » = état de l
 - Cycle d'incident complet et audit immuable, que les outils libres n'ont pas.
 - Récepteur de traps et de syslog intégré : Zabbix exige `snmptrapd`, un script récepteur et un fichier intermédiaire (web).
 - Test d'une règle sur l'historique, détection d'anomalies, corrélation par topologie, SLA par site.
+- Diagnostic d'incident : l'alerte arrive avec sa cause probable, ses preuves, les changements et événements qui l'ont précédée et les résolutions passées, là où les autres outils libres la listent. À nuancer : heuristiques non éprouvées sur de vrais incidents.
 - Une seule application, sauvegarde restaurée chaque jour, interface en français.
 
 **À égalité (sur le papier)**
@@ -104,7 +107,7 @@ Légende : ✅ présent, 🟡 partiel, ❌ absent. « Trans-DIC1 » = état de l
 6. Proxys de collecte par site, puis haute disponibilité (besoin de plusieurs machines).
 
 ### Pour dépasser les concurrents
-1. **Assistant de diagnostic d'incident** : équipements touchés, cause racine probable, alertes voisines, événements récents (traps, syslog), tendance de saturation. Nous avons maintenant toutes les données pour le faire.
+1. ~~**Assistant de diagnostic d'incident**~~ : livré (F2.1, ADR-0024) ; reste à éprouver les poids sur de vrais incidents à l'EPT et à brancher les runbooks (F2.6) sur son point d'extension.
 2. **Astreinte** avec planning de garde et escalade vers la personne de garde : Grafana OnCall libre est archivé (web), c'est un espace libre.
 3. **Page de statut** des services de l'école, branchée sur les sondes : Uptime Kuma la fait mais ne supervise pas un parc.
 4. **Réglage automatique des seuils** avec simulation, étendu aux mesures de sondes.

@@ -27,6 +27,7 @@ Chaque décision structurante est consignée dans un ADR : contexte, options com
 | [0021](0021-evenements-reseau.md) | Récepteurs de traps SNMP et de syslog, authentification par adresse, règles d'événements vers alertes EVENT, expressions bornées | acceptée, implémentée (aucun émetteur réel essayé) |
 | [0022](0022-modeles-equipement.md) | Bibliothèque de modèles d'équipement en fichiers JSON versionnés, valeur SNMP dérivée, application idempotente (aperçu = application) | acceptée, implémentée (aucun modèle validé sur matériel) |
 | [0023](0023-agent-windows.md) | Agent Windows : même paquet Python, API Win32 par ctypes, contrôle de l'ACL du jeton, tâche planifiée SYSTEM | acceptée, implémentée (validée sur Windows 11 seulement, pas sur Windows Server) |
+| [0024](0024-diagnostic-incident.md) | Diagnostic d'incident par règles déterministes : causes classées par un score documenté, preuves affichées, périmètre et confidentialité, sans apprentissage ni LLM | acceptée, implémentée (poids non validés sur incidents réels) |
 
 L'ADR 0008 a d'abord été publié sous le numéro 0007, déjà attribué aux e-mails : il a été renuméroté sans changement de décision.
 

@@ -34,6 +34,8 @@ collection       → inventory (domain, repository), monitoring (domain, reposit
 
 `overview` agrège les chiffres clés du tableau de bord à partir de `inventory` et `alerting` (repositories) : aucun autre module ne la connaît.
 
+`diagnostic` (ADR 0024) explique une alerte en lisant la base par ses propres requêtes SQL bornées ; il n'utilise que les entités et DTO d'`alerting`, la prévision (`CapacityForecastService`) et le port `SiteScope`, jamais l'API de l'audit, d'`access` ni de `security` : aucun autre module ne le connaît (règles `noModuleDependsOnDiagnostic` et `diagnosticOnlyReadsDomainsAndAlertingServices`).
+
 `collection` orchestre la réception des mesures : aucun autre module ne la connaît. Le moteur d'alertes lit l'historique des mesures par le port `MetricHistory`, implémenté par `collection`, ce qui évite tout cycle avec `monitoring`.
 
 Les modules de base (`inventory`, `monitoring`, `security`, `audit`) ne dépendent jamais de `alerting`, `reporting` ni `access`. Le périmètre d'accès par site leur parvient par le port `common.scope.SiteScope`, implémenté par `access` (ADR 0018). Le détail du modèle est dans [persistence-mapping.md](persistence-mapping.md).
