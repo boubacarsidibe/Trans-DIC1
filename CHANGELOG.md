@@ -74,6 +74,7 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 
 ### Fixed
 
+- Sondes sans agent : deux sondes Ping sur un même équipement sans agent ni SNMP ne font plus résoudre puis rouvrir l'alerte de collecte à chaque passage (une notification par intervalle) ; l'équipement reste hors service tant qu'une sonde Ping active est à 3 échecs, la désactivation ou le changement de cible de cette sonde le rétablit, et un changement de type ou de cible remet ses compteurs à zéro.
 - La pagination de la page des équipements ne s'affichait pas avec la vraie API : le frontend lisait `totalPages` à la racine alors que l'API le renvoie dans `page`.
 - Dépendance indirecte `undici` mise à jour pour corriger une faille de sévérité haute.
 

@@ -13,6 +13,7 @@ import com.jayway.jsonpath.JsonPath;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -37,6 +38,8 @@ import sn.ept.transdic1.alerting.domain.AlertType;
 import sn.ept.transdic1.alerting.domain.Severity;
 import sn.ept.transdic1.alerting.repository.AlertRepository;
 import sn.ept.transdic1.alerting.repository.AlertRuleRepository;
+import sn.ept.transdic1.collection.probe.ProbeResult;
+import sn.ept.transdic1.collection.service.MeasureIngestionService;
 import sn.ept.transdic1.inventory.domain.Equipment;
 import sn.ept.transdic1.inventory.domain.EquipmentStatus;
 import sn.ept.transdic1.inventory.domain.EquipmentType;
@@ -77,6 +80,7 @@ class ProbeApiTests {
   @Autowired private AlertRuleRepository rules;
   @Autowired private JdbcTemplate jdbc;
   @Autowired private EntityManager em;
+  @Autowired private MeasureIngestionService ingestion;
 
   private final String suffix = UUID.randomUUID().toString().substring(0, 8);
   private Equipment equipmentA;
@@ -446,6 +450,112 @@ class ProbeApiTests {
   }
 
   @Test
+  void disablingTheOnlyFailingPingBringsTheEquipmentBack() throws Exception {
+    UUID byPut = createIcmp("Ping principal");
+    fail(byPut, 3);
+    assertThat(statusOfA()).isEqualTo(EquipmentStatus.DOWN);
+    assertThat(collectionStates()).containsExactly("OPEN");
+
+    call(put(url + "/" + byPut).content(icmp("Ping principal", "\"active\":false")), admin)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.active").value(false))
+        .andExpect(jsonPath("$.consecutiveFailures").value(0));
+
+    assertThat(statusOfA()).isEqualTo(EquipmentStatus.UP);
+    assertThat(collectionStates()).containsExactly("RESOLVED");
+
+    // Même chose par la suppression, qui ne fait que désactiver une sonde avec historique.
+    UUID byDelete = createIcmp("Ping secours");
+    fail(byDelete, 3);
+    assertThat(statusOfA()).isEqualTo(EquipmentStatus.DOWN);
+    call(delete(url + "/" + byDelete), admin).andExpect(status().isNoContent());
+    assertThat(statusOfA()).isEqualTo(EquipmentStatus.UP);
+    assertThat(collectionStates()).containsExactly("RESOLVED");
+    assertThat(services.findById(byDelete).orElseThrow().getConsecutiveFailures()).isZero();
+  }
+
+  @Test
+  void disablingAHealthyPingKeepsTheEquipmentDown() throws Exception {
+    UUID failing = createIcmp("Ping muet");
+    UUID healthy = createIcmp("Ping sain");
+    fail(failing, 3);
+    ingestion.ingestProbe(healthy, ProbeResult.up(3), Instant.now().minusSeconds(30));
+
+    call(put(url + "/" + healthy).content(icmp("Ping sain", "\"active\":false")), admin)
+        .andExpect(status().isOk());
+
+    assertThat(statusOfA()).isEqualTo(EquipmentStatus.DOWN);
+    assertThat(collectionStates()).containsExactly("OPEN");
+  }
+
+  @Test
+  void disablingOneOfTwoFailingPingsKeepsTheAlert() throws Exception {
+    UUID first = createIcmp("Ping 1");
+    UUID second = createIcmp("Ping 2");
+    fail(first, 3);
+    fail(second, 3);
+
+    call(delete(url + "/" + first), admin).andExpect(status().isNoContent());
+
+    assertThat(statusOfA()).isEqualTo(EquipmentStatus.DOWN);
+    assertThat(collectionStates()).containsExactly("OPEN");
+
+    call(delete(url + "/" + second), admin).andExpect(status().isNoContent());
+    assertThat(statusOfA()).isEqualTo(EquipmentStatus.UP);
+    assertThat(collectionStates()).containsExactly("RESOLVED");
+  }
+
+  @Test
+  void changingTheTypeResetsTheProbeState() throws Exception {
+    String created =
+        call(post(url).content("{\"name\":\"Web\",\"type\":\"HTTP\"}"), admin)
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    UUID id = UUID.fromString(JsonPath.read(created, "$.id"));
+    fail(id, 5);
+    assertThat(services.findById(id).orElseThrow().getConsecutiveFailures()).isEqualTo(5);
+
+    call(put(url + "/" + id).content("{\"name\":\"Web\",\"type\":\"ICMP\"}"), admin)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.consecutiveFailures").value(0))
+        .andExpect(jsonPath("$.lastUp").doesNotExist())
+        .andExpect(jsonPath("$.lastError").doesNotExist())
+        .andExpect(jsonPath("$.lastLatencyMs").doesNotExist());
+    assertThat(services.findById(id).orElseThrow().getNextRunAt()).isNull();
+
+    // Le premier échec ICMP est le premier, pas le 6e : pas d'alerte de collecte.
+    ingestion.ingestProbe(id, ProbeResult.down("Délai dépassé"), Instant.now());
+    assertThat(services.findById(id).orElseThrow().getConsecutiveFailures()).isEqualTo(1);
+    assertThat(statusOfA()).isEqualTo(EquipmentStatus.UP);
+    assertThat(collectionStates()).isEmpty();
+  }
+
+  @Test
+  void changingTheTargetOfTheFailingPingBringsTheEquipmentBack() throws Exception {
+    UUID id = createIcmp("Ping cible");
+    fail(id, 3);
+    assertThat(statusOfA()).isEqualTo(EquipmentStatus.DOWN);
+
+    call(put(url + "/" + id).content(icmp("Ping cible", "\"accessPoint\":\"192.0.2.30\"")), admin)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.consecutiveFailures").value(0));
+
+    assertThat(statusOfA()).isEqualTo(EquipmentStatus.UP);
+    assertThat(collectionStates()).containsExactly("RESOLVED");
+    // Un intervalle modifié seul ne remet rien à zéro.
+    fail(id, 2);
+    call(
+            put(url + "/" + id)
+                .content(
+                    icmp("Ping cible", "\"accessPoint\":\"192.0.2.30\",\"intervalSeconds\":120")),
+            admin)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.consecutiveFailures").value(2));
+  }
+
+  @Test
   void rejectsASchemeThatDoesNotMatchTheType() throws Exception {
     Map<String, String> refused =
         Map.of(
@@ -594,6 +704,42 @@ class ProbeApiTests {
   }
 
   // ------------------------------------------------------------------ outils
+
+  private UUID createIcmp(String name) throws Exception {
+    String body =
+        call(post(url).content(icmp(name, "\"intervalSeconds\":60")), admin)
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    return UUID.fromString(JsonPath.read(body, "$.id"));
+  }
+
+  private static String icmp(String name, String fields) {
+    return "{\"name\":\"" + name + "\",\"type\":\"ICMP\"," + fields + "}";
+  }
+
+  /** Échecs consécutifs, dans le passé et dans l'ordre du temps. */
+  private void fail(UUID serviceId, int count) {
+    Instant start = Instant.now().minus(count + 1L, ChronoUnit.MINUTES);
+    for (int i = 0; i < count; i++) {
+      ingestion.ingestProbe(
+          serviceId, ProbeResult.down("Délai dépassé"), start.plus(i, ChronoUnit.MINUTES));
+    }
+  }
+
+  private EquipmentStatus statusOfA() {
+    em.flush();
+    return equipments.findById(equipmentA.getId()).orElseThrow().getStatus();
+  }
+
+  private List<String> collectionStates() {
+    em.flush();
+    return jdbc.queryForList(
+        "SELECT state FROM alert WHERE equipment_id = ? AND type = 'COLLECTION'",
+        String.class,
+        equipmentA.getId());
+  }
 
   private UUID createTcp(String name, int port) throws Exception {
     String body =

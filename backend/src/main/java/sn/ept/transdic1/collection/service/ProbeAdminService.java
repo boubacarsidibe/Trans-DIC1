@@ -5,6 +5,7 @@ import java.net.URISyntaxException;
 import java.time.Clock;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -54,6 +55,7 @@ public class ProbeAdminService {
   private final SiteScope scope;
   private final TransactionTemplate transaction;
   private final AlertEvaluationService alerting;
+  private final IcmpReachabilityService icmp;
   private final Clock clock;
 
   public ProbeAdminService(
@@ -67,6 +69,7 @@ public class ProbeAdminService {
       SiteScope scope,
       TransactionTemplate transaction,
       AlertEvaluationService alerting,
+      IcmpReachabilityService icmp,
       Clock clock) {
     this.equipments = equipments;
     this.services = services;
@@ -78,6 +81,7 @@ public class ProbeAdminService {
     this.scope = scope;
     this.transaction = transaction;
     this.alerting = alerting;
+    this.icmp = icmp;
     this.clock = clock;
   }
 
@@ -115,7 +119,11 @@ public class ProbeAdminService {
     requireUniqueName(equipmentId, name, id);
     // Sans « active », l'état reste celui de la sonde (une sonde désactivée le reste).
     boolean wasActive = service.isActive();
+    boolean wasHoldingDown = holdsDown(service);
     boolean typeChanged = service.getType() != request.type();
+    boolean targetChanged =
+        !Objects.equals(service.getAccessPoint(), trimToNull(request.accessPoint()))
+            || !Objects.equals(service.getPort(), request.port());
     boolean active = request.active() == null ? wasActive : request.active();
     if (active && !wasActive) {
       requireActiveSlot(equipmentId);
@@ -123,9 +131,19 @@ public class ProbeAdminService {
     service.setName(name);
     service.setType(request.type());
     apply(service, request, active);
+    if (typeChanged || targetChanged) {
+      // Les derniers résultats portaient sur autre chose : une sonde HTTP à 5 échecs devenue ICMP
+      // ne doit pas ouvrir une alerte de collecte à son premier échec ICMP.
+      resetState(service);
+    } else if (wasActive && !active) {
+      service.setConsecutiveFailures(0);
+    }
     // Nouvelle cible ou nouvel intervalle : pris en compte dès le prochain passage.
     service.setNextRunAt(null);
     services.saveAndFlush(service);
+    if (wasHoldingDown && !holdsDown(service)) {
+      icmp.release(service, clock.instant());
+    }
     // Désactivée, ou d'un autre type : les alertes ouvertes ne correspondent plus à ce qui est
     // mesuré (un échec HTTP n'est pas un échec ICMP) et ne se refermeraient jamais seules.
     if ((wasActive && !active) || typeChanged) {
@@ -138,7 +156,8 @@ public class ProbeAdminService {
   /**
    * Supprime la sonde. Si des mesures ou des alertes y renvoient déjà, elle est seulement
    * désactivée pour garder l'historique (comme un indicateur SNMP retiré) et ses alertes actives
-   * sont résolues ; sur une sonde déjà désactivée, rien ne change.
+   * sont résolues ; sur une sonde déjà désactivée, rien ne change. Une sonde ICMP qui retenait
+   * l'équipement hors service le libère (voir {@link IcmpReachabilityService#release}).
    */
   @Transactional
   public void delete(UUID equipmentId, UUID id) {
@@ -148,14 +167,23 @@ public class ProbeAdminService {
       if (!service.isActive()) {
         return;
       }
+      boolean wasHoldingDown = holdsDown(service);
       service.setActive(false);
+      service.setConsecutiveFailures(0);
       services.saveAndFlush(service);
       resolveAlerts(id, DISABLED_COMMENT);
+      if (wasHoldingDown) {
+        icmp.release(service, clock.instant());
+      }
       audit.record("PROBE_DISABLED", AUDIT_TARGET, id, details);
       return;
     }
+    boolean wasHoldingDown = holdsDown(service);
     services.delete(service);
     services.flush();
+    if (wasHoldingDown) {
+      icmp.release(service, clock.instant());
+    }
     audit.record("PROBE_DELETED", AUDIT_TARGET, id, details);
   }
 
@@ -251,6 +279,21 @@ public class ProbeAdminService {
       message = "Une sonde porte déjà ce nom sur cet équipement : " + name;
     }
     throw new ResponseStatusException(HttpStatus.CONFLICT, message);
+  }
+
+  /** Vrai si la sonde retient son équipement hors service (ICMP active à 3 échecs ou plus). */
+  private static boolean holdsDown(MonitoredService service) {
+    return IcmpReachabilityService.holdsDown(
+        service.getType(), service.isActive(), service.getConsecutiveFailures());
+  }
+
+  /** Oublie les derniers résultats ; le prochain passage a lieu tout de suite. */
+  private static void resetState(MonitoredService service) {
+    service.setConsecutiveFailures(0);
+    service.setLastUp(null);
+    service.setLastError(null);
+    service.setLastLatencyMs(null);
+    service.setNextRunAt(null);
   }
 
   /** Sonde désactivée ou changée de type : ses alertes actives sont closes. */

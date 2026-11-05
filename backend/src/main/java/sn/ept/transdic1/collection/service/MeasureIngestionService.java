@@ -19,13 +19,9 @@ import sn.ept.transdic1.alerting.service.CollectionAlertService;
 import sn.ept.transdic1.collection.dto.IngestionResult;
 import sn.ept.transdic1.collection.dto.MeasureInput;
 import sn.ept.transdic1.collection.probe.ProbeResult;
-import sn.ept.transdic1.inventory.domain.AgentStatus;
-import sn.ept.transdic1.inventory.domain.CollectionMode;
 import sn.ept.transdic1.inventory.domain.Equipment;
 import sn.ept.transdic1.inventory.domain.MonitoredService;
 import sn.ept.transdic1.inventory.domain.ServiceType;
-import sn.ept.transdic1.inventory.repository.CollectionAgentRepository;
-import sn.ept.transdic1.inventory.repository.CollectionConfigurationRepository;
 import sn.ept.transdic1.inventory.repository.EquipmentRepository;
 import sn.ept.transdic1.inventory.repository.MonitoredServiceRepository;
 import sn.ept.transdic1.monitoring.domain.MeasurementQuality;
@@ -42,9 +38,6 @@ import sn.ept.transdic1.monitoring.repository.MetricRepository;
 public class MeasureIngestionService {
   static final int MAX_BATCH = 500;
 
-  /** Échecs ICMP consécutifs après lesquels un équipement sans autre source passe hors service. */
-  static final int ICMP_FAILURES_BEFORE_DOWN = 3;
-
   /** Tolérance sur l'horloge d'une source : au-delà, la mesure est suspecte. */
   private static final Duration FUTURE_TOLERANCE = Duration.ofMinutes(5);
 
@@ -52,8 +45,7 @@ public class MeasureIngestionService {
 
   private final EquipmentRepository equipments;
   private final MonitoredServiceRepository services;
-  private final CollectionAgentRepository agents;
-  private final CollectionConfigurationRepository configurations;
+  private final IcmpReachabilityService icmp;
   private final MetricRepository metrics;
   private final AlertEvaluationService evaluation;
   private final CollectionAlertService collectionAlerts;
@@ -63,8 +55,7 @@ public class MeasureIngestionService {
   public MeasureIngestionService(
       EquipmentRepository equipments,
       MonitoredServiceRepository services,
-      CollectionAgentRepository agents,
-      CollectionConfigurationRepository configurations,
+      IcmpReachabilityService icmp,
       MetricRepository metrics,
       AlertEvaluationService evaluation,
       CollectionAlertService collectionAlerts,
@@ -73,8 +64,7 @@ public class MeasureIngestionService {
     this.publisher = publisher;
     this.equipments = equipments;
     this.services = services;
-    this.agents = agents;
-    this.configurations = configurations;
+    this.icmp = icmp;
     this.metrics = metrics;
     this.evaluation = evaluation;
     this.collectionAlerts = collectionAlerts;
@@ -137,8 +127,9 @@ public class MeasureIngestionService {
    * met à jour le dernier état du service. Une sonde ne prouve pas que la source de collecte répond
    * : ni le statut de l'équipement ni l'alerte de collecte ne bougent, sauf pour une sonde ICMP sur
    * un équipement sans agent actif ni collecte SNMP active, qui pilote alors le statut et l'alerte
-   * de collecte (ouverte au 3e échec consécutif, résolue au premier succès). Un résultat
-   * indéterminé ne stocke aucune mesure et ne change pas le compte des échecs consécutifs.
+   * de collecte (ouverte au 3e échec consécutif, résolue au premier succès si aucune autre sonde
+   * ICMP active n'est à 3 échecs, voir {@link IcmpReachabilityService}). Un résultat indéterminé ne
+   * stocke aucune mesure et ne change pas le compte des échecs consécutifs.
    */
   @Transactional
   public IngestionResult ingestProbe(UUID serviceId, ProbeResult result, Instant at) {
@@ -193,42 +184,21 @@ public class MeasureIngestionService {
     service.setLastError(truncate(result.error()));
     service.setConsecutiveFailures(result.up() ? 0 : service.getConsecutiveFailures() + 1);
 
-    if (service.getType() == ServiceType.ICMP && icmpDrivesStatus(equipment)) {
+    if (service.getType() == ServiceType.ICMP) {
       // Même chemin qu'un agent muet : alerte de collecte (SLA, topologie, notifications, pas de
-      // notification en maintenance). markReachable et markUnreachable, appelé par reportFailure,
-      // laissent un équipement en maintenance inchangé ; les deux appels sont idempotents.
+      // notification en maintenance). Un succès ne rétablit l'équipement que si aucune autre sonde
+      // ICMP active n'est à 3 échecs : une sonde saine ne masque pas une sonde muette.
       if (result.up()) {
-        equipment.markReachable();
-        if (collectionAlerts.reportRecovery(equipment, at).isPresent()) {
+        if (icmp.release(service, at).isPresent()) {
           tally.resolved++;
         }
-      } else if (service.getConsecutiveFailures() >= ICMP_FAILURES_BEFORE_DOWN) {
-        if (collectionAlerts
-            .reportFailure(
-                equipment,
-                "Équipement injoignable : "
-                    + service.getConsecutiveFailures()
-                    + " échecs consécutifs de la sonde ICMP « "
-                    + service.getName()
-                    + " »",
-                at)
-            .isPresent()) {
-          tally.opened++;
-        }
+      } else if (icmp.reportFailure(service, at).isPresent()) {
+        tally.opened++;
       }
     }
     publisher.publishEvent(
         new MetricIngestedEvent(equipment.getId(), tally.stored, tally.evaluated, clock.instant()));
     return tally.result();
-  }
-
-  /** Sans agent actif ni collecte SNMP active, seule la sonde ICMP renseigne la joignabilité. */
-  private boolean icmpDrivesStatus(Equipment equipment) {
-    if (agents.findByEquipmentIdAndStatus(equipment.getId(), AgentStatus.ACTIVE).isPresent()) {
-      return false;
-    }
-    return configurations.findByEquipmentId(equipment.getId()).stream()
-        .noneMatch(c -> c.isActive() && c.getMode() == CollectionMode.SNMP);
   }
 
   private void store(

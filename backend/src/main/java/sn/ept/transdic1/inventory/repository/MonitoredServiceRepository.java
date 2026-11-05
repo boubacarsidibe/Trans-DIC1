@@ -35,4 +35,8 @@ public interface MonitoredServiceRepository extends JpaRepository<MonitoredServi
   List<MonitoredService> findByEquipmentIdOrderByName(UUID equipmentId);
 
   long countByEquipmentIdAndActiveTrue(UUID equipmentId);
+
+  /** Services actifs d'un type à au moins {@code failures} échecs consécutifs, sauf {@code id}. */
+  long countByEquipmentIdAndTypeAndActiveTrueAndConsecutiveFailuresGreaterThanEqualAndIdNot(
+      UUID equipmentId, ServiceType type, int failures, UUID id);
 }
