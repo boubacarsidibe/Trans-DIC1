@@ -10,20 +10,36 @@ Les tests de bout en bout pilotent un vrai navigateur. Ils passent par l'interfa
 | `frontend/e2e/inventory.spec.js` | ajout d'un équipement par le formulaire ; lecture seule, sans bouton de modification ni accès à l'import | administrateur, opérateur NOC, lecteur |
 | `frontend/e2e/alert.spec.js` | alerte ouverte par une vraie mesure d'agent, puis prise en charge, résolution et chronologie ; lecteur sans actions | opérateur NOC, lecteur |
 | `frontend/e2e/report.spec.js` | rapport d'incidents sur 30 jours et téléchargement du PDF | administrateur |
+| `frontend/e2e/probes.spec.js` | ajout d'une sonde TCP et test de la sonde ; lecteur sans bouton d'ajout | administrateur, lecteur |
 
 ## Données et comptes
 
-- La pile de test (`frontend/e2e/compose.e2e.yml`) part d'une base vide, gardée en mémoire. Elle est détruite à la fin de chaque exécution.
-- Les secrets (mot de passe PostgreSQL, secret JWT, mot de passe des comptes) sont tirés au hasard à chaque exécution par `run-e2e.sh`. Aucun n'est versionné.
+- La pile de test (cluster PostgreSQL jetable du script natif, ou `frontend/e2e/compose.e2e.yml` sur un serveur avec Docker) part d'une base vide. Elle est détruite à la fin de chaque exécution.
+- Les secrets (mot de passe PostgreSQL, secret JWT, mot de passe des comptes) sont tirés au hasard à chaque exécution par `run-e2e-native.ps1` ou `run-e2e.sh`. Aucun n'est versionné.
 - Comptes de test dédiés :
   - `e2e-admin`, créé par le compte initial (bootstrap) ;
-  - `e2e-noc` et `e2e-viewer`, créés par `e2e/global-setup.js`.
+  - `e2e-noc` et `e2e-viewer`, créés par `e2e/global-setup.js` avec un mot de passe temporaire, que le script remplace aussitôt par le mot de passe de test (un compte créé par un administrateur doit changer son mot de passe avant tout usage, FEAT-01).
 - Chaque test crée ses propres données par l'API (site, équipement, règle, agent), avec un suffixe unique et des adresses du préfixe de documentation IPv6 `2001:db8::/32`. Aucun test ne dépend d'un autre, ni de l'ordre d'exécution : ils tournent en parallèle.
 - L'alerte n'est pas insérée en base. Elle s'ouvre par le chemin de production : règle CPU > 90 %, agent enregistré, puis mesure à 95 % envoyée avec le jeton de l'agent.
 
 ## Lancer les tests
 
-Prérequis : Docker, Node 24, et Google Chrome installé sur le poste (le même navigateur que `scripts/ui-snapshots.mjs`).
+### Poste de développement : pile native, sans Docker
+
+Le projet n'exige jamais Docker sur un poste de développement. Prérequis : PostgreSQL 16 installé (seuls ses outils `initdb`, `pg_ctl` et `createdb` servent), JDK 21, Node 24 et Google Chrome (ou Microsoft Edge).
+
+```powershell
+cd frontend
+npm ci
+..\scripts\run-e2e-native.ps1                      # toute la suite
+..\scripts\run-e2e-native.ps1 e2e/alert.spec.js    # un seul fichier
+```
+
+Le script crée un cluster PostgreSQL 16 jetable dans un dossier temporaire (port 15432, le service PostgreSQL du poste n'est pas touché), démarre le backend (port 18080) et l'interface (build de production servi par `vite preview`, port 15173), lance Playwright puis supprime tout. Il est aussi appelé par `scripts\verify-all.ps1 -WithE2E`. Si un prérequis manque, il l'indique et s'arrête avec le code 3 (non vérifié : jamais présenté comme réussi). Détails et limites : [verification-locale.md](verification-locale.md#parcours-de-bout-en-bout-sans-docker).
+
+### Serveur d'intégration avec Docker
+
+Prérequis : Docker, Node 24, et Google Chrome.
 
 ```sh
 cd frontend

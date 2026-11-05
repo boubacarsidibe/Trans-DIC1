@@ -1,0 +1,23 @@
+#!/bin/sh
+# Contrôle local facultatif avant un push (docs/devops/verification-locale.md).
+# Inactif tant que TDIC1_VERIFY_ON_PUSH n'est pas défini à 1 : les autres hooks ne sont pas modifiés.
+# Options supplémentaires de scripts/verify-all.ps1 dans TDIC1_VERIFY_ARGS (par exemple "-SkipBackend").
+[ "${TDIC1_VERIFY_ON_PUSH:-0}" = "1" ] || exit 0
+
+root="$(git rev-parse --show-toplevel)"
+if command -v powershell.exe >/dev/null 2>&1; then
+  shell=powershell.exe
+elif command -v pwsh >/dev/null 2>&1; then
+  shell=pwsh
+else
+  echo "pre-push : PowerShell introuvable, impossible de lancer scripts/verify-all.ps1 (désactivez TDIC1_VERIFY_ON_PUSH)." >&2
+  exit 1
+fi
+
+echo "pre-push : scripts/verify-all.ps1 $TDIC1_VERIFY_ARGS"
+# shellcheck disable=SC2086
+"$shell" -NoProfile -ExecutionPolicy Bypass -File "$root/scripts/verify-all.ps1" ${TDIC1_VERIFY_ARGS:-} || {
+  echo "pre-push : le contrôle local a échoué, push refusé (git push --no-verify pour passer outre)." >&2
+  exit 1
+}
+exit 0
