@@ -1,0 +1,28 @@
+# Configuration de l'agent Trans-DIC1 sous Windows : %ProgramData%\Trans-DIC1\agent\agent.conf
+# Même format que sous Linux. Chaque valeur peut être remplacée par une variable
+# TRANS_DIC1_AGENT_<NOM> (variable système, lue par la tâche planifiée au démarrage).
+# Le jeton n'est jamais écrit ici : il est dans token_file (ACL : SYSTEM et Administrateurs seuls).
+
+[agent]
+# Adresse de la plateforme, en HTTPS (le reverse proxy de production).
+server_url = https://supervision.example
+
+# Jeton affiché une seule fois à l'enregistrement de l'agent dans la plateforme.
+token_file = C:\ProgramData\Trans-DIC1\agent\token
+
+# Secondes entre deux relevés (10 à 240 ; la plateforme signale un agent muet après 300 s).
+interval = 60
+
+# Lecteur ou dossier mesuré pour disk.usage (défaut : lecteur système, ex. C:\ ; D: ou D:\Donnees acceptés).
+# disk_path = D:\
+
+# Délai d'une requête (s), réessais après une erreur temporaire, attente initiale entre réessais (s).
+timeout = 10
+max_retries = 3
+backoff = 2
+
+# Mesures gardées en mémoire pendant une panne de la plateforme (les plus anciennes partent d'abord).
+buffer_limit = 2000
+
+# Autorité de certification interne (fichier PEM), si le certificat de la plateforme n'est pas public.
+# ca_file = C:\ProgramData\Trans-DIC1\agent\autorite-interne.pem
