@@ -25,7 +25,8 @@
 .PARAMETER FrontendCoverage
     Lance « npm run test:coverage » (seuils de couverture de vite.config.js) à la place de « npm test ».
 .PARAMETER WithAgentTests
-    Lance les tests unitaires de l'agent (Python). Ignoré sous Windows : l'agent est prévu pour Linux.
+    Lance les tests de l'agent (Python, unittest), nativement sous Linux comme sous Windows. Les tests
+    propres à l'autre plateforme sont ignorés et comptés comme tels (ex. /proc sous Windows, ACL NTFS sous Linux).
 .PARAMETER WithE2E
     Lance les tests Playwright sur une pile native (scripts/run-e2e-native.ps1) : PostgreSQL 16 installé, jetable.
 .PARAMETER WithSecurityScans
@@ -359,11 +360,11 @@ Add-Step 'Frontend : npm run build' {
 $agentSkip = ''
 if (-not $WithAgentTests) { $agentSkip = 'option -WithAgentTests absente' }
 Add-Step 'Agent : tests unitaires (Python)' {
-    if ($onWindows) {
-        return New-Outcome 'SKIPPED' 'l''agent est prévu pour Linux (droits 600, os.statvfs) : ses tests échouent sous Windows ; à lancer sur Linux (python -m unittest discover -s tests -t . dans agent/)'
-    }
     $python = Find-Python
     if (-not $python) { return New-Outcome 'SKIPPED' 'Python introuvable' }
+    $platform = 'Linux'
+    if ($onWindows) { $platform = 'Windows' }
+    Write-Host "  Python : $python ($platform)"
     $run = Invoke-LoggedProcess -FilePath $python -Arguments @('-m', 'unittest', 'discover', '-s', 'tests', '-t', '.') `
         -WorkingDirectory (Join-Path $repositoryRoot 'agent') -LogPrefix (Join-Path $logDirectory 'agent') `
         -OnHeartbeat $genericHeartbeat
@@ -371,13 +372,24 @@ Add-Step 'Agent : tests unitaires (Python)' {
     $ranLine = $lines | Where-Object { $_ -match '^Ran (\d+) tests?' } | Select-Object -Last 1
     $ran = 0
     if (($null -ne $ranLine) -and ($ranLine -match '^Ran (\d+) tests?')) { $ran = [int]$Matches[1] }
-    Write-Host "  unittest : $ran test(s)"
+    # Dernière ligne d'unittest : « OK », « OK (skipped=4) » ou « FAILED (failures=1, errors=2, skipped=4) ».
+    $summary = $lines | Where-Object { $_ -match '^(OK|FAILED)\b' } | Select-Object -Last 1
+    $counts = @{ failures = 0; errors = 0; skipped = 0 }
+    if ($null -ne $summary) {
+        foreach ($name in @('failures', 'errors', 'skipped')) {
+            if ($summary -match "$name=(\d+)") { $counts[$name] = [int]$Matches[1] }
+        }
+    }
+    Write-Host ('  unittest : {0} test(s), {1} échec(s), {2} erreur(s), {3} ignoré(s) (tests propres à l''autre plateforme)' -f `
+            $ran, $counts.failures, $counts.errors, $counts.skipped)
     if ($run.ExitCode -ne 0) {
         Write-LogTail @($run.OutFile, $run.ErrFile) 30
-        return New-Outcome 'FAILED' "unittest : code de sortie $($run.ExitCode)"
+        return New-Outcome 'FAILED' "unittest : code de sortie $($run.ExitCode), $($counts.failures) échec(s), $($counts.errors) erreur(s)"
     }
     if ($ran -eq 0) { return New-Outcome 'FAILED' 'aucun test de l''agent exécuté' }
-    return New-Outcome 'PASSED' "$ran tests"
+    if ($null -eq $summary) { return New-Outcome 'FAILED' 'résumé unittest introuvable : impossible de confirmer le résultat' }
+    if ($counts.skipped -ge $ran) { return New-Outcome 'FAILED' 'tous les tests de l''agent ont été ignorés' }
+    return New-Outcome 'PASSED' ("{0} tests sous {1} : {2} réussis, {3} ignoré(s)" -f $ran, $platform, ($ran - $counts.skipped), $counts.skipped)
 } $agentSkip
 
 $securitySkip = ''

@@ -45,7 +45,7 @@ Une étape `SKIPPED` n'est jamais comptée comme réussie. Si aucune étape n'es
 | `-SkipFrontend` | ignore lint, tests et build du frontend |
 | `-SkipCompose` | ignore la validation statique des fichiers Compose |
 | `-FrontendCoverage` | remplace `npm test` par `npm run test:coverage` (seuils de couverture de `vite.config.js`) |
-| `-WithAgentTests` | tests unitaires de l'agent (Python), uniquement hors Windows |
+| `-WithAgentTests` | tests de l'agent (Python), nativement sous Linux comme sous Windows |
 | `-WithE2E` | parcours Playwright sur une pile native, voir [plus bas](#parcours-de-bout-en-bout-sans-docker) |
 | `-WithSecurityScans` | `gitleaks detect` et `trivy fs`, s'ils sont installés |
 
@@ -123,7 +123,7 @@ Tant que `TDIC1_VERIFY_ON_PUSH` n'est pas à `1`, le hook ne fait rien : les hoo
 - **Pas de CI distante.** Le script n'est lancé que si quelqu'un le lance. Le risque R2 est atténué, pas levé : une régression peut toujours être fusionnée sans contrôle, et aucune trace n'est conservée hors du poste.
 - **Pas de scan de secrets ni de vulnérabilités par défaut.** `gitleaks` et `trivy` ne sont pas installés sur le poste de développement actuel : avec `-WithSecurityScans`, ces deux étapes sont `SKIPPED`. Leurs options de ligne de commande n'ont pas été éprouvées ici. Trivy a besoin du réseau pour sa base (voir R8).
 - **Compose : lecture statique seulement.** Les images ne sont pas construites, la pile de production n'est pas démarrée, le démon Docker n'est jamais contacté. Une erreur qui n'apparaît qu'à l'exécution des conteneurs (R1) n'est pas détectée.
-- **Tests de l'agent : pas sous Windows.** L'agent est un programme Linux (droits de fichier 600, `os.statvfs`) : 17 de ses 39 tests échouent sous Windows pour cette raison seule. L'étape est donc `SKIPPED` sous Windows. Le contrôle de référence (`sh agent/run-tests.sh`, Python 3.8 puis 3.12, couverture de 80 %) utilise Docker et n'est pas reproduit ici.
+- **Tests de l'agent : natifs sur les deux plateformes.** Depuis l'agent Windows (ADR-0023), la suite tourne aussi sous Windows : les tests propres à Linux (`/proc`, `os.statvfs`, droits 600) y sont ignorés et comptés comme tels, les tests propres à Windows (API Win32, ACL NTFS, scripts PowerShell en `-DryRun`) sont ignorés sous Linux. Le détail de l'étape donne le nombre de tests réussis et ignorés. Le contrôle de référence Linux (`sh agent/run-tests.sh`, Python 3.8 puis 3.12, couverture de 80 %) utilise Docker et n'est pas reproduit ici.
 - **Parcours de bout en bout : approximation de la production.** L'interface est servie par `vite preview`, pas par nginx (ses en-têtes de sécurité ne sont pas exercés) ; seul Chrome (ou Edge) est testé ; le système est Windows. Le test des sondes ICMP n'existe pas dans cette suite.
 - **Arrêt brutal de la pile de test.** Si le script de bout en bout est tué (fermeture du terminal, arrêt du processus), l'arrêt propre ne s'exécute pas : il peut rester un processus `java`, `node` ou `postgres` sur les ports 15432, 18080 ou 15173 et un dossier `tdic1-e2e-*` dans le dossier temporaire. Un Ctrl+C est géré. Au premier lancement, le pare-feu Windows peut demander d'autoriser `java.exe` à écouter.
 - **Spotless ne contrôle que les fichiers modifiés** par rapport à `origin/develop` : si cette référence locale est périmée, des fichiers sont contrôlés en trop ou en moins.
