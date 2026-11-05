@@ -99,6 +99,42 @@ class MetricRetentionTests {
   }
 
   @Test
+  void badQualityMeasuresAreLeftOutOfHourlyAggregates() {
+    jdbc.queryForObject("SELECT ensure_metric_partition('2019-05-01')", String.class);
+    measure("40", "2019-05-02T08:10:00Z");
+    // L'agent envoie 0 en qualité BAD quand la lecture échoue : ni la moyenne ni le minimum.
+    metrics.save(
+        new Metric(
+            equipment,
+            "cpu.usage",
+            BigDecimal.ZERO,
+            "%",
+            MeasurementQuality.BAD,
+            Instant.parse("2019-05-02T08:20:00Z")));
+    // Une heure sans aucune mesure valable ne produit pas d'agrégat.
+    metrics.save(
+        new Metric(
+            equipment,
+            "cpu.usage",
+            BigDecimal.ZERO,
+            "%",
+            MeasurementQuality.BAD,
+            Instant.parse("2019-05-02T09:20:00Z")));
+    metrics.flush();
+
+    retention.aggregateCompletedHours();
+
+    List<Map<String, Object>> rows =
+        jdbc.queryForList(
+            "SELECT sample_count, min_value, avg_value FROM metric_hourly WHERE equipment_id = ?",
+            equipment.getId());
+    assertThat(rows).hasSize(1);
+    assertThat(rows.get(0)).containsEntry("sample_count", 1);
+    assertThat((BigDecimal) rows.get(0).get("min_value")).isEqualByComparingTo("40");
+    assertThat((BigDecimal) rows.get(0).get("avg_value")).isEqualByComparingTo("40");
+  }
+
+  @Test
   void aggregationCanBeRerunWithoutDuplicatingOrLosingData() {
     jdbc.queryForObject("SELECT ensure_metric_partition('2019-04-01')", String.class);
     measure("20", "2019-04-02T08:10:00Z");

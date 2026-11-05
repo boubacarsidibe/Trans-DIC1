@@ -4715,6 +4715,10 @@ components:
           type: integer
           format: int32
           description: Fenêtre d'observation en jours
+        minSpanDays:
+          type: integer
+          format: int32
+          description: "Période minimale de mesures, en jours, pour une prévision"
         points:
           type: integer
           format: int32

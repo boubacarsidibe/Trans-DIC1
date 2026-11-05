@@ -11,9 +11,9 @@ import sn.ept.transdic1.alerting.domain.ForecastStatus;
  * (ADR 0020). Le temps est exprimé en jours par rapport à l'instant de calcul : la pente se lit en
  * points par jour et l'ordonnée à l'origine est la valeur que la droite donne « maintenant ».
  *
- * <p>Jours restants = (limite - ordonnée) / pente. La méthode est volontairement simple : linéaire,
- * sans saisonnalité ; le coefficient de détermination r² dit à quel point la droite colle aux
- * mesures.
+ * <p>Jours restants = (limite - min(ordonnée, dernière mesure)) / pente : une baisse récente (un
+ * nettoyage) éloigne aussitôt la saturation. La méthode est volontairement simple : linéaire, sans
+ * saisonnalité ; le coefficient de détermination r² dit à quel point la droite colle aux mesures.
  */
 public final class CapacityForecast {
   /** En dessous de cette pente (points par jour), la série est considérée sans croissance. */
@@ -132,10 +132,11 @@ public final class CapacityForecast {
           first,
           last);
     }
-    // La droite peut déjà dépasser la limite alors que la dernière mesure est en dessous :
-    // saturation
-    // imminente, 0 jour.
-    double days = Math.max(0.0, (settings.limit() - intercept) / slope);
+    // Les jours partent de la plus basse des deux valeurs « actuelles » : celle de la droite et la
+    // dernière mesure. Après un nettoyage (disque revenu à 30 %), la droite tirée par des jours de
+    // hausse dirait encore « plein dans quelques jours » ; la mesure observée l'emporte.
+    double from = Math.min(current, intercept);
+    double days = Math.max(0.0, (settings.limit() - from) / slope);
     Instant projected = now.plusMillis(Math.round(days * MILLIS_PER_DAY));
     return new Result(
         ForecastStatus.OK,

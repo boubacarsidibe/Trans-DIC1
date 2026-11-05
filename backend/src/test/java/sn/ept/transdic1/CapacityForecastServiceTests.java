@@ -6,6 +6,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,7 +14,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.transaction.annotation.Transactional;
+import sn.ept.transdic1.alerting.domain.AlertChangedEvent;
+import sn.ept.transdic1.alerting.domain.ForecastStatus;
 import sn.ept.transdic1.alerting.domain.Maintenance;
 import sn.ept.transdic1.alerting.domain.MaintenanceState;
 import sn.ept.transdic1.alerting.repository.MaintenanceRepository;
@@ -39,7 +44,9 @@ import sn.ept.transdic1.security.repository.UserRepository;
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
+@RecordApplicationEvents
 class CapacityForecastServiceTests {
+  @Autowired private ApplicationEvents recorded;
   @Autowired private CapacityForecastService forecasts;
   @Autowired private SiteRepository sites;
   @Autowired private EquipmentRepository equipments;
@@ -77,13 +84,23 @@ class CapacityForecastServiceTests {
    * points de plus chaque jour. Jours restants = (100 - valueNow) / perDay.
    */
   private void hourly(String key, double valueNow, double perDay) {
+    hourly(key, valueNow, perDay, 14 * 24, 1, 0);
+  }
+
+  /**
+   * Agrégats horaires sur une droite, de l'heure écoulée en remontant {@code hours} heures, un
+   * point toutes les {@code every} heures ; {@code noise} est ajouté aux heures paires et retranché
+   * aux heures impaires (la plus récente est paire).
+   */
+  private void hourly(
+      String key, double valueNow, double perDay, int hours, int every, double noise) {
     jdbc.update(
         "DELETE FROM metric_hourly WHERE equipment_id = ? AND metric_key = ?", server.getId(), key);
     Instant lastHour = now.truncatedTo(ChronoUnit.HOURS).minus(Duration.ofHours(1));
-    for (int h = 0; h <= 14 * 24; h++) {
+    for (int h = 0; h <= hours; h += every) {
       Instant at = lastHour.minus(Duration.ofHours(h));
       double days = Duration.between(now, at).toMillis() / 86_400_000.0;
-      double value = valueNow + perDay * days;
+      double value = valueNow + perDay * days + (h % 2 == 0 ? noise : -noise);
       jdbc.update(
           "INSERT INTO metric_hourly(equipment_id, metric_key, hour_start, unit, sample_count,"
               + " min_value, max_value, avg_value) VALUES (?, ?, ?, '%', 12, ?, ?, ?)",
@@ -264,6 +281,148 @@ class CapacityForecastServiceTests {
                 String.class,
                 server.getId()))
         .isEqualTo("Maintenance en cours : aucune notification");
+    assertThat(notifications()).isZero();
+  }
+
+  @Test
+  void horsMaintenanceLOuvertureEstNotifieeUneFois() {
+    hourly("disk.usage", 76, 2);
+
+    forecasts.scan();
+
+    assertThat(active("disk.usage")).isEqualTo(1);
+    assertThat(notifications()).isEqualTo(1);
+  }
+
+  /** Événements de notification publiés pour les alertes de prévision de l'équipement du test. */
+  private long notifications() {
+    em.flush();
+    List<UUID> ids =
+        jdbc.queryForList(
+            "SELECT id FROM alert WHERE equipment_id = ? AND type = 'FORECAST'",
+            UUID.class,
+            server.getId());
+    return recorded.stream(AlertChangedEvent.class).filter(e -> ids.contains(e.alertId())).count();
+  }
+
+  // --- Retour à la normale après un nettoyage --------------------------------------------------
+
+  /** Les {@code hours} dernières heures agrégées passent à {@code value}. */
+  private void lastHoursAt(String key, int hours, double value) {
+    Instant lastHour = now.truncatedTo(ChronoUnit.HOURS).minus(Duration.ofHours(1));
+    jdbc.update(
+        "UPDATE metric_hourly SET min_value = ?, max_value = ?, avg_value = ?"
+            + " WHERE equipment_id = ? AND metric_key = ? AND hour_start > ?",
+        value,
+        value,
+        value,
+        server.getId(),
+        key,
+        Timestamp.from(lastHour.minus(Duration.ofHours(hours))));
+  }
+
+  @Test
+  void apresUnNettoyageLAlerteSeResoutEtNeSeRouvrePas() {
+    hourly("disk.usage", 76, 2); // 14 jours de hausse, plein dans 12 jours
+    forecasts.scan();
+    assertThat(active("disk.usage")).isEqualTo(1);
+
+    // Nettoyage : les trois dernières heures à 30 %. La droite, tirée par 14 jours de hausse,
+    // dirait encore « plein dans quelques jours » ; la valeur observée, elle, en est loin.
+    lastHoursAt("disk.usage", 3, 30);
+    forecasts.scan();
+    assertThat(active("disk.usage")).isZero();
+    assertThat(column("resolution_type")).isEqualTo("AUTOMATIC");
+
+    forecasts.scan();
+    assertThat(active("disk.usage")).isZero();
+  }
+
+  @Test
+  void unDisqueDejaNettoyeNOuvreRien() {
+    hourly("disk.usage", 76, 2);
+    lastHoursAt("disk.usage", 3, 30);
+
+    forecasts.scan();
+
+    assertThat(active("disk.usage")).isZero();
+  }
+
+  // --- Seuil de confiance et minimums ----------------------------------------------------------
+
+  @Test
+  void uneTendanceTropBruiteeNOuvreRienMemeDansLHorizon() {
+    // +2 points par jour noyés dans ± 15 points : r² bien sous 0,6, saturation dans ~10 jours.
+    hourly("disk.usage", 80, 2, 14 * 24, 1, 15);
+    var forecast = forecasts.forecasts(server.getId()).get(0);
+    assertThat(forecast.status()).isEqualTo(ForecastStatus.OK);
+    assertThat(forecast.daysToLimit()).isLessThanOrEqualTo(14.0);
+    assertThat(forecast.r2()).isLessThan(0.6);
+
+    forecasts.scan();
+
+    assertThat(active("disk.usage")).isZero();
+  }
+
+  @Test
+  void uneAlerteActiveNEstNiResolueNiMiseAJourQuandLaConfianceChute() {
+    hourly("disk.usage", 76, 2);
+    forecasts.scan();
+    String message = column("message");
+    // Ouverte depuis plus d'un jour : une mise à jour serait permise si l'alerte restait justifiée.
+    jdbc.update(
+        "UPDATE alert_event SET occurred_at = occurred_at - interval '25 hours'"
+            + " WHERE alert_id = (SELECT id FROM alert WHERE equipment_id = ? AND type = 'FORECAST')",
+        server.getId());
+
+    hourly("disk.usage", 80, 2, 14 * 24, 1, 15); // même horizon, mais r² faible
+    forecasts.scan();
+
+    assertThat(active("disk.usage")).isEqualTo(1);
+    assertThat(column("message")).isEqualTo(message);
+  }
+
+  @Test
+  void moinsDeTroisJoursDeMesuresNOuvrentRien() {
+    hourly("disk.usage", 90, 4, 2 * 24, 1, 0); // deux jours seulement, plein dans 2,5 jours
+
+    forecasts.scan();
+
+    assertThat(active("disk.usage")).isZero();
+  }
+
+  @Test
+  void moinsDeVingtQuatrePointsNOuvrentRien() {
+    hourly("disk.usage", 90, 4, 5 * 24, 6, 0); // cinq jours mais 21 points
+
+    forecasts.scan();
+
+    assertThat(active("disk.usage")).isZero();
+  }
+
+  @Test
+  void uneSondeSurLeMemeIndicateurEcarteLesAgregatsHoraires() {
+    // Agrégats horaires en hausse (plein dans 12 jours) : seuls, ils ouvriraient une alerte.
+    hourly("disk.usage", 76, 2);
+    // Une sonde de l'équipement mesure aussi disk.usage : les agrégats mélangent les deux sources
+    // et sont écartés ; il ne reste que quelques heures de mesures brutes de l'agent.
+    var probe = services.saveAndFlush(new MonitoredService(server, "Ping", ServiceType.ICMP));
+    Instant at = now.minus(Duration.ofMinutes(10));
+    jdbc.update(
+        "INSERT INTO metric(equipment_id, service_id, metric_key, metric_value, unit, quality,"
+            + " collected_at, received_at) VALUES (?, ?, 'disk.usage', 50, '%', 'GOOD', ?, ?)",
+        server.getId(), probe.getId(), Timestamp.from(at), Timestamp.from(at));
+    for (int h = 0; h < 5; h++) {
+      Instant raw = now.minus(Duration.ofHours(h)).minus(Duration.ofMinutes(5));
+      jdbc.update(
+          "INSERT INTO metric(equipment_id, metric_key, metric_value, unit, quality, collected_at,"
+              + " received_at) VALUES (?, 'disk.usage', ?, '%', 'GOOD', ?, ?)",
+          server.getId(), 76 - h * 0.1, Timestamp.from(raw), Timestamp.from(raw));
+    }
+
+    forecasts.scan();
+
+    assertThat(active("disk.usage")).isZero();
   }
 
   @Test

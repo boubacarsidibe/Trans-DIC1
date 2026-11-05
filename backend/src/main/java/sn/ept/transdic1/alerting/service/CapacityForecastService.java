@@ -89,6 +89,7 @@ public class CapacityForecastService {
   private final TransactionTemplate transaction;
   private final boolean enabled;
   private final int windowDays;
+  private final int minSpanDays;
   private final Settings settings;
   private final List<String> families;
   private final double minR2;
@@ -125,11 +126,17 @@ public class CapacityForecastService {
     this.transaction = new TransactionTemplate(transactionManager);
     this.enabled = enabled;
     this.windowDays = Math.max(1, windowDays);
-    this.settings = new Settings(limit, Duration.ofDays(Math.max(0, minSpanDays)), minPoints);
+    this.minSpanDays = Math.max(0, minSpanDays);
+    this.settings = new Settings(limit, Duration.ofDays(this.minSpanDays), minPoints);
     this.families =
         Arrays.stream(keys.split(",")).map(String::trim).filter(k -> !k.isEmpty()).toList();
     this.minR2 = minR2;
     this.horizonDays = horizonDays;
+    if (enabled && families.isEmpty()) {
+      LOG.warn(
+          "Prévision de saturation activée sans indicateur suivi (forecast.keys vide) :"
+              + " aucune alerte de prévision ne sera ouverte");
+    }
   }
 
   // --- Lecture -----------------------------------------------------------------------------
@@ -247,11 +254,29 @@ public class CapacityForecastService {
             (rs, i) -> new Candidate(rs.getObject(1, UUID.class), rs.getString(2)), since, since);
     int opened = 0;
     for (Candidate candidate : candidates) {
-      if (tracked(candidate.key()) && evaluate(candidate, now)) {
+      if (tracked(candidate.key()) && evaluateSafely(candidate, now)) {
         opened++;
       }
     }
     return opened;
+  }
+
+  /**
+   * Une erreur de calcul sur un indicateur (valeur inattendue, ligne incohérente) est journalisée
+   * et l'indicateur sauté, sans emporter les alertes des autres indicateurs du passage. Une erreur
+   * de la base elle-même annule toujours le passage entier (pas de transaction imbriquée).
+   */
+  private boolean evaluateSafely(Candidate candidate, Instant now) {
+    try {
+      return evaluate(candidate, now);
+    } catch (RuntimeException e) {
+      LOG.warn(
+          "Prévision de saturation impossible pour {} ({}) : {}",
+          candidate.equipmentId(),
+          candidate.key(),
+          e.getMessage());
+      return false;
+    }
   }
 
   private record Candidate(UUID equipmentId, String key) {}
@@ -383,7 +408,11 @@ public class CapacityForecastService {
         + days
         + (days > 1 ? " jours" : " jour")
         + " (tendance "
-        + String.format(Locale.FRANCE, "%+.1f", result.slopePerDay())
+        // Deux décimales pour une pente faible : jamais « +0,0 %/jour » sur une alerte ouverte.
+        + String.format(
+            Locale.FRANCE,
+            Math.abs(result.slopePerDay()) < 0.1 ? "%+.2f" : "%+.1f",
+            result.slopePerDay())
         + " %/jour, confiance "
         + CapacityForecast.confidence(result.r2())
         + ")";
@@ -425,6 +454,7 @@ public class CapacityForecastService {
         CapacityForecast.confidence(r.r2()),
         r.limit(),
         windowDays,
+        minSpanDays,
         r.points(),
         r.firstAt(),
         r.lastAt());

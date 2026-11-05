@@ -134,6 +134,39 @@ class CapacityForecastTests {
   }
 
   @Test
+  void apresUneBaisseLesJoursPartentDeLaValeurObservee() {
+    // 14 jours de hausse puis un nettoyage : les trois dernières heures à 30 %. La droite donne
+    // encore une valeur « maintenant » élevée ; les jours restants partent de la mesure réelle.
+    var points = hourly(14, x -> 72 + 2 * x);
+    for (int i = points.size() - 3; i < points.size(); i++) {
+      points.set(i, new Point(points.get(i).at(), 30));
+    }
+
+    var result = CapacityForecast.compute(points, NOW, DEFAULTS);
+
+    assertThat(result.status()).isEqualTo(ForecastStatus.OK);
+    assertThat(result.intercept()).isGreaterThan(30.0);
+    assertThat(result.daysToLimit())
+        .isCloseTo((100 - 30) / result.slopePerDay(), within(1e-6))
+        .isGreaterThan(14 * 1.25);
+  }
+
+  @Test
+  void uneTendanceFaibleSAfficheAvecDeuxDecimales() {
+    var slow =
+        new CapacityForecast.Result(
+            ForecastStatus.OK, 99.0, 0.04, 99.5, 0.9, 12.5, NOW, 100, 100, NOW, NOW);
+    var fast =
+        new CapacityForecast.Result(
+            ForecastStatus.OK, 76.0, 2.0, 76.0, 0.9, 12.0, NOW, 100, 100, NOW, NOW);
+
+    assertThat(CapacityForecastService.message("disk.usage", slow))
+        .isEqualTo("Disque plein dans ~13 jours (tendance +0,04 %/jour, confiance haute)");
+    assertThat(CapacityForecastService.message("disk.usage", fast))
+        .isEqualTo("Disque plein dans ~12 jours (tendance +2,0 %/jour, confiance haute)");
+  }
+
+  @Test
   void lesLibellesDeConfianceSuiventLeR2() {
     assertThat(CapacityForecast.confidence(0.8)).isEqualTo("haute");
     assertThat(CapacityForecast.confidence(0.79)).isEqualTo("moyenne");

@@ -21,6 +21,8 @@ public record CapacityForecastResponse(
         String confidence,
     @Schema(description = "Limite visée (100 pour un pourcentage)") double limit,
     @Schema(description = "Fenêtre d'observation en jours") int windowDays,
+    @Schema(description = "Période minimale de mesures, en jours, pour une prévision")
+        int minSpanDays,
     @Schema(description = "Nombre de points (moyennes horaires) utilisés") int points,
     Instant firstPointAt,
     Instant lastPointAt) {}
