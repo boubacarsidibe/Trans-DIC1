@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
   Area,
@@ -169,11 +169,17 @@ function MetricChart({ metric, history, periodHours, error, loading }) {
 }
 
 // Une carte par indicateur suivi : valeur actuelle, tendance et date de saturation estimée.
+// Une confiance faible : la carte a un bord en pointillé et se dit « indicative » (sans baisser le
+// contraste du texte).
 function ForecastCard({ forecast }) {
   const text = describeForecast(forecast);
-  const titleId = `forecast-${forecast.key}`;
+  const titleId = useId();
   return (
-    <section aria-labelledby={titleId} className="panel">
+    <section
+      aria-labelledby={titleId}
+      data-indicative={text.indicative || undefined}
+      className={`panel${text.indicative ? " border-dashed" : ""}`}
+    >
       <h2 id={titleId} className="text-base text-white">
         {text.title}
       </h2>
@@ -200,8 +206,7 @@ function MetricsPage() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [forecasts, setForecasts] = useState([]);
-  const [forecastError, setForecastError] = useState(false);
+  const [forecastState, setForecastState] = useState({ id: null, list: [], error: false });
 
   useEffect(() => {
     getEquipment(id)
@@ -209,15 +214,24 @@ function MetricsPage() {
       .catch(() => setLoadError("Équipement introuvable."));
   }, [id]);
 
-  // Les prévisions sont recalculées par heure : un chargement par équipement suffit.
+  // Les prévisions sont recalculées par heure : un chargement par équipement suffit. En changeant
+  // d'équipement, les cartes du précédent disparaissent et sa réponse tardive est ignorée.
   useEffect(() => {
+    let current = true;
     getForecasts(id)
       .then((data) => {
-        setForecasts(Array.isArray(data) ? data : []);
-        setForecastError(false);
+        if (current) setForecastState({ id, list: Array.isArray(data) ? data : [], error: false });
       })
-      .catch(() => setForecastError(true));
+      .catch(() => {
+        if (current) setForecastState({ id, list: [], error: true });
+      });
+    return () => {
+      current = false;
+    };
   }, [id]);
+  // Réponse d'un autre équipement (avant la suivante) : rien n'est affiché.
+  const forecasts = forecastState.id === id ? forecastState.list : [];
+  const forecastError = forecastState.id === id && forecastState.error;
 
   const load = useCallback(async () => {
     const range = periodRange(period);
@@ -275,7 +289,9 @@ function MetricsPage() {
         </div>
 
         {forecastError && (
-          <p className="mt-4 text-sm text-slate-400">Prévisions de saturation indisponibles.</p>
+          <p role="status" className="mt-4 text-sm text-slate-400">
+            Prévisions de saturation indisponibles.
+          </p>
         )}
         {forecasts.length > 0 && (
           <div aria-label="Prévisions de saturation" role="group" className="mt-5 grid gap-4 sm:grid-cols-2">

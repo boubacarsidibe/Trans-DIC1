@@ -63,16 +63,23 @@ export function describeForecast(forecast) {
   const { label, full } = forecastSubject(forecast.key);
   const unit = forecast.unit || "%";
   const slope = forecast.slopePerDay;
+  // Deux décimales pour une pente faible : jamais « +0 % par jour » pour une tendance réelle.
   const trend =
     slope === null || slope === undefined
       ? null
-      : `${slope > 0 ? "+" : ""}${formatValue(slope, unit)} par jour`;
+      : `${slope > 0 ? "+" : ""}${
+          Math.abs(slope) < 0.1 && slope !== 0 ? formatPrecise(slope, unit) : formatValue(slope, unit)
+        } par jour`;
   let outlook;
   switch (forecast.status) {
     case "OK": {
       const days = forecast.daysToLimit;
-      const when = days < 1 ? "moins d'un jour" : `~${Math.round(days)} jour${Math.round(days) > 1 ? "s" : ""}`;
-      outlook = `${full} dans ${when} le ${formatDay(forecast.projectedAt)}`;
+      if (days > MAX_FORECAST_DAYS) {
+        outlook = `${full} dans plus d'un an`;
+      } else {
+        const when = days < 1 ? "moins d'un jour" : `~${Math.round(days)} jour${Math.round(days) > 1 ? "s" : ""}`;
+        outlook = `${full} dans ${when} le ${formatDay(forecast.projectedAt)}`;
+      }
       break;
     }
     case "ALREADY_FULL":
@@ -81,16 +88,31 @@ export function describeForecast(forecast) {
     case "NO_GROWTH":
       outlook = "Pas de tendance à la hausse";
       break;
-    default:
-      outlook = "Pas assez de données (il faut 3 jours de mesures)";
+    default: {
+      const span = forecast.minSpanDays ?? 3;
+      outlook = `Pas assez de données (il faut ${span} jour${span > 1 ? "s" : ""} de mesures)`;
+    }
+  }
+  const indicative = forecast.status === "OK" && forecast.confidence === "faible";
+  let confidence = null;
+  if (forecast.status === "OK" && forecast.confidence) {
+    confidence = indicative ? "Confiance faible : estimation indicative" : `Confiance ${forecast.confidence}`;
   }
   return {
     title: `Prévision : ${label}`,
     current: forecast.current === null || forecast.current === undefined ? null : formatValue(forecast.current, unit),
     trend,
     outlook,
-    confidence: forecast.status === "OK" && forecast.confidence ? `Confiance ${forecast.confidence}` : null,
+    confidence,
+    indicative,
   };
+}
+
+/** Au-delà d'un an, une date de saturation n'a plus de sens : « plus d'un an ». */
+const MAX_FORECAST_DAYS = 365;
+
+function formatPrecise(value, unit) {
+  return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(value)} ${unit ?? ""}`.trim();
 }
 
 const STEP_MS = {

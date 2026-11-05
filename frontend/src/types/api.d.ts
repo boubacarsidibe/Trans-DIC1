@@ -1952,6 +1952,11 @@ export interface components {
             windowDays?: number;
             /**
              * Format: int32
+             * @description Période minimale de mesures, en jours, pour une prévision
+             */
+            minSpanDays?: number;
+            /**
+             * Format: int32
              * @description Nombre de points (moyennes horaires) utilisés
              */
             points?: number;
