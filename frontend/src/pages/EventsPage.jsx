@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { listEquipment } from "../api/equipment.js";
+import { listAllEquipment } from "../api/equipment.js";
 import { listEvents } from "../api/events.js";
 import { EventSeverityBadge } from "../ui/Badges.jsx";
 import { EVENT_SEVERITY, EVENT_SEVERITY_ORDER, EVENT_SOURCE, label } from "../ui/labels.js";
@@ -23,15 +23,20 @@ function EventsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Seule la réponse à la dernière demande est affichée : une réponse lente d'un ancien filtre
+  // n'écrase jamais un résultat plus récent.
+  const latest = useRef(0);
   const load = useCallback(async (targetPage, targetFilters) => {
+    const request = ++latest.current;
     setLoading(true);
     setError("");
     try {
-      setData(await listEvents({ page: targetPage, ...targetFilters }));
+      const result = await listEvents({ page: targetPage, ...targetFilters });
+      if (request === latest.current) setData(result);
     } catch {
-      setError("Impossible de charger les événements.");
+      if (request === latest.current) setError("Impossible de charger les événements.");
     } finally {
-      setLoading(false);
+      if (request === latest.current) setLoading(false);
     }
   }, []);
 
@@ -40,8 +45,8 @@ function EventsPage() {
   }, [load, page, applied]);
 
   useEffect(() => {
-    listEquipment({ page: 0, size: 200 })
-      .then((result) => setEquipments((result.content ?? []).map(({ id, name }) => ({ id, name }))))
+    listAllEquipment()
+      .then(setEquipments)
       .catch(() => setEquipments([]));
   }, []);
 

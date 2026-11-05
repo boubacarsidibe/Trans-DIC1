@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { listEquipment, listSites } from "../api/equipment.js";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { listAllEquipment, listSites } from "../api/equipment.js";
 import {
   createEventRule,
   deleteEventRule,
@@ -164,12 +164,27 @@ function EventRuleForm({ initial, sites, equipments, submitting, onSubmit, onCan
     if (payload) onSubmit(payload);
   }
 
+  // Message d'erreur relié à son champ (aria-invalid, aria-describedby), hors du libellé pour ne
+  // pas s'ajouter au nom accessible.
+  const invalid = (id) => ({
+    "aria-invalid": errors[id] ? "true" : "false",
+    "aria-describedby": errors[id] ? `${id}-error` : undefined,
+  });
+  const message = (id) =>
+    errors[id] && (
+      <span id={`${id}-error`} className="block text-sm text-red-300">
+        {errors[id]}
+      </span>
+    );
+
   const field = (id, text, props = {}) => (
-    <label className="block text-sm text-slate-300" htmlFor={id}>
-      {text}
-      <input id={id} value={values[id]} onChange={set(id)} className="field mt-2" {...props} />
-      {errors[id] && <span className="text-red-300">{errors[id]}</span>}
-    </label>
+    <div>
+      <label className="block text-sm text-slate-300" htmlFor={id}>
+        {text}
+        <input id={id} value={values[id]} onChange={set(id)} className="field mt-2" {...invalid(id)} {...props} />
+      </label>
+      {message(id)}
+    </div>
   );
 
   return (
@@ -186,18 +201,26 @@ function EventRuleForm({ initial, sites, equipments, submitting, onSubmit, onCan
           ))}
         </select>
       </label>
-      <label className="block text-sm text-slate-300" htmlFor="minSeverity">
-        Sévérité minimale
-        <select id="minSeverity" value={values.minSeverity} onChange={set("minSeverity")} className="field mt-2">
-          <option value="">Aucune</option>
-          {EVENT_SEVERITY_ORDER.map((value) => (
-            <option key={value} value={value}>
-              {EVENT_SEVERITY[value]}
-            </option>
-          ))}
-        </select>
-        {errors.minSeverity && <span className="text-red-300">{errors.minSeverity}</span>}
-      </label>
+      <div>
+        <label className="block text-sm text-slate-300" htmlFor="minSeverity">
+          Sévérité minimale
+          <select
+            id="minSeverity"
+            value={values.minSeverity}
+            onChange={set("minSeverity")}
+            className="field mt-2"
+            {...invalid("minSeverity")}
+          >
+            <option value="">Aucune</option>
+            {EVENT_SEVERITY_ORDER.map((value) => (
+              <option key={value} value={value}>
+                {EVENT_SEVERITY[value]}
+              </option>
+            ))}
+          </select>
+        </label>
+        {message("minSeverity")}
+      </div>
       {field("oidPrefix", "Préfixe d'OID du trap", { placeholder: "1.3.6.1.6.3.1.1.5.3" })}
       {field("messageRegex", "Expression sur le texte (insensible à la casse)", { maxLength: 200 })}
       {field("resolveOid", "OID de retour (résolution automatique)", { placeholder: "1.3.6.1.6.3.1.1.5.4" })}
@@ -273,15 +296,19 @@ function EventRulesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [pendingDelete, setPendingDelete] = useState(null);
 
+  // Seule la réponse à la dernière demande est affichée (changements de page rapides).
+  const latest = useRef(0);
   const load = useCallback(async (targetPage) => {
+    const request = ++latest.current;
     setLoading(true);
     setError("");
     try {
-      setData(await listEventRules({ page: targetPage }));
+      const result = await listEventRules({ page: targetPage });
+      if (request === latest.current) setData(result);
     } catch {
-      setError("Impossible de charger les règles d'événements.");
+      if (request === latest.current) setError("Impossible de charger les règles d'événements.");
     } finally {
-      setLoading(false);
+      if (request === latest.current) setLoading(false);
     }
   }, []);
 
@@ -292,8 +319,8 @@ function EventRulesPage() {
   async function openForm(target) {
     setNotice("");
     try {
-      const [sites, equipment] = await Promise.all([listSites(), listEquipment({ page: 0, size: 200 })]);
-      setScope({ sites, equipments: (equipment.content ?? []).map(({ id, name }) => ({ id, name })) });
+      const [sites, equipments] = await Promise.all([listSites(), listAllEquipment()]);
+      setScope({ sites, equipments });
       setEditing(target);
     } catch {
       setError("Impossible de charger les sites et équipements.");
@@ -379,7 +406,10 @@ function EventRulesPage() {
             equipments={scope.equipments}
             submitting={submitting}
             onSubmit={save}
-            onCancel={() => setEditing(null)}
+            onCancel={() => {
+              setEditing(null);
+              setError("");
+            }}
           />
         )}
 

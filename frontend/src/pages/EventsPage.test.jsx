@@ -123,6 +123,50 @@ describe("page des événements", () => {
     );
   });
 
+  it("propose dans le filtre les équipements de toutes les pages", async () => {
+    apiClient.get.mockImplementation(async (url, config) => {
+      if (url === "/evenements") return pageOf(events);
+      if (url === "/equipements") {
+        return config.params.page === 0
+          ? pageOf([{ id: "e1", name: "Routeur cœur" }], 2)
+          : pageOf([{ id: "e2", name: "Commutateur 201" }], 2);
+      }
+      return { data: [] };
+    });
+    renderPage();
+
+    const select = screen.getByLabelText("Équipement");
+    expect(await within(select).findByRole("option", { name: "Commutateur 201" })).toBeInTheDocument();
+    expect(within(select).getByRole("option", { name: "Routeur cœur" })).toBeInTheDocument();
+  });
+
+  it("ignore une réponse arrivée après une demande plus récente", async () => {
+    let releaseFirst;
+    let calls = 0;
+    apiClient.get.mockImplementation((url) => {
+      if (url === "/equipements") return Promise.resolve(pageOf([]));
+      if (url !== "/evenements") return Promise.resolve({ data: [] });
+      calls += 1;
+      if (calls === 1) {
+        return new Promise((resolve) => {
+          releaseFirst = () => resolve(pageOf([{ ...events[0], id: "vieux", title: "Ancienne réponse" }]));
+        });
+      }
+      return Promise.resolve(pageOf([{ ...events[1], id: "neuf", title: "Réponse récente" }]));
+    });
+    renderPage();
+    await waitFor(() => expect(calls).toBe(1));
+
+    await userEvent.selectOptions(screen.getByLabelText("Source"), "SYSLOG");
+    await userEvent.click(screen.getByRole("button", { name: "Filtrer" }));
+    expect(await screen.findByText("Réponse récente")).toBeInTheDocument();
+
+    releaseFirst();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(screen.queryByText("Ancienne réponse")).not.toBeInTheDocument();
+    expect(screen.getByText("Réponse récente")).toBeInTheDocument();
+  });
+
   it("libellé français du type d'alerte EVENT", () => {
     expect(label(ALERT_TYPE, "EVENT")).toBe("Événement");
   });

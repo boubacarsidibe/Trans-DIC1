@@ -173,6 +173,57 @@ describe("page des règles d'événements", () => {
     expect(apiClient.put).not.toHaveBeenCalled();
   });
 
+  it("propose comme portée les équipements de toutes les pages", async () => {
+    apiClient.get.mockImplementation(async (url, config) => {
+      if (url === "/regles-evenements") return pageOf([]);
+      if (url === "/sites") return pageOf([{ id: "s1", name: "Campus" }]);
+      if (url === "/equipements") {
+        return config.params.page === 0
+          ? pageOf([{ id: "e1", name: "Routeur cœur" }], 2)
+          : pageOf([{ id: "e2", name: "Commutateur 201" }], 2);
+      }
+      return { data: [] };
+    });
+    renderPage("ADMIN");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ajouter une règle d'événement" }));
+    expect(await screen.findByRole("checkbox", { name: "Commutateur 201" })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Routeur cœur" })).toBeInTheDocument();
+  });
+
+  it("relie les messages d'erreur à leur champ", async () => {
+    mockGets([]);
+    renderPage("ADMIN");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ajouter une règle d'événement" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Enregistrer" }));
+
+    const name = screen.getByLabelText("Nom");
+    expect(name).toHaveAttribute("aria-invalid", "true");
+    expect(name).toHaveAccessibleDescription("Le nom est obligatoire.");
+    const severity = screen.getByLabelText("Sévérité minimale");
+    expect(severity).toHaveAttribute("aria-invalid", "true");
+    expect(severity).toHaveAccessibleDescription(/au moins un critère/);
+    expect(screen.getByLabelText("Préfixe d'OID du trap")).toHaveAttribute("aria-invalid", "false");
+  });
+
+  it("efface une erreur d'enregistrement à l'annulation", async () => {
+    mockGets([]);
+    apiClient.post.mockRejectedValue({
+      response: { status: 400, data: { error: "Expression régulière trop coûteuse" } },
+    });
+    renderPage("ADMIN");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ajouter une règle d'événement" }));
+    await userEvent.type(await screen.findByLabelText("Nom"), "Lente");
+    await userEvent.selectOptions(screen.getByLabelText("Sévérité minimale"), "ERROR");
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("trop coûteuse");
+
+    await userEvent.click(screen.getByRole("button", { name: "Annuler" }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("demande confirmation avant de supprimer et explique un refus", async () => {
     mockGets();
     apiClient.delete.mockRejectedValue({ response: { status: 409 } });

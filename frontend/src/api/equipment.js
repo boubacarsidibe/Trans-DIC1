@@ -25,6 +25,18 @@ export async function listEquipment({ page = 0, size = PAGE_SIZE } = {}) {
   return data;
 }
 
+// Tous les équipements (identifiant et nom), page par page : filtres et portées ne s'arrêtent pas
+// aux 200 premiers. Plafond de sécurité à 50 pages (10 000 équipements).
+export async function listAllEquipment() {
+  const all = [];
+  for (let page = 0; page < 50; page += 1) {
+    const data = await listEquipment({ page, size: 200 });
+    all.push(...(data.content ?? []).map(({ id, name }) => ({ id, name })));
+    if (page + 1 >= (data.page?.totalPages ?? 0)) break;
+  }
+  return all;
+}
+
 // Les sites viennent de l'API /sites : un site sans équipement doit pouvoir recevoir le premier.
 export async function listSites() {
   const { data } = await apiClient.get("/sites", {
