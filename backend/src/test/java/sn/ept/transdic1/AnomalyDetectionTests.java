@@ -19,8 +19,11 @@ import sn.ept.transdic1.alerting.service.AnomalyDetectionService;
 import sn.ept.transdic1.inventory.domain.Equipment;
 import sn.ept.transdic1.inventory.domain.EquipmentStatus;
 import sn.ept.transdic1.inventory.domain.EquipmentType;
+import sn.ept.transdic1.inventory.domain.MonitoredService;
+import sn.ept.transdic1.inventory.domain.ServiceType;
 import sn.ept.transdic1.inventory.domain.Site;
 import sn.ept.transdic1.inventory.repository.EquipmentRepository;
+import sn.ept.transdic1.inventory.repository.MonitoredServiceRepository;
 import sn.ept.transdic1.inventory.repository.SiteRepository;
 
 /**
@@ -33,6 +36,7 @@ class AnomalyDetectionTests {
   @Autowired private AnomalyDetectionService anomalies;
   @Autowired private SiteRepository sites;
   @Autowired private EquipmentRepository equipments;
+  @Autowired private MonitoredServiceRepository services;
   @Autowired private JdbcTemplate jdbc;
   @Autowired private jakarta.persistence.EntityManager em;
 
@@ -133,6 +137,30 @@ class AnomalyDetectionTests {
                 String.class,
                 server.getId()))
         .isEqualTo("AUTOMATIC");
+  }
+
+  @Test
+  void lesMesuresDeSondeNOuvrentPasDAnomalie() {
+    var service = services.saveAndFlush(new MonitoredService(server, "Ping", ServiceType.ICMP));
+    // Plus de 3 jours de sonde toujours joignable (probe.up = 100), puis un seul échec.
+    Instant hour = Instant.now().truncatedTo(ChronoUnit.HOURS);
+    for (int h = 2; h <= 4 * 24; h++) {
+      jdbc.update(
+          "INSERT INTO metric_hourly(equipment_id, metric_key, hour_start, unit, sample_count, min_value,"
+              + " max_value, avg_value) VALUES (?, 'probe.up', ?, '%', 60, 100, 100, 100)",
+          server.getId(), Timestamp.from(hour.minus(Duration.ofHours(h))));
+    }
+    jdbc.update(
+        "INSERT INTO metric(equipment_id, service_id, metric_key, metric_value, unit, quality,"
+            + " collected_at, received_at) VALUES (?, ?, 'probe.up', 0, '%', 'GOOD', ?, ?)",
+        server.getId(),
+        service.getId(),
+        Timestamp.from(Instant.now().minusSeconds(60)),
+        Timestamp.from(Instant.now()));
+
+    anomalies.scan();
+
+    assertThat(active()).isZero();
   }
 
   @Test

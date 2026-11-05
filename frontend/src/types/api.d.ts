@@ -129,6 +129,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/equipements/{equipmentId}/sondes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Modifier une sonde
+         * @description Prise en compte au prochain passage.
+         */
+        put: operations["updateProbe"];
+        post?: never;
+        /**
+         * Supprimer une sonde
+         * @description Une sonde qui a déjà des mesures ou des alertes est désactivée, pour garder l'historique.
+         */
+        delete: operations["deleteProbe"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/equipements/{equipmentId}/collecte-snmp": {
         parameters: {
             query?: never;
@@ -405,6 +429,50 @@ export interface paths {
         put?: never;
         /** Créer un équipement */
         post: operations["create_5"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipements/{equipmentId}/sondes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lister les sondes d'un équipement
+         * @description Avec le dernier résultat de chaque sonde (état, latence, dernière erreur).
+         */
+        get: operations["listProbes"];
+        put?: never;
+        /**
+         * Créer une sonde
+         * @description Intervalle d'au moins 30 s, délai de 100 à 30 000 ms, 50 sondes actives au plus par équipement. La cible est contrôlée (boucle locale, lien local et métadonnées refusés). Première exécution au prochain passage.
+         */
+        post: operations["createProbe"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipements/{equipmentId}/sondes/{id}/tester": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tester une sonde
+         * @description Exécution immédiate ; rien n'est enregistré et aucune alerte n'est ouverte.
+         */
+        post: operations["testProbe"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1260,6 +1328,36 @@ export interface components {
             siteId?: string;
             site?: string;
         };
+        ProbeRequestDto: {
+            name: string;
+            /**
+             * @description Types pris en charge : TCP_PORT, HTTP, HTTPS, ICMP, TLS_CERT
+             * @enum {string}
+             */
+            type: "TCP_PORT" | "HTTP" | "HTTPS" | "ICMP" | "TLS_CERT";
+            /**
+             * Format: int32
+             * @description Obligatoire pour TCP_PORT
+             */
+            port?: number;
+            accessPoint?: string;
+            /**
+             * Format: int32
+             * @description 60 par défaut
+             */
+            intervalSeconds?: number;
+            /**
+             * Format: int32
+             * @description 5000 par défaut
+             */
+            timeoutMs?: number;
+            /** @description Code seul (200) ou plage (200-399) ; HTTP et HTTPS */
+            expectedStatus?: string;
+            /** @description Texte cherché dans la réponse ; HTTP et HTTPS seulement */
+            expectedText?: string;
+            /** @description Vrai par défaut */
+            active?: boolean;
+        };
         Metric: {
             key: string;
             name: string;
@@ -1413,6 +1511,31 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             cancelledAt?: string;
+        };
+        ProbeResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            /** @enum {string} */
+            type?: "TCP_PORT" | "HTTP" | "HTTPS" | "ICMP" | "DNS" | "TLS_CERT" | "OTHER";
+            /** Format: int32 */
+            port?: number;
+            accessPoint?: string;
+            /** Format: int32 */
+            intervalSeconds?: number;
+            /** Format: int32 */
+            timeoutMs?: number;
+            expectedStatus?: string;
+            expectedText?: string;
+            active?: boolean;
+            /** Format: date-time */
+            lastCheckedAt?: string;
+            lastUp?: boolean;
+            /** Format: int32 */
+            lastLatencyMs?: number;
+            lastError?: string;
+            /** Format: int32 */
+            consecutiveFailures?: number;
         };
         AgentRegistrationResponse: {
             /** Format: uuid */
@@ -2365,6 +2488,109 @@ export interface operations {
                 };
             };
             /** @description Équipement introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateProbe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProbeRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Sonde invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Sonde introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nom déjà utilisé sur cet équipement */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteProbe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sonde supprimée ou désactivée */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Sonde introuvable */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -3403,6 +3629,148 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["EquipmentResponse"];
                 };
+            };
+        };
+    };
+    listProbes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Équipement introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createProbe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProbeRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Sonde créée */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProbeResponse"];
+                };
+            };
+            /** @description Sonde invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Équipement introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nom déjà utilisé sur cet équipement */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    testProbe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Sonde introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

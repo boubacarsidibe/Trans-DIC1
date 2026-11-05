@@ -1,13 +1,26 @@
 package sn.ept.transdic1.inventory.repository;
 
+import jakarta.persistence.LockModeType;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import sn.ept.transdic1.inventory.domain.Equipment;
 
 public interface EquipmentRepository
     extends JpaRepository<Equipment, UUID>, JpaSpecificationExecutor<Equipment> {
+  /**
+   * Relit un équipement en le verrouillant jusqu'à la fin de la transaction : sérialise les sondes
+   * ICMP d'un même équipement qui décident de son statut.
+   */
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("select e from Equipment e where e.id = :id")
+  Optional<Equipment> findForUpdate(@Param("id") UUID id);
+
   /** Nombre d'équipements par statut opérationnel : {statut, total}. */
   @org.springframework.data.jpa.repository.Query(
       "select e.status, count(e) from Equipment e group by e.status")

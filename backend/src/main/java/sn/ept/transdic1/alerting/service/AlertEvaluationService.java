@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ import sn.ept.transdic1.alerting.repository.AlertRepository;
 import sn.ept.transdic1.alerting.repository.AlertRuleRepository;
 import sn.ept.transdic1.alerting.repository.MaintenanceRepository;
 import sn.ept.transdic1.inventory.domain.Equipment;
+import sn.ept.transdic1.inventory.domain.MonitoredService;
 
 /**
  * Évalue une mesure contre les règles d'alerte qui s'appliquent à l'équipement.
@@ -31,8 +33,8 @@ import sn.ept.transdic1.inventory.domain.Equipment;
  * <ul>
  *   <li>Ouverture : la valeur franchit le seuil et le dépassement dure au moins la durée de
  *       confirmation de la règle.
- *   <li>Déduplication : une seule alerte active par équipement et règle, garantie aussi par un
- *       index unique partiel.
+ *   <li>Déduplication : une seule alerte active par équipement, règle et service (service nul pour
+ *       les mesures sans service), garantie aussi par deux index uniques partiels (V28).
  *   <li>Résolution automatique : la valeur revient assez loin du seuil (hystérésis).
  *   <li>Nouvelle anomalie avant archivage : l'alerte résolue est rouverte.
  * </ul>
@@ -65,28 +67,44 @@ public class AlertEvaluationService {
     this.publisher = publisher;
   }
 
+  /** Mesure sans service (agents, SNMP) : une alerte par équipement et règle. */
   @Transactional
   public List<AlertChange> evaluate(
       Equipment equipment, String metricKey, BigDecimal value, Instant at) {
+    return evaluate(equipment, null, metricKey, value, at);
+  }
+
+  /**
+   * Mesure d'un service (sondes) : une alerte par équipement, règle et service. {@code service} nul
+   * revient au comportement par équipement.
+   */
+  @Transactional
+  public List<AlertChange> evaluate(
+      Equipment equipment,
+      MonitoredService service,
+      String metricKey,
+      BigDecimal value,
+      Instant at) {
     var changes = new ArrayList<AlertChange>();
+    UUID serviceId = service == null ? null : service.getId();
     var applicable =
         rules.findApplicable(equipment.getId(), equipment.getSite().getId(), metricKey);
     for (AlertRule rule : applicable) {
-      var active =
-          alerts.findFirstByEquipmentIdAndRuleIdAndStateIn(equipment.getId(), rule.getId(), ACTIVE);
+      var active = alerts.findActiveForRule(equipment.getId(), rule.getId(), serviceId, ACTIVE);
       if (active.isPresent()) {
         if (rule.isRecoveredBy(value)) {
-          changes.add(resolve(active.get(), at));
+          changes.add(resolve(active.get(), at, "Retour à la normale détecté"));
         }
-      } else if (rule.isBreachedBy(value) && breachConfirmed(rule, equipment, metricKey, at)) {
-        changes.add(open(rule, equipment, metricKey, value, at));
+      } else if (rule.isBreachedBy(value)
+          && breachConfirmed(rule, equipment, service, metricKey, at)) {
+        changes.add(open(rule, equipment, service, metricKey, value, at));
       }
     }
     return changes;
   }
 
   private boolean breachConfirmed(
-      AlertRule rule, Equipment equipment, String metricKey, Instant at) {
+      AlertRule rule, Equipment equipment, MonitoredService service, String metricKey, Instant at) {
     Duration confirmation = rule.getConfirmationDuration();
     if (confirmation.isZero()) {
       return true;
@@ -95,7 +113,12 @@ public class AlertEvaluationService {
     // normale : le dépassement continu commence à la plus ancienne mesure en dépassement vue.
     Instant runStart = at;
     var past =
-        history.samples(equipment.getId(), metricKey, at.minus(confirmation.multipliedBy(2)), at);
+        history.samples(
+            equipment.getId(),
+            service == null ? null : service.getId(),
+            metricKey,
+            at.minus(lookBack(confirmation, service)),
+            at);
     for (var sample : past) {
       if (!sample.at().isBefore(at)) {
         continue;
@@ -108,13 +131,34 @@ public class AlertEvaluationService {
     return !Duration.between(runStart, at).minus(confirmation).isNegative();
   }
 
+  /**
+   * Fenêtre d'historique pour confirmer un dépassement : deux fois la durée de confirmation, et
+   * pour une sonde au moins deux intervalles plus une minute, sinon une sonde lente (jusqu'à 24 h
+   * entre deux exécutions) ne verrait jamais sa mesure précédente et n'alerterait jamais.
+   */
+  static Duration lookBack(Duration confirmation, MonitoredService service) {
+    Duration window = confirmation.multipliedBy(2);
+    if (service == null) {
+      return window;
+    }
+    Duration probe = Duration.ofSeconds(2L * service.getIntervalSeconds() + 60);
+    return probe.compareTo(window) > 0 ? probe : window;
+  }
+
   private AlertChange open(
-      AlertRule rule, Equipment equipment, String metricKey, BigDecimal value, Instant at) {
+      AlertRule rule,
+      Equipment equipment,
+      MonitoredService service,
+      String metricKey,
+      BigDecimal value,
+      Instant at) {
     boolean notify = !underMaintenance(equipment, at);
     String message = message(rule, metricKey, value);
-    var resolved =
-        alerts.findFirstByEquipmentIdAndRuleIdAndStateOrderByResolvedAtDesc(
-            equipment.getId(), rule.getId(), AlertState.RESOLVED);
+    if (service != null) {
+      message = message + " [" + service.getName() + "]";
+    }
+    UUID serviceId = service == null ? null : service.getId();
+    var resolved = alerts.findLastResolvedForRule(equipment.getId(), rule.getId(), serviceId);
     Alert alert;
     AlertEvent event;
     if (resolved.isPresent()) {
@@ -131,13 +175,19 @@ public class AlertEvaluationService {
       alert =
           new Alert(
               equipment,
-              rule.getId() + ":" + equipment.getId() + ":" + at.toEpochMilli(),
+              rule.getId()
+                  + ":"
+                  + equipment.getId()
+                  + (serviceId == null ? "" : ":" + serviceId)
+                  + ":"
+                  + at.toEpochMilli(),
               AlertType.THRESHOLD,
               AlertState.OPEN,
               rule.getInitialSeverity(),
               message,
               at);
       alert.setRule(rule);
+      alert.setService(service);
       event = new AlertEvent(alert, AlertEventType.OPENED, at);
     }
     event.setNewState(AlertState.OPEN);
@@ -153,7 +203,20 @@ public class AlertEvaluationService {
     return new AlertChange(alert.getId(), AlertEventType.OPENED, notify);
   }
 
-  private AlertChange resolve(Alert alert, Instant at) {
+  /**
+   * Résout automatiquement les alertes actives d'un service qui n'est plus surveillé (sonde
+   * désactivée) : sinon elles resteraient ouvertes, faute de mesure pour les clore.
+   */
+  @Transactional
+  public List<AlertChange> resolveForService(UUID serviceId, Instant at, String comment) {
+    var changes = new ArrayList<AlertChange>();
+    for (Alert alert : alerts.findByServiceIdAndStateIn(serviceId, ACTIVE)) {
+      changes.add(resolve(alert, at, comment));
+    }
+    return changes;
+  }
+
+  private AlertChange resolve(Alert alert, Instant at, String comment) {
     AlertState previous = alert.getState();
     alert.setState(AlertState.RESOLVED);
     alert.setResolvedAt(at);
@@ -161,7 +224,7 @@ public class AlertEvaluationService {
     var event = new AlertEvent(alert, AlertEventType.RESOLVED, at);
     event.setPreviousState(previous);
     event.setNewState(AlertState.RESOLVED);
-    event.setComment("Retour à la normale détecté");
+    event.setComment(comment);
     alerts.save(alert);
     events.save(event);
     publisher.publishEvent(new AlertChangedEvent(alert.getId(), AlertEventType.RESOLVED));

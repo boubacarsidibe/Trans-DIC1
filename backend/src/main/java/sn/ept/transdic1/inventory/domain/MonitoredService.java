@@ -1,11 +1,19 @@
 package sn.ept.transdic1.inventory.domain;
 
 import jakarta.persistence.*;
+import java.time.Instant;
 import java.util.UUID;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+/**
+ * Service supervisé d'un équipement (sondes sans agent comprises). {@code @DynamicUpdate} : le
+ * dépôt d'un résultat de sonde n'écrit que les colonnes changées (dernier résultat, compteur) et ne
+ * réécrit pas, avec une valeur périmée, une modification faite entre-temps par un administrateur.
+ */
 @Entity
+@DynamicUpdate
 @Table(name = "monitored_service")
 public class MonitoredService {
   @Id private UUID id;
@@ -33,6 +41,36 @@ public class MonitoredService {
 
   @Column(name = "active", nullable = false)
   private boolean active;
+
+  @Column(name = "interval_seconds", nullable = false)
+  private int intervalSeconds = 60;
+
+  @Column(name = "timeout_ms", nullable = false)
+  private int timeoutMs = 5000;
+
+  @Column(name = "expected_status", length = 16)
+  private String expectedStatus;
+
+  @Column(name = "expected_text", length = 200)
+  private String expectedText;
+
+  @Column(name = "next_run_at")
+  private Instant nextRunAt;
+
+  @Column(name = "last_checked_at")
+  private Instant lastCheckedAt;
+
+  @Column(name = "last_up")
+  private Boolean lastUp;
+
+  @Column(name = "last_latency_ms")
+  private Integer lastLatencyMs;
+
+  @Column(name = "last_error", length = 200)
+  private String lastError;
+
+  @Column(name = "consecutive_failures", nullable = false)
+  private int consecutiveFailures;
 
   protected MonitoredService() {}
 
@@ -98,5 +136,85 @@ public class MonitoredService {
 
   public void setActive(boolean active) {
     this.active = active;
+  }
+
+  public int getIntervalSeconds() {
+    return intervalSeconds;
+  }
+
+  public void setIntervalSeconds(int intervalSeconds) {
+    this.intervalSeconds = intervalSeconds;
+  }
+
+  public int getTimeoutMs() {
+    return timeoutMs;
+  }
+
+  public void setTimeoutMs(int timeoutMs) {
+    this.timeoutMs = timeoutMs;
+  }
+
+  public String getExpectedStatus() {
+    return expectedStatus;
+  }
+
+  public void setExpectedStatus(String expectedStatus) {
+    this.expectedStatus = expectedStatus;
+  }
+
+  public String getExpectedText() {
+    return expectedText;
+  }
+
+  public void setExpectedText(String expectedText) {
+    this.expectedText = expectedText;
+  }
+
+  public Instant getNextRunAt() {
+    return nextRunAt;
+  }
+
+  public void setNextRunAt(Instant nextRunAt) {
+    this.nextRunAt = nextRunAt;
+  }
+
+  public Instant getLastCheckedAt() {
+    return lastCheckedAt;
+  }
+
+  public void setLastCheckedAt(Instant lastCheckedAt) {
+    this.lastCheckedAt = lastCheckedAt;
+  }
+
+  public Boolean getLastUp() {
+    return lastUp;
+  }
+
+  public void setLastUp(Boolean lastUp) {
+    this.lastUp = lastUp;
+  }
+
+  public Integer getLastLatencyMs() {
+    return lastLatencyMs;
+  }
+
+  public void setLastLatencyMs(Integer lastLatencyMs) {
+    this.lastLatencyMs = lastLatencyMs;
+  }
+
+  public String getLastError() {
+    return lastError;
+  }
+
+  public void setLastError(String lastError) {
+    this.lastError = lastError;
+  }
+
+  public int getConsecutiveFailures() {
+    return consecutiveFailures;
+  }
+
+  public void setConsecutiveFailures(int consecutiveFailures) {
+    this.consecutiveFailures = consecutiveFailures;
   }
 }

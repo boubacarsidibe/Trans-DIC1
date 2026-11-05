@@ -23,6 +23,12 @@ spec:
         runAsUser: 10001
         runAsGroup: 10001
         fsGroup: 10001
+        {{- if .Values.backend.pingSysctl }}
+        # Ping des sondes ICMP sans privilège (ADR-0019) : sysctl « sûr » depuis Kubernetes 1.18.
+        sysctls:
+          - name: net.ipv4.ping_group_range
+            value: "0 2147483647"
+        {{- end }}
       containers:
         - name: backend
           image: {{ include "trans-dic1.image" (dict "root" . "component" "backend") }}

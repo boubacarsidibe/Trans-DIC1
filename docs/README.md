@@ -17,6 +17,7 @@ Point d'entrée de toute la documentation. Pour lancer le projet tout de suite :
 | sauvegarder, restaurer, exploiter | [devops/operations.md](devops/operations.md) |
 | superviser la plateforme elle-même | [devops/observability.md](devops/observability.md) |
 | installer l'agent sur un serveur | [devops/agent.md](devops/agent.md) |
+| superviser sans agent (sondes), ping en conteneur | [user-guide/manuel-utilisateur.md](user-guide/manuel-utilisateur.md#sondes-supervision-sans-agent), [devops/sondes-icmp-conteneur.md](devops/sondes-icmp-conteneur.md), [ADR-0019](adr/0019-sondes-actives.md) |
 | découvrir des équipements, importer un CSV | [devops/discovery-and-import.md](devops/discovery-and-import.md) |
 | lancer les tests | [CONTRIBUTING.md](../CONTRIBUTING.md#qualité-et-tests), [devops/e2e-tests.md](devops/e2e-tests.md), [architecture/archunit.md](architecture/archunit.md) |
 | contribuer (branches, commits, PR) | [CONTRIBUTING.md](../CONTRIBUTING.md), [devops/git-workflow.md](devops/git-workflow.md) |

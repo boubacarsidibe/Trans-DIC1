@@ -153,6 +153,44 @@ Depuis la liste des équipements, **Collecte** ouvre la configuration de la coll
 - **Agent** : enregistrer un agent Trans-DIC1 pour un serveur. Le jeton n'est affiché **qu'une seule fois** et doit être copié aussitôt ([installation de l'agent](../devops/agent.md)).
 - **SNMP** : version, référence du secret (`env:NOM`, jamais le mot de passe lui-même), OID à lire.
 
+### Sondes (supervision sans agent)
+
+Pour un équipement qui n'a ni agent ni SNMP (imprimante, borne Wi-Fi, ENT, messagerie, site web), **Parc > Équipements**, bouton **Sondes** sur la ligne de l'équipement. Tous les rôles voient la page (dans leur périmètre de sites) ; seuls les administrateurs ajoutent, modifient, testent, réactivent ou suppriment.
+
+Les sondes sont lancées **par le serveur Trans-DIC1** : elles ne voient que ce que le réseau du serveur voit. Un équipement dans un bâtiment que le serveur ne peut pas joindre ne peut pas être surveillé ainsi.
+
+**Les types de sonde**
+
+| Type | Ce qui est vérifié | Cible |
+| --- | --- | --- |
+| Ping (ICMP) | l'équipement répond au ping ; latence | adresse de l'équipement, ou une adresse IP ou un nom d'hôte saisi (sans `icmp://`) |
+| Port TCP | une connexion s'ouvre sur le port ; latence | adresse de l'équipement ou nom d'hôte (sans schéma), plus le port |
+| HTTP / HTTPS | la page répond avec un statut attendu (200 à 399 par défaut), éventuellement avec un texte attendu ; latence | adresse ou URL (`http://` pour HTTP, `https://` pour HTTPS ; sans identifiant dans l'URL) |
+| Certificat TLS | nombre de jours avant l'expiration du certificat présenté par le serveur | nom d'hôte, plus le port |
+
+Un nom d'hôte est résolu **une fois** à chaque vérification ; si le nom donne plusieurs adresses, la première adresse autorisée est utilisée (une adresse interdite, comme la boucle locale, est ignorée).
+
+**Ajouter une sonde** : **Ajouter une sonde**, nom, type, cible, intervalle (30 secondes au minimum) et délai de réponse (de 100 à 30 000 ms), puis **Enregistrer**. La première vérification a lieu au prochain passage. **Tester** lance la sonde tout de suite (30 secondes au plus) et affiche le résultat sans rien enregistrer ni alerter. Une sonde HTTP sans texte attendu ne juge que la ligne de statut : un serveur qui répond puis se fige compte comme en ligne ; renseignez un texte attendu pour juger le contenu. Au plus 50 sondes actives par équipement.
+
+**Lire l'état** : *En ligne*, *Injoignable* (avec le motif court), *Indéterminé* (la vérification n'a pas pu conclure, par exemple « Ping non autorisé sur le serveur » : rien n'est enregistré et ce n'est pas compté comme un échec), *En attente* (pas encore vérifiée) ou *Désactivée*, la latence et l'heure de la dernière vérification. La page ne se rafraîchit pas seule : **Actualiser**. Les courbes (`probe.latency`, `probe.tls.days_left`) sont dans l'historique de l'équipement ; **plusieurs sondes du même type sur un même équipement y partagent une seule courbe** (limite connue).
+
+Changer le **type** d'une sonde referme ses alertes ouvertes (« Type de sonde modifié »).
+
+**Désactiver et supprimer** : désactiver une sonde referme ses alertes ouvertes (« Sonde désactivée »). Supprimer une sonde qui a déjà un historique ne fait que la **désactiver** et son nom reste pris : **Réactiver** la sonde, ou la renommer pour réutiliser le nom.
+
+**Statut de l'équipement** : une sonde ne change pas l'état d'un équipement qui a un agent actif ou une configuration SNMP active. Sur un équipement qui n'a ni l'un ni l'autre, la sonde **Ping** le pilote comme un agent : au 3e échec de suite, l'équipement passe hors service et une **alerte de collecte** s'ouvre (notifiée, sauf en maintenance) ; au premier succès, il repasse en service et l'alerte se résout. Avec plusieurs sondes Ping sur le même équipement, il reste hors service tant qu'au moins une d'entre elles a 3 échecs consécutifs, même si les autres répondent ; désactiver ou supprimer cette sonde le remet en service. Changer le type ou la cible (adresse, port) d'une sonde, ou la réactiver, remet ses compteurs à zéro. Cette panne compte dans la disponibilité (SLA).
+
+**Alertes : activer les deux règles par défaut.** En dehors du cas Ping ci-dessus, les sondes ne préviennent personne tant qu'aucune règle ne les lit. Deux règles sont créées **inactives** et **sans périmètre** ; dans **Réglages > Règles**, un administrateur les active **et** les rattache aux sites ou équipements voulus : **une règle sans périmètre ne s'applique à aucun équipement**.
+
+- **Sonde injoignable** : `probe.up` inférieur à 100 pendant 3 minutes, sévérité critique.
+- **Certificat bientôt expiré** : `probe.tls.days_left` inférieur à 14 jours, sévérité avertissement.
+
+Chaque sonde ouvre sa propre alerte : deux sondes en panne sur le même équipement donnent deux alertes. Elles suivent le cycle habituel (prise en charge, résolution, notifications, maintenances, rapport d'incidents) mais **ne comptent pas dans la disponibilité (SLA)**, qui ne lit que les alertes de collecte. Les mesures de sonde ne déclenchent pas non plus la détection d'anomalies.
+
+**Interpréter `probe.tls.days_left`** : c'est le nombre de jours entiers qui restent avant la date de fin du certificat. 30 : il reste un mois ; 13 : la règle par défaut s'ouvre ; 0 : il expire dans moins de 24 heures ; une valeur négative : il est déjà expiré. La sonde Certificat TLS lit le certificat **sans en valider la chaîne**, exprès : elle mesure la date, même d'un certificat auto-signé ou d'une autorité inconnue. Une sonde HTTPS, elle, **valide** le certificat et échoue s'il est invalide.
+
+**Limites actuelles** : pas de sonde DNS, pas de scénario web à plusieurs étapes, pas d'en-têtes ni d'authentification HTTP, pas d'exécuteur par site. Le panneau « Tester sur l'historique » des règles ne rejoue pas encore les mesures `probe.*`. Le ping fonctionne sur un serveur Linux ou Windows (Windows en anglais, français, allemand ou espagnol) et, en conteneur, demande une configuration décrite dans [sondes-icmp-conteneur.md](../devops/sondes-icmp-conteneur.md).
+
 ### Découverte automatique
 
 ![Découverte](images/09-decouverte.png)

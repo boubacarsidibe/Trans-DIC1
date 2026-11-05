@@ -689,12 +689,15 @@ class PersistenceModelTests {
     alerts.save(thresholdAlert(rule, "occ-active", AlertState.IN_PROGRESS));
 
     assertThat(
-            alerts.findFirstByEquipmentIdAndRuleIdAndStateIn(
-                equipment.getId(), rule.getId(), List.of(AlertState.OPEN, AlertState.IN_PROGRESS)))
+            alerts.findActiveForRule(
+                equipment.getId(),
+                rule.getId(),
+                null,
+                List.of(AlertState.OPEN, AlertState.IN_PROGRESS)))
         .isPresent();
     assertThat(
-            alerts.findFirstByEquipmentIdAndRuleIdAndStateIn(
-                equipment.getId(), rule.getId(), List.of(AlertState.RESOLVED)))
+            alerts.findActiveForRule(
+                equipment.getId(), rule.getId(), null, List.of(AlertState.RESOLVED)))
         .isEmpty();
     assertThat(alerts.countByStateIn(List.of(AlertState.OPEN, AlertState.IN_PROGRESS)))
         .isEqualTo(1);

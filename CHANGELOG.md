@@ -6,6 +6,7 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 
 ### Added
 
+- Sondes sans agent : un administrateur déclare sur un équipement des sondes ICMP, TCP, HTTP, HTTPS ou de certificat TLS, lancées par le serveur ; mesures `probe.up`, `probe.latency` et `probe.tls.days_left` consommées par les règles d'alerte, deux règles par défaut inactives (« Sonde injoignable », « Certificat bientôt expiré »), une alerte par (équipement, règle, service), page « Sondes », garde-fous contre le détournement (G1, ADR 0019). Le ping dans l'image du backend demande `iputils` et le sysctl `net.ipv4.ping_group_range` (Compose et Helm le règlent ; docs/devops/sondes-icmp-conteneur.md). Une sonde Ping sur un équipement sans agent ni SNMP ouvre l'alerte de collecte au 3e échec (comptée dans le SLA).
 - Périmètre d'accès par site : un opérateur ou un lecteur peut être limité à certains sites ; filtrage côté serveur des équipements, alertes, maintenances, mesures, topologie, tableau de bord, rapports et notifications ; bouton « Sites » dans la page Utilisateurs (FEAT-01, ADR 0018).
 - Connexion unique OIDC avec le fournisseur d'identité de l'EPT : Authorization Code + PKCE côté écran, jetons du fournisseur validés côté serveur, rôles convertis, connexion locale gardée en secours, Keycloak de développement (ARCH-09, ADR 0017).
 - Relais des événements entre instances du backend par PostgreSQL LISTEN/NOTIFY avec table d'envoi et rattrapage (ARCH-10, ADR 0016).
@@ -73,6 +74,7 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 
 ### Fixed
 
+- Sondes sans agent : deux sondes Ping sur un même équipement sans agent ni SNMP ne font plus résoudre puis rouvrir l'alerte de collecte à chaque passage (une notification par intervalle) ; l'équipement reste hors service tant qu'une sonde Ping active est à 3 échecs, la désactivation ou le changement de cible de cette sonde le rétablit, et un changement de type ou de cible remet ses compteurs à zéro.
 - La pagination de la page des équipements ne s'affichait pas avec la vraie API : le frontend lisait `totalPages` à la racine alors que l'API le renvoie dans `page`.
 - Dépendance indirecte `undici` mise à jour pour corriger une faille de sévérité haute.
 

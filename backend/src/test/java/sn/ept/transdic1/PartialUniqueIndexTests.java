@@ -113,7 +113,7 @@ class PartialUniqueIndexTests {
 
     assertThatThrownBy(() -> insertAlert("THRESHOLD", ruleId, "IN_PROGRESS"))
         .isInstanceOf(DataIntegrityViolationException.class)
-        .hasMessageContaining("uq_alert_one_active_per_rule");
+        .hasMessageContaining("uq_alert_one_active_per_rule_equipment");
   }
 
   @Test
@@ -165,9 +165,10 @@ class PartialUniqueIndexTests {
     Integer count =
         jdbc.queryForObject(
             "SELECT count(*) FROM pg_indexes WHERE indexname IN ("
-                + "'uq_collection_agent_one_active', 'uq_alert_one_active_per_rule',"
-                + " 'uq_alert_one_active_collection', 'uq_alert_assignment_one_active')",
+                + "'uq_collection_agent_one_active', 'uq_alert_one_active_per_rule_equipment',"
+                + " 'uq_alert_one_active_per_rule_service', 'uq_alert_one_active_collection',"
+                + " 'uq_alert_assignment_one_active')",
             Integer.class);
-    assertThat(count).isEqualTo(4);
+    assertThat(count).isEqualTo(5);
   }
 }
