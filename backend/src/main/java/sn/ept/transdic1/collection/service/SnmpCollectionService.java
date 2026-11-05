@@ -178,8 +178,14 @@ public class SnmpCollectionService {
         continue;
       }
       String unit = definition.getUnit() == null ? "" : definition.getUnit();
+      // Valeur dérivée (multiplicateur, décalage, 100 - x) : identique à la brute sans conversion.
       measures.add(
-          new MeasureInput(definition.getTechnicalKey(), reading.number(), unit, "GOOD", now));
+          new MeasureInput(
+              definition.getTechnicalKey(),
+              definition.derive(reading.number()),
+              unit,
+              "GOOD",
+              now));
     }
     if (measures.isEmpty()) {
       throw new SnmpFailure("Aucune valeur numérique exploitable dans la réponse");
@@ -189,6 +195,8 @@ public class SnmpCollectionService {
 
   private Target target(CollectionConfiguration configuration, String host) {
     int retries = configuration.getRetryCount() == null ? 0 : configuration.getRetryCount();
+    int port =
+        configuration.getSnmpPort() == null ? this.port : configuration.getSnmpPort().intValue();
     if (configuration.getSnmpVersion() == SnmpVersion.V3) {
       String secret = secrets.resolve(configuration.getSecretReference());
       String[] parts = secret.split("\\|", 2);

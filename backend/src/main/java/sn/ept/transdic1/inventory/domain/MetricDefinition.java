@@ -1,6 +1,8 @@
 package sn.ept.transdic1.inventory.domain;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.UUID;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
@@ -37,7 +39,43 @@ public class MetricDefinition {
   @Column(name = "active", nullable = false)
   private boolean active;
 
+  /** Multiplicateur appliqué à la valeur brute (nul : aucun). */
+  @Column(name = "scale", precision = 20, scale = 10)
+  private BigDecimal scale;
+
+  /** Décalage ajouté après le multiplicateur (nul : aucun). */
+  @Column(name = "value_offset", precision = 20, scale = 4)
+  private BigDecimal valueOffset;
+
+  /** Valeur finale = 100 - valeur (un taux d'inactivité devient une charge). */
+  @Column(name = "invert_percent", nullable = false)
+  private boolean invertPercent;
+
   protected MetricDefinition() {}
+
+  /**
+   * Valeur à stocker pour une valeur brute lue : brute × scale + offset, puis 100 - x si {@code
+   * invertPercent}. Sans conversion, la valeur brute est retournée telle quelle ; sinon elle est
+   * arrondie à 4 décimales, la précision de la colonne des mesures.
+   */
+  public BigDecimal derive(BigDecimal raw) {
+    if (scale == null && valueOffset == null && !invertPercent) {
+      return raw;
+    }
+    BigDecimal value = raw;
+    if (scale != null) {
+      value = value.multiply(scale);
+    }
+    if (valueOffset != null) {
+      value = value.add(valueOffset);
+    }
+    if (invertPercent) {
+      value = HUNDRED.subtract(value);
+    }
+    return value.setScale(4, RoundingMode.HALF_UP);
+  }
+
+  private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
 
   public MetricDefinition(
       CollectionConfiguration configuration,
@@ -114,5 +152,29 @@ public class MetricDefinition {
 
   public void setActive(boolean active) {
     this.active = active;
+  }
+
+  public BigDecimal getScale() {
+    return scale;
+  }
+
+  public void setScale(BigDecimal scale) {
+    this.scale = scale;
+  }
+
+  public BigDecimal getValueOffset() {
+    return valueOffset;
+  }
+
+  public void setValueOffset(BigDecimal valueOffset) {
+    this.valueOffset = valueOffset;
+  }
+
+  public boolean isInvertPercent() {
+    return invertPercent;
+  }
+
+  public void setInvertPercent(boolean invertPercent) {
+    this.invertPercent = invertPercent;
   }
 }
