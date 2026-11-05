@@ -285,8 +285,10 @@ class PersistenceModelTests {
             "AuditEntry",
             // Événements réseau (ADR 0021), ajoutés après le diagramme initial.
             "NetworkEvent",
-            "EventRule")
-        .hasSize(31);
+            "EventRule",
+            // Modèles d'équipement appliqués (ADR 0022).
+            "EquipmentTemplateApplication")
+        .hasSize(32);
   }
 
   @Test
