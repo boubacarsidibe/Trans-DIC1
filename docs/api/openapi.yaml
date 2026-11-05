@@ -3475,6 +3475,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/alertes/{id}/diagnostic:
+    get:
+      tags:
+      - Alertes
+      summary: Diagnostiquer une alerte
+      description: "Calculé à la demande, de façon déterministe (ADR 0024) : résumé\
+        , impact, causes probables classées avec leurs preuves, alertes voisines,\
+        \ événements et changements récents, contexte des mesures, incidents similaires\
+        \ et pistes. Tous les rôles ; même périmètre par site que la lecture de l'alerte."
+      operationId: diagnostic
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Diagnostic calculé
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DiagnosticResponse"
+        "404":
+          description: Alerte introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/topologie/liens/{id}:
     delete:
       tags:
@@ -5231,6 +5269,290 @@ components:
             $ref: "#/components/schemas/AlertResponse"
         page:
           $ref: "#/components/schemas/PageMetadata"
+    AlerteVoisine:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        equipementId:
+          type: string
+          format: uuid
+        equipementNom:
+          type: string
+        type:
+          type: string
+          enum:
+          - THRESHOLD
+          - COLLECTION
+          - ANOMALY
+          - FORECAST
+          - EVENT
+        severite:
+          type: string
+          enum:
+          - INFO
+          - WARNING
+          - CRITICAL
+        etat:
+          type: string
+          enum:
+          - OPEN
+          - IN_PROGRESS
+          - RESOLVED
+          - ARCHIVED
+          - DELETED
+        message:
+          type: string
+        declencheeLe:
+          type: string
+          format: date-time
+        relation:
+          type: string
+          enum:
+          - MEME_EQUIPEMENT
+          - AMONT
+          - AVAL
+          - MEME_SITE
+    CauseProbable:
+      type: object
+      properties:
+        source:
+          type: string
+          enum:
+          - AMONT_EN_ALERTE
+          - EVENEMENT_RECENT
+          - CHANGEMENT_RECENT
+          - SILENCE_COLLECTE
+          - TENDANCE_SATURATION
+          - ANOMALIE
+        score:
+          type: number
+          format: double
+          description: Score déterministe entre 0 et 1
+        libelle:
+          type: string
+        raisons:
+          type: array
+          description: "Preuves : faits qui justifient la cause"
+          items:
+            type: string
+        equipementId:
+          type:
+          - string
+          - "null"
+          format: uuid
+        alerteId:
+          type:
+          - string
+          - "null"
+          format: uuid
+        survenueLe:
+          type:
+          - string
+          - "null"
+          format: date-time
+    ChangementRecent:
+      type: object
+      properties:
+        action:
+          type: string
+        libelle:
+          type: string
+        auteur:
+          type:
+          - string
+          - "null"
+        effectueLe:
+          type: string
+          format: date-time
+        cible:
+          type: string
+    ContexteMetrique:
+      type: object
+      properties:
+        metrique:
+          type: string
+        unite:
+          type:
+          - string
+          - "null"
+        dernieresValeurs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Valeur"
+        valeurOuverture:
+          type:
+          - number
+          - "null"
+          format: double
+        moyenneReference:
+          type:
+          - number
+          - "null"
+          format: double
+          description: "Moyenne à la même heure (UTC) sur les 7 jours précédents,\
+            \ ou null"
+        joursReference:
+          type: integer
+          format: int32
+          description: Jours ayant servi à la moyenne de référence
+        ecartPourcent:
+          type:
+          - number
+          - "null"
+          format: double
+        seuil:
+          type:
+          - number
+          - "null"
+          format: double
+        operateur:
+          type:
+          - string
+          - "null"
+        prevision:
+          type: "null"
+          $ref: "#/components/schemas/CapacityForecastResponse"
+    DiagnosticResponse:
+      type: object
+      properties:
+        alerteId:
+          type: string
+          format: uuid
+        calculeLe:
+          type: string
+          format: date-time
+        ouverture:
+          type: string
+          format: date-time
+          description: Instant d'ouverture retenu (dernière ouverture si l'alerte
+            a été rouverte)
+        fenetreMinutes:
+          type: integer
+          format: int32
+          description: "Demi-fenêtre d'analyse autour de l'ouverture, en minutes"
+        resume:
+          type: string
+        impact:
+          $ref: "#/components/schemas/Impact"
+        causesProbables:
+          type: array
+          description: "Cinq causes au plus, de la plus probable à la moins probable"
+          items:
+            $ref: "#/components/schemas/CauseProbable"
+        alertesVoisines:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlerteVoisine"
+        evenementsRecents:
+          type: array
+          items:
+            $ref: "#/components/schemas/EvenementRecent"
+        changementsRecents:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChangementRecent"
+        contexteMetrique:
+          type: "null"
+          $ref: "#/components/schemas/ContexteMetrique"
+        incidentsSimilaires:
+          $ref: "#/components/schemas/IncidentsSimilaires"
+        pistes:
+          type: array
+          description: "Pistes de vérification (2 à 5), choisies dans un catalogue\
+            \ fixe"
+          items:
+            type: string
+    EvenementRecent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        equipementId:
+          type: string
+          format: uuid
+        equipementNom:
+          type: string
+        source:
+          type: string
+        severite:
+          type: string
+        titre:
+          type: string
+        recuLe:
+          type: string
+          format: date-time
+        relation:
+          type: string
+          enum:
+          - MEME_EQUIPEMENT
+          - AMONT
+          - AVAL
+          - MEME_SITE
+    IncidentsSimilaires:
+      type: object
+      properties:
+        critere:
+          type: string
+          description: "MEME_EQUIPEMENT, MEME_SITE ou AUCUN"
+        nombre:
+          type: integer
+          format: int32
+        resolus:
+          type: integer
+          format: int32
+        medianeMinutes:
+          type:
+          - number
+          - "null"
+          format: double
+        moyenneMinutes:
+          type:
+          - number
+          - "null"
+          format: double
+        dernieres:
+          type: array
+          items:
+            $ref: "#/components/schemas/Resolution"
+    Resolution:
+      type: object
+      properties:
+        alerteId:
+          type: string
+          format: uuid
+        declencheeLe:
+          type: string
+          format: date-time
+        resolueLe:
+          type: string
+          format: date-time
+        dureeMinutes:
+          type: integer
+          format: int64
+        typeResolution:
+          type:
+          - string
+          - "null"
+        auteur:
+          type:
+          - string
+          - "null"
+        commentaire:
+          type:
+          - string
+          - "null"
+    Valeur:
+      type: object
+      properties:
+        le:
+          type: string
+          format: date-time
+        valeur:
+          type: number
+          format: double
     ApiError:
       properties:
         status:

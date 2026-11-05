@@ -276,6 +276,44 @@ class ArchitectureTests {
               "events lit les entités et passe par les services d'alerting, pas par leurs API");
 
   @ArchTest
+  static final ArchRule noModuleDependsOnDiagnostic =
+      noClasses()
+          .that()
+          .resideOutsideOfPackage(ROOT + ".diagnostic..")
+          .and()
+          .resideInAPackage(ROOT + "..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage(ROOT + ".diagnostic..")
+          .because(
+              "diagnostic (F2.1, ADR 0024) ne fait que lire les autres modules : personne ne"
+                  + " dépend de lui, ce qui évite tout cycle");
+
+  @ArchTest
+  static final ArchRule diagnosticOnlyReadsDomainsAndAlertingServices =
+      noClasses()
+          .that()
+          .resideInAPackage(ROOT + ".diagnostic..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              ROOT + ".inventory.controller..",
+              ROOT + ".inventory.service..",
+              ROOT + ".monitoring.controller..",
+              ROOT + ".monitoring.service..",
+              ROOT + ".alerting.controller..",
+              ROOT + ".alerting.repository..",
+              ROOT + ".audit..",
+              ROOT + ".security..",
+              ROOT + ".reporting..",
+              ROOT + ".access..",
+              ROOT + ".overview..")
+          .because(
+              "le diagnostic lit la base par ses propres requêtes bornées et ne passe que par le"
+                  + " port SiteScope et la prévision d'alerting ; il ne lit jamais le détail de"
+                  + " l'audit par son API");
+
+  @ArchTest
   static final ArchRule noModuleDependsOnOverview =
       noClasses()
           .that()

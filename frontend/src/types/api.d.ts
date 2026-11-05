@@ -1416,6 +1416,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/alertes/{id}/diagnostic": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Diagnostiquer une alerte
+         * @description Calculé à la demande, de façon déterministe (ADR 0024) : résumé, impact, causes probables classées avec leurs preuves, alertes voisines, événements et changements récents, contexte des mesures, incidents similaires et pistes. Tous les rôles ; même périmètre par site que la lecture de l'alerte.
+         */
+        get: operations["diagnostic"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/topologie/liens/{id}": {
         parameters: {
             query?: never;
@@ -2216,6 +2236,146 @@ export interface components {
         PagedModelAlertResponse: {
             content?: components["schemas"]["AlertResponse"][];
             page?: components["schemas"]["PageMetadata"];
+        };
+        AlerteVoisine: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            equipementId?: string;
+            equipementNom?: string;
+            /** @enum {string} */
+            type?: "THRESHOLD" | "COLLECTION" | "ANOMALY" | "FORECAST" | "EVENT";
+            /** @enum {string} */
+            severite?: "INFO" | "WARNING" | "CRITICAL";
+            /** @enum {string} */
+            etat?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ARCHIVED" | "DELETED";
+            message?: string;
+            /** Format: date-time */
+            declencheeLe?: string;
+            /** @enum {string} */
+            relation?: "MEME_EQUIPEMENT" | "AMONT" | "AVAL" | "MEME_SITE";
+        };
+        CauseProbable: {
+            /** @enum {string} */
+            source?: "AMONT_EN_ALERTE" | "EVENEMENT_RECENT" | "CHANGEMENT_RECENT" | "SILENCE_COLLECTE" | "TENDANCE_SATURATION" | "ANOMALIE";
+            /**
+             * Format: double
+             * @description Score déterministe entre 0 et 1
+             */
+            score?: number;
+            libelle?: string;
+            /** @description Preuves : faits qui justifient la cause */
+            raisons?: string[];
+            /** Format: uuid */
+            equipementId?: string | null;
+            /** Format: uuid */
+            alerteId?: string | null;
+            /** Format: date-time */
+            survenueLe?: string | null;
+        };
+        ChangementRecent: {
+            action?: string;
+            libelle?: string;
+            auteur?: string | null;
+            /** Format: date-time */
+            effectueLe?: string;
+            cible?: string;
+        };
+        ContexteMetrique: {
+            metrique?: string;
+            unite?: string | null;
+            dernieresValeurs?: components["schemas"]["Valeur"][];
+            /** Format: double */
+            valeurOuverture?: number | null;
+            /**
+             * Format: double
+             * @description Moyenne à la même heure (UTC) sur les 7 jours précédents, ou null
+             */
+            moyenneReference?: number | null;
+            /**
+             * Format: int32
+             * @description Jours ayant servi à la moyenne de référence
+             */
+            joursReference?: number;
+            /** Format: double */
+            ecartPourcent?: number | null;
+            /** Format: double */
+            seuil?: number | null;
+            operateur?: string | null;
+            prevision?: components["schemas"]["CapacityForecastResponse"];
+        };
+        DiagnosticResponse: {
+            /** Format: uuid */
+            alerteId?: string;
+            /** Format: date-time */
+            calculeLe?: string;
+            /**
+             * Format: date-time
+             * @description Instant d'ouverture retenu (dernière ouverture si l'alerte a été rouverte)
+             */
+            ouverture?: string;
+            /**
+             * Format: int32
+             * @description Demi-fenêtre d'analyse autour de l'ouverture, en minutes
+             */
+            fenetreMinutes?: number;
+            resume?: string;
+            impact?: components["schemas"]["Impact"];
+            /** @description Cinq causes au plus, de la plus probable à la moins probable */
+            causesProbables?: components["schemas"]["CauseProbable"][];
+            alertesVoisines?: components["schemas"]["AlerteVoisine"][];
+            evenementsRecents?: components["schemas"]["EvenementRecent"][];
+            changementsRecents?: components["schemas"]["ChangementRecent"][];
+            contexteMetrique?: components["schemas"]["ContexteMetrique"];
+            incidentsSimilaires?: components["schemas"]["IncidentsSimilaires"];
+            /** @description Pistes de vérification (2 à 5), choisies dans un catalogue fixe */
+            pistes?: string[];
+        };
+        EvenementRecent: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            equipementId?: string;
+            equipementNom?: string;
+            source?: string;
+            severite?: string;
+            titre?: string;
+            /** Format: date-time */
+            recuLe?: string;
+            /** @enum {string} */
+            relation?: "MEME_EQUIPEMENT" | "AMONT" | "AVAL" | "MEME_SITE";
+        };
+        IncidentsSimilaires: {
+            /** @description MEME_EQUIPEMENT, MEME_SITE ou AUCUN */
+            critere?: string;
+            /** Format: int32 */
+            nombre?: number;
+            /** Format: int32 */
+            resolus?: number;
+            /** Format: double */
+            medianeMinutes?: number | null;
+            /** Format: double */
+            moyenneMinutes?: number | null;
+            dernieres?: components["schemas"]["Resolution"][];
+        };
+        Resolution: {
+            /** Format: uuid */
+            alerteId?: string;
+            /** Format: date-time */
+            declencheeLe?: string;
+            /** Format: date-time */
+            resolueLe?: string;
+            /** Format: int64 */
+            dureeMinutes?: number;
+            typeResolution?: string | null;
+            auteur?: string | null;
+            commentaire?: string | null;
+        };
+        Valeur: {
+            /** Format: date-time */
+            le?: string;
+            /** Format: double */
+            valeur?: number;
         };
         ApiError: {
             /** Format: int32 */
@@ -6425,6 +6585,53 @@ export interface operations {
             };
             /** @description Transition impossible depuis l'état actuel de l'alerte */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    diagnostic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Diagnostic calculé */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DiagnosticResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Alerte introuvable */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
