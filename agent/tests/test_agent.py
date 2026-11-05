@@ -1,5 +1,7 @@
 import logging
 import os
+import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -119,7 +121,24 @@ class CommandLineTests(unittest.TestCase):
     def test_once_envoie_un_releve_au_serveur(self):
         with FakeServer() as server:
             self.assertEqual(self.run_main(["--once"], self.env(server.url)), 0)
-        self.assertEqual(len(server.requests[0]["body"]["measures"]), 4)
+        keys = [m["key"] for m in server.requests[0]["body"]["measures"]]
+        self.assertEqual(keys[:4], ["cpu.usage", "memory.usage", "disk.usage", "availability"])
+        # Sous Windows, le collecteur ajoute la durée de fonctionnement (uptime.seconds).
+        self.assertEqual(keys[4:], ["uptime.seconds"] if sys.platform == "win32" else [])
+
+    def test_le_journal_peut_aller_dans_un_fichier(self):
+        log_file = os.path.join(tempfile.mkdtemp(prefix="journal-"), "agent.log")
+        with FakeServer() as server:
+            self.assertEqual(self.run_main(["--once", "--log-file", log_file], self.env(server.url)), 0)
+        named = logging.getLogger("trans-dic1-agent")
+        for handler in list(named.handlers):
+            if getattr(handler, "baseFilename", None) == os.path.abspath(log_file):
+                handler.close()
+                named.removeHandler(handler)
+        with open(log_file, encoding="utf-8") as handle:
+            text = handle.read()
+        self.assertIn("mesure(s) envoyée(s)", text)
+        self.assertNotIn(TOKEN, text)
 
     def test_once_signale_un_envoi_impossible(self):
         with FakeServer() as server:

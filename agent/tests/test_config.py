@@ -2,27 +2,30 @@ import os
 import tempfile
 import unittest
 
-from tests.support import TOKEN
+from tests.support import TOKEN, make_private, make_readable_by_others
 from trans_dic1_agent import config
 
+# Message de refus d'un fichier de jeton trop ouvert : droits Unix sous Linux, ACL sous Windows.
+TOO_OPEN = "lisible par" if os.name == "nt" else "600"
 
-def write(content, mode=0o600):
+
+def write(content, private=False):
     handle, path = tempfile.mkstemp()
     with os.fdopen(handle, "w", encoding="utf-8") as stream:
         stream.write(content)
-    os.chmod(path, mode)
+    if private:
+        make_private(path)
+    else:
+        os.chmod(path, 0o640)
     return path
 
 
 class ConfigTests(unittest.TestCase):
     def setUp(self):
-        self.token_file = write(TOKEN + "\n")
+        self.token_file = write(TOKEN + "\n", private=True)
 
     def conf(self, extra=""):
-        return write(
-            "[agent]\nserver_url = https://supervision.example/\ntoken_file = %s\n%s" % (self.token_file, extra),
-            0o640,
-        )
+        return write("[agent]\nserver_url = https://supervision.example/\ntoken_file = %s\n%s" % (self.token_file, extra))
 
     def test_charge_le_fichier_et_lit_le_jeton_dans_son_fichier(self):
         loaded = config.load(self.conf("interval = 30\ndisk_path = /var\n"), environ={})
@@ -46,8 +49,8 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.load(environ=env).interval, 60)
 
     def test_refuse_un_fichier_de_jeton_lisible_par_d_autres(self):
-        os.chmod(self.token_file, 0o644)
-        with self.assertRaisesRegex(config.ConfigError, "600"):
+        make_readable_by_others(self.token_file)
+        with self.assertRaisesRegex(config.ConfigError, TOO_OPEN):
             config.load(self.conf(), environ={})
 
     def test_refuse_un_fichier_de_jeton_absent(self):

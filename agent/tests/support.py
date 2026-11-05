@@ -1,4 +1,4 @@
-"""Outils de test : faux serveur Trans-DIC1 et faux /proc."""
+"""Outils de test : faux serveur Trans-DIC1, faux /proc et droits des fichiers selon la plateforme."""
 
 import json
 import os
@@ -47,6 +47,41 @@ class FakeServer:
     def __exit__(self, *_):
         self.httpd.shutdown()
         self.httpd.server_close()
+
+
+def restrict_to_owner(path):
+    """Windows : ACL explicite (héritage coupé) pour le compte courant, SYSTEM et Administrateurs."""
+    import getpass
+    import subprocess
+
+    subprocess.run(
+        ["icacls", path, "/inheritance:r", "/grant:r", "%s:F" % getpass.getuser(), "*S-1-5-18:F", "*S-1-5-32-544:F"],
+        check=True,
+        stdout=subprocess.DEVNULL,
+    )
+
+
+def grant_read(path, sid):
+    """Windows : ajoute une autorisation de lecture pour un SID (forme « *S-1-... »)."""
+    import subprocess
+
+    subprocess.run(["icacls", path, "/grant", "%s:R" % sid], check=True, stdout=subprocess.DEVNULL)
+
+
+def make_private(path):
+    """Fichier lisible par son seul propriétaire : droits 600 sous Linux, ACL restreinte sous Windows."""
+    if os.name == "nt":
+        restrict_to_owner(path)
+    else:
+        os.chmod(path, 0o600)
+
+
+def make_readable_by_others(path):
+    """Fichier trop ouvert : droits 644 sous Linux, lecture pour « Tout le monde » sous Windows."""
+    if os.name == "nt":
+        grant_read(path, "*S-1-1-0")
+    else:
+        os.chmod(path, 0o644)
 
 
 def fake_proc(cpu_line="cpu  100 0 50 800 50 0 0 0 0 0", meminfo=None):

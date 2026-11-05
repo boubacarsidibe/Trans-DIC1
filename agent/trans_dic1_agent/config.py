@@ -1,14 +1,34 @@
 """Configuration de l'agent : fichier INI, surchargé par les variables d'environnement.
 
 Le jeton n'est jamais écrit dans le fichier de configuration lui-même : il est lu dans un fichier
-dédié (droits 600) ou dans la variable TRANS_DIC1_AGENT_TOKEN, et n'apparaît dans aucun message.
+dédié (droits 600 sous Linux, ACL restreinte sous Windows) ou dans la variable
+TRANS_DIC1_AGENT_TOKEN, et n'apparaît dans aucun message.
 """
 
 import configparser
 import os
 import stat
+import sys
 
-DEFAULT_CONFIG_FILE = "/etc/trans-dic1-agent/agent.conf"
+
+def default_config_file(platform=None):
+    """/etc/trans-dic1-agent/agent.conf sous Linux, %ProgramData%\\Trans-DIC1\\agent\\agent.conf sous Windows."""
+    platform = sys.platform if platform is None else platform
+    if platform == "win32":
+        root = os.environ.get("ProgramData", "C:\\ProgramData")
+        return os.path.join(root, "Trans-DIC1", "agent", "agent.conf")
+    return "/etc/trans-dic1-agent/agent.conf"
+
+
+def default_disk_path(platform=None):
+    """Système de fichiers mesuré par défaut : « / » sous Linux, le lecteur système sous Windows."""
+    platform = sys.platform if platform is None else platform
+    if platform == "win32":
+        return os.environ.get("SystemDrive", "C:").rstrip("\\/") + "\\"
+    return "/"
+
+
+DEFAULT_CONFIG_FILE = default_config_file()
 
 # Limites fixées par l'API (AgentMeasuresRequest) et par le contrôle de silence du backend (300 s).
 MAX_BATCH = 500
@@ -26,7 +46,7 @@ class Config:
         server_url,
         token,
         interval=60,
-        disk_path="/",
+        disk_path=None,
         timeout=10.0,
         max_retries=3,
         backoff=2.0,
@@ -38,7 +58,7 @@ class Config:
         self.server_url = server_url.rstrip("/")
         self.token = token
         self.interval = interval
-        self.disk_path = disk_path
+        self.disk_path = disk_path or default_disk_path()
         self.timeout = timeout
         self.max_retries = max_retries
         self.backoff = backoff
@@ -88,10 +108,29 @@ def read_token_file(path):
         mode = os.stat(path).st_mode
     except OSError:
         raise ConfigError("fichier de jeton introuvable : %s" % path)
-    if mode & (stat.S_IRWXG | stat.S_IRWXO):
+    if sys.platform == "win32":
+        _check_windows_acl(path)
+    elif mode & (stat.S_IRWXG | stat.S_IRWXO):
         raise ConfigError("le fichier de jeton %s doit avoir les droits 600" % path)
-    with open(path, encoding="utf-8") as handle:
+    # Windows : un fichier écrit par le Bloc-notes ou PowerShell peut commencer par une marque BOM.
+    encoding = "utf-8-sig" if sys.platform == "win32" else "utf-8"
+    with open(path, encoding=encoding) as handle:
         return handle.read().strip()
+
+
+def _check_windows_acl(path):
+    """Windows : les bits Unix ne veulent rien dire, l'ACL NTFS est contrôlée (voir winacl)."""
+    from . import winacl
+
+    try:
+        broad = winacl.broad_readers(path)
+    except OSError as error:
+        raise ConfigError("droits du fichier de jeton %s illisibles : %s" % (path, error.strerror or error))
+    if broad:
+        raise ConfigError(
+            "le fichier de jeton %s est lisible par un groupe trop large (%s) : ne laisser que SYSTEM "
+            "et Administrateurs (voir install.ps1)" % (path, ", ".join(broad))
+        )
 
 
 def _flag(value):
@@ -101,10 +140,10 @@ def _flag(value):
 def load(path=None, environ=None):
     """Construit la configuration depuis le fichier puis l'environnement (prioritaire)."""
     environ = os.environ if environ is None else environ
-    path = path or environ.get("TRANS_DIC1_AGENT_CONFIG", DEFAULT_CONFIG_FILE)
+    path = path or environ.get("TRANS_DIC1_AGENT_CONFIG", default_config_file())
     parser = configparser.ConfigParser()
     if os.path.isfile(path):
-        parser.read(path, encoding="utf-8")
+        parser.read(path, encoding="utf-8-sig" if sys.platform == "win32" else "utf-8")
     section = parser["agent"] if parser.has_section("agent") else {}
 
     def get(name, default=None):
@@ -125,7 +164,7 @@ def load(path=None, environ=None):
             server_url=server_url,
             token=token,
             interval=int(get("interval", 60)),
-            disk_path=get("disk_path", "/"),
+            disk_path=get("disk_path") or None,
             timeout=float(get("timeout", 10)),
             max_retries=int(get("max_retries", 3)),
             backoff=float(get("backoff", 2)),

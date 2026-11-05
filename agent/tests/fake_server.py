@@ -1,7 +1,8 @@
 """Faux serveur Trans-DIC1 pour le test d'installation : accepte un lot puis s'arrête.
 
-Usage : python3 tests/fake_server.py <port> <jeton attendu>
+Usage : python3 tests/fake_server.py <port> <jeton attendu> [fichier où écrire le lot reçu]
 Affiche le nombre et les clés des mesures reçues ; renvoie 401 si le jeton ne correspond pas.
+Le troisième argument, facultatif, sert au test de bout en bout (test_end_to_end) qui vérifie le lot.
 """
 
 import json
@@ -11,6 +12,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 def main():
     port, expected = int(sys.argv[1]), sys.argv[2]
+    dump = sys.argv[3] if len(sys.argv) > 3 else None
 
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
@@ -19,6 +21,9 @@ def main():
                 self.send_response(401)
                 self.end_headers()
                 return
+            if dump:
+                with open(dump, "w", encoding="utf-8") as handle:
+                    json.dump(body, handle)
             keys = sorted(m["key"] for m in body["measures"])
             print("reçu %d mesure(s) : %s" % (len(keys), ", ".join(keys)), flush=True)
             data = json.dumps({"stored": len(keys), "evaluated": len(keys), "alertsOpened": 0, "alertsResolved": 0})

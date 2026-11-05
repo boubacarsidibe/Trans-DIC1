@@ -8,6 +8,8 @@ from trans_dic1_agent import metrics
 
 FIXED = datetime.datetime(2026, 10, 30, 10, 0, 0, 123456, tzinfo=datetime.timezone.utc)
 FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures", "agent-payload.json")
+# Collecteur Linux (/proc, statvfs) : sous Windows, le collecteur équivalent est testé dans test_metrics_windows.
+LINUX_ONLY = unittest.skipUnless(hasattr(os, "statvfs"), "collecteur Linux : os.statvfs absent sur cette plateforme")
 
 
 class MetricsTests(unittest.TestCase):
@@ -34,6 +36,7 @@ class MetricsTests(unittest.TestCase):
         root = fake_proc(meminfo="MemTotal: 1000 kB\nMemFree: 400 kB\n")
         self.assertAlmostEqual(metrics.memory_usage(root), 60.0)
 
+    @LINUX_ONLY
     def test_occupation_du_disque_entre_0_et_100(self):
         value = metrics.disk_usage("/")
         self.assertGreaterEqual(value, 0)
@@ -42,6 +45,7 @@ class MetricsTests(unittest.TestCase):
     def test_horodatage_iso_en_millisecondes_utc(self):
         self.assertEqual(metrics.iso(FIXED), "2026-10-30T10:00:00.123Z")
 
+    @LINUX_ONLY
     def test_un_releve_contient_les_quatre_mesures_de_la_plateforme(self):
         root = fake_proc("cpu  100 0 50 800 50 0 0 0 0 0")
         collector = metrics.Collector(proc_root=root, disk_path="/", clock=lambda: FIXED)
@@ -52,11 +56,13 @@ class MetricsTests(unittest.TestCase):
         self.assertTrue(all(m["unit"] == "%" and m["quality"] == "GOOD" for m in result))
         self.assertEqual(result[3]["value"], 100.0)
 
+    @LINUX_ONLY
     def test_un_disque_illisible_donne_une_mesure_de_mauvaise_qualite(self):
         collector = metrics.Collector(proc_root=fake_proc(), disk_path="/chemin/absent", clock=lambda: FIXED)
         disk = [m for m in collector.collect() if m["key"] == "disk.usage"][0]
         self.assertEqual(disk["quality"], "BAD")
 
+    @LINUX_ONLY
     def test_le_lot_envoye_respecte_le_contrat_de_l_api(self):
         """Le même fichier sert au test de contrat du backend (AgentContractTests)."""
         root = fake_proc("cpu  100 0 50 800 50 0 0 0 0 0")

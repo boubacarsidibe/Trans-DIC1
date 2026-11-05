@@ -2,10 +2,12 @@
 
 Les clés et unités sont celles de la plateforme (cpu.usage, memory.usage, disk.usage,
 availability, en %), déjà utilisées par la collecte SNMP et la source simulée.
+Sous Windows, create_collector choisit le collecteur de metrics_windows (mêmes clés, mêmes unités).
 """
 
 import datetime
 import os
+import sys
 
 
 def utc_now():
@@ -17,11 +19,11 @@ def iso(moment):
     return moment.strftime("%Y-%m-%dT%H:%M:%S.") + "%03dZ" % (moment.microsecond // 1000)
 
 
-def measure(key, value, collected_at, quality="GOOD"):
+def measure(key, value, collected_at, quality="GOOD", unit="%"):
     return {
         "key": key,
         "value": round(float(value), 2),
-        "unit": "%",
+        "unit": unit,
         "quality": quality,
         "collectedAt": iso(collected_at),
     }
@@ -93,3 +95,13 @@ class Collector:
         # L'agent répond : le serveur est disponible. Son silence est détecté côté plateforme.
         measures.append(measure("availability", 100, now))
         return measures
+
+
+def create_collector(proc_root="/proc", disk_path=None, platform=None):
+    """Collecteur de la plateforme courante : /proc et statvfs sous Linux, API Windows sinon."""
+    platform = sys.platform if platform is None else platform
+    if platform == "win32":
+        from .metrics_windows import WindowsCollector
+
+        return WindowsCollector(disk_path=disk_path)
+    return Collector(proc_root=proc_root, disk_path=disk_path or "/")
