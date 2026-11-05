@@ -112,6 +112,26 @@ describe("page des sondes d'un équipement", () => {
     expect(ssh.getByText(/Connexion refusée/)).toBeInTheDocument();
   });
 
+  it("distingue un résultat indéterminé (ping non autorisé) d'une panne", async () => {
+    const unknown = {
+      ...probeBase,
+      id: "p4",
+      name: "Ping cœur",
+      type: "ICMP",
+      lastUp: null,
+      lastError: "Ping non autorisé sur le serveur",
+      lastCheckedAt: "2026-11-01T10:02:00Z",
+    };
+    mockApi([unknown]);
+    renderPage();
+
+    await screen.findByText("Ping cœur");
+    const row = within(rowOf("Ping cœur"));
+    expect(row.getByText("Indéterminé")).toBeInTheDocument();
+    expect(row.getByText(/Ping non autorisé sur le serveur/)).toBeInTheDocument();
+    expect(row.queryByText("Injoignable")).not.toBeInTheDocument();
+  });
+
   it("montre une sonde inactive grisée avec « Réactiver », qui la réactive", async () => {
     let probes = [up, down, inactive];
     mockApi();
@@ -215,7 +235,8 @@ describe("page des sondes d'un équipement", () => {
     await userEvent.click(screen.getByRole("button", { name: "Tester SSH" }));
 
     expect(await screen.findByRole("status")).toHaveTextContent(/SSH.*En ligne.*12 ms/);
-    expect(apiClient.post).toHaveBeenCalledWith("/equipements/e1/sondes/p2/tester");
+    // Le serveur peut prendre jusqu'à 30 s (délai maximal) plus la résolution DNS.
+    expect(apiClient.post).toHaveBeenCalledWith("/equipements/e1/sondes/p2/tester", undefined, { timeout: 40000 });
     expect(listCalls()).toBe(before);
     // L'état enregistré de la ligne n'a pas bougé.
     expect(within(rowOf("SSH")).getByText("Injoignable")).toBeInTheDocument();

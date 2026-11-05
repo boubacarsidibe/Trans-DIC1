@@ -25,7 +25,10 @@ const typeLabel = (type) => PROBE_TYPES.find((t) => t.value === type)?.label ?? 
 
 function stateOf(probe) {
   if (!probe.active) return { tone: "muted", text: "Désactivée" };
-  if (probe.lastUp == null) return { tone: "muted", text: "En attente" };
+  // Vérifiée sans conclusion (par exemple ping refusé au serveur) : ni en ligne ni en panne.
+  if (probe.lastUp == null) {
+    return probe.lastCheckedAt ? { tone: "warn", text: "Indéterminé" } : { tone: "muted", text: "En attente" };
+  }
   return probe.lastUp ? { tone: "ok", text: "En ligne" } : { tone: "bad", text: "Injoignable" };
 }
 
@@ -342,7 +345,7 @@ function ProbesView({ id }) {
                     <td className="p-3">{probe.lastLatencyMs != null ? `${probe.lastLatencyMs} ms` : "—"}</td>
                     <td className="p-3">{formatDate(probe.lastCheckedAt)}</td>
                     <td className="p-3 text-slate-300">
-                      {probe.lastUp === false && probe.lastError ? probe.lastError : "—"}
+                      {probe.lastUp !== true && probe.lastError ? probe.lastError : "—"}
                     </td>
                     {canWrite && (
                       <td className="p-3">

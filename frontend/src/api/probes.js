@@ -33,9 +33,14 @@ export async function deleteProbe(equipmentId, probeId) {
   await apiClient.delete(`${base(equipmentId)}/${probeId}`);
 }
 
+/** Délai du bouton « Tester » : 30 s au plus côté serveur, plus la résolution DNS. */
+export const TEST_TIMEOUT_MS = 40000;
+
 /** Exécution immédiate côté serveur : rien n'est enregistré. */
 export async function testProbe(equipmentId, probeId) {
-  const { data } = await apiClient.post(`${base(equipmentId)}/${probeId}/tester`);
+  const { data } = await apiClient.post(`${base(equipmentId)}/${probeId}/tester`, undefined, {
+    timeout: TEST_TIMEOUT_MS,
+  });
   return data;
 }
 
