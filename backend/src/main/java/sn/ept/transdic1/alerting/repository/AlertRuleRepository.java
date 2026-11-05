@@ -10,6 +10,8 @@ public interface AlertRuleRepository extends JpaRepository<AlertRule, UUID> {
 
   boolean existsByName(String name);
 
+  java.util.Optional<AlertRule> findByName(String name);
+
   boolean existsByNameAndIdNot(String name, java.util.UUID id);
 
   /** Règles actives sur cet indicateur qui visent l'équipement lui-même ou son site. */

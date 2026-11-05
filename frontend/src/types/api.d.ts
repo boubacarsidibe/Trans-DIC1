@@ -542,6 +542,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/equipements/{equipmentId}/modele/previsualiser": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Prévisualiser l'application d'un modèle
+         * @description Différentiel sans rien modifier : indicateurs à ajouter ou déjà présents, règles et sondes à créer, éléments ignorés et pourquoi. Identique à ce que fera l'application.
+         */
+        post: operations["previewTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipements/{equipmentId}/modele/appliquer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Appliquer un modèle à un équipement
+         * @description Idempotent : rien n'est créé deux fois (indicateur par clé, règle par nom, sonde par nom). Règles limitées à l'équipement, inactives sauf activateRules. Tout ou rien (une transaction). Secrets SNMP par référence env:NOM uniquement.
+         */
+        post: operations["applyTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/equipements/{equipmentId}/agent": {
         parameters: {
             query?: never;
@@ -987,6 +1027,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/modeles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lister les modèles d'équipement
+         * @description Filtres : catégorie, fabricant (sans casse), texte libre (q) et sysDescr d'un équipement découvert (modèles suggérés).
+         */
+        get: operations["listTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/modeles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Consulter un modèle (contenu complet) */
+        get: operations["getTemplate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/metrics/latest": {
         parameters: {
             query?: never;
@@ -1059,6 +1136,26 @@ export interface paths {
          * @description Pour chaque indicateur suivi (disque et mémoire en pourcentage par défaut) : tendance linéaire sur les 14 derniers jours de moyennes horaires, jours restants avant 100 % et confiance. Lecture seule, ouverte à tous les rôles dans leur périmètre de sites.
          */
         get: operations["forecasts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipements/{equipmentId}/modeles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Modèles appliqués à un équipement
+         * @description Version appliquée, date et auteur ; lecture selon le périmètre par site.
+         */
+        get: operations["listAppliedTemplates"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1691,6 +1788,33 @@ export interface components {
             /** Format: int32 */
             consecutiveFailures?: number;
         };
+        Options: {
+            /** @enum {string} */
+            snmpVersion?: "V2C" | "V3";
+            communityReference?: string;
+            securityIdentity?: string;
+            secretReference?: string;
+            /**
+             * Format: int32
+             * @description Port SNMP ; vide : port par défaut du serveur
+             */
+            snmpPort?: number;
+            /**
+             * Format: int32
+             * @description 60 par défaut
+             */
+            pollIntervalSeconds?: number;
+            /** @description Vrai par défaut */
+            createRules?: boolean;
+            /** @description Faux par défaut : les règles sont créées inactives */
+            activateRules?: boolean;
+            /** @description Vrai par défaut */
+            createProbes?: boolean;
+        };
+        TemplateApplyRequest: {
+            templateId: string;
+            options?: components["schemas"]["Options"];
+        };
         AgentRegistrationResponse: {
             /** Format: uuid */
             agentId?: string;
@@ -1859,6 +1983,26 @@ export interface components {
             /** Format: uuid */
             userId?: string;
             siteIds?: string[];
+        };
+        TemplateSummaryResponse: {
+            id?: string;
+            /** Format: int32 */
+            version?: number;
+            name?: string;
+            vendor?: string;
+            /** @enum {string} */
+            category?: "ROUTER" | "SWITCH" | "ACCESS_POINT" | "SERVER" | "UPS" | "PRINTER" | "SERVICE" | "GENERIC";
+            description?: string;
+            /** @description Faux : OID non validés sur un matériel réel */
+            verified?: boolean;
+            /** Format: int32 */
+            metricCount?: number;
+            /** Format: int32 */
+            ruleCount?: number;
+            /** Format: int32 */
+            probeCount?: number;
+            /** Format: int32 */
+            eventRuleCount?: number;
         };
         MetricResponse: {
             /** Format: int64 */
@@ -4298,6 +4442,104 @@ export interface operations {
             };
         };
     };
+    previewTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplateApplyRequest"];
+            };
+        };
+        responses: {
+            /** @description Application impossible */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Équipement ou modèle introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    applyTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplateApplyRequest"];
+            };
+        };
+        responses: {
+            /** @description Application impossible */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Équipement ou modèle introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     current: {
         parameters: {
             query?: never;
@@ -5378,6 +5620,87 @@ export interface operations {
             };
         };
     };
+    listTemplates: {
+        parameters: {
+            query?: {
+                category?: "ROUTER" | "SWITCH" | "ACCESS_POINT" | "SERVER" | "UPS" | "PRINTER" | "SERVICE" | "GENERIC";
+                vendor?: string;
+                q?: string;
+                sysDescr?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TemplateSummaryResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Modèle introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     latest: {
         parameters: {
             query?: never;
@@ -5535,6 +5858,44 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ApiError"];
                 };
+            };
+        };
+    };
+    listAppliedTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Équipement introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
