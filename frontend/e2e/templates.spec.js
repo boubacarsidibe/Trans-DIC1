@@ -30,7 +30,7 @@ test.describe("modèles d'équipement", () => {
     await page.getByRole("button", { name: `Appliquer un modèle à ${equipment.name}` }).click();
 
     const panel = page.getByTestId("template-apply-panel");
-    await panel.getByLabel("Modèle").selectOption("linux-net-snmp");
+    await panel.getByRole("combobox", { name: /^Modèle/ }).selectOption("linux-net-snmp");
     await panel.getByLabel("Référence de la communauté (env:NOM)").fill("env:SNMP_E2E");
     await panel.getByRole("button", { name: "Prévisualiser" }).click();
 
