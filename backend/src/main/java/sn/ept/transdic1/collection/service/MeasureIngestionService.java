@@ -146,6 +146,11 @@ public class MeasureIngestionService {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Horodatage dans le futur");
     }
 
+    if (service.getType() == ServiceType.ICMP) {
+      // Avant toute mesure : sérialise les sondes ICMP de l'équipement (voir
+      // IcmpReachabilityService.lock), la sonde elle-même s'est exécutée hors transaction.
+      icmp.lock(equipment);
+    }
     var tally = new Tally();
     if (result.indeterminate()) {
       // La sonde n'a pas pu conclure : ni mesure trompeuse à 0, ni échec de plus au compteur.

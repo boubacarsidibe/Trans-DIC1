@@ -40,12 +40,15 @@ import sn.ept.transdic1.alerting.repository.AlertRepository;
 import sn.ept.transdic1.alerting.repository.AlertRuleRepository;
 import sn.ept.transdic1.collection.probe.ProbeResult;
 import sn.ept.transdic1.collection.service.MeasureIngestionService;
+import sn.ept.transdic1.inventory.domain.AgentStatus;
+import sn.ept.transdic1.inventory.domain.CollectionAgent;
 import sn.ept.transdic1.inventory.domain.Equipment;
 import sn.ept.transdic1.inventory.domain.EquipmentStatus;
 import sn.ept.transdic1.inventory.domain.EquipmentType;
 import sn.ept.transdic1.inventory.domain.MonitoredService;
 import sn.ept.transdic1.inventory.domain.ServiceType;
 import sn.ept.transdic1.inventory.domain.Site;
+import sn.ept.transdic1.inventory.repository.CollectionAgentRepository;
 import sn.ept.transdic1.inventory.repository.EquipmentRepository;
 import sn.ept.transdic1.inventory.repository.MonitoredServiceRepository;
 import sn.ept.transdic1.inventory.repository.SiteRepository;
@@ -81,6 +84,7 @@ class ProbeApiTests {
   @Autowired private JdbcTemplate jdbc;
   @Autowired private EntityManager em;
   @Autowired private MeasureIngestionService ingestion;
+  @Autowired private CollectionAgentRepository agents;
 
   private final String suffix = UUID.randomUUID().toString().substring(0, 8);
   private Equipment equipmentA;
@@ -522,7 +526,8 @@ class ProbeApiTests {
         .andExpect(jsonPath("$.consecutiveFailures").value(0))
         .andExpect(jsonPath("$.lastUp").doesNotExist())
         .andExpect(jsonPath("$.lastError").doesNotExist())
-        .andExpect(jsonPath("$.lastLatencyMs").doesNotExist());
+        .andExpect(jsonPath("$.lastLatencyMs").doesNotExist())
+        .andExpect(jsonPath("$.lastCheckedAt").doesNotExist());
     assertThat(services.findById(id).orElseThrow().getNextRunAt()).isNull();
 
     // Le premier échec ICMP est le premier, pas le 6e : pas d'alerte de collecte.
@@ -553,6 +558,74 @@ class ProbeApiTests {
             admin)
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.consecutiveFailures").value(2));
+  }
+
+  @Test
+  void reactivatingAProbeForgetsItsStaleCounter() throws Exception {
+    UUID stale = createIcmp("Ping ancien");
+    UUID failing = createIcmp("Ping muet");
+    jdbc.update(
+        "UPDATE monitored_service SET active = false, consecutive_failures = 4, last_up = false,"
+            + " last_error = 'Ancien', last_checked_at = now() WHERE id = ?",
+        stale);
+    em.clear();
+    fail(failing, 3);
+    assertThat(statusOfA()).isEqualTo(EquipmentStatus.DOWN);
+
+    call(put(url + "/" + stale).content(icmp("Ping ancien", "\"active\":true")), admin)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.active").value(true))
+        .andExpect(jsonPath("$.consecutiveFailures").value(0))
+        .andExpect(jsonPath("$.lastUp").doesNotExist())
+        .andExpect(jsonPath("$.lastError").doesNotExist())
+        .andExpect(jsonPath("$.lastCheckedAt").doesNotExist());
+
+    // L'ancien compteur ne retient pas l'équipement : la reprise de la sonde muette suffit.
+    ingestion.ingestProbe(failing, ProbeResult.up(3), Instant.now());
+    assertThat(statusOfA()).isEqualTo(EquipmentStatus.UP);
+    assertThat(collectionStates()).containsExactly("RESOLVED");
+  }
+
+  @Test
+  void changingTheFailingPingToAnotherTypeBringsTheEquipmentBack() throws Exception {
+    UUID id = createIcmp("Ping devenu web");
+    fail(id, 3);
+    assertThat(statusOfA()).isEqualTo(EquipmentStatus.DOWN);
+
+    call(put(url + "/" + id).content("{\"name\":\"Ping devenu web\",\"type\":\"HTTP\"}"), admin)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.consecutiveFailures").value(0));
+
+    assertThat(statusOfA()).isEqualTo(EquipmentStatus.UP);
+    assertThat(collectionStates()).containsExactly("RESOLVED");
+  }
+
+  @Test
+  void changingOnlyThePortResetsTheCounters() throws Exception {
+    UUID id = createTcp("SSH", 22);
+    fail(id, 4);
+
+    call(put(url + "/" + id).content(tcp("SSH", 2222)), admin)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.port").value(2222))
+        .andExpect(jsonPath("$.consecutiveFailures").value(0))
+        .andExpect(jsonPath("$.lastUp").doesNotExist());
+  }
+
+  @Test
+  void anActiveAgentKeepsTheEquipmentStatusOutOfProbeUpdates() throws Exception {
+    UUID id = createIcmp("Ping avant agent");
+    fail(id, 3);
+    assertThat(statusOfA()).isEqualTo(EquipmentStatus.DOWN);
+    agents.saveAndFlush(
+        new CollectionAgent(equipmentA, "agent-" + suffix, AgentStatus.ACTIVE, Instant.now()));
+
+    call(put(url + "/" + id).content(icmp("Ping avant agent", "\"active\":false")), admin)
+        .andExpect(status().isOk());
+
+    // L'agent pilote le statut : la désactivation de la sonde ne rétablit rien.
+    assertThat(statusOfA()).isEqualTo(EquipmentStatus.DOWN);
+    assertThat(collectionStates()).containsExactly("OPEN");
   }
 
   @Test

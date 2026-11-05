@@ -119,7 +119,7 @@ public class ProbeAdminService {
     requireUniqueName(equipmentId, name, id);
     // Sans « active », l'état reste celui de la sonde (une sonde désactivée le reste).
     boolean wasActive = service.isActive();
-    boolean wasHoldingDown = holdsDown(service);
+    boolean wasHoldingDown = IcmpReachabilityService.holdsDown(service);
     boolean typeChanged = service.getType() != request.type();
     boolean targetChanged =
         !Objects.equals(service.getAccessPoint(), trimToNull(request.accessPoint()))
@@ -131,9 +131,10 @@ public class ProbeAdminService {
     service.setName(name);
     service.setType(request.type());
     apply(service, request, active);
-    if (typeChanged || targetChanged) {
-      // Les derniers résultats portaient sur autre chose : une sonde HTTP à 5 échecs devenue ICMP
-      // ne doit pas ouvrir une alerte de collecte à son premier échec ICMP.
+    if (typeChanged || targetChanged || (active && !wasActive)) {
+      // Les derniers résultats portaient sur autre chose (autre type, autre cible, ou d'avant la
+      // désactivation) : une sonde HTTP à 5 échecs devenue ICMP ne doit pas ouvrir une alerte de
+      // collecte à son premier échec ICMP, ni un vieux compteur retenir l'équipement.
       resetState(service);
     } else if (wasActive && !active) {
       service.setConsecutiveFailures(0);
@@ -141,7 +142,7 @@ public class ProbeAdminService {
     // Nouvelle cible ou nouvel intervalle : pris en compte dès le prochain passage.
     service.setNextRunAt(null);
     services.saveAndFlush(service);
-    if (wasHoldingDown && !holdsDown(service)) {
+    if (wasHoldingDown && !IcmpReachabilityService.holdsDown(service)) {
       icmp.release(service, clock.instant());
     }
     // Désactivée, ou d'un autre type : les alertes ouvertes ne correspondent plus à ce qui est
@@ -167,7 +168,7 @@ public class ProbeAdminService {
       if (!service.isActive()) {
         return;
       }
-      boolean wasHoldingDown = holdsDown(service);
+      boolean wasHoldingDown = IcmpReachabilityService.holdsDown(service);
       service.setActive(false);
       service.setConsecutiveFailures(0);
       services.saveAndFlush(service);
@@ -178,7 +179,7 @@ public class ProbeAdminService {
       audit.record("PROBE_DISABLED", AUDIT_TARGET, id, details);
       return;
     }
-    boolean wasHoldingDown = holdsDown(service);
+    boolean wasHoldingDown = IcmpReachabilityService.holdsDown(service);
     services.delete(service);
     services.flush();
     if (wasHoldingDown) {
@@ -281,18 +282,13 @@ public class ProbeAdminService {
     throw new ResponseStatusException(HttpStatus.CONFLICT, message);
   }
 
-  /** Vrai si la sonde retient son équipement hors service (ICMP active à 3 échecs ou plus). */
-  private static boolean holdsDown(MonitoredService service) {
-    return IcmpReachabilityService.holdsDown(
-        service.getType(), service.isActive(), service.getConsecutiveFailures());
-  }
-
   /** Oublie les derniers résultats ; le prochain passage a lieu tout de suite. */
   private static void resetState(MonitoredService service) {
     service.setConsecutiveFailures(0);
     service.setLastUp(null);
     service.setLastError(null);
     service.setLastLatencyMs(null);
+    service.setLastCheckedAt(null);
     service.setNextRunAt(null);
   }
 

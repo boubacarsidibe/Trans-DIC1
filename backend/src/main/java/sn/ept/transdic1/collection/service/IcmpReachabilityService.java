@@ -1,5 +1,6 @@
 package sn.ept.transdic1.collection.service;
 
+import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import sn.ept.transdic1.inventory.domain.MonitoredService;
 import sn.ept.transdic1.inventory.domain.ServiceType;
 import sn.ept.transdic1.inventory.repository.CollectionAgentRepository;
 import sn.ept.transdic1.inventory.repository.CollectionConfigurationRepository;
+import sn.ept.transdic1.inventory.repository.EquipmentRepository;
 import sn.ept.transdic1.inventory.repository.MonitoredServiceRepository;
 
 /**
@@ -20,6 +22,11 @@ import sn.ept.transdic1.inventory.repository.MonitoredServiceRepository;
  * actives : il est hors service tant qu'au moins une est à {@link #FAILURES_BEFORE_DOWN} échecs
  * consécutifs, et ne repasse en service que lorsqu'aucune ne l'est plus. Ainsi deux sondes, l'une
  * muette et l'autre saine, ne font pas osciller l'alerte de collecte à chaque passage.
+ *
+ * <p>Les sondes d'un même équipement s'exécutent en parallèle, chacune dans sa transaction : chaque
+ * décision verrouille d'abord la ligne de l'équipement ({@link #lock}), pour que la seconde attende
+ * la première et lise son compteur validé. Sans cela, deux sondes qui reprennent ensemble verraient
+ * chacune l'autre encore à 3 échecs et aucune ne rétablirait l'équipement.
  */
 @Service
 public class IcmpReachabilityService {
@@ -30,12 +37,18 @@ public class IcmpReachabilityService {
   private final CollectionAgentRepository agents;
   private final CollectionConfigurationRepository configurations;
   private final CollectionAlertService collectionAlerts;
+  private final EquipmentRepository equipments;
+  private final EntityManager em;
 
   public IcmpReachabilityService(
       MonitoredServiceRepository services,
       CollectionAgentRepository agents,
       CollectionConfigurationRepository configurations,
-      CollectionAlertService collectionAlerts) {
+      CollectionAlertService collectionAlerts,
+      EquipmentRepository equipments,
+      EntityManager em) {
+    this.equipments = equipments;
+    this.em = em;
     this.services = services;
     this.agents = agents;
     this.configurations = configurations;
@@ -54,8 +67,23 @@ public class IcmpReachabilityService {
   }
 
   /** Vrai si la sonde, telle qu'elle est, retient l'équipement hors service. */
-  public static boolean holdsDown(ServiceType type, boolean active, int consecutiveFailures) {
-    return type == ServiceType.ICMP && active && consecutiveFailures >= FAILURES_BEFORE_DOWN;
+  public static boolean holdsDown(MonitoredService probe) {
+    return probe.getType() == ServiceType.ICMP
+        && probe.isActive()
+        && probe.getConsecutiveFailures() >= FAILURES_BEFORE_DOWN;
+  }
+
+  /**
+   * Verrouille l'équipement jusqu'à la fin de la transaction, puis relit son statut : une autre
+   * transaction a pu le changer depuis son chargement. À appeler avant toute écriture qui référence
+   * l'équipement (mesure, alerte) : une écriture de ce genre prend un verrou partagé sur sa ligne,
+   * et deux transactions qui le prendraient avant ce verrou exclusif se bloqueraient mutuellement.
+   * La requête valide d'abord les changements en attente, rien n'est perdu.
+   */
+  @Transactional
+  public void lock(Equipment equipment) {
+    equipments.findForUpdate(equipment.getId());
+    em.refresh(equipment);
   }
 
   /**
@@ -67,6 +95,7 @@ public class IcmpReachabilityService {
   @Transactional
   public Optional<AlertChange> release(MonitoredService released, Instant at) {
     Equipment equipment = released.getEquipment();
+    lock(equipment);
     if (!drivesStatus(equipment)) {
       return Optional.empty();
     }
@@ -89,8 +118,11 @@ public class IcmpReachabilityService {
    */
   @Transactional
   public Optional<AlertChange> reportFailure(MonitoredService probe, Instant at) {
-    if (probe.getConsecutiveFailures() < FAILURES_BEFORE_DOWN
-        || !drivesStatus(probe.getEquipment())) {
+    if (probe.getConsecutiveFailures() < FAILURES_BEFORE_DOWN) {
+      return Optional.empty();
+    }
+    lock(probe.getEquipment());
+    if (!drivesStatus(probe.getEquipment())) {
       return Optional.empty();
     }
     return collectionAlerts.reportFailure(
