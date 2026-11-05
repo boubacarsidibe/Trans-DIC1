@@ -8,7 +8,7 @@ Compose (US23) tant que le CRI n'exploite pas de cluster ; le chart prépare cet
 
 | Objet | Détail |
 |---|---|
-| `Deployment` backend | Image `<registre>/backend:<étiquette>`, sondes `startup`/`liveness` sur `/actuator/health/liveness`, `readiness` sur `/actuator/health/readiness`, utilisateur 10001, système de fichiers en lecture seule, toutes capacités retirées sauf `NET_RAW` (ping des sondes ICMP, valeur `backend.netRaw`, voir [sondes-icmp-conteneur.md](sondes-icmp-conteneur.md)). |
+| `Deployment` backend | Image `<registre>/backend:<étiquette>`, sondes `startup`/`liveness` sur `/actuator/health/liveness`, `readiness` sur `/actuator/health/readiness`, utilisateur 10001, système de fichiers en lecture seule, toutes capacités retirées, élévation de privilèges interdite ; sysctl de pod `net.ipv4.ping_group_range` (ping des sondes ICMP, valeur `backend.pingSysctl`, voir [sondes-icmp-conteneur.md](sondes-icmp-conteneur.md)). |
 | `HorizontalPodAutoscaler` | 2 à 4 répliques sur 70 % de CPU (désactivé en staging). |
 | `PodDisruptionBudget` | Au moins un backend disponible pendant une maintenance du nœud. |
 | `Deployment` frontend | Nginx non privilégié, sondes HTTP sur `/`. |

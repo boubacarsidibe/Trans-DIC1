@@ -163,25 +163,29 @@ Les sondes sont lancées **par le serveur Trans-DIC1** : elles ne voient que ce 
 
 | Type | Ce qui est vérifié | Cible |
 | --- | --- | --- |
-| Ping (ICMP) | l'équipement répond au ping ; latence | adresse IP de l'équipement (ou une adresse IP saisie) |
-| Port TCP | une connexion s'ouvre sur le port ; latence | adresse de l'équipement ou nom d'hôte, plus le port |
-| HTTP / HTTPS | la page répond avec un statut attendu (200 à 399 par défaut), éventuellement avec un texte attendu ; latence | adresse ou URL (sans identifiant dans l'URL) |
+| Ping (ICMP) | l'équipement répond au ping ; latence | adresse de l'équipement, ou une adresse IP ou un nom d'hôte saisi (sans `icmp://`) |
+| Port TCP | une connexion s'ouvre sur le port ; latence | adresse de l'équipement ou nom d'hôte (sans schéma), plus le port |
+| HTTP / HTTPS | la page répond avec un statut attendu (200 à 399 par défaut), éventuellement avec un texte attendu ; latence | adresse ou URL (`http://` pour HTTP, `https://` pour HTTPS ; sans identifiant dans l'URL) |
 | Certificat TLS | nombre de jours avant l'expiration du certificat présenté par le serveur | nom d'hôte, plus le port |
+
+Un nom d'hôte est résolu **une fois** à chaque vérification ; si le nom donne plusieurs adresses, la première adresse autorisée est utilisée (une adresse interdite, comme la boucle locale, est ignorée).
 
 **Ajouter une sonde** : **Ajouter une sonde**, nom, type, cible, intervalle (30 secondes au minimum) et délai de réponse (de 100 à 30 000 ms), puis **Enregistrer**. La première vérification a lieu au prochain passage. **Tester** lance la sonde tout de suite (30 secondes au plus) et affiche le résultat sans rien enregistrer ni alerter. Une sonde HTTP sans texte attendu ne juge que la ligne de statut : un serveur qui répond puis se fige compte comme en ligne ; renseignez un texte attendu pour juger le contenu. Au plus 50 sondes actives par équipement.
 
-**Lire l'état** : *En ligne*, *Injoignable* (avec le motif court), *En attente* (pas encore vérifiée) ou *Désactivée*, la latence et l'heure de la dernière vérification. La page ne se rafraîchit pas seule : **Actualiser**. Les courbes (`probe.latency`, `probe.tls.days_left`) sont dans l'historique de l'équipement.
+**Lire l'état** : *En ligne*, *Injoignable* (avec le motif court), *Indéterminé* (la vérification n'a pas pu conclure, par exemple « Ping non autorisé sur le serveur » : rien n'est enregistré et ce n'est pas compté comme un échec), *En attente* (pas encore vérifiée) ou *Désactivée*, la latence et l'heure de la dernière vérification. La page ne se rafraîchit pas seule : **Actualiser**. Les courbes (`probe.latency`, `probe.tls.days_left`) sont dans l'historique de l'équipement ; **plusieurs sondes du même type sur un même équipement y partagent une seule courbe** (limite connue).
+
+Changer le **type** d'une sonde referme ses alertes ouvertes (« Type de sonde modifié »).
 
 **Désactiver et supprimer** : désactiver une sonde referme ses alertes ouvertes (« Sonde désactivée »). Supprimer une sonde qui a déjà un historique ne fait que la **désactiver** et son nom reste pris : **Réactiver** la sonde, ou la renommer pour réutiliser le nom.
 
-**Statut de l'équipement** : une sonde ne change pas l'état d'un équipement qui a un agent actif ou une configuration SNMP active. Sur un équipement qui n'a ni l'un ni l'autre, la sonde **Ping** le pilote : hors service après 3 échecs de suite, en service au premier succès.
+**Statut de l'équipement** : une sonde ne change pas l'état d'un équipement qui a un agent actif ou une configuration SNMP active. Sur un équipement qui n'a ni l'un ni l'autre, la sonde **Ping** le pilote comme un agent : au 3e échec de suite, l'équipement passe hors service et une **alerte de collecte** s'ouvre (notifiée, sauf en maintenance) ; au premier succès, il repasse en service et l'alerte se résout. Cette panne compte dans la disponibilité (SLA).
 
-**Alertes : activer les deux règles par défaut.** Les sondes ne préviennent personne tant qu'aucune règle ne les lit. Deux règles sont créées **inactives** ; dans **Réglages > Règles**, un administrateur les active et les limite aux bons équipements ou sites :
+**Alertes : activer les deux règles par défaut.** En dehors du cas Ping ci-dessus, les sondes ne préviennent personne tant qu'aucune règle ne les lit. Deux règles sont créées **inactives** et **sans périmètre** ; dans **Réglages > Règles**, un administrateur les active **et** les rattache aux sites ou équipements voulus : **une règle sans périmètre ne s'applique à aucun équipement**.
 
 - **Sonde injoignable** : `probe.up` inférieur à 100 pendant 3 minutes, sévérité critique.
 - **Certificat bientôt expiré** : `probe.tls.days_left` inférieur à 14 jours, sévérité avertissement.
 
-Chaque sonde ouvre sa propre alerte : deux sondes en panne sur le même équipement donnent deux alertes. Elles suivent le cycle habituel (prise en charge, résolution, notifications, SLA, maintenances).
+Chaque sonde ouvre sa propre alerte : deux sondes en panne sur le même équipement donnent deux alertes. Elles suivent le cycle habituel (prise en charge, résolution, notifications, maintenances, rapport d'incidents) mais **ne comptent pas dans la disponibilité (SLA)**, qui ne lit que les alertes de collecte. Les mesures de sonde ne déclenchent pas non plus la détection d'anomalies.
 
 **Interpréter `probe.tls.days_left`** : c'est le nombre de jours entiers qui restent avant la date de fin du certificat. 30 : il reste un mois ; 13 : la règle par défaut s'ouvre ; 0 : il expire dans moins de 24 heures ; une valeur négative : il est déjà expiré. La sonde Certificat TLS lit le certificat **sans en valider la chaîne**, exprès : elle mesure la date, même d'un certificat auto-signé ou d'une autorité inconnue. Une sonde HTTPS, elle, **valide** le certificat et échoue s'il est invalide.
 
