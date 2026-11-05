@@ -230,6 +230,22 @@ Le cadre **Tester sur un exemple** indique si un événement d'exemple (source, 
 
 **Limites** : une seule alerte par équipement et par règle, quelle que soit l'interface (un linkUp de l'interface 2 résout l'alerte du linkDown de l'interface 1) ; pas de traduction des OID propriétaires (affichés en chiffres).
 
+### Modèles d'équipement
+
+La page **Modèles** (menu Parc, visible par tous) présente la bibliothèque livrée : hôte SNMP générique, serveurs Linux et Windows, MikroTik, Cisco IOS, UniFi, HPE/Aruba, onduleur APC, imprimante, service web HTTPS. Chaque carte indique le fabricant, la catégorie, le nombre d'indicateurs, de règles et de sondes ; **Voir le détail** montre les OID, l'objet de MIB d'où ils viennent, les conversions (par exemple « 100 - x » pour une charge CPU calculée depuis l'inactivité) et les seuils proposés.
+
+Le badge **« Non validé sur matériel »** signifie que les OID viennent de la documentation publique et n'ont pas encore été essayés sur un équipement de l'EPT : contrôlez les premières mesures avant de vous fier aux alertes.
+
+Pour appliquer un modèle (administrateur) :
+
+1. Page **Équipements**, bouton **Modèle** sur la ligne de l'équipement.
+2. Choisissez le modèle. Si l'équipement n'a pas encore de collecte SNMP, indiquez la version et la **référence** de la communauté (`env:SNMP_CAMPUS`) ou du compte SNMPv3 — jamais le secret lui-même — et, au besoin, le port.
+3. Cochez ou non : créer les règles d'alerte suggérées, **les activer** (sinon elles sont créées inactives, à régler puis activer dans la page Règles), créer les sondes suggérées.
+4. **Prévisualiser** : la liste annonce ce qui sera créé, ce qui existe déjà et ce qui est ignoré (avec la raison). Rien n'est encore modifié.
+5. **Confirmer l'application**. Les règles portent le nom du modèle suivi du code d'inventaire et ne visent que cet équipement.
+
+Réappliquer le même modèle ne crée rien en double ; appliquer un autre modèle ajoute ses éléments sans rien supprimer. Le panneau rappelle les modèles déjà appliqués (version, date, auteur). Les règles d'événements proposées par certains modèles sont seulement suggérées : créez-les depuis la page Règles d'événements.
+
 ### Découverte automatique
 
 ![Découverte](images/09-decouverte.png)

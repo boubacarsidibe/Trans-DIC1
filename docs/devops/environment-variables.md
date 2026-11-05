@@ -52,6 +52,7 @@
 | `PROBE_SCAN_INTERVAL_MS` (propriété `collection.probe.scan-interval-ms`) | Non | Tous | Fréquence de recherche des sondes à échéance, 15000 ms par défaut |
 | `PROBE_PARALLELISM` (propriété `collection.probe.parallelism`) | Non | Tous | Sondes exécutées en même temps, 16 par défaut |
 | `PROBE_MAX_PER_SCAN` (propriété `collection.probe.max-per-scan`) | Non | Tous | Plafond de sondes lancées par passage, 500 par défaut (un passage doit finir dans le verrou de 5 minutes) |
+| (propriété `templates.equipment.location`, sans variable) | Non | Tests | Motif des fichiers de modèles d'équipement, `classpath*:templates/equipment/*.json` par défaut ; à ne pas changer en production (ADR 0022, [modeles-equipement.md](modeles-equipement.md)) |
 | `FORECAST_ENABLED` (propriété `forecast.enabled`) | Non | Tous | Alerte horaire de prévision de saturation (ADR 0020), `true` par défaut ; l'API de prévision reste disponible si elle est désactivée |
 | `FORECAST_CRON` (propriété `forecast.cron`) | Non | Tous | Planification de l'alerte de prévision (UTC), `0 7 * * * *` par défaut (toutes les heures, minute 7) |
 | `FORECAST_KEYS` (propriété `forecast.keys`) | Non | Tous | Familles d'indicateurs en pourcentage suivies, séparées par des virgules, `disk.usage,memory.usage` par défaut ; une famille couvre aussi ses sous-clés (`disk.usage.var`) |

@@ -25,6 +25,7 @@ Chaque décision structurante est consignée dans un ADR : contexte, options com
 | [0019](0019-sondes-actives.md) | Sondes actives sans agent (ICMP, TCP, HTTP(S), certificat TLS) lancées depuis le serveur, garde-fous SSRF | acceptée, implémentée (e2e et ping en conteneur à vérifier) |
 | [0020](0020-prevision-saturation.md) | Prévision de saturation (disque, mémoire) par régression linéaire sur les moyennes horaires, alerte FORECAST | acceptée, implémentée |
 | [0021](0021-evenements-reseau.md) | Récepteurs de traps SNMP et de syslog, authentification par adresse, règles d'événements vers alertes EVENT, expressions bornées | acceptée, implémentée (aucun émetteur réel essayé) |
+| [0022](0022-modeles-equipement.md) | Bibliothèque de modèles d'équipement en fichiers JSON versionnés, valeur SNMP dérivée, application idempotente (aperçu = application) | acceptée, implémentée (aucun modèle validé sur matériel) |
 
 L'ADR 0008 a d'abord été publié sous le numéro 0007, déjà attribué aux e-mails : il a été renuméroté sans changement de décision.
 
