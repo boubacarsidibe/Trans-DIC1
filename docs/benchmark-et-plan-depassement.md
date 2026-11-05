@@ -25,7 +25,7 @@ Deux vagues de corrections issues des relectures : prévision de saturation (fau
 - **Les relectures trouvent des défauts à chaque fonction** (une dizaine de points importants au total, tous corrigés ou en cours). La qualité vient des relectures, pas du premier jet : il faut continuer à relire.
 - **Non vérifié** : Docker et Kubernetes (l'image, le ping sans privilèges en conteneur et le chart Helm n'ont jamais été exécutés, car ce poste n'a pas de virtualisation), le comportement réel d'un envoi UDP depuis du matériel, la charge, la lecture à l'écran des nouvelles pages dans un navigateur au-delà des tests.
 - **Limites connues** : pas de sonde DNS ni de scénario web, l'historique mélange les séries de plusieurs sondes du même type, le test de règle sur l'historique ne rejoue pas encore les sondes, l'usurpation d'adresse UDP reste possible pour les traps et le syslog (documentée), les ports UDP 1162 et 1514 ne sont pas publiés dans les fichiers de déploiement.
-- **Absents** : modèles d'équipement, agent Windows, découverte des interfaces et disques, règles composées, jetons d'API, rapports planifiés, MFA propre, proxys de collecte, haute disponibilité, astreinte, page de statut.
+- **Absents** : modèles d'équipement, découverte des interfaces et disques, règles composées, jetons d'API, rapports planifiés, MFA propre, proxys de collecte, haute disponibilité, astreinte, page de statut.
 - **Dette** : aucune intégration continue distante (le script local la remplace en partie), un test instable ancien (agrégation horaire), avertissements du linter en hausse lente, ADR et documents d'architecture à régénérer.
 
 ## 3. Benchmark
@@ -35,8 +35,8 @@ Légende : ✅ présent, 🟡 partiel, ❌ absent. « Trans-DIC1 » = état de l
 | Domaine | Trans-DIC1 | Zabbix | LibreNMS | Prometheus + Grafana | Checkmk | PRTG | Uptime Kuma |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Collecte SNMP v2c/v3 | ✅ OID à la main | ✅ + modèles | ✅ auto | 🟡 snmp_exporter | ✅ auto | ✅ | ❌ |
-| Agent | 🟡 Linux, 4 mesures | ✅ multi-OS, plugins | ❌ | 🟡 exporters | ✅ | ✅ | ❌ |
-| Windows | ❌ | ✅ | 🟡 SNMP | ✅ windows_exporter | ✅ | ✅ | ❌ |
+| Agent | 🟡 Linux et Windows, 4 mesures (+ uptime sous Windows) | ✅ multi-OS, plugins | ❌ | 🟡 exporters | ✅ | ✅ | ❌ |
+| Windows | 🟡 agent natif (stdlib, tâche planifiée) + SNMP ; validé sur Windows 11 seulement, pas sur Windows Server | ✅ | 🟡 SNMP | ✅ windows_exporter | ✅ | ✅ | ❌ |
 | Découverte réseau | 🟡 plage + SNMP | ✅ règles, découverte imbriquée (web, 7.4) | ✅ (web) | ❌ | ✅ | ✅ | ❌ |
 | Modèles par constructeur | ❌ | ✅ | ✅ | 🟡 | ✅ | ✅ | ❌ |
 | Ping, port, HTTP | ✅ | ✅ | ✅ | 🟡 blackbox | ✅ | ✅ | ✅ cœur du produit |
@@ -97,7 +97,7 @@ Légende : ✅ présent, 🟡 partiel, ❌ absent. « Trans-DIC1 » = état de l
 
 ### Écarts à combler (priorité décroissante)
 1. Modèles d'équipement (MikroTik, Cisco, HP, Ubiquiti, onduleurs, imprimantes) et leur application en un clic.
-2. Agent Windows (`agent/agent-windows.py` existe mais n'est pas suivi par git) et davantage de mesures.
+2. ~~Agent Windows~~ : livré (F1.5, ADR-0023), à valider sur Windows Server ; reste : davantage de mesures (réseau, services).
 3. Absence de donnée par indicateur et conditions composées ET/OU.
 4. Découverte des interfaces et disques par SNMP.
 5. Jetons d'API et rapports de SLA planifiés par e-mail.

@@ -26,6 +26,7 @@ Chaque décision structurante est consignée dans un ADR : contexte, options com
 | [0020](0020-prevision-saturation.md) | Prévision de saturation (disque, mémoire) par régression linéaire sur les moyennes horaires, alerte FORECAST | acceptée, implémentée |
 | [0021](0021-evenements-reseau.md) | Récepteurs de traps SNMP et de syslog, authentification par adresse, règles d'événements vers alertes EVENT, expressions bornées | acceptée, implémentée (aucun émetteur réel essayé) |
 | [0022](0022-modeles-equipement.md) | Bibliothèque de modèles d'équipement en fichiers JSON versionnés, valeur SNMP dérivée, application idempotente (aperçu = application) | acceptée, implémentée (aucun modèle validé sur matériel) |
+| [0023](0023-agent-windows.md) | Agent Windows : même paquet Python, API Win32 par ctypes, contrôle de l'ACL du jeton, tâche planifiée SYSTEM | acceptée, implémentée (validée sur Windows 11 seulement, pas sur Windows Server) |
 
 L'ADR 0008 a d'abord été publié sous le numéro 0007, déjà attribué aux e-mails : il a été renuméroté sans changement de décision.
 

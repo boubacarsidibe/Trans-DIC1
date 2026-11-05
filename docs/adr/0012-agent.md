@@ -39,6 +39,6 @@ Le backend sait déjà enregistrer un agent, lui remettre un jeton affiché une 
 
 ## Conséquences
 
-- Seul Linux est pris en charge. Un serveur Windows demanderait une autre collecte (compteurs de performance) : c'est hors périmètre tant que l'EPT n'en exprime pas le besoin.
+- Seul Linux était pris en charge. Depuis l'[ADR-0023](0023-agent-windows.md), le même paquet tourne aussi sous Windows (API Win32 par ctypes, tâche planifiée SYSTEM).
 - Les serveurs doivent disposer de Python 3.8 ou plus récent ; c'est le cas par défaut d'Ubuntu 20.04, de Debian 11 et de RHEL 9.
 - Le paquet n'est pas publié automatiquement : il n'y a pas de CI depuis la suppression des workflows. Il se construit avec `agent/packaging/build-package.sh`.

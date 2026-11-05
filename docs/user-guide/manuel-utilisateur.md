@@ -170,7 +170,7 @@ Une règle qui a déjà ouvert des alertes ne peut pas être supprimée : il fau
 ### Collecte d'un équipement
 
 Depuis la liste des équipements, **Collecte** ouvre la configuration de la collecte :
-- **Agent** : enregistrer un agent Trans-DIC1 pour un serveur. Le jeton n'est affiché **qu'une seule fois** et doit être copié aussitôt ([installation de l'agent](../devops/agent.md)).
+- **Agent** : enregistrer un agent Trans-DIC1 pour un serveur Linux ou Windows. Le jeton n'est affiché **qu'une seule fois** et doit être copié aussitôt ([installation de l'agent](../devops/agent.md), [section Windows](../devops/agent.md#windows)). Un agent Windows envoie en plus `uptime.seconds` (durée depuis le démarrage, en secondes), visible dans l'historique de l'équipement.
 - **SNMP** : version, référence du secret (`env:NOM`, jamais le mot de passe lui-même), OID à lire.
 
 ### Sondes (supervision sans agent)
