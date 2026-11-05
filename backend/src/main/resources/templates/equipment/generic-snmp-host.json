@@ -1,0 +1,49 @@
+{
+  "id": "generic-snmp-host",
+  "version": 1,
+  "name": "Hôte SNMP générique (MIB-II)",
+  "vendor": "Générique",
+  "category": "GENERIC",
+  "description": "Base pour tout équipement qui répond en SNMP : durée de fonctionnement et nombre d'interfaces, objets standard MIB-II (RFC 1213) présents sur presque tous les agents. Ping en complément.",
+  "verified": true,
+  "metrics": [
+    {
+      "name": "Durée de fonctionnement",
+      "technicalKey": "system.uptime",
+      "valueType": "DECIMAL",
+      "unit": "s",
+      "snmpOid": "1.3.6.1.2.1.1.3.0",
+      "source": "SNMPv2-MIB::sysUpTime.0 (centièmes de seconde, converti en secondes)",
+      "scale": 0.01
+    },
+    {
+      "name": "Nombre d'interfaces",
+      "technicalKey": "interfaces.count",
+      "valueType": "INTEGER",
+      "snmpOid": "1.3.6.1.2.1.2.1.0",
+      "source": "IF-MIB::ifNumber.0"
+    }
+  ],
+  "rules": [
+    {
+      "name": "Redémarrage récent",
+      "metricKey": "system.uptime",
+      "operator": "LESS_THAN",
+      "threshold": 600,
+      "unit": "s",
+      "confirmationSeconds": 0,
+      "severity": "INFO"
+    }
+  ],
+  "probes": [
+    { "name": "Ping", "type": "ICMP", "intervalSeconds": 60 }
+  ],
+  "eventRules": [
+    {
+      "name": "Redémarrage à froid (trap coldStart)",
+      "description": "Trap standard coldStart (SNMPv2-MIB) envoyée au redémarrage de l'agent.",
+      "oidPrefix": "1.3.6.1.6.3.1.1.5.1",
+      "severity": "WARNING"
+    }
+  ]
+}

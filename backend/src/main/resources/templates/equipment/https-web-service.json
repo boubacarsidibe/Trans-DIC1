@@ -1,0 +1,33 @@
+{
+  "id": "https-web-service",
+  "version": 1,
+  "name": "Service web HTTPS",
+  "vendor": "Générique",
+  "category": "SERVICE",
+  "description": "Site ou application web servi en HTTPS sur l'adresse de gestion : sonde HTTPS (port 443, chaîne de certificats validée) et sonde de date d'expiration du certificat TLS. Aucun SNMP. Les règles « Service web injoignable » et « Certificat bientôt expiré » sont limitées à l'équipement.",
+  "verified": false,
+  "probes": [
+    { "name": "Site HTTPS", "type": "HTTPS", "port": 443, "intervalSeconds": 60 },
+    { "name": "Certificat TLS", "type": "TLS_CERT", "port": 443, "intervalSeconds": 3600 }
+  ],
+  "rules": [
+    {
+      "name": "Service web injoignable",
+      "metricKey": "probe.up",
+      "operator": "LESS_THAN",
+      "threshold": 100,
+      "unit": "%",
+      "confirmationSeconds": 180,
+      "severity": "CRITICAL"
+    },
+    {
+      "name": "Certificat bientôt expiré",
+      "metricKey": "probe.tls.days_left",
+      "operator": "LESS_THAN",
+      "threshold": 14,
+      "unit": "j",
+      "confirmationSeconds": 0,
+      "severity": "WARNING"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "id": "ubiquiti-unifi-ap",
+  "version": 1,
+  "name": "Point d'accès Ubiquiti UniFi",
+  "vendor": "Ubiquiti",
+  "category": "ACCESS_POINT",
+  "description": "Point d'accès UniFi (SNMP activé depuis le contrôleur) : nombre de clients du premier réseau Wi-Fi diffusé (UBNT-UniFi-MIB, index 1 = premier VAP), charge CPU et mémoire via UCD-SNMP-MIB (système Linux embarqué). OID non validés sur matériel de l'EPT.",
+  "verified": false,
+  "sysDescrHints": ["UAP", "UniFi"],
+  "metrics": [
+    {
+      "name": "Clients du premier réseau Wi-Fi",
+      "technicalKey": "wifi.clients",
+      "valueType": "INTEGER",
+      "snmpOid": "1.3.6.1.4.1.41112.1.6.1.2.1.8.1",
+      "source": "UBNT-UniFi-MIB::unifiVapNumStations.1"
+    },
+    {
+      "name": "Charge CPU",
+      "technicalKey": "cpu.usage",
+      "valueType": "DECIMAL",
+      "unit": "%",
+      "snmpOid": "1.3.6.1.4.1.2021.11.11.0",
+      "source": "UCD-SNMP-MIB::ssCpuIdle.0 (inversé : 100 - inactivité)",
+      "invertPercent": true
+    },
+    {
+      "name": "Mémoire disponible",
+      "technicalKey": "memory.available",
+      "valueType": "DECIMAL",
+      "unit": "Mio",
+      "snmpOid": "1.3.6.1.4.1.2021.4.6.0",
+      "source": "UCD-SNMP-MIB::memAvailReal.0 (Kio, converti en Mio)",
+      "scale": 0.0009765625
+    },
+    {
+      "name": "Durée de fonctionnement",
+      "technicalKey": "system.uptime",
+      "valueType": "DECIMAL",
+      "unit": "s",
+      "snmpOid": "1.3.6.1.2.1.1.3.0",
+      "source": "SNMPv2-MIB::sysUpTime.0 (centièmes de seconde, converti en secondes)",
+      "scale": 0.01
+    }
+  ],
+  "rules": [
+    {
+      "name": "Point d'accès saturé",
+      "metricKey": "wifi.clients",
+      "operator": "GREATER_THAN",
+      "threshold": 60,
+      "recoveryThreshold": 50,
+      "confirmationSeconds": 600,
+      "severity": "WARNING"
+    },
+    {
+      "name": "CPU élevé",
+      "metricKey": "cpu.usage",
+      "operator": "GREATER_THAN",
+      "threshold": 90,
+      "recoveryThreshold": 80,
+      "unit": "%",
+      "confirmationSeconds": 300,
+      "severity": "WARNING"
+    }
+  ],
+  "probes": [
+    { "name": "Ping", "type": "ICMP", "intervalSeconds": 60 }
+  ]
+}
