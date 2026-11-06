@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   ALERT_STATES,
   EVENT_LABELS,
@@ -48,21 +49,47 @@ function AlertsPage() {
   const [notice, setNotice] = useState("");
   const [detail, setDetail] = useState(null);
 
+  // Filtres dans l'adresse : un clic sur le tableau de bord ouvre la liste déjà filtrée.
+  const [params, setParams] = useSearchParams();
+  const severity = params.get("severite") ?? "";
+  const active = params.get("actives") === "1";
+  const equipmentId = params.get("equipement") ?? "";
+  const openedAlert = params.get("alerte");
+
   const load = useCallback(async (targetPage, targetState) => {
     setLoading(true);
     setError("");
     try {
-      setData(await listAlerts({ page: targetPage, state: targetState }));
+      setData(
+        await listAlerts({ page: targetPage, state: targetState, severity, active, equipmentId }),
+      );
     } catch {
       setError("Impossible de charger les alertes.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [severity, active, equipmentId]);
 
   useEffect(() => {
     load(page, state);
   }, [load, page, state]);
+
+  // Lien direct vers une alerte : son détail s'ouvre sans chercher dans la liste.
+  useEffect(() => {
+    if (!openedAlert) return;
+    getAlert(openedAlert)
+      .then(setDetail)
+      .catch(() => setError("Cette alerte n'existe plus."));
+  }, [openedAlert]);
+
+  function filter(name, value) {
+    setPage(0);
+    const next = new URLSearchParams(params);
+    if (value) next.set(name, value);
+    else next.delete(name);
+    next.delete("alerte");
+    setParams(next);
+  }
 
   // Une alerte change ailleurs : la liste et l'historique ouvert se rechargent sans action.
   const live = useLiveUpdates(
@@ -146,6 +173,25 @@ function AlertsPage() {
                 </option>
               ))}
             </select>
+          </label>
+          <label className="toolbar-field">
+            Sévérité
+            <select value={severity} onChange={(event) => filter("severite", event.target.value)}>
+              <option value="">Toutes</option>
+              {Object.entries(SEVERITY).map(([value, text]) => (
+                <option key={value} value={value}>
+                  {text}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="toolbar-check">
+            <input
+              type="checkbox"
+              checked={active}
+              onChange={(event) => filter("actives", event.target.checked ? "1" : "")}
+            />
+            En cours seulement
           </label>
         </div>
 

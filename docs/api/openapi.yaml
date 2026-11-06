@@ -2189,6 +2189,34 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/vue-ensemble/tableau:
+    get:
+      tags:
+      - Vue d'ensemble
+      summary: Écran d'accueil
+      description: "Parc complet (état, pire alerte active, dernières mesures), problè\
+        mes en cours et alertes ouvertes par heure sur 24 h, limités au périmètre\
+        \ de l'utilisateur."
+      operationId: dashboard
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DashboardResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/topologie:
     get:
       tags:
@@ -2919,7 +2947,8 @@ paths:
       - Alertes
       summary: Lister les alertes
       description: "Liste paginée (20 par page, plus récentes d'abord), filtrable\
-        \ par état et par équipement. Les alertes supprimées sont masquées."
+        \ par état, équipement, sévérité ou alertes actives. Les alertes supprimé\
+        es sont masquées."
       operationId: list_8
       parameters:
       - name: state
@@ -2939,6 +2968,21 @@ paths:
         schema:
           type: string
           format: uuid
+      - name: severity
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - INFO
+          - WARNING
+          - CRITICAL
+      - name: active
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
       - name: pageable
         in: query
         required: true
@@ -4110,6 +4154,84 @@ components:
           type: integer
           format: int64
         generatedAt:
+          type: string
+          format: date-time
+    DashboardResponse:
+      type: object
+      properties:
+        generatedAt:
+          type: string
+          format: date-time
+        hosts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Host"
+        problems:
+          type: array
+          items:
+            $ref: "#/components/schemas/Problem"
+        activity:
+          type: array
+          items:
+            $ref: "#/components/schemas/HourlyCount"
+    Host:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+        siteId:
+          type: string
+          format: uuid
+        site:
+          type: string
+        status:
+          type: string
+        worstSeverity:
+          type: string
+        activeAlerts:
+          type: integer
+          format: int32
+        cpu:
+          type: number
+        memory:
+          type: number
+        disk:
+          type: number
+        lastSeen:
+          type: string
+          format: date-time
+    HourlyCount:
+      type: object
+      properties:
+        hour:
+          type: string
+          format: date-time
+        opened:
+          type: integer
+          format: int64
+    Problem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        equipmentId:
+          type: string
+          format: uuid
+        equipment:
+          type: string
+        severity:
+          type: string
+        state:
+          type: string
+        message:
+          type: string
+        triggeredAt:
           type: string
           format: date-time
     Pageable:

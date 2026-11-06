@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import sn.ept.transdic1.alerting.domain.AlertState;
+import sn.ept.transdic1.alerting.domain.Severity;
 import sn.ept.transdic1.alerting.dto.AlertDetailResponse;
 import sn.ept.transdic1.alerting.dto.AlertResponse;
 import sn.ept.transdic1.alerting.dto.AssignmentRequest;
@@ -47,18 +48,20 @@ public class AlertController {
   @Operation(
       summary = "Lister les alertes",
       description =
-          "Liste paginée (20 par page, plus récentes d'abord), filtrable par état et par équipement."
+          "Liste paginée (20 par page, plus récentes d'abord), filtrable par état, équipement, sévérité ou alertes actives."
               + " Les alertes supprimées sont masquées.")
   @GetMapping
   public Page<AlertResponse> list(
       @RequestParam(required = false) AlertState state,
       @RequestParam(required = false) UUID equipmentId,
+      @RequestParam(required = false) Severity severity,
+      @RequestParam(defaultValue = "false") boolean active,
       @PageableDefault(
               size = 20,
               sort = "triggeredAt",
               direction = org.springframework.data.domain.Sort.Direction.DESC)
           Pageable pageable) {
-    return service.list(state, equipmentId, pageable);
+    return service.list(state, equipmentId, severity, active, pageable);
   }
 
   @Operation(summary = "Consulter une alerte et son historique")

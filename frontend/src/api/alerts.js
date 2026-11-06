@@ -38,9 +38,12 @@ export const EVENT_LABELS = {
 
 export const ALERT_PAGE_SIZE = 10;
 
-export async function listAlerts({ page = 0, state } = {}) {
+export async function listAlerts({ page = 0, state, severity, active, equipmentId } = {}) {
   const params = { page, size: ALERT_PAGE_SIZE };
   if (state) params.state = state;
+  if (severity) params.severity = severity;
+  if (active) params.active = true;
+  if (equipmentId) params.equipmentId = equipmentId;
   const { data } = await apiClient.get("/alertes", { params });
   return data;
 }

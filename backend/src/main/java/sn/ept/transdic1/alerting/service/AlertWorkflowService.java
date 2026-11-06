@@ -19,6 +19,7 @@ import sn.ept.transdic1.alerting.domain.AlertEvent;
 import sn.ept.transdic1.alerting.domain.AlertEventType;
 import sn.ept.transdic1.alerting.domain.AlertState;
 import sn.ept.transdic1.alerting.domain.ResolutionType;
+import sn.ept.transdic1.alerting.domain.Severity;
 import sn.ept.transdic1.alerting.dto.AlertDetailResponse;
 import sn.ept.transdic1.alerting.dto.AlertEventResponse;
 import sn.ept.transdic1.alerting.dto.AlertResponse;
@@ -70,6 +71,12 @@ public class AlertWorkflowService {
 
   @Transactional(readOnly = true)
   public Page<AlertResponse> list(AlertState state, UUID equipmentId, Pageable pageable) {
+    return list(state, equipmentId, null, false, pageable);
+  }
+
+  @Transactional(readOnly = true)
+  public Page<AlertResponse> list(
+      AlertState state, UUID equipmentId, Severity severity, boolean active, Pageable pageable) {
     var visible = scope.restriction();
     Specification<Alert> spec =
         (root, query, cb) -> {
@@ -82,6 +89,12 @@ public class AlertWorkflowService {
           }
           if (equipmentId != null) {
             predicates.add(cb.equal(root.get("equipment").get("id"), equipmentId));
+          }
+          if (severity != null) {
+            predicates.add(cb.equal(root.get("severity"), severity));
+          }
+          if (active) {
+            predicates.add(root.get("state").in(AlertState.OPEN, AlertState.IN_PROGRESS));
           }
           // Périmètre d'accès (ADR 0018) : alertes des équipements des sites attribués.
           visible.ifPresent(

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   createEquipment,
   deleteEquipment,
@@ -14,7 +14,7 @@ import PageHeader from "../ui/PageHeader.jsx";
 import { Pencil, ServerOff, Trash2 } from "lucide-react";
 import { StatusBadge } from "../ui/Badges.jsx";
 import Pagination from "../ui/Pagination.jsx";
-import { EQUIPMENT_TYPE, label } from "../ui/labels.js";
+import { EQUIPMENT_STATUS, EQUIPMENT_TYPE, label } from "../ui/labels.js";
 
 function EquipmentPage() {
   const { role } = useAuth();
@@ -29,21 +29,34 @@ function EquipmentPage() {
   const [submitting, setSubmitting] = useState(false);
   const [pendingDelete, setPendingDelete] = useState(null);
 
+  // Filtres dans l'adresse : un chiffre du tableau de bord ouvre la liste déjà filtrée.
+  const [params, setParams] = useSearchParams();
+  const status = params.get("statut") ?? "";
+  const type = params.get("type") ?? "";
+
   const load = useCallback(async (targetPage) => {
     setLoading(true);
     setError("");
     try {
-      setData(await listEquipment({ page: targetPage }));
+      setData(await listEquipment({ page: targetPage, status, type }));
     } catch {
       setError("Impossible de charger les équipements.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [status, type]);
 
   useEffect(() => {
     load(page);
   }, [load, page]);
+
+  function filter(name, value) {
+    setPage(0);
+    const next = new URLSearchParams(params);
+    if (value) next.set(name, value);
+    else next.delete(name);
+    setParams(next);
+  }
 
   async function openForm(target) {
     setNotice("");
@@ -106,6 +119,31 @@ function EquipmentPage() {
           </button>
         )}
         />
+
+        <div className="toolbar">
+          <label className="toolbar-field">
+            Statut
+            <select value={status} onChange={(event) => filter("statut", event.target.value)}>
+              <option value="">Tous</option>
+              {Object.entries(EQUIPMENT_STATUS).map(([value, text]) => (
+                <option key={value} value={value}>
+                  {text}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="toolbar-field">
+            Type
+            <select value={type} onChange={(event) => filter("type", event.target.value)}>
+              <option value="">Tous</option>
+              {Object.entries(EQUIPMENT_TYPE).map(([value, text]) => (
+                <option key={value} value={value}>
+                  {text}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
 
         {notice && (
           <p role="status" className="notice notice-ok">

@@ -830,6 +830,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/vue-ensemble/tableau": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Écran d'accueil
+         * @description Parc complet (état, pire alerte active, dernières mesures), problèmes en cours et alertes ouvertes par heure sur 24 h, limités au périmètre de l'utilisateur.
+         */
+        get: operations["dashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/topologie": {
         parameters: {
             query?: never;
@@ -1224,7 +1244,7 @@ export interface paths {
         };
         /**
          * Lister les alertes
-         * @description Liste paginée (20 par page, plus récentes d'abord), filtrable par état et par équipement. Les alertes supprimées sont masquées.
+         * @description Liste paginée (20 par page, plus récentes d'abord), filtrable par état, équipement, sévérité ou alertes actives. Les alertes supprimées sont masquées.
          */
         get: operations["list_8"];
         put?: never;
@@ -1714,6 +1734,49 @@ export interface components {
             activeAgents?: number;
             /** Format: date-time */
             generatedAt?: string;
+        };
+        DashboardResponse: {
+            /** Format: date-time */
+            generatedAt?: string;
+            hosts?: components["schemas"]["Host"][];
+            problems?: components["schemas"]["Problem"][];
+            activity?: components["schemas"]["HourlyCount"][];
+        };
+        Host: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            type?: string;
+            /** Format: uuid */
+            siteId?: string;
+            site?: string;
+            status?: string;
+            worstSeverity?: string;
+            /** Format: int32 */
+            activeAlerts?: number;
+            cpu?: number;
+            memory?: number;
+            disk?: number;
+            /** Format: date-time */
+            lastSeen?: string;
+        };
+        HourlyCount: {
+            /** Format: date-time */
+            hour?: string;
+            /** Format: int64 */
+            opened?: number;
+        };
+        Problem: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            equipmentId?: string;
+            equipment?: string;
+            severity?: string;
+            state?: string;
+            message?: string;
+            /** Format: date-time */
+            triggeredAt?: string;
         };
         Pageable: {
             /** Format: int32 */
@@ -4728,6 +4791,44 @@ export interface operations {
             };
         };
     };
+    dashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DashboardResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     graph: {
         parameters: {
             query?: never;
@@ -5495,6 +5596,8 @@ export interface operations {
             query: {
                 state?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ARCHIVED" | "DELETED";
                 equipmentId?: string;
+                severity?: "INFO" | "WARNING" | "CRITICAL";
+                active?: boolean;
                 pageable: components["schemas"]["Pageable"];
             };
             header?: never;

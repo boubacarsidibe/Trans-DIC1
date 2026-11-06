@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App.jsx";
@@ -13,18 +14,39 @@ vi.mock("../api/client.js", () => ({
 vi.mock("../api/live.js", () => ({ subscribe: vi.fn(() => () => {}) }));
 vi.mock("../auth/refresh.js", () => ({ refreshSession: vi.fn() }));
 
-const overview = {
-  equipments: {
-    total: 12,
-    byStatus: { UP: 9, DOWN: 2, DEGRADED: 1, MAINTENANCE: 0, UNKNOWN: 0 },
-  },
-  alerts: {
-    active: 4,
-    open: 3,
-    inProgress: 1,
-    activeBySeverity: { CRITICAL: 2, WARNING: 1, INFO: 1 },
-  },
-  activeAgents: 7,
+const recent = new Date(Date.now() - 60_000).toISOString();
+const hours = Array.from({ length: 24 }, (_, i) => ({
+  hour: new Date(Date.now() - (23 - i) * 3_600_000).toISOString(),
+  opened: i === 23 ? 3 : 0,
+}));
+const host = (over) => ({
+  id: "h1",
+  name: "Serveur",
+  type: "SERVER",
+  siteId: "s1",
+  site: "Campus",
+  status: "UP",
+  worstSeverity: null,
+  activeAlerts: 0,
+  cpu: 20,
+  memory: 40,
+  disk: 50,
+  lastSeen: recent,
+  ...over,
+});
+const board = {
+  generatedAt: recent,
+  hosts: [
+    host({ id: "h1", name: "Serveur web" }),
+    host({ id: "h2", name: "Routeur coeur", status: "DOWN", worstSeverity: "CRITICAL", activeAlerts: 2, cpu: 96, siteId: "s2", site: "Annexe" }),
+    host({ id: "h3", name: "Switch", worstSeverity: "WARNING", activeAlerts: 1, cpu: 80 }),
+    host({ id: "h4", name: "Muet", lastSeen: new Date(Date.now() - 3_600_000).toISOString() }),
+  ],
+  problems: [
+    { id: "p1", equipmentId: "h2", equipment: "Routeur coeur", severity: "CRITICAL", state: "OPEN", message: "cpu.usage GREATER_THAN 95", triggeredAt: recent },
+    { id: "p2", equipmentId: "h3", equipment: "Switch", severity: "WARNING", state: "OPEN", message: "Disque presque plein", triggeredAt: recent },
+  ],
+  activity: hours,
 };
 
 function renderDashboard() {
@@ -41,67 +63,80 @@ function renderDashboard() {
 beforeEach(() => {
   clearSession();
   vi.resetAllMocks();
+  apiClient.get.mockResolvedValue({ data: board });
 });
 
 describe("tableau de bord", () => {
-  it("affiche les chiffres clés renvoyés par l'API", async () => {
-    apiClient.get.mockImplementation(async (url) =>
-      url === "/vue-ensemble" ? { data: overview } : { data: [] },
-    );
+  it("résume le parc par des chiffres qui mènent aux listes filtrées", async () => {
     renderDashboard();
-
-    expect(await screen.findByText("12")).toBeInTheDocument();
-    expect(screen.getByText("Équipements hors service").nextSibling).toHaveTextContent("2");
-    expect(screen.getByText("Alertes actives").nextSibling).toHaveTextContent("4");
-    expect(screen.getByText("Agents actifs").nextSibling).toHaveTextContent("7");
-    expect(screen.getByText("2 alerte(s) critique(s)")).toBeInTheDocument();
-    expect(screen.getByText("Hors service", { selector: "span" })).toBeInTheDocument();
+    const down = (await screen.findByText("Hors service")).closest("a");
+    expect(down).toHaveTextContent("1");
+    expect(down).toHaveAttribute("href", "/equipements?statut=DOWN");
+    expect(screen.getByText("Critiques").closest("a")).toHaveAttribute("href", "/alertes?severite=CRITICAL&actives=1");
+    expect(screen.getByText("1 alerte(s) critique(s)")).toBeInTheDocument();
   });
 
-  it("annonce l'absence d'alerte critique", async () => {
-    apiClient.get.mockImplementation(async (url) =>
-      url === "/vue-ensemble"
-        ? {
-            data: {
-              ...overview,
-              alerts: { ...overview.alerts, activeBySeverity: { CRITICAL: 0, WARNING: 1, INFO: 0 } },
-            },
-          }
-        : { data: [] },
-    );
+  it("montre chaque équipement sur la carte, le plus grave d'abord, avec un lien", async () => {
     renderDashboard();
-
-    expect(await screen.findByText("Aucune alerte critique")).toBeInTheDocument();
+    const map = await screen.findByRole("list", { name: "Carte du parc" });
+    const links = within(map).getAllByRole("link");
+    expect(links).toHaveLength(4);
+    expect(links[0]).toHaveAccessibleName(expect.stringContaining("Routeur coeur"));
+    expect(links[0]).toHaveAccessibleName(expect.stringContaining("Critique"));
+    expect(links[0]).toHaveAttribute("href", "/equipements/h2/historique");
   });
 
-  it("signale l'indisponibilité des chiffres sans casser la page", async () => {
-    apiClient.get.mockImplementation(async (url) => {
-      if (url === "/vue-ensemble") throw new Error("boom");
-      return { data: [] };
+  it("affiche les problèmes lisibles et cliquables", async () => {
+    renderDashboard();
+    const link = await screen.findByRole("link", { name: "cpu.usage > 95" });
+    expect(link).toHaveAttribute("href", "/alertes?alerte=p1");
+  });
+
+  it("repère les équipements muets", async () => {
+    renderDashboard();
+    expect(await screen.findByText(/silence depuis/)).toBeInTheDocument();
+    const tiles = screen.getByRole("region", { name: "Chiffres clés" });
+    expect(within(tiles).getByText("Sans données").closest("a")).toHaveTextContent("1");
+  });
+
+  it("classe les plus chargés et change de ressource", async () => {
+    renderDashboard();
+    const panel = (await screen.findByRole("heading", { name: "Les plus chargés" })).closest("section");
+    expect(within(panel).getAllByRole("listitem")[0]).toHaveTextContent("Routeur coeur");
+    await userEvent.click(within(panel).getByRole("tab", { name: "Mémoire" }));
+    expect(within(panel).getByRole("tab", { name: "Mémoire" })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("filtre tout l'écran par site", async () => {
+    renderDashboard();
+    await screen.findByText("Hors service");
+    await userEvent.selectOptions(screen.getByLabelText("Site"), "Annexe");
+    const tiles = screen.getByRole("region", { name: "Chiffres clés" });
+    expect(within(tiles).getByText("Équipements").closest("a")).toHaveTextContent("1");
+    expect(screen.queryByRole("link", { name: "Disque presque plein" })).not.toBeInTheDocument();
+  });
+
+  it("annonce un parc sans problème", async () => {
+    apiClient.get.mockResolvedValue({
+      data: { ...board, hosts: [host({})], problems: [] },
     });
     renderDashboard();
+    expect(await screen.findByText("Aucune alerte critique")).toBeInTheDocument();
+    expect(screen.getByText(/Aucun problème en cours/)).toBeInTheDocument();
+  });
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "chiffres clés sont temporairement indisponibles",
-    );
+  it("signale l'indisponibilité sans casser la page", async () => {
+    apiClient.get.mockRejectedValue(new Error("boom"));
+    renderDashboard();
+    expect(await screen.findByRole("alert")).toHaveTextContent("temporairement indisponible");
     expect(screen.getByRole("heading", { name: "Tableau de bord" })).toBeInTheDocument();
   });
 
-  it("met les chiffres à jour quand une alerte change", async () => {
-    let active = 4;
-    apiClient.get.mockImplementation(async (url) =>
-      url === "/vue-ensemble"
-        ? { data: { ...overview, alerts: { ...overview.alerts, active } } }
-        : { data: [] },
-    );
+  it("se met à jour quand une alerte change", async () => {
     renderDashboard();
-    expect((await screen.findByText("Alertes actives")).nextSibling).toHaveTextContent("4");
-
-    active = 5;
+    await screen.findByText("Hors service");
+    apiClient.get.mockResolvedValue({ data: { ...board, problems: [] } });
     subscribe.mock.calls.at(-1)[0]({ name: "alerts", data: "{}" });
-
-    await waitFor(() =>
-      expect(screen.getByText("Alertes actives").nextSibling).toHaveTextContent("5"),
-    );
+    await waitFor(() => expect(screen.getByText("Aucune alerte critique")).toBeInTheDocument());
   });
 });
