@@ -11,6 +11,8 @@ import DashboardPage from "./pages/DashboardPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import MaintenancesPage from "./pages/MaintenancesPage.jsx";
 import OnCallPage from "./pages/OnCallPage.jsx";
+import StatusPagesPage from "./pages/StatusPagesPage.jsx";
+import StatusPageViewPage from "./pages/StatusPageViewPage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
 import ReportsPage from "./pages/ReportsPage.jsx";
 import RulesPage from "./pages/RulesPage.jsx";
@@ -48,6 +50,8 @@ function App() {
           <Route path="/alertes" element={<AlertsPage />} />
           <Route path="/maintenances" element={<MaintenancesPage />} />
           <Route path="/astreinte" element={<OnCallPage />} />
+          <Route path="/pages-statut" element={<StatusPagesPage />} />
+          <Route path="/pages-statut/:id" element={<StatusPageViewPage />} />
           <Route path="/rapports" element={<ReportsPage />} />
           <Route path="/regles" element={<RulesPage />} />
           <Route path="/evenements" element={<EventsPage />} />

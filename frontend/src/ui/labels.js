@@ -123,4 +123,48 @@ export const ONCALL_LEVEL = {
   SECONDARY: "Secondaire",
 };
 
+// Pages de statut (ADR 0026) : état d'un composant, avancement et impact d'un incident.
+export const COMPONENT_STATE = {
+  OPERATIONAL: "Opérationnel",
+  DEGRADED: "Dégradé",
+  PARTIAL_OUTAGE: "Panne partielle",
+  MAJOR_OUTAGE: "Panne majeure",
+  MAINTENANCE: "En maintenance",
+  UNKNOWN: "État inconnu",
+};
+
+// Phrase de synthèse de l'état global d'une page.
+export const OVERALL_STATE = {
+  OPERATIONAL: "Tous les services fonctionnent normalement",
+  DEGRADED: "Certains services sont ralentis",
+  PARTIAL_OUTAGE: "Panne partielle en cours",
+  MAJOR_OUTAGE: "Panne majeure en cours",
+  MAINTENANCE: "Maintenance planifiée en cours",
+  UNKNOWN: "État des services inconnu pour le moment",
+};
+
+export const INCIDENT_STATUS = {
+  INVESTIGATING: "Analyse en cours",
+  IDENTIFIED: "Cause identifiée",
+  MONITORING: "Sous surveillance",
+  RESOLVED: "Résolu",
+};
+
+export const INCIDENT_IMPACT = {
+  NONE: "Sans impact",
+  MINOR: "Impact mineur",
+  MAJOR: "Impact majeur",
+};
+
+export const SOURCE_TYPE = {
+  PROBE: "Sonde",
+  EQUIPMENT: "Équipement",
+  SITE: "Site",
+};
+
+export const PAGE_VISIBILITY = {
+  INTERNAL: "Interne (comptes connectés)",
+  PUBLIC: "Publique (sans connexion)",
+};
+
 export const label = (map, value) => (value == null ? "—" : (map[value] ?? value));
