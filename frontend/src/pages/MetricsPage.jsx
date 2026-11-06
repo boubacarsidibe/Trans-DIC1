@@ -24,6 +24,7 @@ import {
 } from "../api/metrics.js";
 import { useLiveUpdates } from "../hooks/useLiveUpdates.js";
 import EquipmentInsight from "../ui/EquipmentInsight.jsx";
+import { EQUIPMENT_TYPE, label } from "../ui/labels.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import { GROUPS, describe, formatMetric, isState, sortIndicators } from "../ui/metricCatalog.js";
 
@@ -41,7 +42,7 @@ function MetricChart({ metric, history, periodHours, error, loading }) {
   return (
     <section aria-labelledby={titleId} className="panel mt-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id={titleId} className="text-xl text-white">
+        <h2 id={titleId} className="text-lg text-white">
           {metric.label}
         </h2>
         {summary && (
@@ -71,7 +72,7 @@ function MetricChart({ metric, history, periodHours, error, loading }) {
               summary.max,
               unit,
             )}, dernière valeur ${formatValue(summary.last, unit)}`}
-            className="mt-4 h-64 w-full"
+            className="mt-3 h-52 w-full"
           >
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={series} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
@@ -197,7 +198,11 @@ function MetricsPage() {
   }, [id]);
 
   // Chaque équipement montre ce qu'il mesure réellement, sans liste figée.
-  const sorted = useMemo(() => sortIndicators(indicators), [indicators]);
+  const sorted = useMemo(() => {
+    // disk.usage résume le lecteur système : inutile s'il est déjà détaillé par disque.
+    const detailed = indicators.some((item) => item.key.startsWith("disk.usage["));
+    return sortIndicators(indicators.filter((item) => !(detailed && item.key === "disk.usage")));
+  }, [indicators]);
   const tabs = useMemo(() => {
     const present = new Set(sorted.map((item) => item.group));
     return GROUPS.filter((group) => group.id === "overview" || present.has(group.id));
@@ -205,7 +210,12 @@ function MetricsPage() {
   const computed = useMemo(() => {
     if (tab === "overview") {
       const known = new Set(sorted.map((item) => item.key));
-      const wanted = sorted.length ? OVERVIEW_KEYS.filter((key) => known.has(key)) : OVERVIEW_KEYS;
+      const fullest = sorted
+        .filter((item) => item.family === "disk.usage")
+        .sort((a, b) => Number(b.lastValue) - Number(a.lastValue))[0]?.key;
+      const wanted = sorted.length
+        ? [...OVERVIEW_KEYS.filter((key) => known.has(key)), ...(known.has("disk.usage") || !fullest ? [] : [fullest])]
+        : OVERVIEW_KEYS;
       return (wanted.length ? wanted : OVERVIEW_KEYS).map((key) => {
         const fixed = CHART_METRICS.find((metric) => metric.key === key);
         return { key, label: fixed?.label ?? describe(key).label, dash: fixed?.dash };
@@ -250,7 +260,13 @@ function MetricsPage() {
         <PageHeader
           back={{ to: "/equipements", label: "Équipements" }}
           title={equipment ? equipment.name : "Équipement"}
-          description={equipment ? `${equipment.type} · ${equipment.managementAddress ?? ""} · ${equipment.site ?? ""}` : "Mesures sur la période choisie."}
+          description={
+            equipment
+              ? [label(EQUIPMENT_TYPE, equipment.type), equipment.managementAddress, equipment.site]
+                  .filter(Boolean)
+                  .join(" · ")
+              : "Mesures sur la période choisie."
+          }
           actions={
             <div className="dash-actions">
               <Link to={`/alertes?equipement=${id}`} className="btn btn-secondary">
@@ -317,16 +333,18 @@ function MetricsPage() {
 
         {tab === "overview" && <EquipmentInsight equipmentId={id} />}
 
-        {charts.map((metric) => (
-          <MetricChart
-            key={metric.key}
-            metric={metric}
-            history={histories[metric.key]}
-            error={errors[metric.key]}
-            loading={loading}
-            periodHours={periodHours}
-          />
-        ))}
+        <div className="chart-grid">
+          {charts.map((metric) => (
+            <MetricChart
+              key={metric.key}
+              metric={metric}
+              history={histories[metric.key]}
+              error={errors[metric.key]}
+              loading={loading}
+              periodHours={periodHours}
+            />
+          ))}
+        </div>
       </div>
     </main>
   );

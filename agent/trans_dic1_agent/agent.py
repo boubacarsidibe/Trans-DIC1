@@ -83,7 +83,8 @@ class Agent:
         now = self.monotonic()
         if self.next_snapshot is not None and now < self.next_snapshot:
             return
-        self.next_snapshot = now + SNAPSHOT_SECONDS
+        # Le CPU d'un processus se calcule entre deux lectures : le deuxième envoi suit de près.
+        self.next_snapshot = now + (self.config.interval if self.next_snapshot is None else SNAPSHOT_SECONDS)
         try:
             self.snapshot_supported = send(read())
             if not self.snapshot_supported:

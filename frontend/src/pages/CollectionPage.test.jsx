@@ -69,6 +69,8 @@ function renderPage(role = "ADMIN") {
   );
 }
 
+const pick = async (mode) => userEvent.click(await screen.findByRole("button", { name: mode }));
+
 beforeEach(() => {
   clearSession();
   vi.resetAllMocks();
@@ -161,6 +163,7 @@ describe("page de collecte d'un équipement", () => {
     mockApi({ withAgent: false, withSnmp: false });
     apiClient.post.mockResolvedValue({ data: { agentId: "a1", identifier: "agent-x", token: "tdic1_secret-token" } });
     renderPage();
+    await pick(/^Agent/);
 
     await userEvent.click(await screen.findByRole("button", { name: "Enregistrer un agent" }));
 
@@ -186,6 +189,7 @@ describe("page de collecte d'un équipement", () => {
     mockApi({ withAgent: false, withSnmp: false });
     apiClient.put.mockResolvedValue({ data: snmp });
     renderPage();
+    await pick(/^SNMP/);
 
     await userEvent.type(await screen.findByLabelText("Référence de la communauté (env:NOM)"), "env:SNMP_CAMPUS");
     await userEvent.type(screen.getByLabelText("Clé de l'indicateur 1"), "cpu.usage");
@@ -209,6 +213,7 @@ describe("page de collecte d'un équipement", () => {
   it("refuse un secret en clair sans appeler l'API", async () => {
     mockApi({ withAgent: false, withSnmp: false });
     renderPage();
+    await pick(/^SNMP/);
 
     await userEvent.type(await screen.findByLabelText("Référence de la communauté (env:NOM)"), "public");
     await userEvent.click(screen.getByRole("button", { name: "Enregistrer la collecte" }));
@@ -220,6 +225,7 @@ describe("page de collecte d'un équipement", () => {
   it("passe en SNMPv3 et ajoute ou retire des indicateurs", async () => {
     mockApi({ withAgent: false, withSnmp: false });
     renderPage();
+    await pick(/^SNMP/);
 
     await userEvent.selectOptions(await screen.findByLabelText("Version SNMP"), "V3");
     expect(screen.getByLabelText("Identité SNMPv3")).toBeInTheDocument();
@@ -240,5 +246,25 @@ describe("page de collecte d'un équipement", () => {
 
     await waitFor(() => expect(apiClient.delete).toHaveBeenCalledWith("/equipements/e1/collecte-snmp"));
     expect(await screen.findByRole("status")).toHaveTextContent("Collecte SNMP arrêtée");
+  });
+
+  it("propose de choisir le mode quand rien n'est configuré", async () => {
+    mockApi({ withAgent: false, withSnmp: false });
+    renderPage();
+    expect(await screen.findByText("Choisissez comment superviser cet équipement.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Sans agent/ })).toHaveAttribute("href", "/equipements/e1/sondes");
+    expect(screen.queryByRole("heading", { name: "Collecte SNMP" })).not.toBeInTheDocument();
+  });
+
+  it("donne les commandes d'installation après l'enregistrement", async () => {
+    mockApi({ withAgent: false, withSnmp: false });
+    apiClient.post.mockResolvedValue({ data: { agentId: "a1", identifier: "agent-x", token: "tdic1_s" } });
+    renderPage();
+    await pick(/^Agent/);
+    await userEvent.click(await screen.findByRole("button", { name: "Enregistrer un agent" }));
+    expect(await screen.findByText(/install\.ps1 -ServerUrl/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "Linux" }));
+    expect(screen.getByText(/install\.sh --server-url/)).toBeInTheDocument();
+    expect(screen.queryByText(/tdic1_s.*install/)).not.toBeInTheDocument();
   });
 });

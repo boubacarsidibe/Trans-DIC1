@@ -2,6 +2,7 @@
 param(
     [int]$Port = 8090,
     [string]$Schema = 'run_demo',
+    [string]$Origin = 'http://localhost:5173',
     [string]$EnvFile,
     [string]$RunFile
 )
@@ -70,7 +71,7 @@ $env:BOOTSTRAP_ADMIN_EMAIL = $run['RUN_ADMIN_EMAIL']
 $env:BOOTSTRAP_ADMIN_PASSWORD = $run['RUN_ADMIN_PASSWORD']
 # Navigateur sur http://localhost : le cookie de renouvellement ne peut pas exiger HTTPS ici.
 $env:REFRESH_COOKIE_SECURE = 'false'
-$env:CORS_ALLOWED_ORIGINS = 'http://localhost:5173'
+$env:CORS_ALLOWED_ORIGINS = $Origin
 # Mesures simulées toutes les 10 s : la démonstration a des courbes sans agent ni SNMP.
 $env:COLLECTION_SIMULATED_ENABLED = 'true'
 $env:COLLECTION_SIMULATED_INTERVAL_MS = '10000'

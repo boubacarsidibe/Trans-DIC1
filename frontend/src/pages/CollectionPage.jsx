@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import { Check, Copy, Globe, Network, Server } from "lucide-react";
+import { API_BASE_URL } from "../api/config.js";
 import {
   EMPTY_SNMP,
   VALUE_TYPES,
@@ -18,6 +20,70 @@ import PageHeader from "../ui/PageHeader.jsx";
 
 const formatDate = (value) => (value ? new Date(value).toLocaleString("fr-FR") : "jamais");
 
+const serverUrl = () => API_BASE_URL.replace(/\/api\/v1\/?$/, "");
+
+function CopyButton({ text, label }) {
+  const [done, setDone] = useState(false);
+  async function copy() {
+    await navigator.clipboard?.writeText(text);
+    setDone(true);
+    setTimeout(() => setDone(false), 1500);
+  }
+  return (
+    <button type="button" onClick={copy} className="btn btn-secondary btn-sm" aria-label={label}>
+      {done ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+      {done ? "Copié" : "Copier"}
+    </button>
+  );
+}
+
+/** Commandes prêtes à copier, pour le système de la machine à superviser. */
+function InstallGuide() {
+  const [os, setOs] = useState("windows");
+  const url = serverUrl();
+  const commands = {
+    windows:
+      "# PowerShell ouvert en tant qu'administrateur, dans le dossier du paquet décompressé.\n" +
+      "# Enregistrez d'abord le jeton dans C:\\Temp\\jeton-agent.txt\n" +
+      `powershell -ExecutionPolicy Bypass -File .\\install.ps1 -ServerUrl ${url} -TokenFile C:\\Temp\\jeton-agent.txt\n` +
+      "Remove-Item C:\\Temp\\jeton-agent.txt -Force",
+    linux:
+      "# Dans le dossier du paquet décompressé. Enregistrez d'abord le jeton dans /root/jeton-agent\n" +
+      `sudo ./install.sh --server-url ${url} --token-file /root/jeton-agent\n` +
+      "sudo shred -u /root/jeton-agent",
+  };
+  return (
+    <div className="install">
+      <div className="tabs" role="tablist" aria-label="Système de la machine">
+        {[
+          ["windows", "Windows"],
+          ["linux", "Linux"],
+        ].map(([id, name]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={os === id}
+            className={`tab${os === id ? " tab-on" : ""}`}
+            onClick={() => setOs(id)}
+          >
+            {name}
+          </button>
+        ))}
+        <CopyButton text={commands[os]} label="Copier les commandes" />
+      </div>
+      <pre className="commands">{commands[os]}</pre>
+      {url.startsWith("http://") && (
+        <p className="insight-note">
+          Plateforme en HTTP : réservé à un essai local (
+          {os === "windows" ? "ajoutez -AllowInsecureHttp" : "ajoutez allow_insecure_http = true dans agent.conf"}
+          ). En production, utilisez HTTPS.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function AgentSection({ equipmentId, onError, onNotice }) {
   const [agent, setAgent] = useState(undefined); // undefined = chargement, null = aucun
   const [token, setToken] = useState(null);
@@ -35,6 +101,14 @@ function AgentSection({ equipmentId, onError, onNotice }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Jeton remis, agent pas encore vu : on surveille son premier contact sans rien demander.
+  const waiting = Boolean(agent) && !agent.lastCommunicationAt;
+  useEffect(() => {
+    if (!waiting) return undefined;
+    const timer = setInterval(load, 5000);
+    return () => clearInterval(timer);
+  }, [waiting, load]);
 
   async function register() {
     onError("");
@@ -101,7 +175,23 @@ function AgentSection({ equipmentId, onError, onNotice }) {
             Jeton de l'agent (affiché une seule fois, à garder secret) :
           </p>
           <code className="mt-2 block break-all text-white">{token}</code>
+          <div className="mt-2">
+            <CopyButton text={token} label="Copier le jeton" />
+          </div>
         </div>
+      )}
+
+      {token && <InstallGuide />}
+
+      {waiting && (
+        <p aria-live="polite" className="waiting">
+          <span className="waiting-dot" aria-hidden="true" /> En attente du premier contact de l’agent…
+        </p>
+      )}
+      {agent?.lastCommunicationAt && (
+        <p className="connected">
+          <Check size={16} aria-hidden="true" /> Agent connecté : ses mesures arrivent.
+        </p>
       )}
 
       <div className="mt-4 flex flex-wrap gap-3">
@@ -387,6 +477,23 @@ function CollectionPage() {
       .catch(() => setError("Équipement introuvable."));
   }, [id]);
 
+  // Ce qui est déjà en place s'affiche d'emblée ; sinon la personne choisit.
+  const [modes, setModes] = useState({ agent: false, snmp: false });
+  useEffect(() => {
+    let cancelled = false;
+    Promise.allSettled([getAgent(id), getSnmpConfig(id)]).then(([agent, snmp]) => {
+      if (cancelled) return;
+      setModes((current) => ({
+        agent: current.agent || (agent.status === "fulfilled" && Boolean(agent.value)),
+        snmp: current.snmp || (snmp.status === "fulfilled" && Boolean(snmp.value)),
+      }));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+  const choose = (mode) => setModes((current) => ({ ...current, [mode]: !current[mode] }));
+
   const showError = useCallback((message) => {
     setError(message);
     if (message) setNotice("");
@@ -402,7 +509,7 @@ function CollectionPage() {
         <PageHeader
           back={{ to: "/equipements", label: "Équipements" }}
           title={`Collecte${equipment ? ` : ${equipment.name}` : ""}`}
-          description="Agent installé sur l'équipement, lecture SNMP, ou les deux."
+          description="Comment cet équipement est-il supervisé ?"
         />
 
         {notice && (
@@ -417,11 +524,40 @@ function CollectionPage() {
         )}
 
         {equipment && (
-          <>
-            <AgentSection equipmentId={id} onError={showError} onNotice={showNotice} />
-            <SnmpSection equipmentId={id} onError={showError} onNotice={showNotice} />
-          </>
+          <section aria-label="Mode de supervision" className="modes">
+            <button
+              type="button"
+              aria-pressed={modes.agent}
+              onClick={() => choose("agent")}
+              className={`mode${modes.agent ? " mode-on" : ""}`}
+            >
+              <Server size={24} aria-hidden="true" />
+              <strong>Agent</strong>
+              <span>Serveurs et postes Windows ou Linux. Le plus complet : CPU, mémoire, disques, réseau, services, processus.</span>
+            </button>
+            <button
+              type="button"
+              aria-pressed={modes.snmp}
+              onClick={() => choose("snmp")}
+              className={`mode${modes.snmp ? " mode-on" : ""}`}
+            >
+              <Network size={24} aria-hidden="true" />
+              <strong>SNMP</strong>
+              <span>Routeurs, commutateurs, imprimantes, onduleurs : rien à installer sur l’équipement.</span>
+            </button>
+            <Link to={`/equipements/${id}/sondes`} className="mode">
+              <Globe size={24} aria-hidden="true" />
+              <strong>Sans agent</strong>
+              <span>Ping, port, site web ou certificat, depuis la plateforme.</span>
+            </Link>
+          </section>
         )}
+
+        {equipment && !modes.agent && !modes.snmp && (
+          <p className="insight-note">Choisissez comment superviser cet équipement.</p>
+        )}
+        {equipment && modes.agent && <AgentSection equipmentId={id} onError={showError} onNotice={showNotice} />}
+        {equipment && modes.snmp && <SnmpSection equipmentId={id} onError={showError} onNotice={showNotice} />}
       </div>
     </main>
   );

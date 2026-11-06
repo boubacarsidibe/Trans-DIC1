@@ -69,11 +69,15 @@ beforeEach(() => {
 describe("tableau de bord", () => {
   it("résume le parc par des chiffres qui mènent aux listes filtrées", async () => {
     renderDashboard();
-    const down = (await screen.findByText("Hors service")).closest("a");
+    const down = (await screen.findByText("Hors service")).closest("button");
     expect(down).toHaveTextContent("1");
-    expect(down).toHaveAttribute("href", "/equipements?statut=DOWN");
-    expect(screen.getByText("Critiques").closest("a")).toHaveAttribute("href", "/alertes?severite=CRITICAL&actives=1");
     expect(screen.getByText("1 alerte(s) critique(s)")).toBeInTheDocument();
+    await userEvent.click(screen.getByText("Critiques").closest("button"));
+    const map = screen.getByRole("list", { name: "Carte du parc" });
+    expect(within(map).getAllByRole("link")).toHaveLength(1);
+    expect(screen.getByText("Critiques").closest("button")).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(screen.getByText("Critiques").closest("button"));
+    expect(within(map).getAllByRole("link")).toHaveLength(4);
   });
 
   it("montre chaque équipement sur la carte, le plus grave d'abord, avec un lien", async () => {
@@ -96,7 +100,7 @@ describe("tableau de bord", () => {
     renderDashboard();
     expect(await screen.findByText(/silence depuis/)).toBeInTheDocument();
     const tiles = screen.getByRole("region", { name: "Chiffres clés" });
-    expect(within(tiles).getByText("Sans données").closest("a")).toHaveTextContent("1");
+    expect(within(tiles).getByText("Sans données").closest("button")).toHaveTextContent("1");
   });
 
   it("classe les plus chargés et change de ressource", async () => {
@@ -112,7 +116,7 @@ describe("tableau de bord", () => {
     await screen.findByText("Hors service");
     await userEvent.selectOptions(screen.getByLabelText("Site"), "Annexe");
     const tiles = screen.getByRole("region", { name: "Chiffres clés" });
-    expect(within(tiles).getByText("Équipements").closest("a")).toHaveTextContent("1");
+    expect(within(tiles).getByText("Équipements").closest("button")).toHaveTextContent("1");
     expect(screen.queryByRole("link", { name: "Disque presque plein" })).not.toBeInTheDocument();
   });
 

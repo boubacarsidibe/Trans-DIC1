@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   createEquipment,
   deleteEquipment,
@@ -18,6 +18,7 @@ import { EQUIPMENT_STATUS, EQUIPMENT_TYPE, label } from "../ui/labels.js";
 
 function EquipmentPage() {
   const { role } = useAuth();
+  const navigate = useNavigate();
   const canManage = canManageEquipment(role);
   const [page, setPage] = useState(0);
   const [data, setData] = useState({ content: [], page: { totalPages: 0 } });
@@ -72,8 +73,16 @@ function EquipmentPage() {
     setSubmitting(true);
     setNotice("");
     try {
-      if (editing === "new") await createEquipment(values);
-      else await updateEquipment(editing.id, values);
+      if (editing === "new") {
+        const created = await createEquipment(values);
+        if (role === "ADMIN" && created?.id) {
+          // Un équipement n'est utile que supervisé : on enchaîne sur le choix du mode.
+          navigate(`/equipements/${created.id}/collecte`);
+          return;
+        }
+      } else {
+        await updateEquipment(editing.id, values);
+      }
       setEditing(null);
       setNotice("Équipement enregistré.");
       await load(page);

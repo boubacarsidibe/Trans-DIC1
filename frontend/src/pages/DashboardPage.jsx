@@ -17,13 +17,18 @@ const SEVERITIES = [
   { id: "INFO", label: "Information" },
 ];
 
-/** Indicateur cliquable : le chiffre mène à la liste qu'il résume. */
-function Tile({ to, label, value, tone }) {
+/** Indicateur cliquable : un clic réduit tout l'écran à cet état, un second clic rétablit tout. */
+function Tile({ id, active, onToggle, label, value, tone }) {
   return (
-    <Link to={to} className={`tile tile-${tone}`}>
+    <button
+      type="button"
+      aria-pressed={active === id}
+      onClick={() => onToggle(active === id ? "" : id)}
+      className={`tile tile-${tone}${active === id ? " tile-on" : ""}`}
+    >
       <span className="tile-value">{value}</span>
       <span className="tile-label">{label}</span>
-    </Link>
+    </button>
   );
 }
 
@@ -57,6 +62,7 @@ function DashboardPage() {
   const [board, setBoard] = useState(null);
   const [error, setError] = useState("");
   const [site, setSite] = useState("");
+  const [state, setState] = useState("");
 
   const load = useCallback(() => {
     apiClient
@@ -84,9 +90,16 @@ function DashboardPage() {
     return [...found].sort((a, b) => a[1].localeCompare(b[1], "fr"));
   }, [board]);
 
-  const hosts = useMemo(
+  const onSite = useMemo(
     () => (board?.hosts ?? []).filter((h) => !site || h.siteId === site),
     [board, site],
+  );
+  const hosts = useMemo(
+    () =>
+      onSite.filter(
+        (h) => !state || (state === "down" ? h.status === "DOWN" : hostState(h) === state),
+      ),
+    [onSite, state],
   );
   const visible = useMemo(() => new Set(hosts.map((h) => h.id)), [hosts]);
   const problems = useMemo(
@@ -94,10 +107,11 @@ function DashboardPage() {
     [board, visible],
   );
 
-  const count = (state) => hosts.filter((h) => hostState(h) === state).length;
+  const count = (wanted) => onSite.filter((h) => hostState(h) === wanted).length;
   const critical = problems.filter((p) => p.severity === "CRITICAL").length;
   const silent = hosts.filter((h) => isSilent(h));
-  const down = hosts.filter((h) => h.status === "DOWN").length;
+  const down = onSite.filter((h) => h.status === "DOWN").length;
+  const tile = { active: state, onToggle: setState };
 
   return (
     <main className="app-shell page">
@@ -147,12 +161,12 @@ function DashboardPage() {
         {board && (
           <>
             <section aria-label="Chiffres clés" className="tiles">
-              <Tile to="/equipements" label="Équipements" value={hosts.length} tone="plain" />
-              <Tile to="/equipements?statut=UP" label="Normaux" value={count("ok")} tone="ok" />
-              <Tile to="/alertes?severite=WARNING&actives=1" label="Avertissements" value={count("warning")} tone="warn" />
-              <Tile to="/alertes?severite=CRITICAL&actives=1" label="Critiques" value={count("critical")} tone="bad" />
-              <Tile to="/equipements?statut=DOWN" label="Hors service" value={down} tone={down ? "bad" : "plain"} />
-              <Tile to="/equipements" label="Sans données" value={silent.length} tone={silent.length ? "warn" : "plain"} />
+              <Tile {...tile} id="" label="Équipements" value={onSite.length} tone="plain" />
+              <Tile {...tile} id="ok" label="Normaux" value={count("ok")} tone="ok" />
+              <Tile {...tile} id="warning" label="Avertissements" value={count("warning")} tone="warn" />
+              <Tile {...tile} id="critical" label="Critiques" value={count("critical")} tone="bad" />
+              <Tile {...tile} id="down" label="Hors service" value={down} tone={down ? "bad" : "plain"} />
+              <Tile {...tile} id="silent" label="Sans données" value={count("silent")} tone={count("silent") ? "warn" : "plain"} />
             </section>
 
             <div className="dash-grid">
