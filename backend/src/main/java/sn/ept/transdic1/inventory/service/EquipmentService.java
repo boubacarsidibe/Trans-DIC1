@@ -33,7 +33,30 @@ public class EquipmentService {
   @Transactional(readOnly = true)
   public Page<EquipmentResponse> list(
       UUID siteId, EquipmentType type, EquipmentStatus status, Pageable p) {
+    return list(siteId, type, status, null, p);
+  }
+
+  /**
+   * {@code text} cherche dans le nom, le code d'inventaire et l'adresse, sans tenir compte de la
+   * casse.
+   */
+  @Transactional(readOnly = true)
+  public Page<EquipmentResponse> list(
+      UUID siteId, EquipmentType type, EquipmentStatus status, String text, Pageable p) {
     Specification<Equipment> spec = (root, query, cb) -> cb.conjunction();
+    if (text != null && !text.isBlank()) {
+      String like =
+          "%"
+              + text.trim().toLowerCase(java.util.Locale.ROOT).replace("%", "").replace("_", "")
+              + "%";
+      spec =
+          spec.and(
+              (root, query, cb) ->
+                  cb.or(
+                      cb.like(cb.lower(root.get("name")), like),
+                      cb.like(cb.lower(root.get("inventoryCode")), like),
+                      cb.like(cb.lower(root.get("managementAddress")), like)));
+    }
     if (siteId != null)
       spec = spec.and((root, query, cb) -> cb.equal(root.get("site").get("id"), siteId));
     if (type != null) spec = spec.and((root, query, cb) -> cb.equal(root.get("type"), type));

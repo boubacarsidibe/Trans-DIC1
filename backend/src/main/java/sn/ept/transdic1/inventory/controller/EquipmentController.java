@@ -15,7 +15,10 @@ import sn.ept.transdic1.inventory.domain.*;
 import sn.ept.transdic1.inventory.dto.*;
 import sn.ept.transdic1.inventory.service.EquipmentService;
 
-@Tag(name = "Équipements", description = "Inventaire des équipements supervisés. Écriture réservée aux rôles ADMIN et NOC_OPERATOR.")
+@Tag(
+    name = "Équipements",
+    description =
+        "Inventaire des équipements supervisés. Écriture réservée aux rôles ADMIN et NOC_OPERATOR.")
 @RestController
 @RequestMapping("/api/v1/equipements")
 public class EquipmentController {
@@ -25,14 +28,17 @@ public class EquipmentController {
     this.service = service;
   }
 
-  @Operation(summary = "Lister les équipements", description = "Liste paginée (20 par page, tri par nom), filtrable par site, type et statut.")
+  @Operation(
+      summary = "Lister les équipements",
+      description = "Liste paginée (20 par page, tri par nom), filtrable par site, type et statut.")
   @GetMapping
   public Page<EquipmentResponse> list(
       @RequestParam(required = false) UUID siteId,
       @RequestParam(required = false) EquipmentType type,
       @RequestParam(required = false) EquipmentStatus status,
+      @RequestParam(required = false) String q,
       @PageableDefault(size = 20, sort = "name") Pageable p) {
-    return service.list(siteId, type, status, p);
+    return service.list(siteId, type, status, q, p);
   }
 
   @Operation(summary = "Consulter un équipement")

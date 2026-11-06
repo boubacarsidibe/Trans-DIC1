@@ -138,4 +138,19 @@ class EquipmentApiTests {
                 .content(body("TEST-API-008", "Equipement lecteur", "192.0.2.108")))
         .andExpect(status().isForbidden());
   }
+
+  @Test
+  @WithMockUser(roles = "ADMIN")
+  void laRechercheTrouveParNomCodeOuAdresseSansTenirCompteDeLaCasse() throws Exception {
+    create("RECH-001", "192.0.2.180");
+    for (String text : java.util.List.of("equipement TEST", "rech-001", "192.0.2.180")) {
+      mockMvc
+          .perform(get("/api/v1/equipements").param("q", text))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.content[0].inventoryCode").value("RECH-001"));
+    }
+    mockMvc
+        .perform(get("/api/v1/equipements").param("q", "introuvable-xyz"))
+        .andExpect(jsonPath("$.content").isEmpty());
+  }
 }

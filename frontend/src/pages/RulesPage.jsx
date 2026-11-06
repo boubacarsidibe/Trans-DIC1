@@ -28,7 +28,22 @@ const EMPTY = {
   active: true,
   siteIds: [],
   equipmentIds: [],
+  allEquipment: false,
 };
+
+// Indicateurs proposés ; une autre clé reste possible (saisie libre).
+const INDICATORS = [
+  ["cpu.usage", "Processeur"],
+  ["memory.usage", "Mémoire"],
+  ["swap.usage", "Fichier d’échange"],
+  ["disk.usage[*]", "Tous les disques : occupation"],
+  ["disk.free[*]", "Tous les disques : espace libre"],
+  ["net.up[*]", "Toutes les cartes : liaison"],
+  ["net.in[*]", "Toutes les cartes : trafic entrant"],
+  ["net.errors[*]", "Toutes les cartes : erreurs"],
+  ["service.up[*]", "Tous les services surveillés"],
+  ["availability", "Disponibilité"],
+];
 
 const operatorLabel = (value) =>
   OPERATORS.find((o) => o.value === value)?.label ?? value;
@@ -47,6 +62,7 @@ function toValues(rule) {
     active: rule.active,
     siteIds: rule.siteIds ?? [],
     equipmentIds: rule.equipmentIds ?? [],
+    allEquipment: Boolean(rule.allEquipment),
   };
 }
 
@@ -94,7 +110,14 @@ function RuleForm({ initial, sites, equipments, submitting, onSubmit, onCancel }
   return (
     <form onSubmit={submit} noValidate className="panel form-grid mt-5 md:grid-cols-2">
       {field("name", "Nom")}
-      {field("metricType", "Indicateur (clé)")}
+      {field("metricType", "Indicateur (clé)", { list: "indicateurs" })}
+      <datalist id="indicateurs">
+        {INDICATORS.map(([key, text]) => (
+          <option key={key} value={key}>
+            {text}
+          </option>
+        ))}
+      </datalist>
       <label className="block text-sm text-slate-300">
         Condition
         <select
@@ -136,6 +159,16 @@ function RuleForm({ initial, sites, equipments, submitting, onSubmit, onCancel }
         Règle active
       </label>
 
+      <label className="flex items-center gap-3 text-sm text-slate-300 md:col-span-2">
+        <input
+          type="checkbox"
+          checked={values.allEquipment}
+          onChange={(e) => setValues({ ...values, allEquipment: e.target.checked })}
+        />
+        S’applique à tous les équipements
+      </label>
+
+      {!values.allEquipment && (
       <fieldset className="md:col-span-2">
         <legend className="text-sm text-slate-300">Sites concernés</legend>
         <div className="mt-2 flex flex-wrap gap-4 text-sm text-slate-200">
@@ -151,6 +184,8 @@ function RuleForm({ initial, sites, equipments, submitting, onSubmit, onCancel }
           ))}
         </div>
       </fieldset>
+      )}
+      {!values.allEquipment && (
       <fieldset className="md:col-span-2">
         <legend className="text-sm text-slate-300">Équipements concernés</legend>
         <div className="mt-2 flex flex-wrap gap-4 text-sm text-slate-200">
@@ -169,6 +204,7 @@ function RuleForm({ initial, sites, equipments, submitting, onSubmit, onCancel }
           Sans site ni équipement, la règle ne s'applique à rien.
         </p>
       </fieldset>
+      )}
 
       <RuleTestPanel buildPayload={testPayload} />
 
@@ -372,7 +408,9 @@ function RulesPage() {
                   </td>
                   <td className="p-3">{rule.confirmationSeconds} s</td>
                   <td className="p-3">
-                    {rule.siteIds.length} site(s), {rule.equipmentIds.length} équipement(s)
+                    {rule.allEquipment
+                      ? "Tous les équipements"
+                      : `${rule.siteIds.length} site(s), ${rule.equipmentIds.length} équipement(s)`}
                   </td>
                   <td className="p-3">
                     <Badge tone={rule.active ? "ok" : "muted"}>{rule.active ? "Active" : "Désactivée"}</Badge>

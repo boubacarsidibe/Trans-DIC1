@@ -3800,3 +3800,103 @@ thead {
 .forecast-soon {
   color: #b3261e;
 }
+
+/* Recherche globale. */
+.rail-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: calc(100% - 1.5rem);
+  margin: 0 0.75rem 0.5rem;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 5%);
+  padding: 0.45rem 0.6rem;
+  color: #c9d2de;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.rail-search:hover,
+.rail-search:focus-visible {
+  background: rgb(255 255 255 / 11%);
+}
+
+.rail-search kbd {
+  margin-left: auto;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 12%);
+  padding: 0 0.3rem;
+  font-family: inherit;
+  font-size: 0.7rem;
+}
+
+.palette-back {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 12vh 1rem 1rem;
+  background: rgb(11 23 38 / 55%);
+}
+
+.palette {
+  width: min(36rem, 100%);
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 16px 48px rgb(11 23 38 / 35%);
+}
+
+.palette-input {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  padding: 0.9rem 1rem;
+  color: var(--ink);
+  font-size: 1rem;
+  outline: none;
+}
+
+.palette-list {
+  max-height: 22rem;
+  margin: 0;
+  padding: 0.3rem;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.palette-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  padding: 0.5rem 0.7rem;
+  color: var(--ink);
+  font-size: 0.93rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.palette-item small {
+  color: #59626f;
+}
+
+.palette-on {
+  background: var(--paper);
+}
+
+.palette-empty {
+  padding: 0.7rem;
+  color: #59626f;
+}
+
+.toolbar-grow {
+  flex: 1 1 14rem;
+}

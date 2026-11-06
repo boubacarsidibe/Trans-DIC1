@@ -51,7 +51,7 @@ export async function testRule(payload, days) {
 export function validateRule(values) {
   const errors = {};
   if (!values.name.trim()) errors.name = "Le nom est obligatoire.";
-  if (!/^[a-z0-9][a-z0-9._-]*$/.test(values.metricType)) {
+  if (!/^[a-z0-9][a-z0-9._-]*(\[[^[\]]{1,48}\])?$/.test(values.metricType)) {
     errors.metricType =
       "Clé en minuscules, chiffres, points, tirets ou soulignés (ex. cpu.usage).";
   }
@@ -84,6 +84,7 @@ export function toPayload(values) {
   return {
     name: values.name.trim(),
     metricType: values.metricType,
+    allEquipment: Boolean(values.allEquipment),
     operator: values.operator,
     threshold: Number(values.threshold),
     recoveryThreshold:

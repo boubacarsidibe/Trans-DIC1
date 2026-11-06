@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "./AuthContext.jsx";
+import CommandPalette from "../ui/CommandPalette.jsx";
 
 const ROLE_LABELS = {
   ADMIN: "Administrateur",
@@ -92,6 +93,9 @@ function AppLayout() {
   }, [open]);
 
   const initials = (username ?? "?").slice(0, 2).toUpperCase();
+  const pages = SECTIONS.filter((section) => !section.admin || role === "ADMIN")
+    .flatMap((section) => section.links)
+    .filter((link) => !link.roles || link.roles.includes(role));
 
   return (
     <div className="shell">
@@ -117,6 +121,7 @@ function AppLayout() {
         <div className="rail-head">
           <Brand />
         </div>
+        <CommandPalette pages={pages} />
 
         {SECTIONS.filter((section) => !section.admin || role === "ADMIN").map((section) => (
           <div key={section.title} className="rail-section">

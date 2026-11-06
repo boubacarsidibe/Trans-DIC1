@@ -18,11 +18,12 @@ export const EQUIPMENT_STATUSES = [
 
 export const PAGE_SIZE = 10;
 
-export async function listEquipment({ page = 0, size = PAGE_SIZE, status, type, siteId } = {}) {
+export async function listEquipment({ page = 0, size = PAGE_SIZE, status, type, siteId, q } = {}) {
   const params = { page, size };
   if (status) params.status = status;
   if (type) params.type = type;
   if (siteId) params.siteId = siteId;
+  if (q) params.q = q;
   const { data } = await apiClient.get("/equipements", { params });
   return data;
 }

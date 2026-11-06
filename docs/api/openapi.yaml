@@ -1355,6 +1355,11 @@ paths:
           - DEGRADED
           - MAINTENANCE
           - UNKNOWN
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
       - name: p
         in: query
         required: true

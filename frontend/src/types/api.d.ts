@@ -3681,6 +3681,7 @@ export interface operations {
                 siteId?: string;
                 type?: "SERVER" | "ROUTER" | "SWITCH" | "VIRTUAL_MACHINE" | "WIFI_ACCESS_POINT";
                 status?: "UP" | "DOWN" | "DEGRADED" | "MAINTENANCE" | "UNKNOWN";
+                q?: string;
                 p: components["schemas"]["Pageable"];
             };
             header?: never;

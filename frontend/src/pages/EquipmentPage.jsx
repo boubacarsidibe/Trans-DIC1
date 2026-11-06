@@ -34,18 +34,27 @@ function EquipmentPage() {
   const [params, setParams] = useSearchParams();
   const status = params.get("statut") ?? "";
   const type = params.get("type") ?? "";
+  const [search, setSearch] = useState("");
+  const [text, setText] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setText(search.trim());
+      setPage(0);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const load = useCallback(async (targetPage) => {
     setLoading(true);
     setError("");
     try {
-      setData(await listEquipment({ page: targetPage, status, type }));
+      setData(await listEquipment({ page: targetPage, status, type, q: text }));
     } catch {
       setError("Impossible de charger les équipements.");
     } finally {
       setLoading(false);
     }
-  }, [status, type]);
+  }, [status, type, text]);
 
   useEffect(() => {
     load(page);
@@ -130,6 +139,15 @@ function EquipmentPage() {
         />
 
         <div className="toolbar">
+          <label className="toolbar-field toolbar-grow">
+            Rechercher
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Nom, code ou adresse"
+            />
+          </label>
           <label className="toolbar-field">
             Statut
             <select value={status} onChange={(event) => filter("statut", event.target.value)}>
