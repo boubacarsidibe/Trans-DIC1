@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { ACCOUNTS, apiAs, createSite, unique } from "./support/api.js";
-import { loginAs, openMenu } from "./support/ui.js";
+import { login, loginAs, openMenu } from "./support/ui.js";
 
 // Astreinte (F2.2, ADR 0025) : un administrateur crée un planning limité à un site neuf et une
 // garde en cours ; la page montre alors qui est d'astreinte pour ce site. Le site est propre au
@@ -39,8 +39,10 @@ test.describe("astreinte", () => {
     );
 
     // L'opérateur d'astreinte retrouve sa garde dans « mes gardes ».
+    // Après une déconnexion, la connexion ramène à la dernière page (/astreinte), pas au tableau de bord.
     await page.getByRole("button", { name: "Se déconnecter" }).click();
-    await loginAs(page, ACCOUNTS.noc);
+    await login(page, ACCOUNTS.noc);
+    await expect(page.getByRole("navigation", { name: "Navigation principale" })).toContainText(ACCOUNTS.noc);
     await openMenu(page, "Astreinte");
     await expect(page.getByRole("list", { name: "Mes gardes" })).toContainText(planning);
   });
