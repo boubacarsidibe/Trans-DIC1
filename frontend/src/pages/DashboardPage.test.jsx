@@ -104,4 +104,24 @@ describe("tableau de bord", () => {
       expect(screen.getByText("Alertes actives").nextSibling).toHaveTextContent("5"),
     );
   });
+
+  it("affiche la carte « D'astreinte » avec la personne prévenue par site couvert", async () => {
+    apiClient.get.mockImplementation(async (url) => {
+      if (url === "/vue-ensemble") return { data: overview };
+      if (url === "/astreinte/maintenant")
+        return {
+          data: [
+            { siteId: "s1", siteName: "Campus", covered: true, primary: { username: "alice" }, secondary: { username: "bob" } },
+            { siteId: "s2", siteName: "Annexe", covered: false, primary: null, secondary: null },
+          ],
+        };
+      return { data: [] };
+    });
+    renderDashboard();
+
+    const list = await screen.findByRole("list", { name: "Personnes d'astreinte par site" });
+    expect(list).toHaveTextContent("Campus : alice (secondaire : bob)");
+    expect(list).not.toHaveTextContent("Annexe");
+    expect(screen.getByRole("link", { name: "Voir l'astreinte" })).toHaveAttribute("href", "/astreinte");
+  });
 });

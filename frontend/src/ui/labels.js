@@ -117,4 +117,10 @@ export const SIMILAR_CRITERION = {
   MEME_SITE: "même règle sur le même site",
 };
 
+// Astreinte (ADR 0025) : niveau d'une garde.
+export const ONCALL_LEVEL = {
+  PRIMARY: "Principal",
+  SECONDARY: "Secondaire",
+};
+
 export const label = (map, value) => (value == null ? "—" : (map[value] ?? value));

@@ -6,6 +6,7 @@ import { useLiveUpdates } from "../hooks/useLiveUpdates.js";
 import { LiveIndicator, SeverityBadge, StatusBadge } from "../ui/Badges.jsx";
 import Donut from "../ui/Donut.jsx";
 import PageHeader from "../ui/PageHeader.jsx";
+import OnCallCard from "./OnCallCard.jsx";
 import { METRIC, label } from "../ui/labels.js";
 
 const STATUSES = ["UP", "DEGRADED", "MAINTENANCE", "DOWN", "UNKNOWN"];
@@ -101,6 +102,8 @@ function DashboardPage() {
           <Figure label="Alertes actives" value={number(alerts?.active)} alarm={(alerts?.active ?? 0) > 0} />
           <Figure label="Agents actifs" value={number(overview?.activeAgents)} />
         </section>
+
+        <OnCallCard />
 
         {overview && (
           <div className="rings">

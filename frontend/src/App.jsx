@@ -10,6 +10,7 @@ import ProtectedRoute from "./auth/ProtectedRoute.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import MaintenancesPage from "./pages/MaintenancesPage.jsx";
+import OnCallPage from "./pages/OnCallPage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
 import ReportsPage from "./pages/ReportsPage.jsx";
 import RulesPage from "./pages/RulesPage.jsx";
@@ -46,6 +47,7 @@ function App() {
           <Route path="/topologie" element={<TopologyPage />} />
           <Route path="/alertes" element={<AlertsPage />} />
           <Route path="/maintenances" element={<MaintenancesPage />} />
+          <Route path="/astreinte" element={<OnCallPage />} />
           <Route path="/rapports" element={<ReportsPage />} />
           <Route path="/regles" element={<RulesPage />} />
           <Route path="/evenements" element={<EventsPage />} />
