@@ -357,6 +357,47 @@ class ArchitectureTests {
                   + " et lit le périmètre par le port SiteScope");
 
   @ArchTest
+  static final ArchRule noModuleDependsOnStatuspage =
+      noClasses()
+          .that()
+          .resideOutsideOfPackage(ROOT + ".statuspage..")
+          .and()
+          .resideInAPackage(ROOT + "..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage(ROOT + ".statuspage..")
+          .because(
+              "les pages de statut (F2.3, ADR 0026) ne font que lire l'état supervisé : personne ne"
+                  + " dépend d'elles, ce qui évite tout cycle");
+
+  @ArchTest
+  static final ArchRule statuspageOnlyUsesAuditServiceAndCommon =
+      noClasses()
+          .that()
+          .resideInAPackage(ROOT + ".statuspage..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              ROOT + ".inventory..",
+              ROOT + ".monitoring..",
+              ROOT + ".alerting..",
+              ROOT + ".reporting..",
+              ROOT + ".access..",
+              ROOT + ".collection..",
+              ROOT + ".events..",
+              ROOT + ".diagnostic..",
+              ROOT + ".oncall..",
+              ROOT + ".overview..",
+              ROOT + ".security..",
+              ROOT + ".audit.controller..",
+              ROOT + ".audit.repository..",
+              ROOT + ".audit.domain..")
+          .because(
+              "la page de statut lit l'état par ses propres requêtes bornées (aucune entité d'un"
+                  + " autre module, donc aucun nom d'hôte ni adresse ne peut fuir par sérialisation),"
+                  + " trace par AuditService et lit le périmètre par le port SiteScope");
+
+  @ArchTest
   static final ArchRule noModuleDependsOnOverview =
       noClasses()
           .that()

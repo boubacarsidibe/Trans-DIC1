@@ -292,8 +292,13 @@ class PersistenceModelTests {
             "OnCallSchedule",
             "OnCallShift",
             "OnCallRotation",
-            "OnCallAlertStep")
-        .hasSize(36);
+            "OnCallAlertStep",
+            // Pages de statut (ADR 0026).
+            "StatusPage",
+            "StatusComponent",
+            "StatusIncident",
+            "StatusIncidentUpdate")
+        .hasSize(40);
   }
 
   @Test
