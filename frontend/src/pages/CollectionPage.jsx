@@ -16,6 +16,7 @@ import {
   toSnmpPayload,
   validateSnmp,
 } from "../api/collection.js";
+import { SNMP_TEMPLATES } from "../api/snmpTemplates.js";
 import PageHeader from "../ui/PageHeader.jsx";
 
 const formatDate = (value) => (value ? new Date(value).toLocaleString("fr-FR") : "jamais");
@@ -363,6 +364,25 @@ function SnmpSection({ equipmentId, onError, onNotice }) {
               onChange={(e) => setValues({ ...values, active: e.target.checked })}
             />
             Collecte active
+          </label>
+
+          <label className="block text-sm text-slate-300 md:col-span-2">
+            Modèle d’équipement
+            <select
+              value=""
+              onChange={(event) => {
+                const template = SNMP_TEMPLATES.find((t) => t.id === event.target.value);
+                if (template) setValues({ ...values, metrics: template.metrics.map((m) => ({ ...m })) });
+              }}
+              className="field mt-2"
+            >
+              <option value="">Choisir un modèle pour remplir les indicateurs…</option>
+              {SNMP_TEMPLATES.map((template) => (
+                <option key={template.id} value={template.id}>
+                  {template.label}
+                </option>
+              ))}
+            </select>
           </label>
 
           <fieldset className="md:col-span-2">

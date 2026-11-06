@@ -33,8 +33,9 @@ public record SnmpConfigRequest(
       @NotBlank
           @Size(max = 64)
           @Pattern(
-              regexp = "[a-z0-9][a-z0-9._-]*",
-              message = "Clé en minuscules, chiffres, points, tirets ou soulignés")
+              regexp = "[a-z0-9][a-z0-9._-]*(\\[[^\\[\\]]{1,48}\\])?",
+              message =
+                  "Clé en minuscules, chiffres, points, tirets ou soulignés, suivie au besoin de [instance]")
           String key,
       @NotBlank @Size(max = 120) String name,
       @NotBlank

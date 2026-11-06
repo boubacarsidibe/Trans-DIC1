@@ -123,7 +123,7 @@ export function validateSnmp(values) {
     const keys = new Set();
     values.metrics.forEach((m, index) => {
       const problems = [];
-      if (!/^[a-z0-9][a-z0-9._-]*$/.test(m.key)) problems.push("clé invalide (ex. cpu.usage)");
+      if (!/^[a-z0-9][a-z0-9._-]*(\[[^[\]]{1,48}\])?$/.test(m.key)) problems.push("clé invalide (ex. cpu.usage)");
       else if (keys.has(m.key)) problems.push("clé en double");
       keys.add(m.key);
       if (!m.name.trim()) problems.push("nom manquant");

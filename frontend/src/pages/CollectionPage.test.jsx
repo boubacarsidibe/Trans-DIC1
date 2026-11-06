@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App.jsx";
+import { SNMP_TEMPLATES } from "../api/snmpTemplates.js";
 import apiClient from "../api/client.js";
 import { fromConfig, toSnmpPayload, validateSnmp } from "../api/collection.js";
 import { AuthProvider } from "../auth/AuthContext.jsx";
@@ -266,5 +267,21 @@ describe("page de collecte d'un équipement", () => {
     await userEvent.click(screen.getByRole("tab", { name: "Linux" }));
     expect(screen.getByText(/install\.sh --server-url/)).toBeInTheDocument();
     expect(screen.queryByText(/tdic1_s.*install/)).not.toBeInTheDocument();
+  });
+
+  it("remplit les indicateurs depuis un modèle d'équipement", async () => {
+    mockApi({ withAgent: false, withSnmp: false });
+    renderPage();
+    await pick(/^SNMP/);
+    await userEvent.selectOptions(await screen.findByLabelText("Modèle d’équipement"), "Onduleur (UPS-MIB)");
+    expect(screen.getByLabelText("Clé de l'indicateur 1")).toHaveValue("ups.charge");
+    expect(screen.getByLabelText("Clé de l'indicateur 4")).toHaveValue("ups.input");
+  });
+
+  it("chaque modèle respecte la validation du formulaire", () => {
+    for (const template of SNMP_TEMPLATES) {
+      const errors = validateSnmp({ ...base, metrics: template.metrics });
+      expect(errors, template.label).toEqual({});
+    }
   });
 });
