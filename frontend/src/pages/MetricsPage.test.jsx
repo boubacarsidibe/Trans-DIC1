@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App.jsx";
+import { describe as describeMetric, formatMetric, parseKey } from "../ui/metricCatalog.js";
 import apiClient from "../api/client.js";
 import { AuthProvider } from "../auth/AuthContext.jsx";
 import { clearSession, saveSession } from "../auth/session.js";
@@ -69,7 +70,7 @@ describe("page d'historique des mesures", () => {
     mockApi();
     renderPage();
 
-    expect(await screen.findByRole("heading", { name: /Historique : Serveur web/ })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Serveur web" })).toBeInTheDocument();
     await waitFor(() => {
       const keys = apiClient.get.mock.calls
         .filter(([url]) => url === "/equipements/e1/metriques")
@@ -136,3 +137,93 @@ describe("page d'historique des mesures", () => {
     expect(await screen.findByRole("region", { name: "Processeur (CPU)" })).toHaveTextContent("Dernière : 60 %");
   });
 });
+
+describe("mesures à instance", () => {
+  const indicators = [
+    { key: "cpu.usage", unit: "%", lastValue: 12, lastAt: "2026-10-28T10:00:00Z" },
+    { key: "disk.usage[C:]", unit: "%", lastValue: 97, lastAt: "2026-10-28T10:00:00Z" },
+    { key: "disk.free[C:]", unit: "B", lastValue: 13551169536, lastAt: "2026-10-28T10:00:00Z" },
+    { key: "net.in[Wi-Fi]", unit: "bit/s", lastValue: 7375000, lastAt: "2026-10-28T10:00:00Z" },
+    { key: "vendor.custom", unit: "tr/min", lastValue: 900, lastAt: "2026-10-28T10:00:00Z" },
+  ];
+
+  beforeEach(() => {
+    mockApi({});
+    const base = apiClient.get.getMockImplementation();
+    apiClient.get.mockImplementation(async (url, config) => {
+      if (url === "/equipements/e1/metriques/indicateurs") return { data: indicators };
+      if (url === "/equipements/e1/agent/instantane") {
+        return {
+          data: {
+            receivedAt: "2026-10-28T10:00:00Z",
+            snapshot: {
+              hostname: "srv-web",
+              os: "Windows",
+              osVersion: "10.0",
+              architecture: "AMD64",
+              cpuCount: 8,
+              memoryTotal: 25641005056,
+              partial: true,
+              processes: {
+                byCpu: [{ name: "java.exe", pid: 4, cpu: 88.5, memory: 1048576 }],
+                byMemory: [{ name: "java.exe", pid: 4, cpu: 88.5, memory: 1048576 }],
+              },
+            },
+          },
+        };
+      }
+      return base(url, config);
+    });
+  });
+
+  it("crée un onglet par famille réellement mesurée", async () => {
+    renderPage();
+    expect(await screen.findByRole("tab", { name: "Disques" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Réseau" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Services" })).not.toBeInTheDocument();
+  });
+
+  it("affiche chaque disque et une mesure inconnue sans rien perdre", async () => {
+    renderPage();
+    await userEvent.click(await screen.findByRole("tab", { name: "Disques" }));
+    expect(await screen.findByRole("heading", { name: "Disque occupé — C:" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Espace libre — C:" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "Autres" }));
+    expect(await screen.findByRole("heading", { name: "vendor.custom" })).toBeInTheDocument();
+  });
+
+  it("montre l'inventaire et le top des processus", async () => {
+    renderPage();
+    expect(await screen.findByText("srv-web")).toBeInTheDocument();
+    expect(screen.getAllByText("java.exe").length).toBeGreaterThan(0);
+    expect(screen.getByText(/Liste partielle/)).toBeInTheDocument();
+  });
+
+  it("écrit les valeurs dans une unité lisible", async () => {
+    renderPage();
+    expect(await screen.findByText("7,4 Mbit/s")).toBeInTheDocument();
+  });
+});
+
+describe("catalogue des mesures", () => {
+  it("découpe les clés", () => {
+    expect(parseKey("disk.usage[C:]")).toEqual({ family: "disk.usage", instance: "C:" });
+    expect(parseKey("cpu.usage")).toEqual({ family: "cpu.usage", instance: null });
+  });
+
+  it("garde une clé inconnue", () => {
+    expect(describeMetric("zzz").label).toBe("zzz");
+    expect(describeMetric("zzz").group).toBe("other");
+    expect(describeMetric("probe.up").group).toBe("probes");
+  });
+
+  it("formate chaque unité", () => {
+    expect(formatMetric(1536, "B")).toBe("1,5 Ko");
+    expect(formatMetric(2_500_000, "bit/s")).toBe("2,5 Mbit/s");
+    expect(formatMetric(90061, "s")).toBe("1 j 1 h");
+    expect(formatMetric(1, "state")).toBe("En marche");
+    expect(formatMetric(0, "state")).toBe("Arrêté");
+    expect(formatMetric(null, "%")).toBe("—");
+  });
+});
+

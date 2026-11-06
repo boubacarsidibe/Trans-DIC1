@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import {
   Area,
   CartesianGrid,
@@ -16,20 +16,26 @@ import {
   CHART_METRICS,
   PERIODS,
   formatTime,
-  formatValue,
   getHistory,
+  listIndicators,
   periodRange,
   summarize,
   toSeries,
 } from "../api/metrics.js";
 import { useLiveUpdates } from "../hooks/useLiveUpdates.js";
+import EquipmentInsight from "../ui/EquipmentInsight.jsx";
 import PageHeader from "../ui/PageHeader.jsx";
+import { GROUPS, describe, formatMetric, isState, sortIndicators } from "../ui/metricCatalog.js";
+
+const formatValue = formatMetric;
+const OVERVIEW_KEYS = ["cpu.usage", "memory.usage", "disk.usage"];
 
 // Trois chiffres vus d'un coup d'œil, puis la courbe, puis le tableau pour qui ne voit pas la courbe.
 function MetricChart({ metric, history, periodHours, error, loading }) {
   const series = useMemo(() => toSeries(history), [history]);
   const summary = useMemo(() => summarize(series), [series]);
   const unit = history?.unit || "%";
+  const percentScale = unit === "%";
   const titleId = `chart-${metric.key}`;
 
   return (
@@ -80,9 +86,10 @@ function MetricChart({ metric, history, periodHours, error, loading }) {
                   fontSize={12}
                 />
                 <YAxis
-                  domain={[0, 100]}
-                  unit={unit === "%" ? " %" : ` ${unit}`}
-                  width={56}
+                  domain={percentScale ? [0, 100] : isState(unit) ? [0, 1] : ["auto", "auto"]}
+                  ticks={isState(unit) ? [0, 1] : undefined}
+                  tickFormatter={(value) => formatValue(value, unit)}
+                  width={isState(unit) ? 78 : 72}
                   stroke="#566780"
                   fontSize={12}
                 />
@@ -90,12 +97,14 @@ function MetricChart({ metric, history, periodHours, error, loading }) {
                   labelFormatter={(t) => new Date(t).toLocaleString("fr-FR")}
                   formatter={(value, name) => [formatValue(value, unit), name]}
                 />
-                <ReferenceLine
-                  y={90}
-                  stroke="#c4302b"
-                  strokeDasharray="1 4"
-                  label={{ value: "90 %", position: "insideTopRight", fill: "#b3261e", fontSize: 11 }}
-                />
+                {percentScale && (
+                  <ReferenceLine
+                    y={90}
+                    stroke="#c4302b"
+                    strokeDasharray="1 4"
+                    label={{ value: "90 %", position: "insideTopRight", fill: "#b3261e", fontSize: 11 }}
+                  />
+                )}
                 <Area
                   type="monotone"
                   dataKey={(p) => (p.min === null ? null : [p.min, p.max])}
@@ -120,7 +129,8 @@ function MetricChart({ metric, history, periodHours, error, loading }) {
             </ResponsiveContainer>
           </div>
           <p className="mt-2 text-xs text-slate-400">
-            Trait : moyenne. Zone claire : écart entre minimum et maximum. Pointillé rouge : 90 %.
+            Trait : moyenne. Zone claire : écart entre minimum et maximum.
+            {percentScale ? " Pointillé rouge : 90 %." : ""}
           </p>
           <details className="mt-3">
             <summary className="cursor-pointer text-sm text-slate-300">
@@ -174,30 +184,56 @@ function MetricsPage() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [indicators, setIndicators] = useState([]);
+  const [tab, setTab] = useState("overview");
 
   useEffect(() => {
     getEquipment(id)
       .then(setEquipment)
       .catch(() => setLoadError("Équipement introuvable."));
+    listIndicators(id)
+      .then((found) => setIndicators(Array.isArray(found) ? found : []))
+      .catch(() => setIndicators([]));
   }, [id]);
+
+  // Chaque équipement montre ce qu'il mesure réellement, sans liste figée.
+  const sorted = useMemo(() => sortIndicators(indicators), [indicators]);
+  const tabs = useMemo(() => {
+    const present = new Set(sorted.map((item) => item.group));
+    return GROUPS.filter((group) => group.id === "overview" || present.has(group.id));
+  }, [sorted]);
+  const computed = useMemo(() => {
+    if (tab === "overview") {
+      const known = new Set(sorted.map((item) => item.key));
+      const wanted = sorted.length ? OVERVIEW_KEYS.filter((key) => known.has(key)) : OVERVIEW_KEYS;
+      return (wanted.length ? wanted : OVERVIEW_KEYS).map((key) => {
+        const fixed = CHART_METRICS.find((metric) => metric.key === key);
+        return { key, label: fixed?.label ?? describe(key).label, dash: fixed?.dash };
+      });
+    }
+    return sorted.filter((item) => item.group === tab).map(({ key, label }) => ({ key, label }));
+  }, [sorted, tab]);
+  // Même liste de graphes = même identité : l'arrivée des indicateurs ne recharge pas tout.
+  const signature = computed.map((metric) => metric.key).join("|");
+  const charts = useMemo(() => computed, [signature]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = useCallback(async () => {
     const range = periodRange(period);
     setLoading(true);
     const results = await Promise.allSettled(
-      CHART_METRICS.map((m) => getHistory(id, { key: m.key, ...range })),
+      charts.map((m) => getHistory(id, { key: m.key, ...range })),
     );
     const nextHistories = {};
     const nextErrors = {};
     results.forEach((result, index) => {
-      const key = CHART_METRICS[index].key;
+      const key = charts[index].key;
       if (result.status === "fulfilled") nextHistories[key] = result.value;
       else nextErrors[key] = "Impossible de charger cet historique.";
     });
     setHistories(nextHistories);
     setErrors(nextErrors);
     setLoading(false);
-  }, [id, period]);
+  }, [id, period, charts]);
 
   useEffect(() => {
     load();
@@ -213,13 +249,40 @@ function MetricsPage() {
       <div className="page-inner">
         <PageHeader
           back={{ to: "/equipements", label: "Équipements" }}
-          title={`Historique${equipment ? ` : ${equipment.name}` : ""}`}
-          description="Processeur, mémoire et disque sur la période choisie."
+          title={equipment ? equipment.name : "Équipement"}
+          description={equipment ? `${equipment.type} · ${equipment.managementAddress ?? ""} · ${equipment.site ?? ""}` : "Mesures sur la période choisie."}
+          actions={
+            <div className="dash-actions">
+              <Link to={`/alertes?equipement=${id}`} className="btn btn-secondary">
+                Alertes
+              </Link>
+              <Link to={`/equipements/${id}/sondes`} className="btn btn-secondary">
+                Sondes
+              </Link>
+            </div>
+          }
         />
         {loadError && (
           <p role="alert" className="notice notice-bad mt-4">
             {loadError}
           </p>
+        )}
+
+        {tabs.length > 1 && (
+          <div className="tabs tabs-page" role="tablist" aria-label="Familles de mesures">
+            {tabs.map((group) => (
+              <button
+                key={group.id}
+                type="button"
+                role="tab"
+                aria-selected={tab === group.id}
+                className={`tab${tab === group.id ? " tab-on" : ""}`}
+                onClick={() => setTab(group.id)}
+              >
+                {group.label}
+              </button>
+            ))}
+          </div>
         )}
 
         <div role="group" aria-label="Période" className="segmented">
@@ -236,7 +299,25 @@ function MetricsPage() {
           ))}
         </div>
 
-        {CHART_METRICS.map((metric) => (
+        {tab === "overview" && sorted.length > 0 && (
+          <section aria-labelledby="dernieres" className="panel mt-5">
+            <div className="panel-head">
+              <h2 id="dernieres">Dernières valeurs</h2>
+            </div>
+            <ul className="last-values">
+              {sorted.map((item) => (
+                <li key={item.key}>
+                  <span className="last-label">{item.label}</span>
+                  <span className="last-value">{formatMetric(item.lastValue, item.unit)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {tab === "overview" && <EquipmentInsight equipmentId={id} />}
+
+        {charts.map((metric) => (
           <MetricChart
             key={metric.key}
             metric={metric}

@@ -15,6 +15,7 @@ import { canAdministerAlerts, canHandleAlerts } from "../auth/permissions.js";
 import { Archive, BellOff, CheckCircle2, History } from "lucide-react";
 import { useLiveUpdates } from "../hooks/useLiveUpdates.js";
 import { AlertStateBadge, LiveIndicator } from "../ui/Badges.jsx";
+import { ProcessTable } from "../ui/EquipmentInsight.jsx";
 import { SEVERITY, label } from "../ui/labels.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import AssigneesEditor from "./AssigneesEditor.jsx";
@@ -36,6 +37,26 @@ const formatDate = (value) =>
   value
     ? new Date(value).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })
     : "—";
+
+/** Le coupable au moment de l'alerte : l'agent a noté les processus les plus gourmands. */
+function AlertContext({ context }) {
+  if (!context) return null;
+  let snapshot;
+  try {
+    snapshot = JSON.parse(context);
+  } catch {
+    return null;
+  }
+  return (
+    <section aria-label="Processus au moment de l'alerte" className="alert-context">
+      <h3 className="insight-title">Processus au moment de l’alerte</h3>
+      <div className="insight-grid">
+        <ProcessTable title="Les plus gourmands en CPU" rows={snapshot.processes?.byCpu} />
+        <ProcessTable title="Les plus gourmands en mémoire" rows={snapshot.processes?.byMemory} />
+      </div>
+    </section>
+  );
+}
 
 function AlertsPage() {
   const { role } = useAuth();
@@ -319,6 +340,7 @@ function AlertsPage() {
                 }}
               />
             )}
+            <AlertContext context={detail.alert.context} />
             <ol className="timeline">
               {detail.events.map((event, index) => (
                 <li key={`${event.type}-${event.occurredAt}-${index}`}>
