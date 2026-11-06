@@ -287,8 +287,13 @@ class PersistenceModelTests {
             "NetworkEvent",
             "EventRule",
             // Modèles d'équipement appliqués (ADR 0022).
-            "EquipmentTemplateApplication")
-        .hasSize(32);
+            "EquipmentTemplateApplication",
+            // Astreinte (ADR 0025).
+            "OnCallSchedule",
+            "OnCallShift",
+            "OnCallRotation",
+            "OnCallAlertStep")
+        .hasSize(36);
   }
 
   @Test
