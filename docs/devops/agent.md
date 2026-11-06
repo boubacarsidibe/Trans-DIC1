@@ -1,6 +1,6 @@
 # Agent Trans-DIC1 : installation et exploitation
 
-L'agent est installé sur chaque serveur Linux à superviser. Il relève CPU, mémoire, disque et disponibilité, puis les envoie à la plateforme en HTTPS, toutes les 60 s par défaut. Le choix technique est expliqué dans l'[ADR-0012](../adr/0012-agent.md), et le fonctionnement côté plateforme dans l'[ADR-0006](../adr/0006-collection-realtime-runtime.md).
+L'agent est installé sur chaque serveur Linux ou Windows à superviser (Windows : voir [Installation sous Windows](#installation-sous-windows)). Il relève CPU, mémoire, disque et disponibilité, puis les envoie à la plateforme en HTTPS, toutes les 60 s par défaut. Le choix technique est expliqué dans l'[ADR-0012](../adr/0012-agent.md), et le fonctionnement côté plateforme dans l'[ADR-0006](../adr/0006-collection-realtime-runtime.md).
 
 ## Prérequis
 
@@ -62,6 +62,87 @@ journalctl -u trans-dic1-agent -f      # « 4 mesure(s) envoyée(s) » à chaque
 
 Dans la plateforme, l'agent passe en état actif, avec l'heure de sa dernière communication et son adresse. Les mesures apparaissent dans l'historique de l'équipement.
 
+## Installation sous Windows
+
+L'agent est le même, avec un collecteur Windows (CPU, mémoire, disque et disponibilité, mêmes clés et mêmes unités). Il tourne comme une **tâche planifiée** lancée au démarrage de Windows, sous le compte limité `LOCAL SERVICE`, relancée automatiquement après une minute en cas d'arrêt. Le choix est expliqué dans la mise à jour de l'[ADR-0012](../adr/0012-agent.md).
+
+### Prérequis
+
+- Windows 10, Windows 11 ou Windows Server 2016 et suivants, avec Windows PowerShell 5.1 ou plus récent ;
+- **Python 3.8 ou plus récent installé pour tous les utilisateurs** (installateur de python.org, option « Install for all users »). Un Python du Microsoft Store est refusé, et un Python installé dans un profil utilisateur n'est accepté qu'avec `-RunAsSystem` ;
+- accès sortant en HTTPS vers la plateforme ; aucun port entrant n'est ouvert ;
+- un compte administrateur de la plateforme (pour le jeton) et un compte administrateur Windows (pour installer).
+
+### 1. Enregistrer l'agent et obtenir le paquet
+
+Enregistrer l'agent dans la plateforme comme au point 1 ci-dessus : le jeton (`tdic1_…`) s'affiche une seule fois. L'enregistrer dans un fichier texte temporaire, par exemple `C:\Temp\jeton-agent.txt`.
+
+Construire le paquet depuis un clone du dépôt :
+
+```powershell
+powershell -ExecutionPolicy Bypass -File agent\packaging\windows\build-package.ps1
+```
+
+Le script produit `agent\dist\trans-dic1-agent-windows-<version>.zip` et son fichier `.sha256`. Copier les deux sur le serveur, vérifier l'empreinte puis décompresser :
+
+```powershell
+(Get-FileHash .\trans-dic1-agent-windows-1.1.0.zip -Algorithm SHA256).Hash.ToLower()   # doit égaler le contenu du fichier .sha256
+Expand-Archive .\trans-dic1-agent-windows-1.1.0.zip -DestinationPath C:\Temp
+cd C:\Temp\trans-dic1-agent-windows-1.1.0
+```
+
+Le paquet ne contient aucun secret : le jeton est fourni à l'installation.
+
+### 2. Installer
+
+Dans une fenêtre PowerShell **ouverte en tant qu'administrateur** :
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -ServerUrl https://<plateforme> -TokenFile C:\Temp\jeton-agent.txt
+Remove-Item C:\Temp\jeton-agent.txt -Force
+```
+
+Pour voir ce qui sera fait sans rien modifier : ajouter `-WhatIf`. Le script procède dans l'ordre suivant :
+- il cherche Python 3.8 ou plus récent et refuse un Python inutilisable par la tâche ;
+- il copie l'agent dans `C:\Program Files\Trans-DIC1-Agent` ;
+- il écrit `C:\ProgramData\Trans-DIC1-Agent\agent.conf` ;
+- il installe le jeton dans `C:\ProgramData\Trans-DIC1-Agent\token`, dont l'héritage est coupé : SYSTEM et les administrateurs ont le contrôle total, le compte de l'agent la lecture, personne d'autre ;
+- il vérifie la configuration, sans rien envoyer, et s'arrête si elle est invalide ;
+- il enregistre la tâche « Trans-DIC1 Agent » et la démarre.
+
+Le jeton n'est jamais affiché.
+
+Options utiles : `-Interval <s>` (10 à 240), `-DiskPath D:\` (autre lecteur), `-CaFile <fichier.pem>` (autorité de certification interne), `-Python <chemin>`, `-RunAsSystem`, `-NoTask` (installe sans tâche, pour un essai manuel).
+
+Vérifier :
+
+```powershell
+Get-ScheduledTask -TaskName "Trans-DIC1 Agent" | Get-ScheduledTaskInfo
+Get-Content C:\ProgramData\Trans-DIC1-Agent\logs\agent.log -Tail 20 -Wait     # « 4 mesure(s) envoyée(s) » à chaque cycle
+```
+
+Dans la plateforme, l'agent passe en état actif, avec l'heure de sa dernière communication et son adresse.
+
+### Configuration, mise à jour et désinstallation
+
+- La configuration est `C:\ProgramData\Trans-DIC1-Agent\agent.conf` (modèle commenté : `agent\packaging\windows\agent.conf.example`). Les paramètres sont ceux du tableau « Configuration » ci-dessous, avec en plus `log_file` (journal tournant de l'agent) et, par défaut, `disk_path` valant le lecteur système. Pour appliquer une modification, redémarrer la tâche : `Stop-ScheduledTask -TaskName "Trans-DIC1 Agent"` puis `Start-ScheduledTask -TaskName "Trans-DIC1 Agent"`.
+- Mise à jour : décompresser la nouvelle version et relancer `install.ps1` sans paramètre. La configuration et le jeton sont conservés.
+- Nouveau jeton : `install.ps1 -TokenFile C:\Temp\nouveau-jeton.txt`.
+- Désinstallation : `uninstall.ps1` garde la configuration, le jeton et les journaux ; `uninstall.ps1 -Purge` les supprime aussi. Il faut ensuite révoquer l'agent dans la plateforme.
+
+### Problèmes fréquents
+
+| Message ou symptôme | Cause | Action |
+| --- | --- | --- |
+| « droits administrateur requis » | PowerShell n'est pas élevé | rouvrir PowerShell en tant qu'administrateur |
+| « Python est installé dans un profil utilisateur » | `LOCAL SERVICE` ne peut pas lire ce Python | installer Python pour tous les utilisateurs, ou ajouter `-RunAsSystem` |
+| « ce Python vient du Microsoft Store » | le Python du Store ne s'exécute que pour son utilisateur | installer Python depuis python.org |
+| « le fichier de jeton … est accessible à : Utilisateurs » | quelqu'un a élargi les droits du fichier | relancer `install.ps1 -TokenFile …` : il remet les droits, ou appliquer la commande `icacls` donnée dans le message |
+| « jeton d'agent refusé » dans le journal | jeton révoqué ou remplacé | enregistrer un nouvel agent et relancer `install.ps1 -TokenFile …` |
+| Tâche à l'état « Prêt » mais aucun envoi | configuration ou réseau | lire `agent.log`, vérifier l'accès HTTPS vers la plateforme (`Test-NetConnection <hôte> -Port 443`) |
+
+Le disque mesuré est un seul lecteur : le lecteur système par défaut, `disk_path` pour un autre. Les mesures sont datées par le serveur : son horloge doit être synchronisée (service Heure Windows).
+
 ## Configuration
 
 Le fichier `/etc/trans-dic1-agent/agent.conf` est commenté (modèle : `agent/packaging/agent.conf.example`). Chaque valeur peut être remplacée par une variable `TRANS_DIC1_AGENT_<NOM>`.
@@ -105,8 +186,16 @@ Les mesures sont datées par le serveur : son horloge doit être synchronisée (
 ## Tests
 
 ```sh
-sh agent/run-tests.sh            # 39 tests sous Python 3.8 et 3.12, couverture (seuil 80 %)
+sh agent/run-tests.sh            # tests sous Python 3.8 et 3.12 dans Docker, couverture (seuil 80 %)
 sh agent/tests/install-test.sh   # paquet installé sur une Debian vierge, envoi réel, mise à jour, désinstallation
 ```
+
+Sous Windows, sans Docker, depuis le dossier `agent` :
+
+```powershell
+python -m unittest discover -s tests -t .
+```
+
+Les tests propres à Linux (`/proc`, `statvfs`, droits 600) sont ignorés, et ceux qui interrogent le vrai `kernel32` et le vrai `icacls` ne s'exécutent que sous Windows.
 
 Côté backend, `AgentApiTests.leLotProduitParLAgentEstAccepteTelQuel` envoie à la vraie API le lot figé dans `agent/tests/fixtures/agent-payload.json`. Les tests de l'agent vérifient de leur côté que leur sortie correspond exactement à ce fichier.

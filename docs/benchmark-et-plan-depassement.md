@@ -39,7 +39,7 @@ Faites sur la branche `feature/sondes-sans-agent` (24 commits, 73 fichiers, envi
 
 ### Dettes et risques du projet
 - Aucune intégration continue (R2) : les contrôles se font à la main.
-- Agent Linux seulement, quatre mesures (R7). Pas de modèles d'équipement, pas de traps SNMP ni de syslog, pas de prévision, pas de règles composées, pas de découverte des interfaces et disques, pas de proxys de collecte, pas de MFA, pas de jetons d'API, pas de rapports planifiés, un seul serveur sans haute disponibilité.
+- Agent Linux et Windows, quatre mesures (R7). Pas de modèles d'équipement, pas de traps SNMP ni de syslog, pas de prévision, pas de règles composées, pas de découverte des interfaces et disques, pas de proxys de collecte, pas de MFA, pas de jetons d'API, pas de rapports planifiés, un seul serveur sans haute disponibilité.
 - Ouvert aussi : D3 (Java 21), D5 (avertissements oxlint, un de plus avec la page Sondes), D6, D7, D8 (PDF d'architecture périmé).
 - Le journal de bord de la branche montre des écarts de comptage de tests entre agents (446, 454, 463, 493) : seul le chiffre mesuré à la fin (483) fait foi.
 
@@ -50,7 +50,7 @@ Légende : ✅ présent, 🟡 partiel, ❌ absent. « Branche » = Trans-DIC1 av
 | Domaine | Trans-DIC1 `develop` | Trans-DIC1 branche | Zabbix | LibreNMS | Prometheus + Grafana | Checkmk | PRTG | Uptime Kuma |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Collecte SNMP v2c/v3 | ✅ OID à la main | ✅ | ✅ + modèles | ✅ auto | 🟡 snmp_exporter | ✅ auto | ✅ | ❌ |
-| Agent | 🟡 Linux, 4 mesures | 🟡 | ✅ multi-OS, plugins | ❌ | 🟡 exporters | ✅ | ✅ | ❌ |
+| Agent | 🟡 Linux et Windows, 4 mesures | 🟡 | ✅ multi-OS, plugins | ❌ | 🟡 exporters | ✅ | ✅ | ❌ |
 | Windows | ❌ | ❌ | ✅ | 🟡 SNMP | ✅ windows_exporter | ✅ | ✅ | ❌ |
 | Découverte réseau | 🟡 plage + SNMP | 🟡 | ✅ règles + LLD imbriquée (web, 7.4) | ✅ (web) | ❌ | ✅ | ✅ | ❌ |
 | Modèles par constructeur | ❌ | ❌ | ✅ | ✅ | 🟡 | ✅ | ✅ | ❌ |

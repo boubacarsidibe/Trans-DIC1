@@ -39,6 +39,26 @@ Le backend sait déjà enregistrer un agent, lui remettre un jeton affiché une 
 
 ## Conséquences
 
-- Seul Linux est pris en charge. Un serveur Windows demanderait une autre collecte (compteurs de performance) : c'est hors périmètre tant que l'EPT n'en exprime pas le besoin.
+- Linux est la cible d'origine ; Windows a été ajouté ensuite (voir la mise à jour ci-dessous).
 - Les serveurs doivent disposer de Python 3.8 ou plus récent ; c'est le cas par défaut d'Ubuntu 20.04, de Debian 11 et de RHEL 9.
 - Le paquet n'est pas publié automatiquement : il n'y a pas de CI depuis la suppression des workflows. Il se construit avec `agent/packaging/build-package.sh`.
+
+## Mise à jour du 2026-11-06 : prise en charge de Windows
+
+Le besoin s'est exprimé : le poste de développement et des serveurs de l'EPT sont sous Windows. WSL ne convient pas : il demande la virtualisation, absente de certains postes, et il mesurerait un Linux émulé, pas le Windows qu'on veut superviser.
+
+Décisions :
+
+1. **Même agent, même contrat, même code d'envoi.** Seul le collecteur change, choisi au démarrage selon la plateforme (`metrics.create_collector`). Le lot produit reste identique : le test de Windows compare sa sortie au fichier `agent-payload.json` déjà partagé avec Linux et avec le backend.
+2. **Mesures Windows** par `ctypes`, sans dépendance : CPU par `GetSystemTimes` (écart entre deux relevés), mémoire par `GlobalMemoryStatusEx`, disque par `shutil.disk_usage` sur le lecteur système (`disk_path` pour un autre lecteur). `pywin32` est écarté : une dépendance externe de plus à installer et à mettre à jour sur chaque serveur.
+3. **Exploitation par une tâche planifiée**, au démarrage de Windows, sous le compte limité `LOCAL SERVICE`, relancée après une minute en cas d'arrêt. Un vrai service Windows exigerait `pywin32` ou un outil tiers (NSSM), donc une dépendance. `-RunAsSystem` existe pour les installations où Python n'est lisible que par SYSTEM.
+4. **Secret** : l'équivalent du « 600 » est une ACL sans aucun accès pour Tout le monde, les Utilisateurs ni les Utilisateurs authentifiés, vérifiée à chaque démarrage (`icacls /save`, lecture du SDDL, reconnaissance par SID donc indépendante de la langue de Windows). L'installateur coupe l'héritage et n'accorde que SYSTEM, les administrateurs et le compte de l'agent. En cas de doute, le fichier est refusé.
+5. **Journal** : Windows n'a pas de journald pour une tâche ; l'agent écrit son propre fichier tournant (`--log-file`, 1 Mo, 3 sauvegardes), sans jamais y mettre le jeton.
+6. **Paquet** : une archive zip avec son empreinte SHA-256, un script d'installation et un de désinstallation (`agent/packaging/windows`). Une mise à jour conserve la configuration et le jeton.
+
+Conséquences :
+
+- Python 3.8 ou plus récent doit être installé **pour tous les utilisateurs**. Un Python du Microsoft Store ou d'un profil utilisateur est refusé (le compte de la tâche ne peut pas le lancer), sauf `-RunAsSystem` pour un Python de profil.
+- Un seul lecteur est mesuré par agent. Pas de compteurs de performance par disque, par carte réseau ni par processus : cela reste les quatre mesures de la plateforme.
+- La CI tourne sous Linux : les tests qui appellent le vrai `kernel32` et le vrai `icacls` ne s'exécutent que sous Windows. Les autres tests Windows, à base de fausses valeurs, tournent partout. Le script d'installation a été éprouvé à la main sous Windows (installation dans un dossier temporaire sans tâche planifiée, envoi réel vers un faux serveur, mise à jour, refus d'un jeton trop ouvert, désinstallation) ; l'enregistrement de la tâche exige les droits administrateur et doit être validé sur le premier serveur réel.
+- Les droits NTFS ne sont pas comparables au `600` : la vérification refuse tout accès large, mais n'inspecte pas les comptes nominatifs ajoutés à la main. Le jeton reste révocable dans la plateforme.
