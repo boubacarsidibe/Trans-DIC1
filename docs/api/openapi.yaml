@@ -19,6 +19,10 @@ tags:
 - name: Collecte SNMP
   description: Configuration de la lecture SNMP d'un équipement. Secrets par référence
     (env:NOM) uniquement.
+- name: Statut public
+  description: "Lecture sans connexion d'une page de statut publique et active (ADR\
+    \ 0026). Limitée par adresse IP, mise en cache 30 s, sans aucune donnée technique\
+    \ interne."
 - name: Équipements
   description: Inventaire des équipements supervisés. Écriture réservée aux rôles
     ADMIN et NOC_OPERATOR.
@@ -54,6 +58,11 @@ tags:
   description: "Contrôles de disponibilité lancés depuis le serveur, sans agent (port\
     \ TCP, HTTP, HTTPS, ICMP, certificat TLS). Lecture selon le périmètre par site,\
     \ écriture réservée aux administrateurs."
+- name: Pages de statut
+  description: "Pages de statut des services (ADR 0026) : lecture des pages actives\
+    \ pour tous les rôles (composants filtrés par le périmètre de sites), administration\
+    \ réservée à ADMIN (10 pages, 50 composants par page), tracée dans le journal\
+    \ d'audit."
 - name: Modèles d'équipement
   description: "Bibliothèque de modèles livrés (indicateurs SNMP, règles et sondes\
     \ suggérées, ADR 0022). Catalogue en lecture pour tous ; aperçu et application\
@@ -487,6 +496,254 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/pages-statut/{id}:
+    get:
+      tags:
+      - Pages de statut
+      summary: Détail d'une page pour l'administration
+      operationId: detail
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Page introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    put:
+      tags:
+      - Pages de statut
+      summary: Modifier une page de statut (dont sa visibilité)
+      operationId: update_4
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatusPageRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/StatusPageDetail"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      tags:
+      - Pages de statut
+      summary: Supprimer une page de statut
+      description: Avec ses composants et incidents.
+      operationId: delete_4
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/pages-statut/{id}/incidents/{incidentId}:
+    put:
+      tags:
+      - Pages de statut
+      summary: Modifier un incident
+      description: Un incident ouvert automatiquement peut aussi être modifié.
+      operationId: updateIncident
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: incidentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IncidentRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IncidentDetail"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      tags:
+      - Pages de statut
+      summary: Supprimer un incident
+      operationId: deleteIncident
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: incidentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/pages-statut/{id}/composants/{componentId}:
+    put:
+      tags:
+      - Pages de statut
+      summary: Modifier un composant
+      operationId: updateComponent
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: componentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ComponentRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ComponentDetail"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      tags:
+      - Pages de statut
+      summary: Retirer un composant
+      operationId: deleteComponent
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: componentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/mes-preferences:
     get:
       tags:
@@ -582,7 +839,7 @@ paths:
       tags:
       - Équipements
       summary: Modifier un équipement
-      operationId: update_4
+      operationId: update_5
       parameters:
       - name: id
         in: path
@@ -631,7 +888,7 @@ paths:
       tags:
       - Équipements
       summary: Supprimer un équipement
-      operationId: delete_4
+      operationId: delete_5
       parameters:
       - name: id
         in: path
@@ -809,7 +1066,7 @@ paths:
       - Collecte SNMP
       summary: Arrêter la collecte SNMP
       description: Désactive la collecte ; les mesures déjà reçues sont conservées.
-      operationId: delete_5
+      operationId: delete_6
       parameters:
       - name: equipmentId
         in: path
@@ -1651,6 +1908,197 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/pages-statut:
+    get:
+      tags:
+      - Pages de statut
+      summary: Lister les pages de statut
+      description: "Pages actives (toutes pour un administrateur), avec leur état\
+        \ global."
+      operationId: list_5
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StatusPageSummary"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      tags:
+      - Pages de statut
+      summary: Créer une page de statut
+      operationId: create_5
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatusPageRequest"
+        required: true
+      responses:
+        "400":
+          description: Saisie invalide
+        "409":
+          description: Identifiant déjà utilisé ou 10 pages atteintes
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/StatusPageDetail"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/pages-statut/{id}/incidents:
+    post:
+      tags:
+      - Pages de statut
+      summary: Déclarer un incident
+      operationId: createIncident
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IncidentRequest"
+        required: true
+      responses:
+        "400":
+          description: Saisie invalide
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IncidentDetail"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/pages-statut/{id}/incidents/{incidentId}/mises-a-jour:
+    post:
+      tags:
+      - Pages de statut
+      summary: Publier une mise à jour d'incident
+      operationId: addUpdate
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: incidentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IncidentUpdateRequest"
+        required: true
+      responses:
+        "409":
+          description: 50 mises à jour atteintes
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IncidentDetail"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/pages-statut/{id}/composants:
+    post:
+      tags:
+      - Pages de statut
+      summary: Ajouter un composant
+      operationId: addComponent
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ComponentRequest"
+        required: true
+      responses:
+        "400":
+          description: Saisie invalide ou source inexistante
+        "409":
+          description: 50 composants atteints
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ComponentDetail"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/maintenances:
     get:
       tags:
@@ -1658,7 +2106,7 @@ paths:
       summary: Lister les maintenances
       description: "Liste paginée (20 par page, début le plus récent d'abord), filtrable\
         \ par état, site et équipement."
-      operationId: list_5
+      operationId: list_6
       parameters:
       - name: state
         in: query
@@ -1710,7 +2158,7 @@ paths:
       tags:
       - Maintenances
       summary: Planifier une maintenance
-      operationId: create_5
+      operationId: create_6
       requestBody:
         content:
           application/json:
@@ -1775,7 +2223,7 @@ paths:
       summary: Lister les équipements
       description: "Liste paginée (20 par page, tri par nom), filtrable par site,\
         \ type et statut."
-      operationId: list_6
+      operationId: list_7
       parameters:
       - name: siteId
         in: query
@@ -1833,7 +2281,7 @@ paths:
       tags:
       - Équipements
       summary: Créer un équipement
-      operationId: create_6
+      operationId: create_7
       requestBody:
         content:
           application/json:
@@ -3132,12 +3580,34 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/public/statut/{slug}:
+    get:
+      tags:
+      - Statut public
+      summary: Lire une page de statut publique
+      description: "Sans authentification. Titre, description, état global, composants\
+        \ (nom affiché, groupe, état, disponibilité journalière sur 90 jours), incidents\
+        \ des 14 derniers jours. Une page inconnue, interne ou inactive reçoit la\
+        \ même réponse 404."
+      operationId: read
+      parameters:
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "404":
+          description: Page introuvable
+        "429":
+          description: Trop de requêtes depuis cette adresse (en-tête Retry-After)
+      security: []
   /api/v1/perimetres:
     get:
       tags:
       - Périmètres d'accès
       summary: Comptes limités à certains sites
-      operationId: list_7
+      operationId: list_8
       responses:
         "200":
           description: OK
@@ -3147,6 +3617,79 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/UserScope"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/pages-statut/{id}/vue:
+    get:
+      tags:
+      - Pages de statut
+      summary: Voir une page de statut
+      description: "Rendu de la page pour un compte connecté : composants de son pé\
+        rimètre de sites. Une page inactive n'est visible qu'en aperçu par un administrateur."
+      operationId: view
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Page introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/pages-statut/sources:
+    get:
+      tags:
+      - Pages de statut
+      summary: Rechercher une source
+      description: "Sondes, équipements ou sites dont le nom contient q (50 au plus)."
+      operationId: sources
+      parameters:
+      - name: type
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - PROBE
+          - EQUIPMENT
+          - SITE
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SourceOption"
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -3305,7 +3848,7 @@ paths:
       description: "Liste paginée (50 par page, plus récents d'abord), filtrable par\
         \ équipement, source, sévérité minimale (EMERGENCY la plus grave), période\
         \ [from, to[ et texte (titre, détails, OID). 200 événements par page au plus."
-      operationId: list_8
+      operationId: list_9
       parameters:
       - name: equipmentId
         in: query
@@ -3708,7 +4251,7 @@ paths:
       summary: Consulter le journal
       description: "Liste paginée (50 par page, plus récentes d'abord), filtrable\
         \ par période (from inclus, to exclu), compte, action et cible."
-      operationId: list_9
+      operationId: list_10
       parameters:
       - name: from
         in: query
@@ -3980,7 +4523,7 @@ paths:
       summary: Lister les alertes
       description: "Liste paginée (20 par page, plus récentes d'abord), filtrable\
         \ par état et par équipement. Les alertes supprimées sont masquées."
-      operationId: list_10
+      operationId: list_11
       parameters:
       - name: state
         in: query
@@ -4056,7 +4599,7 @@ paths:
       - Alertes
       summary: Supprimer une alerte
       description: "Suppression logique : l'alerte et son historique restent en base."
-      operationId: delete_6
+      operationId: delete_7
       parameters:
       - name: id
         in: path
@@ -4407,6 +4950,244 @@ components:
           minItems: 0
       required:
       - siteIds
+    StatusPageRequest:
+      type: object
+      properties:
+        slug:
+          type: string
+          description: "Partie de l'adresse /statut/{slug}"
+          example: services-ept
+          minLength: 1
+          pattern: "[a-z0-9-]{3,60}"
+        title:
+          type: string
+          maxLength: 120
+          minLength: 0
+          pattern: "[^<>\\p{Cntrl}]*"
+        description:
+          type: string
+          maxLength: 500
+          minLength: 0
+          pattern: "[^<>\\x00-\\x09\\x0B-\\x1F\\x7F]*"
+        visibility:
+          type: string
+          enum:
+          - INTERNAL
+          - PUBLIC
+        active:
+          type: boolean
+          description: Vrai par défaut
+      required:
+      - slug
+      - title
+      - visibility
+    ComponentDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        groupName:
+          type: string
+        position:
+          type: integer
+          format: int32
+        sourceType:
+          type: string
+          enum:
+          - PROBE
+          - EQUIPMENT
+          - SITE
+        sourceId:
+          type: string
+          format: uuid
+        sourceLabel:
+          type: string
+          description: Libellé technique de la source (administrateurs seulement)
+        sourceMissing:
+          type: boolean
+          description: Vrai si la source n'existe plus
+        state:
+          type: string
+          enum:
+          - OPERATIONAL
+          - DEGRADED
+          - PARTIAL_OUTAGE
+          - MAJOR_OUTAGE
+          - MAINTENANCE
+          - UNKNOWN
+    IncidentDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        status:
+          type: string
+          enum:
+          - INVESTIGATING
+          - IDENTIFIED
+          - MONITORING
+          - RESOLVED
+        impact:
+          type: string
+          enum:
+          - NONE
+          - MINOR
+          - MAJOR
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+        author:
+          type: string
+        automatic:
+          type: boolean
+          description: Ouvert automatiquement (panne majeure prolongée)
+        componentIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        updates:
+          type: array
+          items:
+            $ref: "#/components/schemas/IncidentUpdateDetail"
+    IncidentUpdateDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+          - INVESTIGATING
+          - IDENTIFIED
+          - MONITORING
+          - RESOLVED
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        author:
+          type: string
+    StatusPageDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        visibility:
+          type: string
+          enum:
+          - INTERNAL
+          - PUBLIC
+        active:
+          type: boolean
+        overallState:
+          type: string
+          enum:
+          - OPERATIONAL
+          - DEGRADED
+          - PARTIAL_OUTAGE
+          - MAJOR_OUTAGE
+          - MAINTENANCE
+          - UNKNOWN
+        components:
+          type: array
+          items:
+            $ref: "#/components/schemas/ComponentDetail"
+        incidents:
+          type: array
+          items:
+            $ref: "#/components/schemas/IncidentDetail"
+    IncidentRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 160
+          minLength: 0
+          pattern: "[^<>\\p{Cntrl}]*"
+        status:
+          type: string
+          enum:
+          - INVESTIGATING
+          - IDENTIFIED
+          - MONITORING
+          - RESOLVED
+        impact:
+          type: string
+          enum:
+          - NONE
+          - MINOR
+          - MAJOR
+        message:
+          type: string
+          maxLength: 2000
+          minLength: 0
+          pattern: "[^<>\\x00-\\x09\\x0B-\\x1F\\x7F]*"
+        componentIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 50
+          minItems: 0
+      required:
+      - impact
+      - message
+      - status
+      - title
+    ComponentRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+          description: Nom vu par les usagers
+          example: Messagerie
+          maxLength: 80
+          minLength: 0
+          pattern: "[^<>\\p{Cntrl}]*"
+        groupName:
+          type: string
+          maxLength: 60
+          minLength: 0
+          pattern: "[^<>\\p{Cntrl}]*"
+        position:
+          type: integer
+          format: int32
+          maximum: 999
+          minimum: 0
+        sourceType:
+          type: string
+          enum:
+          - PROBE
+          - EQUIPMENT
+          - SITE
+        sourceId:
+          type: string
+          format: uuid
+      required:
+      - displayName
+      - sourceId
+      - sourceType
     PreferenceRequest:
       type: object
       properties:
@@ -5140,6 +5921,24 @@ components:
       required:
       - days
       - rule
+    IncidentUpdateRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+          - INVESTIGATING
+          - IDENTIFIED
+          - MONITORING
+          - RESOLVED
+        message:
+          type: string
+          maxLength: 2000
+          minLength: 0
+          pattern: "[^<>\\x00-\\x09\\x0B-\\x1F\\x7F]*"
+      required:
+      - message
+      - status
     MaintenanceRequest:
       type: object
       properties:
@@ -5764,6 +6563,56 @@ components:
           items:
             type: string
             format: uuid
+    StatusPageSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        visibility:
+          type: string
+          enum:
+          - INTERNAL
+          - PUBLIC
+        active:
+          type: boolean
+        overallState:
+          type: string
+          enum:
+          - OPERATIONAL
+          - DEGRADED
+          - PARTIAL_OUTAGE
+          - MAJOR_OUTAGE
+          - MAINTENANCE
+          - UNKNOWN
+        componentCount:
+          type: integer
+          format: int32
+        updatedAt:
+          type: string
+          format: date-time
+    SourceOption:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+          - PROBE
+          - EQUIPMENT
+          - SITE
+        id:
+          type: string
+          format: uuid
+        label:
+          type: string
+        detail:
+          type: string
     TemplateSummaryResponse:
       type: object
       properties:

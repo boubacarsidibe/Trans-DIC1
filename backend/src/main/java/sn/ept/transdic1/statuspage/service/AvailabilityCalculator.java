@@ -37,6 +37,15 @@ public final class AvailabilityCalculator {
       List<Window> maintenances,
       LocalDate firstDay,
       int dayCount) {
+    return summarize(usable(raw, hourly, maintenances), firstDay, dayCount);
+  }
+
+  /**
+   * Heures exploitables d'une même source : mesure brute de préférence, sinon agrégat horaire, et
+   * aucune heure qui chevauche une maintenance.
+   */
+  public static List<HourBucket> usable(
+      List<HourBucket> raw, List<HourBucket> hourly, List<Window> maintenances) {
     Map<Instant, HourBucket> merged = new HashMap<>();
     for (HourBucket bucket : hourly) {
       merged.put(bucket.hourStart(), bucket);
@@ -44,10 +53,20 @@ public final class AvailabilityCalculator {
     for (HourBucket bucket : raw) {
       merged.put(bucket.hourStart(), bucket);
     }
+    return merged.values().stream()
+        .filter(b -> b.samples() > 0 && !inMaintenance(b.hourStart(), maintenances))
+        .toList();
+  }
+
+  /**
+   * Somme par jour d'heures déjà exploitables (plusieurs sources peuvent avoir la même heure : un
+   * site additionne les mesures de ses équipements).
+   */
+  public static Daily summarize(List<HourBucket> buckets, LocalDate firstDay, int dayCount) {
     long[] samples = new long[dayCount];
     double[] sums = new double[dayCount];
-    for (HourBucket bucket : merged.values()) {
-      if (bucket.samples() <= 0 || inMaintenance(bucket.hourStart(), maintenances)) {
+    for (HourBucket bucket : buckets) {
+      if (bucket.samples() <= 0) {
         continue;
       }
       LocalDate day = bucket.hourStart().atOffset(ZoneOffset.UTC).toLocalDate();
