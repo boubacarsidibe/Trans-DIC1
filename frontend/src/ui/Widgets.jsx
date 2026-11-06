@@ -1,7 +1,11 @@
+import { Link } from "react-router-dom";
 import Donut from "./Donut.jsx";
 import { SeverityBadge, StatusBadge } from "./Badges.jsx";
 import { EQUIPMENT_TYPE, METRIC, label } from "./labels.js";
 import { widgetLabel } from "../api/views.js";
+import ActivityChart from "./dashboard/ActivityChart.jsx";
+import LoadTrend from "./dashboard/LoadTrend.jsx";
+import { humanMessage } from "./metricCatalog.js";
 
 /*
  * Widgets des vues personnelles et du mur d'écran. Chaque état est donné par un mot (jamais par la
@@ -64,10 +68,10 @@ function OpenAlerts({ data }) {
       {data.openAlerts.map((alert) => (
         <li key={alert.id}>
           <span className={`sev sev-${alert.severity}`}>{label({ CRITICAL: "Critique", WARNING: "Avert.", INFO: "Info" }, alert.severity)}</span>
-          <span className="w-list-main">
+          <Link to={`/alertes?alerte=${alert.id}`} className="w-list-main">
             <strong>{alert.equipmentName}</strong>
-            <span>{alert.message}</span>
-          </span>
+            <span>{humanMessage(alert.message)}</span>
+          </Link>
           <span className="w-list-time">{time(alert.triggeredAt)}</span>
         </li>
       ))}
@@ -151,6 +155,12 @@ export function Widget({ widget, data, large = false }) {
       break;
     case "latest-metric":
       body = <LatestMetric data={data} />;
+      break;
+    case "load-trend":
+      body = <LoadTrend points={data.loadTrend ?? []} large={large} />;
+      break;
+    case "alert-activity":
+      body = <ActivityChart activity={data.activity ?? []} large={large} />;
       break;
     default:
       body = <p className="w-empty">Widget inconnu.</p>;

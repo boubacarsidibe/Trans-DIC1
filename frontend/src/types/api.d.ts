@@ -207,7 +207,7 @@ export interface paths {
         put?: never;
         /**
          * Créer une vue
-         * @description Widgets possibles : summary, statuses, severities, open-alerts, down-equipments, latest-metric.
+         * @description Widgets possibles : summary, statuses, severities, open-alerts, down-equipments, latest-metric, load-trend, alert-activity.
          */
         post: operations["create"];
         delete?: never;
@@ -1742,6 +1742,7 @@ export interface components {
             problems?: components["schemas"]["Problem"][];
             activity?: components["schemas"]["HourlyCount"][];
             forecasts?: components["schemas"]["Forecast"][];
+            loadTrend?: components["schemas"]["LoadPoint"][];
         };
         Forecast: {
             /** Format: uuid */
@@ -1774,6 +1775,12 @@ export interface components {
             hour?: string;
             /** Format: int64 */
             opened?: number;
+        };
+        LoadPoint: {
+            /** Format: date-time */
+            at?: string;
+            cpu?: number;
+            memory?: number;
         };
         Problem: {
             /** Format: uuid */

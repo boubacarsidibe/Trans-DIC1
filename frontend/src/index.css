@@ -2644,6 +2644,7 @@ thead {
 }
 
 .widget {
+  min-width: 0;
   border: 1px solid var(--line);
   border-radius: 4px;
   background: var(--surface);
@@ -2703,6 +2704,7 @@ thead {
 
 .w-list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.4rem;
   margin: 0;
   padding: 0;
@@ -2732,6 +2734,8 @@ thead {
 
 .w-list-main {
   display: flex;
+  color: inherit;
+  text-decoration: none;
   min-width: 0;
   flex: 1;
   flex-direction: column;
@@ -3943,5 +3947,60 @@ thead {
     color: #59626f;
     content: attr(data-label);
     font-size: 0.8rem;
+  }
+}
+
+/* Courbe de charge du parc. */
+.load-trend {
+  margin: 0;
+}
+
+.load-trend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.5rem;
+  margin: 0 0 0.6rem;
+  padding: 0;
+  list-style: none;
+}
+
+.load-trend-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.load-trend-legend i {
+  width: 0.9em;
+  height: 0.2em;
+  border-radius: 1px;
+}
+
+.load-trend-legend strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.load-trend figcaption {
+  margin-top: 0.4rem;
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
+/* Sur le mur, un message d'alerte se lit en entier, jamais tronqué. */
+.wall .w-list-main span {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.wall .w-list-main:hover strong {
+  text-decoration: underline;
+}
+
+/* La courbe occupe la largeur restante à côté des alertes. */
+@media (min-width: 66rem) {
+  .wall .widget-load-trend,
+  .wall .widget-alert-activity {
+    grid-column: span 2;
   }
 }

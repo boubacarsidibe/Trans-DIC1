@@ -6,6 +6,8 @@ export const WIDGETS = [
   { key: "statuses", label: "Équipements par statut" },
   { key: "severities", label: "Alertes par sévérité" },
   { key: "open-alerts", label: "Alertes ouvertes" },
+  { key: "load-trend", label: "Charge du parc" },
+  { key: "alert-activity", label: "Activité des alertes" },
   { key: "down-equipments", label: "Équipements en panne ou dégradés" },
   { key: "latest-metric", label: "Dernière mesure" },
 ];
@@ -16,7 +18,7 @@ export const widgetLabel = (key) => WIDGETS.find((w) => w.key === key)?.label ??
 export const DEFAULT_VIEW = {
   id: "defaut",
   name: "Vue d'ensemble",
-  widgets: ["summary", "statuses", "severities", "open-alerts"],
+  widgets: ["summary", "statuses", "severities", "open-alerts", "load-trend"],
 };
 
 export async function listViews() {
@@ -40,11 +42,12 @@ export async function deleteView(id) {
 
 /** Données des widgets, lues avec les droits de l'utilisateur connecté. */
 export async function loadWidgetData() {
-  const [overview, alerts, equipments, metrics] = await Promise.allSettled([
+  const [overview, alerts, equipments, metrics, dashboard] = await Promise.allSettled([
     apiClient.get("/vue-ensemble"),
     apiClient.get("/alertes", { params: { state: "OPEN", page: 0, size: 8 } }),
     apiClient.get("/equipements", { params: { page: 0, size: 200 } }),
     apiClient.get("/metrics/latest"),
+    apiClient.get("/vue-ensemble/tableau"),
   ]);
   const value = (result) => (result.status === "fulfilled" ? result.value.data : null);
   return {
@@ -52,6 +55,8 @@ export async function loadWidgetData() {
     openAlerts: value(alerts)?.content ?? [],
     equipments: value(equipments)?.content ?? [],
     latest: (value(metrics) ?? [])[0] ?? null,
+    loadTrend: value(dashboard)?.loadTrend ?? [],
+    activity: value(dashboard)?.activity ?? [],
     loadedAt: new Date(),
   };
 }

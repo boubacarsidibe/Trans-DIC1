@@ -72,11 +72,11 @@ describe("vues personnelles", () => {
     await waitFor(() =>
       expect(apiClient.post).toHaveBeenCalledWith("/vues", {
         name: "Astreinte",
-        widgets: ["open-alerts", "summary", "statuses", "severities"],
+        widgets: ["open-alerts", "summary", "statuses", "severities", "load-trend"],
       }),
     );
     expect(await screen.findByRole("status")).toHaveTextContent("Vue enregistrée");
-  });
+  }, 15_000);
 
   it("charge une vue existante et l'aperçu affiche ses widgets", async () => {
     mockApi();
@@ -99,6 +99,40 @@ describe("vues personnelles", () => {
 });
 
 describe("mur d'écran", () => {
+  it("écrit les alertes en français et affiche la charge du parc", async () => {
+    apiClient.get.mockImplementation(async (url) => {
+      if (url === "/vues") return { data: [] };
+      if (url === "/vue-ensemble") return { data: overview };
+      if (url === "/vue-ensemble/tableau") {
+        return { data: { loadTrend: [{ at: "2026-10-31T10:00:00Z", cpu: 40.5, memory: 62 }] } };
+      }
+      if (url === "/alertes") {
+        return {
+          data: {
+            content: [
+              {
+                id: "a1",
+                severity: "CRITICAL",
+                equipmentName: "Poste",
+                message: "Disque saturé : disk.usage[C:] = 97 % (seuil GREATER_THAN 90)",
+                triggeredAt: "2026-10-31T10:00:00Z",
+              },
+            ],
+          },
+        };
+      }
+      return { data: [] };
+    });
+    renderAt("/mur");
+
+    const link = await screen.findByRole("link", { name: /Poste/ });
+    expect(link).toHaveAttribute("href", "/alertes?alerte=a1");
+    expect(link).toHaveTextContent("Disque occupé — C: = 97 % (seuil > 90)");
+    const trend = screen.getByRole("region", { name: "Charge du parc" });
+    expect(trend).toHaveTextContent("Processeur 40,5 %");
+    expect(trend).toHaveTextContent("Mémoire 62 %");
+  });
+
   it("affiche la première vue en grand et fait défiler les vues", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     mockApi();

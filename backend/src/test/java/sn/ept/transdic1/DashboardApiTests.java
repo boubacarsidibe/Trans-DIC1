@@ -184,6 +184,19 @@ class DashboardApiTests {
   }
 
   @Test
+  void theLoadTrendFollowsProcessorAndMemory() {
+    metric("cpu.usage", "40");
+    metric("memory.usage", "60");
+    metric("disk.usage[C:]", "99");
+    var trend = dashboard.dashboard().loadTrend();
+    assertThat(trend).isNotEmpty();
+    var last = trend.get(trend.size() - 1);
+    assertThat(last.cpu()).isNotNull();
+    assertThat(last.memory()).isNotNull();
+    assertThat(last.cpu().doubleValue()).isLessThan(99);
+  }
+
+  @Test
   void alertsCanBeFilteredBySeverityAndActivity() {
     alert(Severity.CRITICAL, AlertState.OPEN);
     alert(Severity.WARNING, AlertState.OPEN);

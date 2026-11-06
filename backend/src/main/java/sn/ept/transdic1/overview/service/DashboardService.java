@@ -21,6 +21,7 @@ import sn.ept.transdic1.overview.dto.DashboardResponse;
 import sn.ept.transdic1.overview.dto.DashboardResponse.Forecast;
 import sn.ept.transdic1.overview.dto.DashboardResponse.Host;
 import sn.ept.transdic1.overview.dto.DashboardResponse.HourlyCount;
+import sn.ept.transdic1.overview.dto.DashboardResponse.LoadPoint;
 import sn.ept.transdic1.overview.dto.DashboardResponse.Problem;
 
 /**
@@ -73,7 +74,7 @@ public class DashboardService {
     var restriction = scope.restriction();
     if (restriction.isPresent()) {
       if (restriction.get().isEmpty()) {
-        return new DashboardResponse(now, List.of(), List.of(), List.of(), List.of());
+        return new DashboardResponse(now, List.of(), List.of(), List.of(), List.of(), List.of());
       }
       params.addValue("sites", restriction.get());
       sites = " AND e.site_id IN (:sites)";
@@ -91,7 +92,8 @@ public class DashboardService {
         hosts(params, sites, severities, latest),
         problems(params, sites),
         activity(params, sites, now),
-        forecasts(params, sites));
+        forecasts(params, sites),
+        loadTrend(params, sites));
   }
 
   /**
@@ -235,6 +237,28 @@ public class DashboardService {
                 rs.getString(5),
                 rs.getString(6),
                 rs.getTimestamp(7).toInstant()));
+  }
+
+  /**
+   * Courbe du parc sur 24 h, par quart d'heure. La moyenne passe d'abord par équipement : un agent
+   * qui mesure toutes les 10 secondes ne doit pas compter plus qu'un équipement SNMP plus lent.
+   */
+  private List<LoadPoint> loadTrend(MapSqlParameterSource params, String sites) {
+    return jdbc.query(
+        "SELECT bucket, round(avg(cpu), 1), round(avg(memory), 1) FROM ("
+            + "SELECT m.equipment_id,"
+            + " (floor(extract(epoch FROM m.collected_at) / 900) * 900)::bigint AS bucket,"
+            + " avg(m.metric_value) FILTER (WHERE m.metric_key = 'cpu.usage') AS cpu,"
+            + " avg(m.metric_value) FILTER (WHERE m.metric_key = 'memory.usage') AS memory"
+            + " FROM metric m JOIN equipment e ON e.id = m.equipment_id"
+            + " WHERE m.collected_at >= :day AND m.quality <> 'BAD' AND m.service_id IS NULL"
+            + " AND m.metric_key IN ('cpu.usage', 'memory.usage')"
+            + sites
+            + " GROUP BY 1, 2) t GROUP BY bucket ORDER BY bucket",
+        params,
+        (rs, row) ->
+            new LoadPoint(
+                Instant.ofEpochSecond(rs.getLong(1)), rs.getBigDecimal(2), rs.getBigDecimal(3)));
   }
 
   private List<HourlyCount> activity(MapSqlParameterSource params, String sites, Instant now) {

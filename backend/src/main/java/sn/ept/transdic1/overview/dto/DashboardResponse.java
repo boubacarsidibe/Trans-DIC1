@@ -11,7 +11,8 @@ public record DashboardResponse(
     List<Host> hosts,
     List<Problem> problems,
     List<HourlyCount> activity,
-    List<Forecast> forecasts) {
+    List<Forecast> forecasts,
+    List<LoadPoint> loadTrend) {
 
   /** Un équipement : son état, sa pire alerte active et ses dernières mesures. */
   public record Host(
@@ -43,6 +44,9 @@ public record DashboardResponse(
   /** Disque qui se remplit : à ce rythme, il sera plein dans {@code daysLeft} jours. */
   public record Forecast(
       UUID equipmentId, String equipment, String disk, BigDecimal usage, BigDecimal daysLeft) {}
+
+  /** Charge moyenne du parc sur un quart d'heure ; chaque équipement pèse autant que les autres. */
+  public record LoadPoint(Instant at, BigDecimal cpu, BigDecimal memory) {}
 
   /** Nombre d'alertes ouvertes pendant une heure donnée. */
   public record HourlyCount(Instant hour, long opened) {}

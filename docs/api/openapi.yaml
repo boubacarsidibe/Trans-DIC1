@@ -786,7 +786,7 @@ paths:
       - Vues de tableau de bord
       summary: Créer une vue
       description: "Widgets possibles : summary, statuses, severities, open-alerts,\
-        \ down-equipments, latest-metric."
+        \ down-equipments, latest-metric, load-trend, alert-activity."
       operationId: create
       requestBody:
         content:
@@ -4183,6 +4183,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Forecast"
+        loadTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/LoadPoint"
     Forecast:
       type: object
       properties:
@@ -4237,6 +4241,16 @@ components:
         opened:
           type: integer
           format: int64
+    LoadPoint:
+      type: object
+      properties:
+        at:
+          type: string
+          format: date-time
+        cpu:
+          type: number
+        memory:
+          type: number
     Problem:
       type: object
       properties:

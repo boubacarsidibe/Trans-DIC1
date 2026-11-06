@@ -46,7 +46,7 @@ public class DashboardViewController {
       summary = "Créer une vue",
       description =
           "Widgets possibles : summary, statuses, severities, open-alerts, down-equipments,"
-              + " latest-metric.")
+              + " latest-metric, load-trend, alert-activity.")
   @ApiResponse(responseCode = "409", description = "Nom déjà utilisé", content = @Content)
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)

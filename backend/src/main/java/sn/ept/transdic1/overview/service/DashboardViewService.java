@@ -25,7 +25,14 @@ public class DashboardViewService {
   /** Widgets proposés par l'écran ; une valeur inconnue est refusée. */
   public static final Set<String> WIDGETS =
       Set.of(
-          "summary", "statuses", "severities", "open-alerts", "down-equipments", "latest-metric");
+          "summary",
+          "statuses",
+          "severities",
+          "open-alerts",
+          "down-equipments",
+          "latest-metric",
+          "load-trend",
+          "alert-activity");
 
   private static final int MAX_VIEWS = 20;
 
