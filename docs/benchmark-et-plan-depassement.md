@@ -1,6 +1,27 @@
 # Benchmark Trans-DIC1 face à Zabbix et aux autres outils, état et plan de dépassement
 
-Mis à jour le 2026-11-05 (première version le 2026-11-02, avant les sondes sans agent).
+Mis à jour le 2026-11-06 (première version le 2026-11-02, avant les sondes sans agent). Le tableau de la section 3 date du 2026-11-05 ; la section ci-dessous donne ce qui a changé depuis et prime sur lui.
+
+## Mise à jour du 2026-11-06 : agent complet et interface
+
+Les sondes sont dans `develop`. Dix tours « réaliser puis comparer » ont changé ces lignes du benchmark :
+
+| Domaine | Avant | Maintenant | Face à Zabbix |
+| --- | --- | --- | --- |
+| Agent | 4 mesures | Agent 2.0 : processeur, mémoire, échange, charge, disques, entrées-sorties, réseau, services, processus, inventaire, top des processus (Linux et Windows, sans dépendance) | Proche du gabarit OS par agent, sans modèle à lier ; pas de plugins |
+| Découverte des disques et cartes | ❌ | ✅ automatique côté agent, clés `famille[instance]` | LLD plus générale chez Zabbix (règles, SNMP, filtres) |
+| Modèles SNMP | ❌ | 🟡 modèles livrés qui remplissent les indicateurs, jamais essayés sur du matériel réel | Bibliothèque Zabbix bien plus large |
+| Prévision de saturation | ❌ | ✅ disques, par régression sur 7 jours, sans configuration, avec seuil de confiance | Zabbix couvre toute mesure, mais demande d'écrire un déclencheur |
+| Règles | Par équipement ou site | Règle sur toute une famille (`disk.usage[*]`), portée « tous les équipements », 6 règles livrées actives, alerte par instance | Zabbix garde les expressions composées |
+| Contexte d'une alerte | ❌ | ✅ inventaire et top des processus au moment de l'alerte, copiés dans l'alerte | Trans-DIC1 en avance sur ce point : aucun script à écrire |
+| Tableau de bord | Vue simple | Tuiles-filtres, carte du parc, sévérités, problèmes, plus chargés, activité, saturation, muets, filtre par site ; tout est cliquable | Comparable à Global view, prêt sans composer de widgets |
+| Mur NOC | Chiffres et anneaux | Rotation des vues, messages en français, courbe de charge du parc, activité des alertes | Comparable |
+| Ajout d'un équipement | Formulaires séparés | Choix Agent, SNMP ou sans agent, guide d'installation, attente du premier contact | Plus simple que l'hôte + interface + modèle de Zabbix |
+| Recherche | ❌ | Ctrl K sur pages, équipements et alertes ; recherche dans le parc | Comparable |
+
+Toujours derrière Zabbix : traps SNMP et syslog, règles composées, proxys de collecte, haute disponibilité, 2FA, jetons d'API, scénarios web, nombre de modèles.
+
+Vérifié en réel sur Windows : l'agent 2.0 a remonté ses mesures et les règles livrées ont ouvert de vraies alertes par instance. **Non vérifié** : agent sur un Linux réel, modèles SNMP sur du matériel, Docker (poste sans virtualisation), intégration continue (bloquée par la facturation GitHub), test de bout en bout.
 
 Fiabilité des sources : les capacités de Trans-DIC1 viennent du code, des tests et des revues de la branche. Pour les autres outils, les points marqués (web) ont été revérifiés en ligne le 2026-11-05 ; les autres viennent de ma connaissance de ces produits et sont à recouper avant le rapport. Les recherches web ont surtout remonté des blogs de comparaison, pas les pages officielles des fonctions de déclencheurs Zabbix.
 
@@ -39,7 +60,7 @@ Faites sur la branche `feature/sondes-sans-agent` (24 commits, 73 fichiers, envi
 
 ### Dettes et risques du projet
 - Aucune intégration continue (R2) : les contrôles se font à la main.
-- Agent Linux et Windows, quatre mesures (R7). Pas de modèles d'équipement, pas de traps SNMP ni de syslog, pas de prévision, pas de règles composées, pas de découverte des interfaces et disques, pas de proxys de collecte, pas de MFA, pas de jetons d'API, pas de rapports planifiés, un seul serveur sans haute disponibilité.
+- Pas de traps SNMP ni de syslog, pas de règles composées, pas de proxys de collecte, pas de MFA, pas de jetons d'API, pas de rapports planifiés, un seul serveur sans haute disponibilité.
 - Ouvert aussi : D3 (Java 21), D5 (avertissements oxlint, un de plus avec la page Sondes), D6, D7, D8 (PDF d'architecture périmé).
 - Le journal de bord de la branche montre des écarts de comptage de tests entre agents (446, 454, 463, 493) : seul le chiffre mesuré à la fin (483) fait foi.
 
@@ -98,12 +119,12 @@ Lecture rapide :
 | # | Écart | Statut | Proposition |
 | --- | --- | --- | --- |
 | G1 | Contrôles sans agent | **Fait sur la branche**, reste DNS, scénarios web, en-têtes HTTP | Voir limites ci-dessus |
-| G2 | Agent Windows et plus de mesures | Ouvert (`agent-windows.py` existe, non suivi par git) | Terminer, tester, packager ; ajouter réseau, processus, services, température |
-| G3 | Modèles d'équipement | Ouvert | Bibliothèque JSON/YAML versionnée (MikroTik, Cisco, HP, Ubiquiti, onduleurs, imprimantes) |
+| G2 | Agent Windows et plus de mesures | **Fait** (agent 2.0), sauf la température | Valider sur un Linux réel |
+| G3 | Modèles d'équipement | **Partiel** : modèles SNMP livrés, non essayés sur du matériel | Bibliothèque JSON/YAML versionnée (MikroTik, Cisco, HP, Ubiquiti, onduleurs, imprimantes) |
 | G4 | Traps SNMP, syslog | Ouvert | Récepteurs UDP vers des événements reliés aux règles |
 | G5 | Règles composées, absence de donnée | Ouvert | Conditions ET/OU, fenêtres, dépendances |
-| G6 | Prévision de saturation | Ouvert | Régression linéaire sur l'historique |
-| G7 | Découverte des interfaces et disques | Ouvert | Après la découverte SNMP |
+| G6 | Prévision de saturation | **Fait pour les disques** | Étendre aux autres mesures si le besoin apparaît |
+| G7 | Découverte des interfaces et disques | **Fait côté agent**, ouvert en SNMP | Parcours des tables SNMP |
 | G8 | Proxys de collecte par site | Ouvert | Réutiliser l'interface `Probe` et l'agent actif |
 | G9 | MFA, jetons d'API, rapports planifiés, SMS/Telegram | Ouvert | Voir premier benchmark |
 | G10 | Haute disponibilité | Ouvert | Tester à deux instances (relais LISTEN/NOTIFY prêt) |

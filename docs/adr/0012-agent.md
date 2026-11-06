@@ -59,6 +59,17 @@ Décisions :
 Conséquences :
 
 - Python 3.8 ou plus récent doit être installé **pour tous les utilisateurs**. Un Python du Microsoft Store ou d'un profil utilisateur est refusé (le compte de la tâche ne peut pas le lancer), sauf `-RunAsSystem` pour un Python de profil.
-- Un seul lecteur est mesuré par agent. Pas de compteurs de performance par disque, par carte réseau ni par processus : cela reste les quatre mesures de la plateforme.
+- Un seul lecteur est mesuré par agent. Pas de compteurs de performance par disque, par carte réseau ni par processus : cela reste les quatre mesures de la plateforme. *(Levé par la mise à jour suivante.)*
 - La CI tourne sous Linux : les tests qui appellent le vrai `kernel32` et le vrai `icacls` ne s'exécutent que sous Windows. Les autres tests Windows, à base de fausses valeurs, tournent partout. Le script d'installation a été éprouvé à la main sous Windows (installation dans un dossier temporaire sans tâche planifiée, envoi réel vers un faux serveur, mise à jour, refus d'un jeton trop ouvert, désinstallation) ; l'enregistrement de la tâche exige les droits administrateur et doit être validé sur le premier serveur réel.
 - Les droits NTFS ne sont pas comparables au `600` : la vérification refuse tout accès large, mais n'inspecte pas les comptes nominatifs ajoutés à la main. Le jeton reste révocable dans la plateforme.
+
+## Mise à jour du 2026-11-06 : agent 2.0, le gabarit OS sans configuration
+
+Installer l'agent doit suffire : aucune configuration, aucun modèle à lier.
+
+Décisions :
+
+1. **Clés à instance** `famille[instance]` (`disk.usage[C:]`, `net.in[eth0]`) : disques et cartes sont découverts par l'agent à chaque cycle, et une règle `famille[*]` les couvre tous. L'ancienne clé `disk.usage` reste remontée pour le disque principal.
+2. **Toujours sans dépendance** : `/proc` et `/sys` sous Linux ; `ctypes` sous Windows (kernel32, psapi, iphlpapi, PDH, advapi32). PDH est appelé par ses noms anglais (`PdhAddEnglishCounterW`) pour rester indépendant de la langue du système.
+3. **Instantané séparé des mesures** : inventaire et top des processus partent toutes les 5 minutes par `POST /api/v1/agent/snapshot` et sont copiés dans une alerte à son ouverture. Ils ne deviennent pas des séries : un processus n'a pas d'identité stable d'un relevé à l'autre.
+4. **Un port jamais branché ne remonte rien** : `net.up` n'apparaît qu'après avoir vu la carte active une fois. Sans cela, chaque port libre serait une fausse alerte. Conséquence : une carte déjà coupée au démarrage de l'agent n'est pas signalée.

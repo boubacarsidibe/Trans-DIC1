@@ -1,6 +1,6 @@
 # Chantier 1 : un agent aussi complet que Zabbix, sans configuration
 
-Statut : à relire. Date : 2026-11-06. Écart G2 du [plan de dépassement](../../benchmark-et-plan-depassement.md). Chantiers suivants, chacun avec sa propre conception : 2 tableau de bord, 3 assistant d'ajout d'équipement, 4 imperfections.
+Statut : réalisé, sans relecture de la conception (l'utilisateur a demandé de tout réaliser sans questions). Écarts : catalogue d'affichage côté interface seulement, pas de `/metrics/catalogue` ; `metrics.py` non déplacé. Date : 2026-11-06. Écart G2 du [plan de dépassement](../../benchmark-et-plan-depassement.md). Chantiers suivants, chacun avec sa propre conception : 2 tableau de bord, 3 assistant d'ajout d'équipement, 4 imperfections.
 
 ## 1. Objectif
 

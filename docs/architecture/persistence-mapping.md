@@ -32,6 +32,7 @@ Ces dépendances sont vérifiées par ArchUnit (voir [archunit.md](archunit.md))
 | DefinitionMetrique | `MetricDefinition` | `metric_definition` |
 | AgentCollecte | `CollectionAgent` | `collection_agent` |
 | Metrique | `Metric` | `metric` |
+| (hors diagramme) InstantaneAgent | `AgentSnapshot` | `agent_snapshot` |
 | RegleAlerte | `AlertRule` | `alert_rule` |
 | RegleSite | `RuleSiteScope` | `rule_site_scope` |
 | RegleEquipement | `RuleEquipmentScope` | `rule_equipment_scope` |

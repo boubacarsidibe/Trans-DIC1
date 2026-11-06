@@ -141,7 +141,7 @@ Dans la plateforme, l'agent passe en état actif, avec l'heure de sa dernière c
 | « jeton d'agent refusé » dans le journal | jeton révoqué ou remplacé | enregistrer un nouvel agent et relancer `install.ps1 -TokenFile …` |
 | Tâche à l'état « Prêt » mais aucun envoi | configuration ou réseau | lire `agent.log`, vérifier l'accès HTTPS vers la plateforme (`Test-NetConnection <hôte> -Port 443`) |
 
-Le disque mesuré est un seul lecteur : le lecteur système par défaut, `disk_path` pour un autre. Les mesures sont datées par le serveur : son horloge doit être synchronisée (service Heure Windows).
+Depuis l'agent 2.0, tous les disques et toutes les cartes actives sont découverts sans configuration ; `disk_path` ne choisit plus que le disque de la clé historique `disk.usage`. Les mesures sont datées par le serveur : son horloge doit être synchronisée (service Heure Windows).
 
 ## Configuration
 
@@ -152,7 +152,8 @@ Le fichier `/etc/trans-dic1-agent/agent.conf` est commenté (modèle : `agent/pa
 | `server_url` | — | adresse HTTPS de la plateforme |
 | `token_file` | `/etc/trans-dic1-agent/token` | fichier du jeton, droits 600 obligatoires (ou variable `TRANS_DIC1_AGENT_TOKEN`) |
 | `interval` | 60 | secondes entre deux relevés (10 à 240 ; la plateforme signale un agent muet après 300 s) |
-| `disk_path` | `/` | système de fichiers mesuré |
+| `disk_path` | `/` | système de fichiers de la clé historique `disk.usage` ; les autres sont découverts seuls |
+| `services` | — | services à surveiller, séparés par des virgules (mesure `service.up[nom]`) |
 | `timeout` | 10 | délai d'une requête (s) |
 | `max_retries`, `backoff` | 3, 2 | réessais après une erreur temporaire, attente initiale doublée à chaque essai (s) |
 | `buffer_limit` | 2000 | mesures gardées pendant une panne de la plateforme |
@@ -163,6 +164,14 @@ Après une modification : `sudo systemctl restart trans-dic1-agent`. Pour vérif
 ```sh
 cd /opt/trans-dic1-agent && sudo -u trans-dic1-agent python3 -m trans_dic1_agent --config /etc/trans-dic1-agent/agent.conf --check
 ```
+
+## Ce que l'agent remonte
+
+Sans configuration, à chaque intervalle : processeur (total, utilisateur, système, attente disque), charge, mémoire, fichier d'échange, occupation, espace libre et débit de chaque disque, trafic, erreurs et état de chaque carte, nombre de processus et de fils, durée de fonctionnement, plus les services listés dans `services`.
+
+Toutes les 5 minutes, un instantané part séparément : inventaire du système et processus les plus gourmands. Il est visible sur la fiche de l'équipement et copié dans une alerte à son ouverture.
+
+Une carte jamais vue active (port non branché) ne remonte rien. Une fois vue active, sa coupure ouvre une alerte.
 
 ## Comportement en cas de problème
 

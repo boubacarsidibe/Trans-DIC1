@@ -6,6 +6,10 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 
 ### Added
 
+- Agent 2.0 : gabarit OS complet sous Linux et Windows sans configuration, disques et cartes découverts seuls (clés `famille[instance]`), inventaire et top des processus copiés dans les alertes, 6 règles livrées actives, règles `famille[*]` et portée « tous les équipements » (migration V29).
+- Tableau de bord entièrement cliquable : tuiles-filtres, carte du parc, sévérités, problèmes, plus chargés, activité, saturation prévue des disques, équipements muets, filtre par site.
+- Mur NOC : widgets « Charge du parc » et « Activité des alertes », messages d'alerte en français et cliquables ; le texte reste dans son cadre.
+- Assistant d'ajout d'équipement (Agent, SNMP ou sans agent), modèles SNMP, fiche d'équipement à onglets automatiques, recherche globale Ctrl K, recherche dans le parc, règles guidées.
 - Sondes sans agent : un administrateur déclare sur un équipement des sondes ICMP, TCP, HTTP, HTTPS ou de certificat TLS, lancées par le serveur ; mesures `probe.up`, `probe.latency` et `probe.tls.days_left` consommées par les règles d'alerte, deux règles par défaut inactives (« Sonde injoignable », « Certificat bientôt expiré »), une alerte par (équipement, règle, service), page « Sondes », garde-fous contre le détournement (G1, ADR 0019). Le ping dans l'image du backend demande `iputils` et le sysctl `net.ipv4.ping_group_range` (Compose et Helm le règlent ; docs/devops/sondes-icmp-conteneur.md). Une sonde Ping sur un équipement sans agent ni SNMP ouvre l'alerte de collecte au 3e échec (comptée dans le SLA).
 - Périmètre d'accès par site : un opérateur ou un lecteur peut être limité à certains sites ; filtrage côté serveur des équipements, alertes, maintenances, mesures, topologie, tableau de bord, rapports et notifications ; bouton « Sites » dans la page Utilisateurs (FEAT-01, ADR 0018).
 - Connexion unique OIDC avec le fournisseur d'identité de l'EPT : Authorization Code + PKCE côté écran, jetons du fournisseur validés côté serveur, rôles convertis, connexion locale gardée en secours, Keycloak de développement (ARCH-09, ADR 0017).
