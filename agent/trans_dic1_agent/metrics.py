@@ -1,4 +1,5 @@
 """Lecture des métriques système Linux : /proc pour le CPU et la mémoire, statvfs pour le disque.
+(Windows : voir metrics_windows.py.)
 
 Les clés et unités sont celles de la plateforme (cpu.usage, memory.usage, disk.usage,
 availability, en %), déjà utilisées par la collecte SNMP et la source simulée.
@@ -6,6 +7,7 @@ availability, en %), déjà utilisées par la collecte SNMP et la source simulé
 
 import datetime
 import os
+import sys
 
 
 def utc_now():
@@ -69,6 +71,25 @@ def disk_usage(path="/"):
     return 100.0 * used / usable if usable else 0.0
 
 
+def assemble(now, previous_cpu, current_cpu, memory, disk):
+    """Relevé complet commun à Linux et Windows : cpu.usage, memory.usage, disk.usage, availability.
+
+    memory et disk sont des fonctions sans argument ; un disque illisible donne une mesure BAD.
+    """
+    measures = [
+        measure("cpu.usage", cpu_usage(previous_cpu, current_cpu), now),
+        measure("memory.usage", memory(), now),
+    ]
+    try:
+        measures.append(measure("disk.usage", disk(), now))
+    except OSError:
+        # Disque illisible : la mesure est signalée inexploitable plutôt que perdue en silence.
+        measures.append(measure("disk.usage", 0, now, quality="BAD"))
+    # L'agent répond : le serveur est disponible. Son silence est détecté côté plateforme.
+    measures.append(measure("availability", 100, now))
+    return measures
+
+
 class Collector:
     """Produit un relevé complet ; le CPU se calcule entre deux appels successifs."""
 
@@ -80,16 +101,21 @@ class Collector:
 
     def collect(self):
         now = self.clock()
-        measures = []
         current_cpu = read_cpu_times(self.proc_root)
-        measures.append(measure("cpu.usage", cpu_usage(self.previous_cpu, current_cpu), now))
-        self.previous_cpu = current_cpu
-        measures.append(measure("memory.usage", memory_usage(self.proc_root), now))
-        try:
-            measures.append(measure("disk.usage", disk_usage(self.disk_path), now))
-        except OSError:
-            # Disque illisible : la mesure est signalée inexploitable plutôt que perdue en silence.
-            measures.append(measure("disk.usage", 0, now, quality="BAD"))
-        # L'agent répond : le serveur est disponible. Son silence est détecté côté plateforme.
-        measures.append(measure("availability", 100, now))
-        return measures
+        previous, self.previous_cpu = self.previous_cpu, current_cpu
+        return assemble(
+            now,
+            previous,
+            current_cpu,
+            memory=lambda: memory_usage(self.proc_root),
+            disk=lambda: disk_usage(self.disk_path),
+        )
+
+
+def create_collector(config):
+    """Collecteur de la plateforme où tourne l'agent : Windows (kernel32) ou Linux (/proc)."""
+    if sys.platform == "win32":
+        from .metrics_windows import WindowsCollector
+
+        return WindowsCollector(disk_path=config.disk_path)
+    return Collector(proc_root=config.proc_root, disk_path=config.disk_path)

@@ -7,8 +7,29 @@ dédié (droits 600) ou dans la variable TRANS_DIC1_AGENT_TOKEN, et n'apparaît 
 import configparser
 import os
 import stat
+import sys
 
-DEFAULT_CONFIG_FILE = "/etc/trans-dic1-agent/agent.conf"
+from . import winacl
+
+
+def _windows():
+    return sys.platform == "win32"
+
+
+def default_config_file():
+    if _windows():
+        return os.path.join(os.environ.get("ProgramData", r"C:\ProgramData"), "Trans-DIC1-Agent", "agent.conf")
+    return "/etc/trans-dic1-agent/agent.conf"
+
+
+def default_disk_path():
+    """Système de fichiers mesuré par défaut : la racine sous Linux, le lecteur système sous Windows."""
+    if _windows():
+        return os.environ.get("SystemDrive", "C:") + "\\"
+    return "/"
+
+
+DEFAULT_CONFIG_FILE = default_config_file()
 
 # Limites fixées par l'API (AgentMeasuresRequest) et par le contrôle de silence du backend (300 s).
 MAX_BATCH = 500
@@ -26,7 +47,7 @@ class Config:
         server_url,
         token,
         interval=60,
-        disk_path="/",
+        disk_path=None,
         timeout=10.0,
         max_retries=3,
         backoff=2.0,
@@ -34,11 +55,12 @@ class Config:
         ca_file=None,
         allow_insecure_http=False,
         proc_root="/proc",
+        log_file=None,
     ):
         self.server_url = server_url.rstrip("/")
         self.token = token
         self.interval = interval
-        self.disk_path = disk_path
+        self.disk_path = disk_path or default_disk_path()
         self.timeout = timeout
         self.max_retries = max_retries
         self.backoff = backoff
@@ -46,6 +68,7 @@ class Config:
         self.ca_file = ca_file
         self.allow_insecure_http = allow_insecure_http
         self.proc_root = proc_root
+        self.log_file = log_file
         self.validate()
 
     @property
@@ -83,12 +106,18 @@ class Config:
 
 
 def read_token_file(path):
-    """Lit le jeton ; refuse un fichier lisible par d'autres utilisateurs que son propriétaire."""
-    try:
-        mode = os.stat(path).st_mode
-    except OSError:
+    """Lit le jeton ; refuse un fichier ouvert à d'autres comptes que son propriétaire.
+
+    Linux : droits 600. Windows : aucun accès accordé à Tout le monde, aux Utilisateurs ni aux
+    Utilisateurs authentifiés (voir winacl).
+    """
+    if not os.path.isfile(path):
         raise ConfigError("fichier de jeton introuvable : %s" % path)
-    if mode & (stat.S_IRWXG | stat.S_IRWXO):
+    if _windows():
+        problem = winacl.token_file_problem(path)
+        if problem:
+            raise ConfigError(problem)
+    elif os.stat(path).st_mode & (stat.S_IRWXG | stat.S_IRWXO):
         raise ConfigError("le fichier de jeton %s doit avoir les droits 600" % path)
     with open(path, encoding="utf-8") as handle:
         return handle.read().strip()
@@ -125,7 +154,7 @@ def load(path=None, environ=None):
             server_url=server_url,
             token=token,
             interval=int(get("interval", 60)),
-            disk_path=get("disk_path", "/"),
+            disk_path=get("disk_path") or None,
             timeout=float(get("timeout", 10)),
             max_retries=int(get("max_retries", 3)),
             backoff=float(get("backoff", 2)),
@@ -133,6 +162,7 @@ def load(path=None, environ=None):
             ca_file=get("ca_file") or None,
             allow_insecure_http=_flag(get("allow_insecure_http", "false")),
             proc_root=get("proc_root", "/proc"),
+            log_file=get("log_file") or None,
         )
     except ValueError as error:
         raise ConfigError("valeur numérique invalide : %s" % error)

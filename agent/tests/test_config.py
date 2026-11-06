@@ -1,4 +1,5 @@
 import os
+import sys
 import tempfile
 import unittest
 
@@ -45,6 +46,7 @@ class ConfigTests(unittest.TestCase):
         }
         self.assertEqual(config.load(environ=env).interval, 60)
 
+    @unittest.skipIf(sys.platform == "win32", "droits 600 : Linux seulement (voir test_windows pour les ACL)")
     def test_refuse_un_fichier_de_jeton_lisible_par_d_autres(self):
         os.chmod(self.token_file, 0o644)
         with self.assertRaisesRegex(config.ConfigError, "600"):
