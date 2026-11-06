@@ -9,7 +9,7 @@ import ActivityChart from "../ui/dashboard/ActivityChart.jsx";
 import Honeycomb from "../ui/dashboard/Honeycomb.jsx";
 import ProblemsTable from "../ui/dashboard/ProblemsTable.jsx";
 import TopHosts from "../ui/dashboard/TopHosts.jsx";
-import { elapsed, hostState, isSilent } from "../ui/dashboard/hostState.js";
+import { elapsed, hostState, isSilent, percent } from "../ui/dashboard/hostState.js";
 
 const SEVERITIES = [
   { id: "CRITICAL", label: "Critique" },
@@ -29,6 +29,40 @@ function Tile({ id, active, onToggle, label, value, tone }) {
       <span className="tile-value">{value}</span>
       <span className="tile-label">{label}</span>
     </button>
+  );
+}
+
+const days = (value) => {
+  const count = Number(value);
+  if (count < 1) return "moins d’un jour";
+  return `${Math.round(count)} jour${Math.round(count) > 1 ? "s" : ""}`;
+};
+
+/** Le disque se remplit à ce rythme : on prévient avant la panne, pas pendant. */
+function Forecasts({ forecasts }) {
+  if (forecasts.length === 0) {
+    return (
+      <p className="dash-calm">
+        <CheckCircle2 size={22} aria-hidden="true" /> Aucun disque ne menace de se remplir.
+      </p>
+    );
+  }
+  return (
+    <ul className="forecasts">
+      {forecasts.map((item) => (
+        <li key={`${item.equipmentId}-${item.disk}`}>
+          <Link to={`/equipements/${item.equipmentId}/historique`} className="forecast-row">
+            <span className="forecast-name">
+              {item.equipment} <small>{item.disk}</small>
+            </span>
+            <span className="forecast-now">{percent(item.usage)}</span>
+            <span className={`forecast-left${Number(item.daysLeft) < 7 ? " forecast-soon" : ""}`}>
+              plein dans {days(item.daysLeft)}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -104,6 +138,11 @@ function DashboardPage() {
   const visible = useMemo(() => new Set(hosts.map((h) => h.id)), [hosts]);
   const problems = useMemo(
     () => (board?.problems ?? []).filter((p) => visible.has(p.equipmentId)),
+    [board, visible],
+  );
+
+  const forecasts = useMemo(
+    () => (board?.forecasts ?? []).filter((f) => visible.has(f.equipmentId)),
     [board, visible],
   );
 
@@ -212,6 +251,13 @@ function DashboardPage() {
                   <h2 id="activite">Activité des alertes</h2>
                 </div>
                 <ActivityChart activity={board.activity} />
+              </section>
+
+              <section aria-labelledby="saturation" className="panel dash-wide">
+                <div className="panel-head">
+                  <h2 id="saturation">Saturation prévue</h2>
+                </div>
+                <Forecasts forecasts={forecasts} />
               </section>
 
               <section aria-labelledby="muets" className="panel">

@@ -47,6 +47,7 @@ const board = {
     { id: "p2", equipmentId: "h3", equipment: "Switch", severity: "WARNING", state: "OPEN", message: "Disque presque plein", triggeredAt: recent },
   ],
   activity: hours,
+  forecasts: [{ equipmentId: "h3", equipment: "Switch", disk: "C:", usage: 88, daysLeft: 4.2 }],
 };
 
 function renderDashboard() {
@@ -94,6 +95,13 @@ describe("tableau de bord", () => {
     renderDashboard();
     const link = await screen.findByRole("link", { name: "cpu.usage > 95" });
     expect(link).toHaveAttribute("href", "/alertes?alerte=p1");
+  });
+
+  it("prévient quand un disque va se remplir", async () => {
+    renderDashboard();
+    const link = (await screen.findByText("plein dans 4 jours")).closest("a");
+    expect(link).toHaveAttribute("href", "/equipements/h3/historique");
+    expect(link).toHaveTextContent("88 %");
   });
 
   it("repère les équipements muets", async () => {

@@ -4174,6 +4174,24 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/HourlyCount"
+        forecasts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Forecast"
+    Forecast:
+      type: object
+      properties:
+        equipmentId:
+          type: string
+          format: uuid
+        equipment:
+          type: string
+        disk:
+          type: string
+        usage:
+          type: number
+        daysLeft:
+          type: number
     Host:
       type: object
       properties:

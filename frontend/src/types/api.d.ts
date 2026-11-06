@@ -1741,6 +1741,15 @@ export interface components {
             hosts?: components["schemas"]["Host"][];
             problems?: components["schemas"]["Problem"][];
             activity?: components["schemas"]["HourlyCount"][];
+            forecasts?: components["schemas"]["Forecast"][];
+        };
+        Forecast: {
+            /** Format: uuid */
+            equipmentId?: string;
+            equipment?: string;
+            disk?: string;
+            usage?: number;
+            daysLeft?: number;
         };
         Host: {
             /** Format: uuid */

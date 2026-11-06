@@ -1,6 +1,7 @@
 package sn.ept.transdic1.overview.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
@@ -14,8 +15,10 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sn.ept.transdic1.common.metric.MetricKey;
 import sn.ept.transdic1.common.scope.SiteScope;
 import sn.ept.transdic1.overview.dto.DashboardResponse;
+import sn.ept.transdic1.overview.dto.DashboardResponse.Forecast;
 import sn.ept.transdic1.overview.dto.DashboardResponse.Host;
 import sn.ept.transdic1.overview.dto.DashboardResponse.HourlyCount;
 import sn.ept.transdic1.overview.dto.DashboardResponse.Problem;
@@ -70,13 +73,14 @@ public class DashboardService {
     var restriction = scope.restriction();
     if (restriction.isPresent()) {
       if (restriction.get().isEmpty()) {
-        return new DashboardResponse(now, List.of(), List.of(), List.of());
+        return new DashboardResponse(now, List.of(), List.of(), List.of(), List.of());
       }
       params.addValue("sites", restriction.get());
       sites = " AND e.site_id IN (:sites)";
     }
     params.addValue("recent", Timestamp.from(now.minus(RECENT)));
     params.addValue("day", Timestamp.from(now.minus(Duration.ofHours(24))));
+    params.addValue("week", Timestamp.from(now.minus(Duration.ofDays(7))));
     params.addValue("hosts", MAX_HOSTS);
     params.addValue("problems", MAX_PROBLEMS);
 
@@ -86,7 +90,41 @@ public class DashboardService {
         now,
         hosts(params, sites, severities, latest),
         problems(params, sites),
-        activity(params, sites, now));
+        activity(params, sites, now),
+        forecasts(params, sites));
+  }
+
+  /**
+   * Régression linéaire sur 7 jours, faite par PostgreSQL. Une prévision n'est donnée que si la
+   * tendance est nette (R² de 0,5 au moins) et observée sur au moins 6 heures : mieux vaut aucune
+   * prévision qu'une fausse alarme sur un disque qui fluctue.
+   */
+  private List<Forecast> forecasts(MapSqlParameterSource params, String sites) {
+    return jdbc.query(
+        "SELECT * FROM (SELECT e.id, e.name, m.metric_key,"
+            + " (array_agg(m.metric_value ORDER BY m.collected_at DESC))[1] AS usage,"
+            + " regr_slope(m.metric_value, extract(epoch FROM m.collected_at)) AS slope,"
+            + " regr_r2(m.metric_value, extract(epoch FROM m.collected_at)) AS fit,"
+            + " extract(epoch FROM max(m.collected_at) - min(m.collected_at)) AS span"
+            + " FROM metric m JOIN equipment e ON e.id = m.equipment_id"
+            + " WHERE m.collected_at >= :week AND m.quality <> 'BAD' AND m.service_id IS NULL"
+            + " AND m.metric_key LIKE 'disk.usage[%'"
+            + sites
+            + " GROUP BY e.id, e.name, m.metric_key HAVING count(*) >= 12) t"
+            + " WHERE slope > 0 AND fit >= 0.5 AND span >= 21600"
+            + " AND (100 - usage) / slope <= 7776000"
+            + " ORDER BY (100 - usage) / slope LIMIT 8",
+        params,
+        (rs, row) -> {
+          BigDecimal usage = rs.getBigDecimal("usage");
+          double days = Math.max(0, (100 - usage.doubleValue()) / rs.getDouble("slope") / 86_400);
+          return new Forecast(
+              rs.getObject(1, UUID.class),
+              rs.getString(2),
+              MetricKey.instance(rs.getString(3)),
+              usage,
+              BigDecimal.valueOf(days).setScale(1, RoundingMode.HALF_UP));
+        });
   }
 
   private Map<UUID, Severities> severities(MapSqlParameterSource params, String sites) {

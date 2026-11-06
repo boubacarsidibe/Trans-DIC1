@@ -192,4 +192,61 @@ class DashboardApiTests {
     assertThat(page.getContent()).hasSize(1);
     assertThat(page.getContent().get(0).severity()).isEqualTo(Severity.CRITICAL);
   }
+
+  private void history(String key, double start, double perHour, int hours) {
+    for (int i = hours; i >= 0; i--) {
+      metrics.save(
+          new Metric(
+              equipment,
+              key,
+              BigDecimal.valueOf(start + (hours - i) * perHour),
+              "%",
+              MeasurementQuality.GOOD,
+              NOW.minus(Duration.ofHours(i))));
+    }
+    metrics.flush();
+  }
+
+  @Test
+  void aDiskFillingUpGetsAForecast() {
+    history("disk.usage[C:]", 60, 1, 20); // 80 % maintenant, +1 % par heure : plein dans 20 h
+    var forecast =
+        dashboard.dashboard().forecasts().stream()
+            .filter(f -> f.equipmentId().equals(equipment.getId()))
+            .toList();
+    assertThat(forecast).hasSize(1);
+    assertThat(forecast.get(0).disk()).isEqualTo("C:");
+    assertThat(forecast.get(0).daysLeft().doubleValue()).isBetween(0.7, 1.0);
+  }
+
+  @Test
+  void aStableDiskHasNoForecast() {
+    history("disk.usage[D:]", 60, 0, 20);
+    assertThat(dashboard.dashboard().forecasts())
+        .noneMatch(f -> f.equipmentId().equals(equipment.getId()));
+  }
+
+  @Test
+  void aNoisyDiskHasNoForecast() {
+    for (int i = 20; i >= 0; i--) {
+      metrics.save(
+          new Metric(
+              equipment,
+              "disk.usage[E:]",
+              BigDecimal.valueOf(i % 2 == 0 ? 40 : 80),
+              "%",
+              MeasurementQuality.GOOD,
+              NOW.minus(Duration.ofHours(i))));
+    }
+    metrics.flush();
+    assertThat(dashboard.dashboard().forecasts())
+        .noneMatch(f -> f.equipmentId().equals(equipment.getId()));
+  }
+
+  @Test
+  void aTooRecentTrendHasNoForecast() {
+    history("disk.usage[F:]", 60, 1, 3);
+    assertThat(dashboard.dashboard().forecasts())
+        .noneMatch(f -> f.equipmentId().equals(equipment.getId()));
+  }
 }

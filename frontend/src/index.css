@@ -3750,3 +3750,53 @@ thead {
     animation: none;
   }
 }
+
+/* Saturation prévue. */
+.forecasts {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.forecast-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 3.5rem auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.35rem 0.4rem;
+  border-radius: 6px;
+  color: var(--ink);
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.forecast-row:hover,
+.forecast-row:focus-visible {
+  background: var(--paper);
+}
+
+.forecast-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.forecast-name small {
+  color: #59626f;
+}
+
+.forecast-now {
+  font-weight: 600;
+  text-align: right;
+}
+
+.forecast-left {
+  color: #7f5200;
+  font-weight: 600;
+}
+
+.forecast-soon {
+  color: #b3261e;
+}
