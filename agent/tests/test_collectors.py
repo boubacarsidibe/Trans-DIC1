@@ -171,6 +171,7 @@ class LinuxFamiliesTests(unittest.TestCase):
             path = os.path.join(self.root, "diskstats")
             with open(path, "w", encoding="ascii") as handle:
                 handle.write("   8 1 sda1 10 0 4000 0 5 0 4000 0 0 0 0\n")
+            self.clock[0] = 10.0
             second = by_key(self.families.disks(AT))
         self.assertEqual(second["disk.read[/]"]["unit"], "B/s")
         self.assertGreater(second["disk.read[/]"]["value"], 0)
