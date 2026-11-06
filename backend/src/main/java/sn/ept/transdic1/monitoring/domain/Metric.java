@@ -38,7 +38,7 @@ public class Metric {
   @Column(name = "metric_key", nullable = false, length = 64)
   private String key;
 
-  @Column(name = "metric_value", nullable = false, precision = 12, scale = 4)
+  @Column(name = "metric_value", nullable = false, precision = 20, scale = 4)
   private BigDecimal value;
 
   @Column(nullable = false, length = 24)

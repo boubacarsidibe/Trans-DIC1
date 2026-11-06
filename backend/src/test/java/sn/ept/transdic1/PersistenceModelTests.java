@@ -283,7 +283,7 @@ class PersistenceModelTests {
             "ScheduleSiteScope",
             "ScheduleEquipmentScope",
             "AuditEntry")
-        .hasSize(29);
+        .hasSize(30);
   }
 
   @Test

@@ -2106,6 +2106,34 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/agent/snapshot:
+    post:
+      tags:
+      - Agents de collecte
+      summary: Recevoir l'inventaire de l'agent
+      description: "Système, processeur, mémoire et top des processus (noms seulement)."
+      operationId: snapshot
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentSnapshotDto"
+        required: true
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/agent/measures:
     post:
       tags:
@@ -2541,6 +2569,39 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/MetricKeyResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/equipements/{equipmentId}/agent/instantane:
+    get:
+      tags:
+      - Agents de collecte
+      summary: Inventaire d'un équipement
+      description: Dernier inventaire et top des processus envoyés par son agent.
+      operationId: lastSnapshot
+      parameters:
+      - name: equipmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AgentSnapshotResponse"
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -3086,7 +3147,7 @@ components:
           type: string
           maxLength: 64
           minLength: 0
-          pattern: "[a-z0-9][a-z0-9._-]*"
+          pattern: "[a-z0-9][a-z0-9._-]*(\\[[^\\[\\]]{1,48}\\])?"
         operator:
           type: string
           enum:
@@ -3126,6 +3187,8 @@ components:
           items:
             type: string
             format: uuid
+        allEquipment:
+          type: boolean
       required:
       - confirmationSeconds
       - initialSeverity
@@ -3613,6 +3676,8 @@ components:
         updatedAt:
           type: string
           format: date-time
+        allEquipment:
+          type: boolean
     RuleTestRequest:
       type: object
       properties:
@@ -3907,6 +3972,71 @@ components:
           minLength: 0
       required:
       - userId
+    AgentSnapshotDto:
+      type: object
+      properties:
+        hostname:
+          type: string
+          maxLength: 255
+          minLength: 0
+        os:
+          type: string
+          maxLength: 32
+          minLength: 0
+        osVersion:
+          type: string
+          maxLength: 64
+          minLength: 0
+        architecture:
+          type: string
+          maxLength: 32
+          minLength: 0
+        cpuCount:
+          type: integer
+          format: int32
+        memoryTotal:
+          type: integer
+          format: int64
+        partial:
+          type: boolean
+        processes:
+          $ref: "#/components/schemas/Processes"
+      required:
+      - hostname
+      - os
+    ProcessLine:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 128
+          minLength: 0
+        pid:
+          type: integer
+          format: int64
+        cpu:
+          type: number
+          format: double
+        memory:
+          type: integer
+          format: int64
+      required:
+      - name
+    Processes:
+      type: object
+      properties:
+        byCpu:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProcessLine"
+          maxItems: 10
+          minItems: 0
+        byMemory:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProcessLine"
+          maxItems: 10
+          minItems: 0
     AgentMeasuresRequest:
       type: object
       properties:
@@ -4179,6 +4309,14 @@ components:
         lastAt:
           type: string
           format: date-time
+    AgentSnapshotResponse:
+      type: object
+      properties:
+        receivedAt:
+          type: string
+          format: date-time
+        snapshot:
+          $ref: "#/components/schemas/AgentSnapshotDto"
     DiscoverySettingsResponse:
       type: object
       properties:
@@ -4328,6 +4466,10 @@ components:
           type: string
           format: uuid
         correlationReason:
+          type: string
+        metricInstance:
+          type: string
+        context:
           type: string
     PagedModelAlertResponse:
       type: object

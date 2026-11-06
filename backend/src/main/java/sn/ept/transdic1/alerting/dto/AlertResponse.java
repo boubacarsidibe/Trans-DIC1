@@ -23,7 +23,9 @@ public record AlertResponse(
     String assignee,
     java.util.List<String> assignees,
     UUID parentAlertId,
-    String correlationReason) {
+    String correlationReason,
+    String metricInstance,
+    String context) {
 
   /** {@code assignee} reste le premier assigné, pour les clients qui n'en affichent qu'un. */
   public static AlertResponse from(Alert alert, java.util.List<String> assignees) {
@@ -42,6 +44,8 @@ public record AlertResponse(
         assignees.isEmpty() ? null : assignees.get(0),
         java.util.List.copyOf(assignees),
         alert.getParentAlertId(),
-        alert.getCorrelationReason());
+        alert.getCorrelationReason(),
+        alert.getMetricInstance(),
+        alert.getContext());
   }
 }

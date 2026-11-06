@@ -22,7 +22,7 @@ public class AlertRule {
   @Column(name = "operator", nullable = false)
   private ComparisonOperator operator;
 
-  @Column(name = "threshold", nullable = false, precision = 12, scale = 4)
+  @Column(name = "threshold", nullable = false, precision = 20, scale = 4)
   private BigDecimal threshold;
 
   /**
@@ -30,7 +30,7 @@ public class AlertRule {
    * l'état de l'alerte ne change pas, ce qui évite les alertes qui s'ouvrent et se ferment en
    * boucle. Nul : l'alerte se résout dès que la valeur repasse sous le seuil d'ouverture.
    */
-  @Column(name = "recovery_threshold", precision = 12, scale = 4)
+  @Column(name = "recovery_threshold", precision = 20, scale = 4)
   private BigDecimal recoveryThreshold;
 
   @Column(name = "unit", length = 24)
@@ -43,6 +43,10 @@ public class AlertRule {
   @Enumerated(EnumType.STRING)
   @Column(name = "initial_severity", nullable = false)
   private Severity initialSeverity;
+
+  /** Vise tous les équipements, sans portée par site ni par équipement. */
+  @Column(name = "all_equipment", nullable = false)
+  private boolean allEquipment;
 
   @Column(name = "active", nullable = false)
   private boolean active;
@@ -89,6 +93,14 @@ public class AlertRule {
 
   public void setName(String name) {
     this.name = name;
+  }
+
+  public boolean isAllEquipment() {
+    return allEquipment;
+  }
+
+  public void setAllEquipment(boolean allEquipment) {
+    this.allEquipment = allEquipment;
   }
 
   public String getMetricType() {

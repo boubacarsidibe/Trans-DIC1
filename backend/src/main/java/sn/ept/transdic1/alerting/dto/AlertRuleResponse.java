@@ -23,7 +23,8 @@ public record AlertRuleResponse(
     List<UUID> siteIds,
     List<UUID> equipmentIds,
     Instant createdAt,
-    Instant updatedAt) {
+    Instant updatedAt,
+    boolean allEquipment) {
 
   public static AlertRuleResponse from(
       AlertRule rule, List<UUID> siteIds, List<UUID> equipmentIds) {
@@ -41,6 +42,7 @@ public record AlertRuleResponse(
         siteIds,
         equipmentIds,
         rule.getCreatedAt(),
-        rule.getUpdatedAt());
+        rule.getUpdatedAt(),
+        rule.isAllEquipment());
   }
 }

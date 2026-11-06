@@ -13,6 +13,16 @@ import sn.ept.transdic1.monitoring.domain.Metric;
 public interface MetricRepository extends JpaRepository<Metric, Long> {
   List<Metric> findTop20ByOrderByCollectedAtDesc();
 
+  /** Instances mesurées d'une famille (disk.usage[C:], disk.usage[D:]) sur une période. */
+  @org.springframework.data.jpa.repository.Query(
+      "select distinct m.key from Metric m where m.equipment.id = :equipmentId"
+          + " and m.key like :prefix and m.collectedAt between :from and :to")
+  List<String> findInstanceKeys(
+      @org.springframework.data.repository.query.Param("equipmentId") UUID equipmentId,
+      @org.springframework.data.repository.query.Param("prefix") String prefix,
+      @org.springframework.data.repository.query.Param("from") Instant from,
+      @org.springframework.data.repository.query.Param("to") Instant to);
+
   /** Les mêmes, limitées aux sites du périmètre d'accès (ADR 0018). */
   List<Metric> findTop20ByEquipment_Site_IdInOrderByCollectedAtDesc(Collection<UUID> siteIds);
 

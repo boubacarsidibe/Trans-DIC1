@@ -19,6 +19,7 @@ import sn.ept.transdic1.alerting.dto.AlertRuleRequest;
 import sn.ept.transdic1.alerting.dto.RuleTestDtos.EquipmentResult;
 import sn.ept.transdic1.alerting.dto.RuleTestDtos.RuleTestResponse;
 import sn.ept.transdic1.alerting.dto.RuleTestDtos.SimulatedAlert;
+import sn.ept.transdic1.common.metric.MetricKey;
 import sn.ept.transdic1.inventory.domain.Equipment;
 import sn.ept.transdic1.inventory.repository.EquipmentRepository;
 
@@ -62,13 +63,24 @@ public class RuleSimulationService {
     int samples = 0;
     int opened = 0;
     for (Equipment equipment : scope) {
-      List<MetricHistory.Sample> past =
-          new ArrayList<>(history.samples(equipment.getId(), null, rule.getMetricType(), from, to));
-      past.sort(Comparator.comparing(MetricHistory.Sample::at));
-      List<SimulatedAlert> alerts = replay(rule, past);
-      samples += past.size();
+      // Règle [*] : chaque disque ou carte se rejoue à part, comme en exploitation.
+      List<String> keys =
+          MetricKey.isWildcard(rule.getMetricType())
+              ? history.instanceKeys(
+                  equipment.getId(), MetricKey.family(rule.getMetricType()), from, to)
+              : List.of(rule.getMetricType());
+      int measured = 0;
+      List<SimulatedAlert> alerts = new ArrayList<>();
+      for (String key : keys) {
+        List<MetricHistory.Sample> past =
+            new ArrayList<>(history.samples(equipment.getId(), null, key, from, to));
+        past.sort(Comparator.comparing(MetricHistory.Sample::at));
+        alerts.addAll(replay(rule, past));
+        measured += past.size();
+      }
+      samples += measured;
       opened += alerts.size();
-      results.add(new EquipmentResult(equipment.getId(), equipment.getName(), past.size(), alerts));
+      results.add(new EquipmentResult(equipment.getId(), equipment.getName(), measured, alerts));
     }
     return new RuleTestResponse(from, to, scope.size(), samples, opened, results);
   }
@@ -117,6 +129,9 @@ public class RuleSimulationService {
   }
 
   private List<Equipment> scope(AlertRuleRequest request) {
+    if (Boolean.TRUE.equals(request.allEquipment())) {
+      return equipments.findAll();
+    }
     Map<UUID, Equipment> found = new LinkedHashMap<>();
     for (UUID id : request.equipmentIds() == null ? List.<UUID>of() : request.equipmentIds()) {
       found.put(

@@ -21,8 +21,10 @@ public record AlertRuleRequest(
     @NotBlank
         @Size(max = 64)
         @Pattern(
-            regexp = "[a-z0-9][a-z0-9._-]*",
-            message = "Clé d'indicateur en minuscules, chiffres, points, tirets ou soulignés")
+            regexp = "[a-z0-9][a-z0-9._-]*(\\[[^\\[\\]]{1,48}\\])?",
+            message =
+                "Clé d'indicateur en minuscules, chiffres, points, tirets ou soulignés,"
+                    + " suivie au besoin de [instance] ou de [*]")
         String metricType,
     @NotNull ComparisonOperator operator,
     @NotNull BigDecimal threshold,
@@ -32,4 +34,33 @@ public record AlertRuleRequest(
     @NotNull Severity initialSeverity,
     Boolean active,
     List<UUID> siteIds,
-    List<UUID> equipmentIds) {}
+    List<UUID> equipmentIds,
+    Boolean allEquipment) {
+
+  public AlertRuleRequest(
+      String name,
+      String metricType,
+      ComparisonOperator operator,
+      BigDecimal threshold,
+      BigDecimal recoveryThreshold,
+      String unit,
+      Long confirmationSeconds,
+      Severity initialSeverity,
+      Boolean active,
+      List<UUID> siteIds,
+      List<UUID> equipmentIds) {
+    this(
+        name,
+        metricType,
+        operator,
+        threshold,
+        recoveryThreshold,
+        unit,
+        confirmationSeconds,
+        initialSeverity,
+        active,
+        siteIds,
+        equipmentIds,
+        null);
+  }
+}

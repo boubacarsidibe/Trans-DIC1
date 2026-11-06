@@ -70,6 +70,14 @@ public class Alert {
   @Column(name = "correlation_reason", length = 255)
   private String correlationReason;
 
+  /** Disque ou carte concernés, pour une mesure à instance ; null sinon. */
+  @Column(name = "metric_instance", length = 64)
+  private String metricInstance;
+
+  /** Inventaire et top des processus au déclenchement (JSON), pour voir le coupable après coup. */
+  @Column(name = "context", length = 20000)
+  private String context;
+
   protected Alert() {}
 
   public Alert(
@@ -92,6 +100,22 @@ public class Alert {
 
   public UUID getParentAlertId() {
     return parentAlertId;
+  }
+
+  public String getMetricInstance() {
+    return metricInstance;
+  }
+
+  public void setMetricInstance(String metricInstance) {
+    this.metricInstance = metricInstance;
+  }
+
+  public String getContext() {
+    return context;
+  }
+
+  public void setContext(String context) {
+    this.context = context;
   }
 
   public String getCorrelationReason() {

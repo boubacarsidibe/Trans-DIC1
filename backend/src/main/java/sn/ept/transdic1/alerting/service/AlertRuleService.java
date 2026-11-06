@@ -147,6 +147,7 @@ public class AlertRuleService {
   private void apply(AlertRule rule, AlertRuleRequest request) {
     rule.setUnit(blankToNull(request.unit()));
     rule.setActive(request.active() == null || request.active());
+    rule.setAllEquipment(Boolean.TRUE.equals(request.allEquipment()));
     rule.setRecoveryThreshold(validRecovery(request));
   }
 

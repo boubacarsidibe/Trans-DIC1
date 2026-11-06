@@ -17,17 +17,27 @@ public interface AlertRepository
   Optional<Alert> findFirstByEquipmentIdAndRuleIdAndServiceIdAndStateIn(
       UUID equipmentId, UUID ruleId, UUID serviceId, Collection<AlertState> states);
 
-  /** Alerte active d'une règle pour les mesures sans service. */
-  Optional<Alert> findFirstByEquipmentIdAndRuleIdAndServiceIsNullAndStateIn(
+  /** Alerte active d'une règle pour les mesures sans service ni instance. */
+  Optional<Alert> findFirstByEquipmentIdAndRuleIdAndServiceIsNullAndMetricInstanceIsNullAndStateIn(
       UUID equipmentId, UUID ruleId, Collection<AlertState> states);
+
+  /** Alerte active d'une règle pour un disque ou une carte. */
+  Optional<Alert> findFirstByEquipmentIdAndRuleIdAndServiceIsNullAndMetricInstanceAndStateIn(
+      UUID equipmentId, UUID ruleId, String metricInstance, Collection<AlertState> states);
 
   /** Dernière alerte résolue d'un service pour une règle. */
   Optional<Alert> findFirstByEquipmentIdAndRuleIdAndServiceIdAndStateOrderByResolvedAtDesc(
       UUID equipmentId, UUID ruleId, UUID serviceId, AlertState state);
 
-  /** Dernière alerte résolue d'une règle pour les mesures sans service. */
-  Optional<Alert> findFirstByEquipmentIdAndRuleIdAndServiceIsNullAndStateOrderByResolvedAtDesc(
-      UUID equipmentId, UUID ruleId, AlertState state);
+  /** Dernière alerte résolue d'une règle pour les mesures sans service ni instance. */
+  Optional<Alert>
+      findFirstByEquipmentIdAndRuleIdAndServiceIsNullAndMetricInstanceIsNullAndStateOrderByResolvedAtDesc(
+          UUID equipmentId, UUID ruleId, AlertState state);
+
+  /** Dernière alerte résolue d'une règle pour un disque ou une carte. */
+  Optional<Alert>
+      findFirstByEquipmentIdAndRuleIdAndServiceIsNullAndMetricInstanceAndStateOrderByResolvedAtDesc(
+          UUID equipmentId, UUID ruleId, String metricInstance, AlertState state);
 
   /**
    * Alerte active du triplet équipement-règle-service ; {@code serviceId} nul désigne les mesures
@@ -35,19 +45,38 @@ public interface AlertRepository
    */
   default Optional<Alert> findActiveForRule(
       UUID equipmentId, UUID ruleId, UUID serviceId, Collection<AlertState> states) {
-    return serviceId == null
-        ? findFirstByEquipmentIdAndRuleIdAndServiceIsNullAndStateIn(equipmentId, ruleId, states)
-        : findFirstByEquipmentIdAndRuleIdAndServiceIdAndStateIn(
-            equipmentId, ruleId, serviceId, states);
+    return findActiveForRule(equipmentId, ruleId, serviceId, null, states);
+  }
+
+  default Optional<Alert> findActiveForRule(
+      UUID equipmentId,
+      UUID ruleId,
+      UUID serviceId,
+      String metricInstance,
+      Collection<AlertState> states) {
+    if (serviceId != null) {
+      return findFirstByEquipmentIdAndRuleIdAndServiceIdAndStateIn(
+          equipmentId, ruleId, serviceId, states);
+    }
+    return metricInstance == null
+        ? findFirstByEquipmentIdAndRuleIdAndServiceIsNullAndMetricInstanceIsNullAndStateIn(
+            equipmentId, ruleId, states)
+        : findFirstByEquipmentIdAndRuleIdAndServiceIsNullAndMetricInstanceAndStateIn(
+            equipmentId, ruleId, metricInstance, states);
   }
 
   /** Dernière alerte résolue du triplet équipement-règle-service (service nul compris). */
-  default Optional<Alert> findLastResolvedForRule(UUID equipmentId, UUID ruleId, UUID serviceId) {
-    return serviceId == null
-        ? findFirstByEquipmentIdAndRuleIdAndServiceIsNullAndStateOrderByResolvedAtDesc(
+  default Optional<Alert> findLastResolvedForRule(
+      UUID equipmentId, UUID ruleId, UUID serviceId, String metricInstance) {
+    if (serviceId != null) {
+      return findFirstByEquipmentIdAndRuleIdAndServiceIdAndStateOrderByResolvedAtDesc(
+          equipmentId, ruleId, serviceId, AlertState.RESOLVED);
+    }
+    return metricInstance == null
+        ? findFirstByEquipmentIdAndRuleIdAndServiceIsNullAndMetricInstanceIsNullAndStateOrderByResolvedAtDesc(
             equipmentId, ruleId, AlertState.RESOLVED)
-        : findFirstByEquipmentIdAndRuleIdAndServiceIdAndStateOrderByResolvedAtDesc(
-            equipmentId, ruleId, serviceId, AlertState.RESOLVED);
+        : findFirstByEquipmentIdAndRuleIdAndServiceIsNullAndMetricInstanceAndStateOrderByResolvedAtDesc(
+            equipmentId, ruleId, metricInstance, AlertState.RESOLVED);
   }
 
   boolean existsByRuleId(UUID ruleId);

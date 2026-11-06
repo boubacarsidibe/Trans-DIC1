@@ -38,4 +38,10 @@ class RepositoryMetricHistory implements MetricHistory {
         .map(metric -> new Sample(metric.getCollectedAt(), metric.getValue()))
         .toList();
   }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<String> instanceKeys(UUID equipmentId, String family, Instant from, Instant to) {
+    return metrics.findInstanceKeys(equipmentId, family + "[%", from, to);
+  }
 }

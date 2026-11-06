@@ -20,10 +20,13 @@ import org.springframework.web.bind.annotation.RestController;
 import sn.ept.transdic1.collection.dto.AgentMeasuresRequest;
 import sn.ept.transdic1.collection.dto.AgentPrincipal;
 import sn.ept.transdic1.collection.dto.AgentRegistrationResponse;
+import sn.ept.transdic1.collection.dto.AgentSnapshotDto;
+import sn.ept.transdic1.collection.dto.AgentSnapshotResponse;
 import sn.ept.transdic1.collection.dto.AgentStatusResponse;
 import sn.ept.transdic1.collection.dto.IngestionResult;
 import sn.ept.transdic1.collection.service.AgentAuthService;
 import sn.ept.transdic1.collection.service.AgentRegistrationService;
+import sn.ept.transdic1.collection.service.AgentSnapshotService;
 import sn.ept.transdic1.collection.service.MeasureIngestionService;
 
 @Tag(
@@ -37,10 +40,14 @@ public class AgentController {
   private final MeasureIngestionService ingestion;
   private final AgentAuthService agentAuth;
 
+  private final AgentSnapshotService snapshots;
+
   public AgentController(
       AgentRegistrationService registration,
       MeasureIngestionService ingestion,
-      AgentAuthService agentAuth) {
+      AgentAuthService agentAuth,
+      AgentSnapshotService snapshots) {
+    this.snapshots = snapshots;
     this.registration = registration;
     this.ingestion = ingestion;
     this.agentAuth = agentAuth;
@@ -109,5 +116,24 @@ public class AgentController {
     var result = ingestion.ingest(agent.equipmentId(), request.measures());
     agentAuth.recordCommunication(agent.agentId(), http.getRemoteAddr());
     return result;
+  }
+
+  @Operation(
+      summary = "Recevoir l'inventaire de l'agent",
+      description = "Système, processeur, mémoire et top des processus (noms seulement).")
+  @PostMapping("/agent/snapshot")
+  @PreAuthorize("hasRole('AGENT')")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  void snapshot(
+      @AuthenticationPrincipal AgentPrincipal agent, @Valid @RequestBody AgentSnapshotDto body) {
+    snapshots.store(agent.equipmentId(), body);
+  }
+
+  @Operation(
+      summary = "Inventaire d'un équipement",
+      description = "Dernier inventaire et top des processus envoyés par son agent.")
+  @GetMapping("/equipements/{equipmentId}/agent/instantane")
+  AgentSnapshotResponse lastSnapshot(@PathVariable UUID equipmentId) {
+    return snapshots.read(equipmentId);
   }
 }

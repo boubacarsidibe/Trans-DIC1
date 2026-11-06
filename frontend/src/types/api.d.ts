@@ -770,6 +770,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/agent/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recevoir l'inventaire de l'agent
+         * @description Système, processeur, mémoire et top des processus (noms seulement).
+         */
+        post: operations["snapshot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/agent/measures": {
         parameters: {
             query?: never;
@@ -996,6 +1016,26 @@ export interface paths {
          * @description Indicateurs mesurés ces 30 derniers jours, avec leur dernière valeur.
          */
         get: operations["keys"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipements/{equipmentId}/agent/instantane": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Inventaire d'un équipement
+         * @description Dernier inventaire et top des processus envoyés par son agent.
+         */
+        get: operations["lastSnapshot"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1282,6 +1322,7 @@ export interface components {
             active?: boolean;
             siteIds?: string[];
             equipmentIds?: string[];
+            allEquipment?: boolean;
         };
         UserScopeRequest: {
             siteIds: string[];
@@ -1473,6 +1514,7 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            allEquipment?: boolean;
         };
         RuleTestRequest: {
             rule: components["schemas"]["AlertRuleRequest"];
@@ -1610,6 +1652,31 @@ export interface components {
             /** Format: uuid */
             userId: string;
             comment?: string;
+        };
+        AgentSnapshotDto: {
+            hostname: string;
+            os: string;
+            osVersion?: string;
+            architecture?: string;
+            /** Format: int32 */
+            cpuCount?: number;
+            /** Format: int64 */
+            memoryTotal?: number;
+            partial?: boolean;
+            processes?: components["schemas"]["Processes"];
+        };
+        ProcessLine: {
+            name: string;
+            /** Format: int64 */
+            pid?: number;
+            /** Format: double */
+            cpu?: number;
+            /** Format: int64 */
+            memory?: number;
+        };
+        Processes: {
+            byCpu?: components["schemas"]["ProcessLine"][];
+            byMemory?: components["schemas"]["ProcessLine"][];
         };
         AgentMeasuresRequest: {
             measures: components["schemas"]["MeasureInput"][];
@@ -1751,6 +1818,11 @@ export interface components {
             /** Format: date-time */
             lastAt?: string;
         };
+        AgentSnapshotResponse: {
+            /** Format: date-time */
+            receivedAt?: string;
+            snapshot?: components["schemas"]["AgentSnapshotDto"];
+        };
         DiscoverySettingsResponse: {
             allowedRanges?: string[];
             /** Format: int32 */
@@ -1826,6 +1898,8 @@ export interface components {
             /** Format: uuid */
             parentAlertId?: string;
             correlationReason?: string;
+            metricInstance?: string;
+            context?: string;
         };
         PagedModelAlertResponse: {
             content?: components["schemas"]["AlertResponse"][];
@@ -4536,6 +4610,46 @@ export interface operations {
             };
         };
     };
+    snapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentSnapshotDto"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     receive: {
         parameters: {
             query?: never;
@@ -4991,6 +5105,46 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MetricKeyResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    lastSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AgentSnapshotResponse"];
                 };
             };
             /** @description Authentification requise ou jeton expiré */

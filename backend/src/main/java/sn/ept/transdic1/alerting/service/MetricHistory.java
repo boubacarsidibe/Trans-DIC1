@@ -21,4 +21,9 @@ public interface MetricHistory {
    */
   List<Sample> samples(
       UUID equipmentId, UUID serviceId, String metricKey, Instant from, Instant to);
+
+  /** Clés réellement mesurées de la famille {@code disk.usage}, pour une règle {@code [*]}. */
+  default List<String> instanceKeys(UUID equipmentId, String family, Instant from, Instant to) {
+    return List.of();
+  }
 }

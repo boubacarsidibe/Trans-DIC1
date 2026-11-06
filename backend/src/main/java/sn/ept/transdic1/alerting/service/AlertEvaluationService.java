@@ -24,8 +24,11 @@ import sn.ept.transdic1.alerting.repository.AlertEventRepository;
 import sn.ept.transdic1.alerting.repository.AlertRepository;
 import sn.ept.transdic1.alerting.repository.AlertRuleRepository;
 import sn.ept.transdic1.alerting.repository.MaintenanceRepository;
+import sn.ept.transdic1.common.metric.MetricKey;
+import sn.ept.transdic1.inventory.domain.AgentSnapshot;
 import sn.ept.transdic1.inventory.domain.Equipment;
 import sn.ept.transdic1.inventory.domain.MonitoredService;
+import sn.ept.transdic1.inventory.repository.AgentSnapshotRepository;
 
 /**
  * Évalue une mesure contre les règles d'alerte qui s'appliquent à l'équipement.
@@ -41,6 +44,9 @@ import sn.ept.transdic1.inventory.domain.MonitoredService;
  */
 @Service
 public class AlertEvaluationService {
+  private static final Duration CONTEXT_MAX_AGE = Duration.ofMinutes(10);
+  private final AgentSnapshotRepository snapshots;
+
   private static final Set<AlertState> ACTIVE = Set.of(AlertState.OPEN, AlertState.IN_PROGRESS);
   private static final Set<MaintenanceState> MAINTENANCE_STATES =
       Set.of(MaintenanceState.PLANNED, MaintenanceState.IN_PROGRESS);
@@ -58,13 +64,15 @@ public class AlertEvaluationService {
       AlertEventRepository events,
       MaintenanceRepository maintenances,
       MetricHistory history,
-      ApplicationEventPublisher publisher) {
+      ApplicationEventPublisher publisher,
+      AgentSnapshotRepository snapshots) {
     this.rules = rules;
     this.alerts = alerts;
     this.events = events;
     this.maintenances = maintenances;
     this.history = history;
     this.publisher = publisher;
+    this.snapshots = snapshots;
   }
 
   /** Mesure sans service (agents, SNMP) : une alerte par équipement et règle. */
@@ -87,10 +95,15 @@ public class AlertEvaluationService {
       Instant at) {
     var changes = new ArrayList<AlertChange>();
     UUID serviceId = service == null ? null : service.getId();
+    String instance = MetricKey.instance(metricKey);
     var applicable =
-        rules.findApplicable(equipment.getId(), equipment.getSite().getId(), metricKey);
+        preferExact(
+            rules.findApplicable(
+                equipment.getId(), equipment.getSite().getId(), MetricKey.ruleTypes(metricKey)),
+            metricKey);
     for (AlertRule rule : applicable) {
-      var active = alerts.findActiveForRule(equipment.getId(), rule.getId(), serviceId, ACTIVE);
+      var active =
+          alerts.findActiveForRule(equipment.getId(), rule.getId(), serviceId, instance, ACTIVE);
       if (active.isPresent()) {
         if (rule.isRecoveredBy(value)) {
           changes.add(resolve(active.get(), at, "Retour à la normale détecté"));
@@ -101,6 +114,24 @@ public class AlertEvaluationService {
       }
     }
     return changes;
+  }
+
+  /** Une règle posée sur un disque précis remplace la règle générique pour ce disque. */
+  private static List<AlertRule> preferExact(List<AlertRule> found, String metricKey) {
+    var exact = found.stream().filter(r -> metricKey.equals(r.getMetricType())).toList();
+    return exact.isEmpty() ? found : exact;
+  }
+
+  /** Dernier instantané reçu depuis moins de 10 minutes, pour une alerte CPU ou mémoire. */
+  private String contextFor(Equipment equipment, String metricKey, Instant at) {
+    if (!metricKey.startsWith("cpu.") && !metricKey.startsWith("memory.")) {
+      return null;
+    }
+    return snapshots
+        .findById(equipment.getId())
+        .filter(s -> !s.getReceivedAt().isBefore(at.minus(CONTEXT_MAX_AGE)))
+        .map(AgentSnapshot::getPayload)
+        .orElse(null);
   }
 
   private boolean breachConfirmed(
@@ -158,7 +189,9 @@ public class AlertEvaluationService {
       message = message + " [" + service.getName() + "]";
     }
     UUID serviceId = service == null ? null : service.getId();
-    var resolved = alerts.findLastResolvedForRule(equipment.getId(), rule.getId(), serviceId);
+    String instance = MetricKey.instance(metricKey);
+    var resolved =
+        alerts.findLastResolvedForRule(equipment.getId(), rule.getId(), serviceId, instance);
     Alert alert;
     AlertEvent event;
     if (resolved.isPresent()) {
@@ -179,6 +212,7 @@ public class AlertEvaluationService {
                   + ":"
                   + equipment.getId()
                   + (serviceId == null ? "" : ":" + serviceId)
+                  + (instance == null ? "" : ":" + instance)
                   + ":"
                   + at.toEpochMilli(),
               AlertType.THRESHOLD,
@@ -188,9 +222,11 @@ public class AlertEvaluationService {
               at);
       alert.setRule(rule);
       alert.setService(service);
+      alert.setMetricInstance(instance);
       event = new AlertEvent(alert, AlertEventType.OPENED, at);
     }
     event.setNewState(AlertState.OPEN);
+    alert.setContext(contextFor(equipment, metricKey, at));
     if (!notify) {
       event.setComment("Maintenance en cours : aucune notification");
     }
