@@ -160,6 +160,24 @@ Une ligne dont le code d'inventaire ou l'adresse existe déjà est refusée comm
 
 **Réglages > Mes notifications** : choisir de recevoir ou non un message à l'ouverture et à la résolution des alertes, et à partir de quelle sévérité. Le canal par défaut est l'e-mail ; d'autres canaux (Teams, Slack, webhook) sont configurés par un administrateur.
 
+### Astreinte
+
+**Supervision > Astreinte** dit qui doit réagir quand une alerte s'ouvre, par exemple la nuit ou le week-end. Tous les rôles voient la page ; le tableau de bord résume la même information dans la carte **D'astreinte**.
+
+- **D'astreinte maintenant** : pour chaque site couvert par un planning, la personne d'astreinte **principale** et la **secondaire**, par exemple « D'astreinte maintenant : awa (principal), moussa (secondaire) ». Un planning propre à un site passe avant un planning « tous les sites » ; si le planning du site n'a personne à un niveau, le planning tous sites prend le relais.
+- **Mes gardes** : vos gardes en cours et des 60 prochains jours.
+- **Agenda des 30 prochains jours** : un tableau, une ligne par jour, avec les personnes de garde au niveau principal et secondaire et leurs heures. Une garde marquée **Remplacement** l'emporte sur la garde normale. **Mes gardes uniquement** ne garde que les vôtres.
+
+Quand une alerte (avertissement ou critique) s'ouvre sur un site couvert, hors maintenance :
+
+1. la personne d'astreinte principale est prévenue **tout de suite**, sur son canal de **Mes notifications** (message « Vous êtes d'astreinte : alerte … ») ;
+2. si personne n'a pris l'alerte en charge après **10 minutes** (5 si critique), la personne secondaire est prévenue ;
+3. après 30 minutes (10 si critique), les administrateurs sont prévenus, comme avant.
+
+**Prendre en charge** ou **résoudre** l'alerte arrête la chaîne. Chaque étape apparaît dans l'**Historique** de l'alerte (« Astreinte : awa prévenu(e) (niveau principal) »). **Important** : la personne d'astreinte n'est prévenue que si elle a une préférence active dans **Mes notifications**. Sinon l'historique indique « Astreinte sans canal » et la secondaire est prévenue sans attendre. Il n'y a ni SMS ni appel : choisissez un canal qui sonne sur votre téléphone (application Teams ou Slack, e-mail avec notifications).
+
+**Passer sa garde** : un opérateur empêché clique sur **Passer ma garde** dans **Mes gardes**, choisit le collègue qui reprend et confirme. Un remplacement est créé de maintenant à la fin de la garde ; la garde d'origine reste dans l'historique et l'action est tracée dans le journal d'audit. On ne peut passer que ses propres gardes (un administrateur peut passer celles de tous) et pas une garde terminée.
+
 ## 4. Parcours de l'administrateur
 
 ### Comptes et rôles
@@ -181,6 +199,16 @@ Changer le rôle, désactiver un compte ou réinitialiser son mot de passe ferme
 Avant d'enregistrer ou d'activer une règle, **Tester sur l'historique** la rejoue sur les mesures des dernières 24 heures ou des 7 derniers jours. On voit combien d'alertes elle aurait ouvertes, sur quels équipements, quand elles se seraient ouvertes et refermées, et la valeur la plus forte atteinte. Rien n'est enregistré et personne n'est prévenu. Cela permet d'ajuster le seuil, le délai de confirmation ou le seuil de retour avant de mettre la règle en service. Le test porte sur 50 équipements au plus.
 
 Une règle qui a déjà ouvert des alertes ne peut pas être supprimée : il faut la désactiver.
+
+### Plannings d'astreinte
+
+En bas de **Supervision > Astreinte**, la partie **Gérer les plannings** est réservée aux administrateurs.
+
+1. **Nouveau planning** : nom (unique), description, fuseau horaire IANA (`Africa/Dakar` par défaut ; il sert à placer l'heure de relève), **Tous les sites** ou une liste de sites.
+2. **Gardes** : ajouter une garde (personne, niveau principal ou secondaire, début, fin, note). Cocher **Remplacement ponctuel** pour qu'elle l'emporte sur les gardes normales (congé, échange). Seuls les administrateurs et opérateurs NOC actifs peuvent être d'astreinte. Le menu **Remplacer par…** d'une ligne confie le reste de la garde à quelqu'un d'autre.
+3. **Rotation** (une par niveau) : cocher les membres dans l'ordre de passage, date de début, durée d'une garde en jours et heure de relève, puis **Enregistrer la rotation**. **Aperçu des gardes générées** montre les gardes des 60 prochains jours sans rien enregistrer ; **Confirmer la génération** les crée. Une tâche de nuit garde ensuite 60 jours d'avance. Relancer la génération ne crée pas de doublon. Changer une rotation retire seulement ses gardes futures (pas la garde en cours, ni le passé, ni les remplacements) : prévisualisez et confirmez de nouveau. Une garde issue d'une rotation ne se supprime pas seule : modifiez la rotation ou créez un remplacement.
+
+Les changements d'heure (pays à heure d'été) sont gérés : la relève a toujours lieu à l'heure locale choisie. Toutes les actions sont tracées dans le journal d'audit. Vérifiez que chaque personne d'astreinte a une préférence active dans **Mes notifications** : sans canal, elle n'est pas prévenue.
 
 ### Collecte d'un équipement
 

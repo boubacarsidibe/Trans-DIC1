@@ -63,6 +63,12 @@
 | `FORECAST_HORIZON_DAYS` (propriété `forecast.horizon-days`) | Non | Tous | Horizon d'alerte, 14 jours par défaut ; résolution au-delà de 1,25 fois l'horizon |
 | `DIAGNOSTIC_WINDOW_MINUTES` (propriété `diagnostic.window-minutes`) | Non | Tous | Demi-fenêtre d'analyse du diagnostic d'incident (ADR 0024) autour de l'ouverture de l'alerte : alertes voisines, événements et changements à ± N minutes, 30 par défaut, ramenée entre 1 et 1440 |
 | `DIAGNOSTIC_TIME_ZONE` (propriété `diagnostic.time-zone`) | Non | Tous | Fuseau des heures écrites dans le résumé du diagnostic, `Africa/Dakar` par défaut (identifiant IANA ; un identifiant invalide empêche le démarrage) |
+| `ONCALL_NOTIFY_MIN_SEVERITY` (propriété `oncall.notify-min-severity`) | Non | Tous | Sévérité minimale d'une alerte pour prévenir la personne d'astreinte (ADR 0025) : `INFO`, `WARNING` (défaut) ou `CRITICAL` |
+| `ONCALL_SECONDARY_AFTER_MINUTES` (propriété `oncall.secondary-after-minutes`) | Non | Tous | Délai après l'ouverture d'une alerte encore non prise en charge avant de prévenir la personne d'astreinte secondaire, 10 minutes par défaut (au moins 1) |
+| `ONCALL_CRITICAL_SECONDARY_AFTER_MINUTES` (propriété `oncall.critical-secondary-after-minutes`) | Non | Tous | Même délai pour une alerte critique, 5 minutes par défaut |
+| `ONCALL_ESCALATION_CRON` (propriété `oncall.escalation.cron`) | Non | Tous | Passage qui prévient les secondaires dus, chaque minute à la seconde 20 par défaut (`20 * * * * *`, UTC) |
+| `ONCALL_ROTATION_HORIZON_DAYS` (propriété `oncall.rotation.horizon-days`) | Non | Tous | Avance gardée par l'extension nocturne des rotations, 60 jours par défaut |
+| `ONCALL_ROTATION_EXTEND_CRON` (propriété `oncall.rotation.extend-cron`) | Non | Tous | Extension nocturne des rotations, 02:30 UTC par défaut (`0 30 2 * * *`) |
 | `EVENTS_SNMP_TRAP_ENABLED`, `EVENTS_SYSLOG_ENABLED` (propriétés `events.snmp-trap.enabled`, `events.syslog.enabled`) | Non | Tous | Récepteurs de traps SNMP et de syslog (ADR 0021, [evenements-reseau.md](evenements-reseau.md)), `false` par défaut |
 | `EVENTS_SNMP_TRAP_PORT`, `EVENTS_SYSLOG_PORT` (propriétés `events.snmp-trap.port`, `events.syslog.port`) | Non | Tous | Ports UDP d'écoute, 1162 et 1514 par défaut (162 et 514 demandent des droits root) |
 | `EVENTS_SNMP_TRAP_BIND_ADDRESS`, `EVENTS_SYSLOG_BIND_ADDRESS` (propriétés `events.*.bind-address`) | Non | Tous | Adresse d'écoute, `0.0.0.0` par défaut |

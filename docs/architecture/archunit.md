@@ -36,6 +36,8 @@ collection       → inventory (domain, repository), monitoring (domain, reposit
 
 `diagnostic` (ADR 0024) explique une alerte en lisant la base par ses propres requêtes SQL bornées ; il n'utilise que les entités et DTO d'`alerting`, la prévision (`CapacityForecastService`) et le port `SiteScope`, jamais l'API de l'audit, d'`access` ni de `security` : aucun autre module ne le connaît (règles `noModuleDependsOnDiagnostic` et `diagnosticOnlyReadsDomainsAndAlertingServices`).
 
+`oncall` (astreinte, ADR 0025) écoute l'ouverture des alertes, lit les entités et repositories d'`alerting`, d'`inventory` et de `security`, met ses messages en file par `NotificationQueueService` (seul service de `reporting` utilisé), trace par `AuditService` et lit le périmètre par le port `SiteScope` ; il n'utilise ni les contrôleurs, ni les DTO, ni les services d'`alerting` : aucun autre module ne le connaît (règles `noModuleDependsOnOncall` et `oncallOnlyUsesDomainsAndAllowedServices`).
+
 `collection` orchestre la réception des mesures : aucun autre module ne la connaît. Le moteur d'alertes lit l'historique des mesures par le port `MetricHistory`, implémenté par `collection`, ce qui évite tout cycle avec `monitoring`.
 
 Les modules de base (`inventory`, `monitoring`, `security`, `audit`) ne dépendent jamais de `alerting`, `reporting` ni `access`. Le périmètre d'accès par site leur parvient par le port `common.scope.SiteScope`, implémenté par `access` (ADR 0018). Le détail du modèle est dans [persistence-mapping.md](persistence-mapping.md).

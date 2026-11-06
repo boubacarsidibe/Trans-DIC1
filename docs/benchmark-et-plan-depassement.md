@@ -16,6 +16,7 @@ Fiabilité des sources : les capacités de Trans-DIC1 viennent du code, des test
 - **Récepteurs de traps SNMP et de syslog** : désactivés par défaut, sources reconnues par l'adresse de gestion de l'équipement, règles d'événements qui ouvrent et ferment des alertes, pages Événements et Règles d'événements (ADR-0021).
 - **Ping corrigé** quand plusieurs sondes ping surveillent un même équipement (verrou et compteurs).
 - **Diagnostic d'incident expliqué** : dans le détail d'une alerte, résumé, impact, causes probables classées par un score déterministe avec leurs preuves (amont en panne, trap, changement tracé, silence de collecte, prévision, anomalie), alertes voisines, événements et changements récents, incidents similaires et pistes ; règles fixes, sans IA ni appel réseau (F2.1, ADR-0024). Poids non validés sur incidents réels.
+- **Astreinte** : plannings (tous les sites ou par site), gardes principal/secondaire, remplacements, rotations générées avec aperçu (heure d'été gérée), passation de sa garde ; la personne principale est prévenue à l'ouverture d'une alerte, la secondaire après 10 min (5 si critique), puis les administrateurs ; page Astreinte et carte du tableau de bord (F2.2, ADR-0025). Pas de SMS ni d'appel ; jamais essayé avec une vraie équipe de garde.
 
 ### En cours
 Deux vagues de corrections issues des relectures : prévision de saturation (fausse alerte juste après un nettoyage de disque, tests manquants) et traps/syslog (course entre deux fils de traitement, rejet tardif des sources inconnues, coût des expressions régulières, cache des règles).
@@ -26,7 +27,7 @@ Deux vagues de corrections issues des relectures : prévision de saturation (fau
 - **Les relectures trouvent des défauts à chaque fonction** (une dizaine de points importants au total, tous corrigés ou en cours). La qualité vient des relectures, pas du premier jet : il faut continuer à relire.
 - **Non vérifié** : Docker et Kubernetes (l'image, le ping sans privilèges en conteneur et le chart Helm n'ont jamais été exécutés, car ce poste n'a pas de virtualisation), le comportement réel d'un envoi UDP depuis du matériel, la charge, la lecture à l'écran des nouvelles pages dans un navigateur au-delà des tests.
 - **Limites connues** : pas de sonde DNS ni de scénario web, l'historique mélange les séries de plusieurs sondes du même type, le test de règle sur l'historique ne rejoue pas encore les sondes, l'usurpation d'adresse UDP reste possible pour les traps et le syslog (documentée), les ports UDP 1162 et 1514 ne sont pas publiés dans les fichiers de déploiement.
-- **Absents** : modèles d'équipement, découverte des interfaces et disques, règles composées, jetons d'API, rapports planifiés, MFA propre, proxys de collecte, haute disponibilité, astreinte, page de statut.
+- **Absents** : modèles d'équipement, découverte des interfaces et disques, règles composées, jetons d'API, rapports planifiés, MFA propre, proxys de collecte, haute disponibilité, page de statut ; pour l'astreinte, pas de SMS ni d'appel téléphonique.
 - **Dette** : aucune intégration continue distante (le script local la remplace en partie), un test instable ancien (agrégation horaire), avertissements du linter en hausse lente, ADR et documents d'architecture à régénérer.
 
 ## 3. Benchmark
@@ -57,7 +58,7 @@ Légende : ✅ présent, 🟡 partiel, ❌ absent. « Trans-DIC1 » = état de l
 | Notifications | ✅ e-mail, Teams, Slack, webhook | ✅ + SMS, scripts | ✅ (web) | ✅ | ✅ | ✅ | ✅ |
 | SLA par site, maintenances exclues | ✅ | ✅ arbre de services | 🟡 | ❌ | 🟡 | ✅ | 🟡 |
 | Page de statut | ❌ | 🟡 | ❌ | ❌ (web) | ❌ (web) | ❌ | ✅ |
-| Astreinte | ❌ | 🟡 scripts | ❌ | ❌ | 🟡 | 🟡 | ❌ |
+| Astreinte (planning de garde, rotations, escalade principal → secondaire) | ✅ branche : plannings par site, rotations avec heure d'été, passation, chaîne idempotente ; canaux e-mail/Teams/Slack/webhook seulement, sans SMS ni appel | 🟡 scripts | ❌ | ❌ (Grafana OnCall libre archivé le 2026-03-24 (web)) | 🟡 | 🟡 | ❌ |
 | Topologie | ✅ + impact d'une panne | ✅ cartes manuelles | ✅ auto | ❌ | 🟡 | ✅ | ❌ |
 | Tableaux de bord, mur NOC | ✅ | ✅ | 🟡 | ✅ très riche | ✅ | ✅ | 🟡 |
 | Rôles, périmètre par site | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 |
@@ -77,6 +78,7 @@ Légende : ✅ présent, 🟡 partiel, ❌ absent. « Trans-DIC1 » = état de l
 - Récepteur de traps et de syslog intégré : Zabbix exige `snmptrapd`, un script récepteur et un fichier intermédiaire (web).
 - Test d'une règle sur l'historique, détection d'anomalies, corrélation par topologie, SLA par site.
 - Diagnostic d'incident : l'alerte arrive avec sa cause probable, ses preuves, les changements et événements qui l'ont précédée et les résolutions passées, là où les autres outils libres la listent. À nuancer : heuristiques non éprouvées sur de vrais incidents.
+- Astreinte intégrée (plannings, rotations, chaîne principal → secondaire → administrateurs) alors que Grafana OnCall libre est archivé et que Zabbix et LibreNMS n'en ont pas. À nuancer : sans SMS ni appel, elle dépend d'un canal qui sonne sur le téléphone de la personne de garde.
 - Une seule application, sauvegarde restaurée chaque jour, interface en français.
 
 **À égalité (sur le papier)**
@@ -108,7 +110,7 @@ Légende : ✅ présent, 🟡 partiel, ❌ absent. « Trans-DIC1 » = état de l
 
 ### Pour dépasser les concurrents
 1. ~~**Assistant de diagnostic d'incident**~~ : livré (F2.1, ADR-0024) ; reste à éprouver les poids sur de vrais incidents à l'EPT et à brancher les runbooks (F2.6) sur son point d'extension.
-2. **Astreinte** avec planning de garde et escalade vers la personne de garde : Grafana OnCall libre est archivé (web), c'est un espace libre.
+2. ~~**Astreinte**~~ : livrée (F2.2, ADR-0025) ; reste un canal hors bande (SMS ou appel) et un essai réel avec l'équipe du CRI.
 3. **Page de statut** des services de l'école, branchée sur les sondes : Uptime Kuma la fait mais ne supervise pas un parc.
 4. **Réglage automatique des seuils** avec simulation, étendu aux mesures de sondes.
 5. **Score de santé** par site et par équipement, **runbooks** liés aux règles, **rapport de capacité** fondé sur la prévision, **application installable** avec notifications.
