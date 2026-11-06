@@ -115,7 +115,9 @@ class Collector:
 def create_collector(config):
     """Collecteur de la plateforme où tourne l'agent : Windows (kernel32) ou Linux (/proc)."""
     if sys.platform == "win32":
-        from .metrics_windows import WindowsCollector
+        from .collectors import windows
 
-        return WindowsCollector(disk_path=config.disk_path)
-    return Collector(proc_root=config.proc_root, disk_path=config.disk_path)
+        return windows.create(config, utc_now)
+    from .collectors import linux
+
+    return linux.create(config, utc_now)

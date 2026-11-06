@@ -29,3 +29,6 @@ buffer_limit = 2000
 
 # Autorité de certification interne, si le certificat de la plateforme n'est pas public.
 # ca_file = C:\ProgramData\Trans-DIC1-Agent\autorite-interne.pem
+
+# Services surveillés, séparés par des virgules (état remonté dans service.up[nom]).
+# services = Spooler, W32Time

@@ -7,6 +7,9 @@ import time
 from .client import AuthError, RejectedError, SendError
 from .config import MAX_BATCH
 
+# Inventaire et top des processus : au démarrage, puis toutes les 5 minutes.
+SNAPSHOT_SECONDS = 300
+
 LOG = logging.getLogger("trans-dic1-agent")
 
 
@@ -22,6 +25,8 @@ class Agent:
         self.pending = collections.deque(maxlen=config.buffer_limit)
         self.dropped = 0
         self.stopped = False
+        self.next_snapshot = None
+        self.snapshot_supported = True
 
     def enqueue(self, measures):
         overflow = len(self.pending) + len(measures) - self.pending.maxlen
@@ -66,7 +71,25 @@ class Agent:
             self.enqueue(self.collector.collect())
         except (OSError, ValueError) as error:
             LOG.error("relevé impossible : %s", error)
-        return self.flush()
+        sent = self.flush()
+        self.send_snapshot()
+        return sent
+
+    def send_snapshot(self):
+        read = getattr(self.collector, "snapshot", None)
+        send = getattr(self.client, "send_snapshot", None)
+        if read is None or send is None or not self.snapshot_supported:
+            return
+        now = self.monotonic()
+        if self.next_snapshot is not None and now < self.next_snapshot:
+            return
+        self.next_snapshot = now + SNAPSHOT_SECONDS
+        try:
+            self.snapshot_supported = send(read())
+            if not self.snapshot_supported:
+                LOG.warning("le serveur ne connaît pas les instantanés : inventaire non envoyé")
+        except (AuthError, SendError, OSError, ValueError) as error:
+            LOG.warning("instantané non envoyé : %s", error)
 
     def run(self):
         LOG.info("agent démarré : envoi vers %s toutes les %d s", self.config.server_url, self.config.interval)

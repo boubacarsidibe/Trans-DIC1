@@ -119,7 +119,8 @@ class CommandLineTests(unittest.TestCase):
     def test_once_envoie_un_releve_au_serveur(self):
         with FakeServer() as server:
             self.assertEqual(self.run_main(["--once"], self.env(server.url)), 0)
-        self.assertEqual(len(server.requests[0]["body"]["measures"]), 4)
+        keys = [m["key"] for m in server.requests[0]["body"]["measures"]]
+        self.assertEqual(keys[:4], ["cpu.usage", "memory.usage", "disk.usage", "availability"])
 
     def test_once_signale_un_envoi_impossible(self):
         with FakeServer() as server:

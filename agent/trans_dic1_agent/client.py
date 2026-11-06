@@ -67,9 +67,26 @@ class Client:
                 last_error = type(reason).__name__
         raise SendError("serveur injoignable après %d tentative(s) (%s)" % (attempts, last_error))
 
-    def _post(self, body):
+    def send_snapshot(self, snapshot):
+        """Envoie l'inventaire et le top des processus. Faux si le serveur ne connaît pas cette route."""
+        body = json.dumps(snapshot).encode("utf-8")
+        try:
+            self._post(body, self.config.snapshot_url)
+        except urllib.error.HTTPError as error:
+            status = error.code
+            error.close()
+            if status in (401, 403):
+                raise AuthError("jeton d'agent refusé par le serveur (HTTP %d)" % status)
+            if status in (404, 405):
+                return False
+            raise SendError("instantané refusé (HTTP %d)" % status)
+        except (urllib.error.URLError, OSError) as error:
+            raise SendError("instantané non envoyé (%s)" % type(error).__name__)
+        return True
+
+    def _post(self, body, url=None):
         request = urllib.request.Request(
-            self.config.measures_url,
+            url or self.config.measures_url,
             data=body,
             method="POST",
             headers={

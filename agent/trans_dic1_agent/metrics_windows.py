@@ -62,6 +62,18 @@ class Win32Api:
 
         return ticks(idle), ticks(kernel) + ticks(user)
 
+    def split_times(self):
+        """(inactif, noyau, utilisateur) cumulés ; le temps noyau inclut le temps inactif."""
+        idle, kernel, user = self._FileTime(), self._FileTime(), self._FileTime()
+        ref = self._ctypes.byref
+        if not self._kernel32.GetSystemTimes(ref(idle), ref(kernel), ref(user)):
+            self._fail("GetSystemTimes")
+
+        def ticks(value):
+            return (value.high << 32) | value.low
+
+        return ticks(idle), ticks(kernel), ticks(user)
+
     def memory_status(self):
         """(mémoire physique totale, mémoire physique disponible), en octets."""
         status = self._MemoryStatus()

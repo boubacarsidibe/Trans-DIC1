@@ -100,10 +100,10 @@ class WindowsMetricsTests(unittest.TestCase):
     def test_le_collecteur_de_la_plateforme_est_choisi_selon_le_systeme(self):
         conf = config.Config("https://s.example", TOKEN, proc_root="/proc")
         with mock.patch.object(metrics.sys, "platform", "win32"), mock.patch(
-            "trans_dic1_agent.metrics_windows.WindowsCollector"
+            "trans_dic1_agent.collectors.windows.create"
         ) as windows:
             metrics.create_collector(conf)
-        windows.assert_called_once_with(disk_path=conf.disk_path)
+        windows.assert_called_once_with(conf, metrics.utc_now)
 
 
 class WindowsAclTests(unittest.TestCase):

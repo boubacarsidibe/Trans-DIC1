@@ -6,6 +6,7 @@ dédié (droits 600) ou dans la variable TRANS_DIC1_AGENT_TOKEN, et n'apparaît 
 
 import configparser
 import os
+import re
 import stat
 import sys
 
@@ -33,6 +34,7 @@ DEFAULT_CONFIG_FILE = default_config_file()
 
 # Limites fixées par l'API (AgentMeasuresRequest) et par le contrôle de silence du backend (300 s).
 MAX_BATCH = 500
+SERVICE_NAME = re.compile(r"^[A-Za-z0-9_.@-]{1,64}$")
 MIN_INTERVAL = 10
 MAX_INTERVAL = 240
 
@@ -56,6 +58,8 @@ class Config:
         allow_insecure_http=False,
         proc_root="/proc",
         log_file=None,
+        sys_root="/sys",
+        services=(),
     ):
         self.server_url = server_url.rstrip("/")
         self.token = token
@@ -69,11 +73,17 @@ class Config:
         self.allow_insecure_http = allow_insecure_http
         self.proc_root = proc_root
         self.log_file = log_file
+        self.sys_root = sys_root
+        self.services = tuple(services)
         self.validate()
 
     @property
     def measures_url(self):
         return self.server_url + "/api/v1/agent/measures"
+
+    @property
+    def snapshot_url(self):
+        return self.server_url + "/api/v1/agent/snapshot"
 
     def validate(self):
         if not self.server_url.startswith(("https://", "http://")):
@@ -93,6 +103,9 @@ class Config:
             raise ConfigError("timeout, max_retries et backoff doivent être positifs")
         if self.buffer_limit < MAX_BATCH:
             raise ConfigError("buffer_limit doit être d'au moins %d mesures" % MAX_BATCH)
+        for name in self.services:
+            if not SERVICE_NAME.match(name):
+                raise ConfigError("nom de service invalide : %s" % name)
         if self.ca_file and not os.path.isfile(self.ca_file):
             raise ConfigError("ca_file introuvable : %s" % self.ca_file)
 
@@ -163,6 +176,8 @@ def load(path=None, environ=None):
             allow_insecure_http=_flag(get("allow_insecure_http", "false")),
             proc_root=get("proc_root", "/proc"),
             log_file=get("log_file") or None,
+            sys_root=get("sys_root", "/sys"),
+            services=[s.strip() for s in get("services", "").split(",") if s.strip()],
         )
     except ValueError as error:
         raise ConfigError("valeur numérique invalide : %s" % error)

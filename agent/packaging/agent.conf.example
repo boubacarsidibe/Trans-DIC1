@@ -25,3 +25,6 @@ buffer_limit = 2000
 
 # Autorité de certification interne, si le certificat de la plateforme n'est pas public.
 # ca_file = /etc/ssl/certs/autorite-interne.pem
+
+# Services surveillés, séparés par des virgules (état remonté dans service.up[nom]).
+# services = nginx, ssh
