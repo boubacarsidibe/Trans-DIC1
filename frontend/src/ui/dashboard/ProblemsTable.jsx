@@ -1,18 +1,8 @@
 import { Link } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
 import { SeverityBadge } from "../Badges.jsx";
+import { humanMessage } from "../metricCatalog.js";
 import { elapsed } from "./hostState.js";
-
-const OPERATORS = {
-  GREATER_THAN_OR_EQUAL: "≥",
-  LESS_THAN_OR_EQUAL: "≤",
-  GREATER_THAN: ">",
-  LESS_THAN: "<",
-  NOT_EQUAL: "≠",
-  EQUAL: "=",
-};
-const readable = (message) =>
-  Object.entries(OPERATORS).reduce((text, [key, symbol]) => text.replaceAll(key, symbol), message);
 
 /** Problèmes en cours, les plus graves d'abord ; chaque ligne ouvre l'alerte. */
 function ProblemsTable({ problems, limit = 8 }) {
@@ -24,7 +14,7 @@ function ProblemsTable({ problems, limit = 8 }) {
     );
   }
   return (
-    <table className="problems">
+    <table className="problems stack-mobile">
       <thead>
         <tr>
           <th scope="col">Gravité</th>
@@ -36,16 +26,16 @@ function ProblemsTable({ problems, limit = 8 }) {
       <tbody>
         {problems.slice(0, limit).map((problem) => (
           <tr key={problem.id}>
-            <td>
+            <td data-label="Gravité">
               <SeverityBadge severity={problem.severity} />
             </td>
-            <td>
+            <td data-label="Équipement">
               <Link to={`/equipements/${problem.equipmentId}/historique`}>{problem.equipment}</Link>
             </td>
-            <td className="problems-message">
-              <Link to={`/alertes?alerte=${problem.id}`}>{readable(problem.message)}</Link>
+            <td data-label="Problème" className="problems-message">
+              <Link to={`/alertes?alerte=${problem.id}`}>{humanMessage(problem.message)}</Link>
             </td>
-            <td className="problems-age">{elapsed(problem.triggeredAt)}</td>
+            <td data-label="Depuis" className="problems-age">{elapsed(problem.triggeredAt)}</td>
           </tr>
         ))}
       </tbody>

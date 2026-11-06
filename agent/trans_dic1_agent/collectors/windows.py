@@ -15,6 +15,7 @@ import struct
 from ..metrics_windows import WindowsCollector
 from .common import (
     MAX_INSTANCES,
+    ActiveLinks,
     SERVICE_NAME,
     FullCollector,
     Rates,
@@ -265,6 +266,7 @@ class WindowsFamilies:
         self.rates = rates or Rates()
         self.disk_usage = disk_usage
         self.processes = Rates()
+        self.links = ActiveLinks()
 
     def system(self, at):
         info = self.api.performance()
@@ -299,6 +301,8 @@ class WindowsFamilies:
     def network(self, at):
         measures = []
         for name, up, received, sent, errors in parse_if_table(self.api.if_table()):
+            if not self.links.follow(name, up):
+                continue
             measures.append(value(instance_key("net.up", name), 1 if up else 0, "state", at))
             for family, counter, factor, unit in (
                 ("net.in", received, 8, "bit/s"),

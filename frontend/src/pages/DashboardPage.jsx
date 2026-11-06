@@ -24,7 +24,7 @@ function Tile({ id, active, onToggle, label, value, tone }) {
       type="button"
       aria-pressed={active === id}
       onClick={() => onToggle(active === id ? "" : id)}
-      className={`tile tile-${tone}${active === id ? " tile-on" : ""}`}
+      className={`tile tile-${tone}${id && active === id ? " tile-on" : ""}`}
     >
       <span className="tile-value">{value}</span>
       <span className="tile-label">{label}</span>

@@ -64,6 +64,22 @@ class Rates:
         self.previous = {k: v for k, v in self.previous.items() if k in names}
 
 
+class ActiveLinks:
+    """Cartes vues actives au moins une fois.
+
+    Un port jamais branché n'a rien à superviser : il ne remonte aucune mesure, donc aucune fausse
+    alerte. Une fois vue active, sa coupure est un vrai incident.
+    """
+
+    def __init__(self):
+        self.seen = set()
+
+    def follow(self, name, up):
+        if up:
+            self.seen.add(name)
+        return name in self.seen
+
+
 class Families:
     """Exécute chaque famille à part : l'échec de l'une ne prive pas des autres.
 

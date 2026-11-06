@@ -192,9 +192,17 @@ class LinuxFamiliesTests(unittest.TestCase):
         self.assertEqual(second["net.in[eth0]"]["unit"], "bit/s")
         self.assertEqual(second["net.in[eth0]"]["value"], 100.0)
 
-    def test_carte_sans_lien_marquee_coupee(self):
+    def _link(self, state):
         with open(os.path.join(self.sys_root, "class/net/eth0/operstate"), "w", encoding="ascii") as handle:
-            handle.write("down\n")
+            handle.write(state + "\n")
+
+    def test_un_port_jamais_branche_ne_remonte_rien(self):
+        self._link("down")
+        self.assertEqual(self.families.network(AT), [])
+
+    def test_une_carte_vue_active_puis_coupee_est_signalee(self):
+        self.families.network(AT)
+        self._link("down")
         self.assertEqual(by_key(self.families.network(AT))["net.up[eth0]"]["value"], 0)
 
     def test_service_verifie_sans_shell(self):
@@ -307,6 +315,10 @@ class WindowsFamiliesTests(unittest.TestCase):
         second = by_key(self.families.network(AT))
         self.assertEqual(second["net.in[Wi-Fi]"]["value"], 100.0)
         self.assertEqual(second["net.up[Wi-Fi]"]["value"], 0)
+
+    def test_un_port_jamais_branche_ne_remonte_rien(self):
+        self.api.up = False
+        self.assertEqual(self.families.network(AT), [])
 
     def test_services(self):
         result = by_key(self.families.service_states(AT))

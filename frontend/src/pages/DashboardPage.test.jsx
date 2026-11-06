@@ -93,7 +93,7 @@ describe("tableau de bord", () => {
 
   it("affiche les problèmes lisibles et cliquables", async () => {
     renderDashboard();
-    const link = await screen.findByRole("link", { name: "cpu.usage > 95" });
+    const link = await screen.findByRole("link", { name: "Processeur (CPU) > 95" });
     expect(link).toHaveAttribute("href", "/alertes?alerte=p1");
   });
 

@@ -3900,3 +3900,48 @@ thead {
 .toolbar-grow {
   flex: 1 1 14rem;
 }
+
+.cell-link {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.cell-link:hover {
+  color: var(--signal);
+  text-decoration: underline;
+}
+
+.cell-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Sur téléphone, une table de problèmes se lit en cartes. */
+@media (max-width: 40rem) {
+  .stack-mobile thead {
+    display: none;
+  }
+
+  .stack-mobile tr {
+    display: block;
+    border-bottom: 1px solid var(--line);
+    padding: 0.5rem 0;
+  }
+
+  .stack-mobile td {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 0;
+    padding: 0.15rem 0;
+    text-align: right;
+  }
+
+  .stack-mobile td::before {
+    flex: none;
+    color: #59626f;
+    content: attr(data-label);
+    font-size: 0.8rem;
+  }
+}

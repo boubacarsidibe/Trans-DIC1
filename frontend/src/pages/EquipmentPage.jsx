@@ -11,8 +11,10 @@ import { useAuth } from "../auth/AuthContext.jsx";
 import { canManageEquipment } from "../auth/permissions.js";
 import EquipmentForm from "./EquipmentForm.jsx";
 import PageHeader from "../ui/PageHeader.jsx";
-import { Pencil, ServerOff, Trash2 } from "lucide-react";
-import { StatusBadge } from "../ui/Badges.jsx";
+import { Activity, LineChart, Pencil, ServerOff, Settings2, Trash2 } from "lucide-react";
+import apiClient from "../api/client.js";
+import { SeverityBadge, StatusBadge } from "../ui/Badges.jsx";
+import { percent } from "../ui/dashboard/hostState.js";
 import Pagination from "../ui/Pagination.jsx";
 import { EQUIPMENT_STATUS, EQUIPMENT_TYPE, label } from "../ui/labels.js";
 
@@ -59,6 +61,18 @@ function EquipmentPage() {
   useEffect(() => {
     load(page);
   }, [load, page]);
+
+  // État vivant de chaque ligne : les mêmes chiffres que le tableau de bord.
+  const [live, setLive] = useState({});
+  useEffect(() => {
+    apiClient
+      .get("/vue-ensemble/tableau")
+      .then((response) => {
+        const hosts = Array.isArray(response?.data?.hosts) ? response.data.hosts : [];
+        setLive(Object.fromEntries(hosts.map((host) => [host.id, host])));
+      })
+      .catch(() => setLive({}));
+  }, [data]);
 
   function filter(name, value) {
     setPage(0);
@@ -201,6 +215,10 @@ function EquipmentPage() {
               <tr>
                 <th scope="col">Équipement</th>
                 <th scope="col">État</th>
+                <th scope="col">Problèmes</th>
+                <th scope="col">CPU</th>
+                <th scope="col">RAM</th>
+                <th scope="col">Disque</th>
                 <th scope="col">Type</th>
                 <th scope="col">Adresse</th>
                 <th scope="col">Site</th>
@@ -212,14 +230,14 @@ function EquipmentPage() {
             <tbody>
               {loading && items.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="empty-state">
+                  <td colSpan={10} className="empty-state">
                     Chargement…
                   </td>
                 </tr>
               )}
               {!loading && !error && items.length === 0 && (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={10}>
                     <div className="empty-state">
                       <ServerOff size={28} aria-hidden="true" />
                       Aucun équipement.
@@ -230,12 +248,26 @@ function EquipmentPage() {
               {items.map((e) => (
                 <tr key={e.id}>
                   <td>
-                    <span className="cell-strong">{e.name}</span>
+                    <Link to={`/equipements/${e.id}/historique`} className="cell-strong cell-link">
+                      {e.name}
+                    </Link>
                     <span className="cell-sub">{e.inventoryCode}</span>
                   </td>
                   <td>
                     <StatusBadge status={e.status} />
                   </td>
+                  <td>
+                    {live[e.id]?.activeAlerts ? (
+                      <Link to={`/alertes?equipement=${e.id}&actives=1`}>
+                        <SeverityBadge severity={live[e.id].worstSeverity} /> {live[e.id].activeAlerts}
+                      </Link>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="cell-num">{percent(live[e.id]?.cpu)}</td>
+                  <td className="cell-num">{percent(live[e.id]?.memory)}</td>
+                  <td className="cell-num">{percent(live[e.id]?.disk)}</td>
                   <td>{label(EQUIPMENT_TYPE, e.type)}</td>
                   <td className="cell-mono">{e.managementAddress}</td>
                   <td>{e.site}</td>
@@ -244,16 +276,18 @@ function EquipmentPage() {
                       <Link
                         to={`/equipements/${e.id}/historique`}
                         aria-label={`Voir l'historique de ${e.name}`}
-                        className="btn btn-secondary btn-sm"
+                        className="btn btn-secondary btn-sm btn-icon"
+                        title="Graphes"
                       >
-                        Historique
+                        <LineChart size={15} aria-hidden="true" />
                       </Link>
                       <Link
                         to={`/equipements/${e.id}/sondes`}
                         aria-label={`Voir les sondes de ${e.name}`}
-                        className="btn btn-secondary btn-sm"
+                        className="btn btn-secondary btn-sm btn-icon"
+                        title="Sondes"
                       >
-                        Sondes
+                        <Activity size={15} aria-hidden="true" />
                       </Link>
                       {canManage && (
                         <>
@@ -261,9 +295,10 @@ function EquipmentPage() {
                             <Link
                               to={`/equipements/${e.id}/collecte`}
                               aria-label={`Configurer la collecte de ${e.name}`}
-                              className="btn btn-secondary btn-sm"
+                              className="btn btn-secondary btn-sm btn-icon"
+                              title="Collecte"
                             >
-                              Collecte
+                              <Settings2 size={15} aria-hidden="true" />
                             </Link>
                           )}
                           <button

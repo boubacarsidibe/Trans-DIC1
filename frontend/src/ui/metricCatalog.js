@@ -120,3 +120,26 @@ export function sortIndicators(indicators) {
 }
 
 export const isState = (unit) => unit === "state";
+
+const OPERATORS = {
+  GREATER_THAN_OR_EQUAL: "≥",
+  GREATER_OR_EQUAL: "≥",
+  LESS_THAN_OR_EQUAL: "≤",
+  LESS_OR_EQUAL: "≤",
+  GREATER_THAN: ">",
+  LESS_THAN: "<",
+  NOT_EQUAL: "≠",
+  EQUAL: "=",
+};
+
+/** Message d'alerte lisible : opérateurs en symboles, clés techniques en français. */
+export function humanMessage(message) {
+  const symbols = Object.entries(OPERATORS).reduce(
+    (text, [key, symbol]) => text.replaceAll(key, symbol),
+    message ?? "",
+  );
+  return symbols.replace(/[a-z]+(?:\.[a-z0-9_]+)+(?:\[[^\]]*\])?/g, (key) => {
+    const known = describe(key);
+    return known.label === key ? key : known.label;
+  });
+}

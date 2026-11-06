@@ -17,21 +17,10 @@ import { useLiveUpdates } from "../hooks/useLiveUpdates.js";
 import { AlertStateBadge, LiveIndicator } from "../ui/Badges.jsx";
 import { ProcessTable } from "../ui/EquipmentInsight.jsx";
 import { SEVERITY, label } from "../ui/labels.js";
+import { humanMessage } from "../ui/metricCatalog.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import AssigneesEditor from "./AssigneesEditor.jsx";
 import Pagination from "../ui/Pagination.jsx";
-
-// Les messages des règles citent l'opérateur technique : on l'affiche en symbole.
-const OPERATORS = {
-  GREATER_THAN_OR_EQUAL: "≥",
-  LESS_THAN_OR_EQUAL: "≤",
-  GREATER_THAN: ">",
-  LESS_THAN: "<",
-  NOT_EQUAL: "≠",
-  EQUAL: "=",
-};
-const readable = (message) =>
-  Object.entries(OPERATORS).reduce((text, [key, symbol]) => text.replaceAll(key, symbol), message ?? "");
 
 const formatDate = (value) =>
   value
@@ -261,7 +250,7 @@ function AlertsPage() {
                   </td>
                   <td className="cell-strong">{alert.equipmentName}</td>
                   <td className="cell-message">
-                    {readable(alert.message)}
+                    {humanMessage(alert.message)}
                     {alert.correlationReason && (
                       <span className="cell-grouped">Regroupée, sans notification : {alert.correlationReason}</span>
                     )}

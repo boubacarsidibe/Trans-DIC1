@@ -8,6 +8,7 @@ import subprocess
 from ..metrics import Collector
 from .common import (
     MAX_INSTANCES,
+    ActiveLinks,
     SERVICE_NAME,
     FullCollector,
     Rates,
@@ -52,6 +53,7 @@ class LinuxFamilies:
         self.rates = rates or Rates()
         self.run = run
         self.processes = Rates()
+        self.links = ActiveLinks()
         self.cpu_before = None
 
     def _proc(self, name):
@@ -136,6 +138,8 @@ class LinuxFamilies:
             if name == "lo" or len(fields) < 11:
                 continue
             state = self._operstate(name)
+            if not self.links.follow(name, state):
+                continue
             measures.append(value(instance_key("net.up", name), 1 if state else 0, "state", at))
             received, sent = int(fields[0]), int(fields[8])
             errors = int(fields[2]) + int(fields[10])
