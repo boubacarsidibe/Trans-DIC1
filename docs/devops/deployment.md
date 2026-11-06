@@ -28,6 +28,17 @@ Les services applicatifs tournent sans root, avec un système de fichiers en lec
 
 Le collecteur n'est pas un service séparé : c'est le module `collection` du backend (ADR-0006). Les agents Trans-DIC1 envoient leurs mesures à `https://<PUBLIC_HOSTNAME>/api/v1/agent/measures`, en passant par le proxy. Leur installation sur les serveurs supervisés est décrite dans [agent.md](agent.md).
 
+### Page de statut publique derrière le proxy
+
+La page de statut publique (ADR-0026) est la seule partie lisible sans connexion : l'interface `/statut/<identifiant>` passe par `location /` (le conteneur `frontend` renvoie `index.html` pour toute route), l'API `GET /api/v1/public/statut/<identifiant>` par un bloc `location /api/v1/public/` dédié de `proxy/templates/default.conf.template`. Ce bloc :
+
+- n'accepte que GET (et HEAD) ; toute autre méthode reçoit 403 du proxy ;
+- limite chaque adresse à 60 requêtes par minute avec une rafale de 20 (`limit_req`, zone `statut_public`), puis 429 ; le backend applique en plus sa propre limite (`STATUSPAGE_PUBLIC_RATE_LIMIT_PER_MINUTE`), qui ne voit l'adresse réelle du visiteur qu'avec `FORWARD_HEADERS_STRATEGY=native` (fixé par `docker-compose.prod.yml`) ;
+- met la réponse en cache 30 s (`proxy_cache`, dans `/tmp/nginx-statut`, seul dossier inscriptible du conteneur avec la configuration) avec un seul appel au backend par expiration (`proxy_cache_lock`) et sert l'ancienne réponse si le backend est lent ou indisponible ;
+- ne transmet ni cookie ni en-tête `Authorization` : la réponse est la même pour tous et ne peut rien révéler d'une session.
+
+Avec un autre reverse proxy (celui du CRI, par exemple), reproduire ces quatre points et laisser passer `/statut/*` vers l'interface et `/api/v1/public/*` vers l'API ; si le proxy filtre les chemins par liste blanche, ajouter ces deux préfixes. Cette configuration n'a pas été exécutée sur ce poste (pas de Docker ni de nginx) : la vérifier avec `docker compose -f docker-compose.prod.yml config` puis `nginx -t` dans le conteneur au premier déploiement.
+
 ## Prérequis sur le serveur
 
 - Linux avec Docker Engine 25 ou plus récent et le plugin Compose v2 ;

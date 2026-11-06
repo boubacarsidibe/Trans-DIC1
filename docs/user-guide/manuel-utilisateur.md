@@ -210,6 +210,23 @@ En bas de **Supervision > Astreinte**, la partie **Gérer les plannings** est r�
 
 Les changements d'heure (pays à heure d'été) sont gérés : la relève a toujours lieu à l'heure locale choisie. Toutes les actions sont tracées dans le journal d'audit. Vérifiez que chaque personne d'astreinte a une préférence active dans **Mes notifications** : sans canal, elle n'est pas prévenue.
 
+### Pages de statut
+
+**Supervision > Pages de statut** montre à tous les comptes connectés l'état des services de l'école tel que le voient les usagers : un bandeau d'état global (« Tous les services fonctionnent normalement », « Panne partielle en cours »…), chaque service avec son état (mot et icône), une barre par jour sur 90 jours (survolez une barre pour lire le jour et sa disponibilité, un lecteur d'écran lit chaque jour ; hachurée = aucune mesure ce jour-là, jamais comptée à 100 %), les incidents en cours et ceux des 14 derniers jours. La page se met à jour toute seule chaque minute. Un compte limité à certains sites ne voit que les services de ses sites.
+
+L'état d'un service se calcule ainsi : maintenance en cours sur l'équipement ou son site → **En maintenance** ; sonde en ligne → **Opérationnel** ; 1 ou 2 échecs de suite → **Dégradé** ; 3 échecs ou plus, ou équipement injoignable → **Panne majeure** ; alerte critique → **Panne partielle**, alerte d'avertissement → **Dégradé** ; sonde désactivée, jamais exécutée ou sans résultat récent → **État inconnu**. Un site agrège ses équipements.
+
+Administrateurs :
+
+1. **Nouvelle page** : titre, identifiant de l'adresse (minuscules, chiffres et tirets, par exemple `services-ept`), description, visibilité **Interne** (comptes connectés) ou **Publique**, page active. **10 pages au plus.**
+2. **Gérer** une page : ajouter des composants (50 au plus) en choisissant le type de source (sonde, équipement ou site), en la cherchant par son nom, puis en lui donnant un **nom affiché aux usagers** (« Messagerie », « Wi-Fi bâtiment B ») et un groupe facultatif. Seul ce nom apparaît sur la page, jamais le nom technique de la sonde ou de l'équipement.
+3. **Déclarer un incident** : titre, statut (analyse en cours, cause identifiée, sous surveillance, résolu), impact, message aux usagers et services touchés ; puis **Publier la mise à jour** à chaque étape. Texte brut uniquement (les caractères `<` et `>` sont refusés), 2000 caractères au plus.
+4. Si l'exploitation a activé l'incident automatique, un service en panne majeure plus de 5 minutes ouvre « Perturbation détectée », résolu quand le service revient ; vous pouvez le modifier ou le supprimer (il n'est pas rouvert pendant la même panne).
+
+Une page publique et active se lit **sans connexion** à l'adresse `https://<serveur>/statut/<identifiant>` : pas de menu, pas de compte, même contenu pour tout le monde, thème sombre si le navigateur le demande. Une page interne, inactive ou inexistante donne la même réponse (« Cette page de statut n'existe pas ou n'est pas publique »).
+
+**Avant de rendre une page publique : relire ce qu'elle montre.** Tout le monde pourra voir les noms des services, leurs pannes et leurs maintenances sur 90 jours, ainsi que vos messages d'incident. Choisissez des noms compréhensibles par les usagers et qui ne révèlent rien du réseau interne (pas de nom de serveur, d'adresse, de salle technique) ; écrivez les messages pour le public, sans détail technique ni nom de personne ; n'ajoutez que les services que l'école accepte de montrer. Toutes les actions sont tracées dans le journal d'audit.
+
 ### Collecte d'un équipement
 
 Depuis la liste des équipements, **Collecte** ouvre la configuration de la collecte :

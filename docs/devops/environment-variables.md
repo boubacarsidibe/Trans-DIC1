@@ -69,6 +69,12 @@
 | `ONCALL_ESCALATION_CRON` (propriété `oncall.escalation.cron`) | Non | Tous | Passage qui prévient les secondaires dus, chaque minute à la seconde 20 par défaut (`20 * * * * *`, UTC) |
 | `ONCALL_ROTATION_HORIZON_DAYS` (propriété `oncall.rotation.horizon-days`) | Non | Tous | Avance gardée par l'extension nocturne des rotations, 60 jours par défaut |
 | `ONCALL_ROTATION_EXTEND_CRON` (propriété `oncall.rotation.extend-cron`) | Non | Tous | Extension nocturne des rotations, 02:30 UTC par défaut (`0 30 2 * * *`) |
+| `STATUSPAGE_CACHE_SECONDS` (propriété `statuspage.cache-seconds`) | Non | Tous | Durée de vie de l'instantané d'une page de statut et `max-age` de la réponse publique, 30 secondes par défaut (ADR 0026) |
+| `STATUSPAGE_AVAILABILITY_CACHE_SECONDS` (propriété `statuspage.availability-cache-seconds`) | Non | Tous | Durée de vie de la disponibilité sur 90 jours d'une page, 300 secondes par défaut |
+| `STATUSPAGE_PUBLIC_RATE_LIMIT_PER_MINUTE` (propriété `statuspage.public.rate-limit-per-minute`) | Non | Tous | Lectures de `/api/v1/public/**` permises par adresse et par minute, puis 429 avec `Retry-After`, 60 par défaut ; l'adresse est celle du client derrière le proxy seulement avec `FORWARD_HEADERS_STRATEGY=native` |
+| `STATUSPAGE_AUTO_INCIDENT_ENABLED` (propriété `statuspage.auto-incident.enabled`) | Non | Tous | Incident automatique « Perturbation détectée » sur panne majeure prolongée d'un composant, `false` par défaut |
+| `STATUSPAGE_AUTO_INCIDENT_MINUTES` (propriété `statuspage.auto-incident.minutes`) | Non | Tous | Durée de panne majeure avant l'incident automatique, 5 minutes par défaut |
+| `STATUSPAGE_AUTO_INCIDENT_CRON` (propriété `statuspage.auto-incident.cron`) | Non | Tous | Passage de l'incident automatique, chaque minute à la seconde 40 par défaut (`40 * * * * *`, UTC) |
 | `EVENTS_SNMP_TRAP_ENABLED`, `EVENTS_SYSLOG_ENABLED` (propriétés `events.snmp-trap.enabled`, `events.syslog.enabled`) | Non | Tous | Récepteurs de traps SNMP et de syslog (ADR 0021, [evenements-reseau.md](evenements-reseau.md)), `false` par défaut |
 | `EVENTS_SNMP_TRAP_PORT`, `EVENTS_SYSLOG_PORT` (propriétés `events.snmp-trap.port`, `events.syslog.port`) | Non | Tous | Ports UDP d'écoute, 1162 et 1514 par défaut (162 et 514 demandent des droits root) |
 | `EVENTS_SNMP_TRAP_BIND_ADDRESS`, `EVENTS_SYSLOG_BIND_ADDRESS` (propriétés `events.*.bind-address`) | Non | Tous | Adresse d'écoute, `0.0.0.0` par défaut |
