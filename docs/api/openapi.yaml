@@ -73,6 +73,11 @@ tags:
 - name: Topologie
   description: "Dépendances entre équipements et impact d'une panne. Consultation\
     \ pour tous les rôles, modification des liens par les administrateurs."
+- name: Astreinte
+  description: "Plannings d'astreinte, gardes, rotations et passation (ADR 0025).\
+    \ Lecture pour tous les rôles dans leur périmètre de sites ; écriture des plannings\
+    \ pour ADMIN ; passation d'une garde par son titulaire (ADMIN ou NOC_OPERATOR)\
+    \ ou par ADMIN."
 - name: Règles d'événements
   description: "Règles qui transforment un trap ou un message syslog en alerte EVENT\
     \ (ADR 0021). Lecture pour tous les rôles, écriture et essai réservés aux administrateurs."
@@ -850,6 +855,248 @@ paths:
       responses:
         "404":
           description: Modèle introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/astreinte/plannings/{id}:
+    get:
+      tags:
+      - Astreinte
+      summary: Lire un planning
+      operationId: getSchedule
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Planning introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    put:
+      tags:
+      - Astreinte
+      summary: Modifier un planning
+      operationId: updateSchedule
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnCallScheduleRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OnCallScheduleResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      tags:
+      - Astreinte
+      summary: Supprimer un planning
+      description: Supprime aussi ses gardes et rotations.
+      operationId: deleteSchedule
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/astreinte/plannings/{id}/rotation:
+    get:
+      tags:
+      - Astreinte
+      summary: Rotations d'un planning (une par niveau au plus)
+      operationId: listRotations
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OnCallRotationResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    put:
+      tags:
+      - Astreinte
+      summary: Créer ou remplacer la rotation d'un niveau
+      description: "Les gardes futures déjà générées par l'ancienne rotation sont\
+        \ retirées (jamais la garde en cours, le passé ni les remplacements) ; ré\
+        générer ensuite."
+      operationId: saveRotation
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnCallRotationRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OnCallRotationResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/astreinte/plannings/{id}/gardes/{shiftId}:
+    put:
+      tags:
+      - Astreinte
+      summary: Modifier une garde saisie à la main
+      operationId: updateShift
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: shiftId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnCallShiftRequest"
+        required: true
+      responses:
+        "409":
+          description: Garde générée par la rotation
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      tags:
+      - Astreinte
+      summary: Supprimer une garde saisie à la main
+      operationId: deleteShift
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: shiftId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "409":
+          description: Garde générée par la rotation
+        "204":
+          description: No Content
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -2220,6 +2467,236 @@ paths:
               schema:
                 $ref: "#/components/schemas/TokenResponse"
       security: []
+  /api/v1/astreinte/plannings:
+    get:
+      tags:
+      - Astreinte
+      summary: Lister les plannings
+      operationId: listSchedules
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OnCallScheduleResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      tags:
+      - Astreinte
+      summary: Créer un planning
+      operationId: createSchedule
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnCallScheduleRequest"
+        required: true
+      responses:
+        "400":
+          description: Saisie invalide
+        "409":
+          description: Nom déjà utilisé
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OnCallScheduleResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/astreinte/plannings/{id}/rotation/generer:
+    post:
+      tags:
+      - Astreinte
+      summary: Générer les gardes d'une rotation
+      description: "preview=true : calcule les gardes sans rien écrire. Sinon les\
+        \ crée jusqu'à l'horizon (60 jours par défaut), de façon idempotente."
+      operationId: generate
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnCallGenerateRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OnCallGenerateResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/astreinte/plannings/{id}/gardes:
+    get:
+      tags:
+      - Astreinte
+      summary: Gardes d'un planning
+      description: "Gardes qui chevauchent [du, au[ ; par défaut de la veille à 60\
+        \ jours."
+      operationId: listShifts
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: du
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: au
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OnCallShiftResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      tags:
+      - Astreinte
+      summary: Ajouter une garde (ou un remplacement ponctuel)
+      operationId: createShift
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnCallShiftRequest"
+        required: true
+      responses:
+        "400":
+          description: Saisie invalide
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OnCallShiftResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/astreinte/gardes/{id}/remplacer:
+    post:
+      tags:
+      - Astreinte
+      summary: Passer une garde à quelqu'un d'autre
+      description: Crée un remplacement de maintenant à la fin de la garde. Réservé
+        au titulaire de la garde et aux administrateurs.
+      operationId: handover
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnCallHandoverRequest"
+        required: true
+      responses:
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Garde terminée
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OnCallShiftResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/alertes/{id}/resolution:
     post:
       tags:
@@ -3367,6 +3844,135 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/astreinte/personnes:
+    get:
+      tags:
+      - Astreinte
+      summary: Personnes pouvant être d'astreinte
+      description: Administrateurs et opérateurs NOC actifs (choix d'une garde ou
+        d'une passation).
+      operationId: people
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OnCallUserRef"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/astreinte/mes-gardes:
+    get:
+      tags:
+      - Astreinte
+      summary: Mes gardes
+      description: "Gardes de l'appelant, en cours ou dans les 60 jours."
+      operationId: myShifts
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OnCallShiftResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/astreinte/maintenant:
+    get:
+      tags:
+      - Astreinte
+      summary: Qui est d'astreinte maintenant
+      description: "Pour chaque site visible : personne d'astreinte principale et\
+        \ secondaire à l'instant présent (planning du site avant planning tous sites,\
+        \ remplacement prioritaire)."
+      operationId: now
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OnCallNowResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/astreinte/agenda:
+    get:
+      tags:
+      - Astreinte
+      summary: Agenda des gardes
+      description: "Gardes de tous les plannings visibles sur [debut, debut + jours[\
+        \ (30 jours par défaut, 62 au plus)."
+      operationId: agenda
+      parameters:
+      - name: debut
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: jours
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OnCallShiftResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/alertes:
     get:
       tags:
@@ -3529,6 +4135,42 @@ paths:
       responses:
         "404":
           description: Lien introuvable
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/astreinte/plannings/{id}/rotation/{niveau}:
+    delete:
+      tags:
+      - Astreinte
+      summary: Supprimer la rotation d'un niveau
+      operationId: deleteRotation
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: niveau
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - PRIMARY
+          - SECONDARY
+      responses:
         "204":
           description: No Content
         "401":
@@ -4040,6 +4682,166 @@ components:
       required:
       - bodyTemplate
       - subjectTemplate
+    OnCallScheduleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 0
+        description:
+          type: string
+          maxLength: 500
+          minLength: 0
+        timezone:
+          type: string
+          maxLength: 64
+          minLength: 0
+        allSites:
+          type: boolean
+        siteIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        active:
+          type: boolean
+      required:
+      - name
+    OnCallScheduleResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        timezone:
+          type: string
+        allSites:
+          type: boolean
+        sites:
+          type: array
+          items:
+            $ref: "#/components/schemas/OnCallSiteRef"
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    OnCallSiteRef:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+    OnCallRotationRequest:
+      type: object
+      properties:
+        level:
+          type: string
+          enum:
+          - PRIMARY
+          - SECONDARY
+        userIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 50
+          minItems: 0
+        startDate:
+          type: string
+          format: date
+        shiftLengthDays:
+          type: integer
+          format: int32
+          maximum: 31
+          minimum: 1
+        handoverTime:
+          type: string
+          format: time-local
+      required:
+      - handoverTime
+      - level
+      - shiftLengthDays
+      - startDate
+      - userIds
+    OnCallRotationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        scheduleId:
+          type: string
+          format: uuid
+        level:
+          type: string
+          enum:
+          - PRIMARY
+          - SECONDARY
+        startDate:
+          type: string
+          format: date
+        shiftLengthDays:
+          type: integer
+          format: int32
+        handoverTime:
+          type: string
+          format: time-local
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/OnCallUserRef"
+        updatedAt:
+          type: string
+          format: date-time
+    OnCallUserRef:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+    OnCallShiftRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        level:
+          type: string
+          enum:
+          - PRIMARY
+          - SECONDARY
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        note:
+          type: string
+          maxLength: 500
+          minLength: 0
+        override:
+          type: boolean
+      required:
+      - endsAt
+      - level
+      - startsAt
+      - userId
     ViewResponse:
       type: object
       properties:
@@ -4652,6 +5454,105 @@ components:
       required:
       - password
       - username
+    OnCallGenerateRequest:
+      type: object
+      properties:
+        level:
+          type: string
+          enum:
+          - PRIMARY
+          - SECONDARY
+        horizonDays:
+          type: integer
+          format: int32
+          maximum: 180
+          minimum: 1
+        preview:
+          type: boolean
+      required:
+      - level
+    OnCallGenerateResponse:
+      type: object
+      properties:
+        preview:
+          type: boolean
+        level:
+          type: string
+          enum:
+          - PRIMARY
+          - SECONDARY
+        count:
+          type: integer
+          format: int32
+        shifts:
+          type: array
+          items:
+            $ref: "#/components/schemas/OnCallSlotResponse"
+    OnCallSlotResponse:
+      type: object
+      properties:
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+    OnCallShiftResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        scheduleId:
+          type: string
+          format: uuid
+        scheduleName:
+          type: string
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        level:
+          type: string
+          enum:
+          - PRIMARY
+          - SECONDARY
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        note:
+          type: string
+        override:
+          type: boolean
+        generated:
+          type: boolean
+        replacesShiftId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+    OnCallHandoverRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        note:
+          type: string
+          maxLength: 500
+          minLength: 0
+      required:
+      - userId
     CommentRequest:
       type: object
       properties:
@@ -5203,6 +6104,43 @@ components:
           type: string
         scopes:
           type: string
+    OnCallNowResponse:
+      type: object
+      properties:
+        siteId:
+          type: string
+          format: uuid
+        siteCode:
+          type: string
+        siteName:
+          type: string
+        covered:
+          type: boolean
+        primary:
+          $ref: "#/components/schemas/OnCallPersonResponse"
+        secondary:
+          $ref: "#/components/schemas/OnCallPersonResponse"
+    OnCallPersonResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        shiftId:
+          type: string
+          format: uuid
+        scheduleId:
+          type: string
+          format: uuid
+        scheduleName:
+          type: string
+        endsAt:
+          type: string
+          format: date-time
+        override:
+          type: boolean
     AlertResponse:
       type: object
       properties:

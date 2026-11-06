@@ -217,6 +217,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/astreinte/plannings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lire un planning */
+        get: operations["getSchedule"];
+        /** Modifier un planning */
+        put: operations["updateSchedule"];
+        post?: never;
+        /**
+         * Supprimer un planning
+         * @description Supprime aussi ses gardes et rotations.
+         */
+        delete: operations["deleteSchedule"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/plannings/{id}/rotation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rotations d'un planning (une par niveau au plus) */
+        get: operations["listRotations"];
+        /**
+         * Créer ou remplacer la rotation d'un niveau
+         * @description Les gardes futures déjà générées par l'ancienne rotation sont retirées (jamais la garde en cours, le passé ni les remplacements) ; régénérer ensuite.
+         */
+        put: operations["saveRotation"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/plannings/{id}/gardes/{shiftId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Modifier une garde saisie à la main */
+        put: operations["updateShift"];
+        post?: never;
+        /** Supprimer une garde saisie à la main */
+        delete: operations["deleteShift"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/vues": {
         parameters: {
             query?: never;
@@ -779,6 +840,85 @@ export interface paths {
          * @description Retourne un jeton JWT court à envoyer dans l'en-tête Authorization: Bearer et dépose le jeton de renouvellement dans un cookie HttpOnly.
          */
         post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/plannings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les plannings */
+        get: operations["listSchedules"];
+        put?: never;
+        /** Créer un planning */
+        post: operations["createSchedule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/plannings/{id}/rotation/generer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Générer les gardes d'une rotation
+         * @description preview=true : calcule les gardes sans rien écrire. Sinon les crée jusqu'à l'horizon (60 jours par défaut), de façon idempotente.
+         */
+        post: operations["generate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/plannings/{id}/gardes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Gardes d'un planning
+         * @description Gardes qui chevauchent [du, au[ ; par défaut de la veille à 60 jours.
+         */
+        get: operations["listShifts"];
+        put?: never;
+        /** Ajouter une garde (ou un remplacement ponctuel) */
+        post: operations["createShift"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/gardes/{id}/remplacer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Passer une garde à quelqu'un d'autre
+         * @description Crée un remplacement de maintenant à la fin de la garde. Réservé au titulaire de la garde et aux administrateurs.
+         */
+        post: operations["handover"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1375,6 +1515,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/astreinte/personnes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Personnes pouvant être d'astreinte
+         * @description Administrateurs et opérateurs NOC actifs (choix d'une garde ou d'une passation).
+         */
+        get: operations["people"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/mes-gardes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mes gardes
+         * @description Gardes de l'appelant, en cours ou dans les 60 jours.
+         */
+        get: operations["myShifts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/maintenant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Qui est d'astreinte maintenant
+         * @description Pour chaque site visible : personne d'astreinte principale et secondaire à l'instant présent (planning du site avant planning tous sites, remplacement prioritaire).
+         */
+        get: operations["now"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/agenda": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Agenda des gardes
+         * @description Gardes de tous les plannings visibles sur [debut, debut + jours[ (30 jours par défaut, 62 au plus).
+         */
+        get: operations["agenda"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/alertes": {
         parameters: {
             query?: never;
@@ -1448,6 +1668,23 @@ export interface paths {
         post?: never;
         /** Supprimer un lien */
         delete: operations["removeLink"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/plannings/{id}/rotation/{niveau}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Supprimer la rotation d'un niveau */
+        delete: operations["deleteRotation"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1623,6 +1860,79 @@ export interface components {
         TemplateRequest: {
             subjectTemplate: string;
             bodyTemplate: string;
+        };
+        OnCallScheduleRequest: {
+            name: string;
+            description?: string;
+            timezone?: string;
+            allSites?: boolean;
+            siteIds?: string[];
+            active?: boolean;
+        };
+        OnCallScheduleResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            description?: string;
+            timezone?: string;
+            allSites?: boolean;
+            sites?: components["schemas"]["OnCallSiteRef"][];
+            active?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        OnCallSiteRef: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+        };
+        OnCallRotationRequest: {
+            /** @enum {string} */
+            level: "PRIMARY" | "SECONDARY";
+            userIds: string[];
+            /** Format: date */
+            startDate: string;
+            /** Format: int32 */
+            shiftLengthDays: number;
+            /** Format: time-local */
+            handoverTime: string;
+        };
+        OnCallRotationResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            scheduleId?: string;
+            /** @enum {string} */
+            level?: "PRIMARY" | "SECONDARY";
+            /** Format: date */
+            startDate?: string;
+            /** Format: int32 */
+            shiftLengthDays?: number;
+            /** Format: time-local */
+            handoverTime?: string;
+            members?: components["schemas"]["OnCallUserRef"][];
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        OnCallUserRef: {
+            /** Format: uuid */
+            id?: string;
+            username?: string;
+        };
+        OnCallShiftRequest: {
+            /** Format: uuid */
+            userId: string;
+            /** @enum {string} */
+            level: "PRIMARY" | "SECONDARY";
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            note?: string;
+            override?: boolean;
         };
         ViewResponse: {
             /** Format: uuid */
@@ -1900,6 +2210,58 @@ export interface components {
         LoginRequest: {
             username: string;
             password: string;
+        };
+        OnCallGenerateRequest: {
+            /** @enum {string} */
+            level: "PRIMARY" | "SECONDARY";
+            /** Format: int32 */
+            horizonDays?: number;
+            preview?: boolean;
+        };
+        OnCallGenerateResponse: {
+            preview?: boolean;
+            /** @enum {string} */
+            level?: "PRIMARY" | "SECONDARY";
+            /** Format: int32 */
+            count?: number;
+            shifts?: components["schemas"]["OnCallSlotResponse"][];
+        };
+        OnCallSlotResponse: {
+            /** Format: date-time */
+            startsAt?: string;
+            /** Format: date-time */
+            endsAt?: string;
+            /** Format: uuid */
+            userId?: string;
+            username?: string;
+        };
+        OnCallShiftResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            scheduleId?: string;
+            scheduleName?: string;
+            /** Format: uuid */
+            userId?: string;
+            username?: string;
+            /** @enum {string} */
+            level?: "PRIMARY" | "SECONDARY";
+            /** Format: date-time */
+            startsAt?: string;
+            /** Format: date-time */
+            endsAt?: string;
+            note?: string;
+            override?: boolean;
+            generated?: boolean;
+            /** Format: uuid */
+            replacesShiftId?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        OnCallHandoverRequest: {
+            /** Format: uuid */
+            userId: string;
+            note?: string;
         };
         CommentRequest: {
             comment?: string;
@@ -2206,6 +2568,28 @@ export interface components {
             issuer?: string;
             clientId?: string;
             scopes?: string;
+        };
+        OnCallNowResponse: {
+            /** Format: uuid */
+            siteId?: string;
+            siteCode?: string;
+            siteName?: string;
+            covered?: boolean;
+            primary?: components["schemas"]["OnCallPersonResponse"];
+            secondary?: components["schemas"]["OnCallPersonResponse"];
+        };
+        OnCallPersonResponse: {
+            /** Format: uuid */
+            userId?: string;
+            username?: string;
+            /** Format: uuid */
+            shiftId?: string;
+            /** Format: uuid */
+            scheduleId?: string;
+            scheduleName?: string;
+            /** Format: date-time */
+            endsAt?: string;
+            override?: boolean;
         };
         AlertResponse: {
             /** Format: uuid */
@@ -3458,6 +3842,299 @@ export interface operations {
             };
             /** @description Modèle introuvable */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Planning introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnCallScheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallScheduleResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    deleteSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listRotations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallRotationResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    saveRotation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnCallRotationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallRotationResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    updateShift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                shiftId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnCallShiftRequest"];
+            };
+        };
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Garde générée par la rotation */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteShift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                shiftId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Garde générée par la rotation */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5242,6 +5919,289 @@ export interface operations {
             };
         };
     };
+    listSchedules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallScheduleResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    createSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnCallScheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallScheduleResponse"];
+                };
+            };
+            /** @description Saisie invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Nom déjà utilisé */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    generate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnCallGenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallGenerateResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listShifts: {
+        parameters: {
+            query?: {
+                du?: string;
+                au?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallShiftResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    createShift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnCallShiftRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallShiftResponse"];
+                };
+            };
+            /** @description Saisie invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    handover: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnCallHandoverRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallShiftResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Garde terminée */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     resolve: {
         parameters: {
             query?: never;
@@ -6467,6 +7427,161 @@ export interface operations {
             };
         };
     };
+    people: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallUserRef"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    myShifts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallShiftResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    now: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallNowResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    agenda: {
+        parameters: {
+            query?: {
+                debut?: string;
+                jours?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallShiftResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     list_10: {
         parameters: {
             query: {
@@ -6681,6 +7796,45 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    deleteRotation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                niveau: "PRIMARY" | "SECONDARY";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
             };
         };
     };
