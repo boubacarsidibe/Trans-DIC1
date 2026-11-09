@@ -35,9 +35,18 @@ const history = (key, points) => ({
 });
 const p = (at, avg) => ({ at, avg, min: avg - 2, max: avg + 2, count: 5 });
 
-function mockApi({ cpu = [p("2026-10-28T10:00:00Z", 40), p("2026-10-28T10:05:00Z", 60)], fail } = {}) {
+function mockApi({
+  cpu = [p("2026-10-28T10:00:00Z", 40), p("2026-10-28T10:05:00Z", 60)],
+  fail,
+  forecasts = [],
+  failForecasts = false,
+} = {}) {
   apiClient.get.mockImplementation(async (url, config) => {
     if (url === "/equipements/e1") return { data: { id: "e1", name: "Serveur web" } };
+    if (url === "/equipements/e1/previsions") {
+      if (failForecasts) throw new Error("boom");
+      return { data: forecasts };
+    }
     if (url === "/equipements/e1/metriques") {
       const key = config.params.key;
       if (fail === key) throw new Error("boom");
@@ -125,6 +134,86 @@ describe("page d'historique des mesures", () => {
       const { from, to } = call[1].params;
       expect(new Date(to) - new Date(from)).toBe(7 * 24 * 3_600_000);
     });
+  });
+
+  it("affiche une carte de prévision par indicateur suivi", async () => {
+    mockApi({
+      forecasts: [
+        {
+          key: "disk.usage",
+          unit: "%",
+          current: 78.4,
+          slopePerDay: 2,
+          r2: 0.98,
+          daysToLimit: 10.8,
+          projectedAt: "2026-11-16T09:00:00Z",
+          status: "OK",
+          confidence: "haute",
+          limit: 100,
+          windowDays: 14,
+          points: 335,
+        },
+        { key: "memory.usage", unit: "%", current: 40, slopePerDay: -0.2, r2: 0.1, daysToLimit: null, status: "NO_GROWTH", limit: 100, windowDays: 14, points: 335 },
+        { key: "disk.usage.var", unit: "%", current: 12, slopePerDay: null, r2: null, daysToLimit: null, status: "NOT_ENOUGH_DATA", limit: 100, windowDays: 14, minSpanDays: 3, points: 20 },
+      ],
+    });
+    renderPage();
+
+    const disk = await screen.findByRole("region", { name: "Prévision : Disque" });
+    expect(disk).toHaveTextContent("Actuel : 78,4 %");
+    expect(disk).toHaveTextContent("Tendance : +2 % par jour");
+    expect(disk).toHaveTextContent("Plein dans ~11 jours le 16/11/2026");
+    expect(disk).toHaveTextContent("Confiance haute");
+    expect(apiClient.get).toHaveBeenCalledWith("/equipements/e1/previsions");
+
+    const memory = screen.getByRole("region", { name: "Prévision : Mémoire" });
+    expect(memory).toHaveTextContent("Pas de tendance à la hausse");
+    expect(memory).not.toHaveTextContent("Confiance");
+
+    const partition = screen.getByRole("region", { name: "Prévision : Disque (disk.usage.var)" });
+    expect(partition).toHaveTextContent("Pas assez de données (il faut 3 jours de mesures)");
+  });
+
+  it("plafonne les horizons lointains, précise les pentes faibles et dit indicative une confiance faible", async () => {
+    const forecast = (key, extra) => ({
+      key,
+      unit: "%",
+      current: 50,
+      status: "OK",
+      limit: 100,
+      windowDays: 14,
+      minSpanDays: 5,
+      points: 335,
+      ...extra,
+    });
+    mockApi({
+      forecasts: [
+        forecast("disk.usage", { slopePerDay: 0.04, r2: 0.9, daysToLimit: 1250, projectedAt: "2030-04-01T00:00:00Z", confidence: "haute" }),
+        forecast("memory.usage", { slopePerDay: 4, r2: 0.3, daysToLimit: 12, projectedAt: "2026-11-17T00:00:00Z", confidence: "faible" }),
+        forecast("disk.usage.var bis", { status: "NOT_ENOUGH_DATA", current: 12, slopePerDay: null, daysToLimit: null }),
+      ],
+    });
+    renderPage();
+
+    const disk = await screen.findByRole("region", { name: "Prévision : Disque" });
+    expect(disk).toHaveTextContent("Plein dans plus d'un an");
+    expect(disk).toHaveTextContent("Tendance : +0,04 % par jour");
+
+    const memory = screen.getByRole("region", { name: "Prévision : Mémoire" });
+    expect(memory).toHaveTextContent("Confiance faible : estimation indicative");
+    expect(memory).toHaveAttribute("data-indicative", "true");
+
+    // Une clé avec des espaces reste un nom accessible valable ; la période minimale vient de l'API.
+    const partition = screen.getByRole("region", { name: "Prévision : Disque (disk.usage.var bis)" });
+    expect(partition).toHaveTextContent("Pas assez de données (il faut 5 jours de mesures)");
+  });
+
+  it("signale des prévisions indisponibles sans gêner les courbes", async () => {
+    mockApi({ failForecasts: true });
+    renderPage();
+
+    expect(await screen.findByText("Prévisions de saturation indisponibles.")).toHaveAttribute("role", "status");
+    expect(await screen.findByRole("region", { name: "Processeur (CPU)" })).toHaveTextContent("Dernière : 60 %");
   });
 
   it("isole l'erreur d'un indicateur sans cacher les autres", async () => {

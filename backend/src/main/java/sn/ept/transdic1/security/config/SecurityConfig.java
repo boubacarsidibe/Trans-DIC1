@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -27,6 +28,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
+  /** Lecture sans connexion d'une page de statut publique (ADR 0026). */
+  public static final String PUBLIC_STATUS_PATH = "/api/v1/public/statut/*";
+
   @Bean
   PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
@@ -50,7 +54,11 @@ public class SecurityConfig {
   }
 
   @Bean
-  SecurityFilterChain chain(HttpSecurity h, JwtFilter f, LoginRateLimitFilter rateLimit)
+  SecurityFilterChain chain(
+      HttpSecurity h,
+      JwtFilter f,
+      LoginRateLimitFilter rateLimit,
+      PublicApiRateLimitFilter publicRateLimit)
       throws Exception {
     var docs =
         new OrRequestMatcher(
@@ -94,7 +102,13 @@ public class SecurityConfig {
                             write(response, HttpStatus.FORBIDDEN, "Accès refusé")))
         .authorizeHttpRequests(
             a ->
-                a.requestMatchers(
+                // Seul accès sans connexion à des données métier : la lecture (GET) d'une page de
+                // statut publique (ADR 0026). Toute autre méthode sur ce chemin, et tout autre
+                // chemin de /api/**, exige une authentification (test
+                // StatusPageAuthRegressionTests).
+                a.requestMatchers(HttpMethod.GET, PUBLIC_STATUS_PATH)
+                    .permitAll()
+                    .requestMatchers(
                         "/actuator/health",
                         // Sondes de vivacité et de disponibilité (orchestrateur, reverse proxy).
                         "/actuator/health/liveness",
@@ -111,6 +125,7 @@ public class SecurityConfig {
                     .permitAll()
                     .anyRequest()
                     .authenticated())
+        .addFilterBefore(publicRateLimit, UsernamePasswordAuthenticationFilter.class)
         .addFilterBefore(rateLimit, UsernamePasswordAuthenticationFilter.class)
         .addFilterBefore(f, UsernamePasswordAuthenticationFilter.class)
         .build();

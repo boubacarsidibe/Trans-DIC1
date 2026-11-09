@@ -2,9 +2,11 @@
 
 ## CI actuelle
 
-`repository-guard.yml` exécute le contrôle d'hygiène sur les push et Pull Requests visant `main` ou `develop`. Il ne simule aucun test applicatif.
+**Il n'y a plus d'intégration continue.** Les workflows GitHub Actions ont été supprimés (compte GitHub bloqué pour facturation, risque R2) : aucun contrôle ne s'exécute sur les push ni sur les Pull Requests, et rien n'empêche de fusionner un changement qui casse les tests. Les anciens documents qui citent `repository-guard.yml` décrivent un état passé.
 
-Dependabot vérifie chaque semaine les références GitHub Actions. Les gestionnaires de paquets applicatifs seront ajoutés à sa configuration uniquement lorsque leurs manifestes existeront.
+Atténuation : `scripts/verify-all.ps1` enchaîne en local les contrôles de l'ancienne CI (dépôt, validation statique de Compose, tests, JaCoCo et Spotless du backend, lint, tests et build du frontend ; en option les parcours de bout en bout sur pile native, les tests de l'agent, gitleaks et trivy). Mode d'emploi, options et limites : [verification-locale.md](verification-locale.md). C'est un contrôle manuel, sans preuve conservée et sans blocage de merge : il réduit le risque, il ne le supprime pas. Il ne demande jamais Docker.
+
+`.github/dependabot.yml` ne couvre que les références GitHub Actions, qui n'existent plus tant que les workflows sont absents. Les gestionnaires de paquets applicatifs n'y figurent pas.
 
 ## Ajout d'un composant
 
@@ -18,6 +20,8 @@ Le composant doit exposer des commandes déterministes pour :
 6. exécuter un smoke test ou healthcheck.
 
 La CI doit appeler ces mêmes commandes et mettre en cache uniquement les données sûres et reproductibles.
+
+Tant que la CI est absente, `scripts/verify-all.ps1` appelle ces mêmes commandes sur le poste du développeur. Il vise Windows (JDK 21 et Maven Wrapper `.cmd`) : à son retour, une CI Linux appellera directement les commandes du composant (`./mvnw verify`, `npm ci`, `npm run lint`, `npm test`, `npm run build`), pas le script.
 
 ## Livraison cible
 

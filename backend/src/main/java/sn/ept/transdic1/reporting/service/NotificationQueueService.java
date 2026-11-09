@@ -35,6 +35,7 @@ import sn.ept.transdic1.security.repository.UserRepository;
 @Service
 public class NotificationQueueService {
   private static final Logger LOG = LoggerFactory.getLogger(NotificationQueueService.class);
+  private static final String ONCALL_KIND = "ALERT_ONCALL";
   private static final Map<Severity, String> SEVERITY_LABELS =
       Map.of(
           Severity.CRITICAL, "CRITIQUE", Severity.WARNING, "AVERTISSEMENT", Severity.INFO, "INFO");
@@ -106,6 +107,50 @@ public class NotificationQueueService {
       LOG.info("Notifications préparées pour l'alerte {} : {}", alertId, queued);
     }
     return queued;
+  }
+
+  /**
+   * Message d'astreinte (ADR 0025) pour une personne, sur son propre canal (sa préférence active).
+   * Le seuil de sévérité de sa préférence ne s'applique pas : être d'astreinte, c'est accepter
+   * d'être prévenu ; le seuil est celui de l'astreinte ({@code oncall.notify-min-severity}). Une
+   * clé d'idempotence par alerte, niveau et personne empêche tout doublon.
+   */
+  @Transactional
+  public OnCallDelivery queueOnCall(UUID alertId, UUID userId, boolean secondary) {
+    Alert alert = alerts.findById(alertId).orElseThrow();
+    AppUser user = users.findById(userId).orElseThrow();
+    if (!scope.allowsUser(user.getId(), siteOf(alert))) {
+      return OnCallDelivery.OUT_OF_SCOPE;
+    }
+    var preference = preferences.findByUserId(userId).filter(NotificationPreference::isActive);
+    if (preference.isEmpty()) {
+      return OnCallDelivery.NO_CHANNEL;
+    }
+    NotificationChannel channel = preference.get().getChannel();
+    String destination =
+        channel == NotificationChannel.EMAIL ? user.getEmail() : preference.get().getDestination();
+    if (destination == null || destination.isBlank()) {
+      return OnCallDelivery.NO_CHANNEL;
+    }
+    String subject = renderer.render(ONCALL_KIND, alert).subject();
+    if (secondary) {
+      subject = "[2e niveau] " + subject;
+    }
+    if (subject.length() > 255) {
+      subject = subject.substring(0, 255);
+    }
+    String dedupKey =
+        "oncall:" + alertId + ":" + (secondary ? "SECONDARY" : "PRIMARY") + ":" + userId;
+    if (!notifications.existsByDedupKey(dedupKey)) {
+      var notification =
+          new Notification(user, channel, destination, subject, NotificationState.PENDING);
+      notification.setAlert(alert);
+      notification.setKind(ONCALL_KIND);
+      notification.setDedupKey(dedupKey);
+      notifications.save(notification);
+      LOG.info("Notification d'astreinte préparée pour l'alerte {}", alertId);
+    }
+    return OnCallDelivery.QUEUED;
   }
 
   private boolean add(

@@ -1,0 +1,100 @@
+{
+  "id": "linux-net-snmp",
+  "version": 1,
+  "name": "Serveur Linux (net-snmp)",
+  "vendor": "Linux",
+  "category": "SERVER",
+  "description": "Serveur Linux avec l'agent net-snmp (snmpd) : charge CPU (100 - ssCpuIdle), mémoire, disque et charge moyenne via UCD-SNMP-MIB. Le disque n'est publié que si snmpd.conf contient une directive « disk / ». OID non validés sur matériel de l'EPT.",
+  "verified": false,
+  "sysDescrHints": ["Linux"],
+  "metrics": [
+    {
+      "name": "Charge CPU",
+      "technicalKey": "cpu.usage",
+      "valueType": "DECIMAL",
+      "unit": "%",
+      "snmpOid": "1.3.6.1.4.1.2021.11.11.0",
+      "source": "UCD-SNMP-MIB::ssCpuIdle.0 (inversé : 100 - inactivité)",
+      "invertPercent": true
+    },
+    {
+      "name": "Mémoire disponible",
+      "technicalKey": "memory.available",
+      "valueType": "DECIMAL",
+      "unit": "Mio",
+      "snmpOid": "1.3.6.1.4.1.2021.4.6.0",
+      "source": "UCD-SNMP-MIB::memAvailReal.0 (Kio, converti en Mio)",
+      "scale": 0.0009765625
+    },
+    {
+      "name": "Mémoire totale",
+      "technicalKey": "memory.total",
+      "valueType": "DECIMAL",
+      "unit": "Mio",
+      "snmpOid": "1.3.6.1.4.1.2021.4.5.0",
+      "source": "UCD-SNMP-MIB::memTotalReal.0 (Kio, converti en Mio)",
+      "scale": 0.0009765625
+    },
+    {
+      "name": "Disque utilisé (premier disque déclaré)",
+      "technicalKey": "disk.usage",
+      "valueType": "INTEGER",
+      "unit": "%",
+      "snmpOid": "1.3.6.1.4.1.2021.9.1.9.1",
+      "source": "UCD-SNMP-MIB::dskPercent.1"
+    },
+    {
+      "name": "Charge moyenne sur 1 minute",
+      "technicalKey": "load.1min",
+      "valueType": "DECIMAL",
+      "snmpOid": "1.3.6.1.4.1.2021.10.1.5.1",
+      "source": "UCD-SNMP-MIB::laLoadInt.1 (charge × 100, converti)",
+      "scale": 0.01
+    },
+    {
+      "name": "Durée de fonctionnement",
+      "technicalKey": "system.uptime",
+      "valueType": "DECIMAL",
+      "unit": "s",
+      "snmpOid": "1.3.6.1.2.1.1.3.0",
+      "source": "SNMPv2-MIB::sysUpTime.0 (centièmes de seconde, converti en secondes)",
+      "scale": 0.01
+    }
+  ],
+  "rules": [
+    {
+      "name": "CPU élevé",
+      "metricKey": "cpu.usage",
+      "operator": "GREATER_THAN",
+      "threshold": 90,
+      "recoveryThreshold": 80,
+      "unit": "%",
+      "confirmationSeconds": 300,
+      "severity": "WARNING"
+    },
+    {
+      "name": "Disque presque plein",
+      "metricKey": "disk.usage",
+      "operator": "GREATER_THAN",
+      "threshold": 90,
+      "recoveryThreshold": 85,
+      "unit": "%",
+      "confirmationSeconds": 600,
+      "severity": "CRITICAL"
+    },
+    {
+      "name": "Mémoire disponible faible",
+      "metricKey": "memory.available",
+      "operator": "LESS_THAN",
+      "threshold": 256,
+      "recoveryThreshold": 384,
+      "unit": "Mio",
+      "confirmationSeconds": 300,
+      "severity": "WARNING"
+    }
+  ],
+  "probes": [
+    { "name": "Ping", "type": "ICMP", "intervalSeconds": 60 },
+    { "name": "SSH", "type": "TCP_PORT", "port": 22, "intervalSeconds": 120 }
+  ]
+}

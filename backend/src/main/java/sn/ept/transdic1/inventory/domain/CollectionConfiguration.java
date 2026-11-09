@@ -53,6 +53,10 @@ public class CollectionConfiguration {
   @Column(name = "secret_reference", length = 255)
   private String secretReference;
 
+  /** Port SNMP de cet équipement ; nul : port par défaut du serveur. */
+  @Column(name = "snmp_port")
+  private Integer snmpPort;
+
   @Column(name = "active", nullable = false)
   private boolean active;
 
@@ -159,6 +163,14 @@ public class CollectionConfiguration {
 
   public void setSecretReference(String secretReference) {
     this.secretReference = secretReference;
+  }
+
+  public Integer getSnmpPort() {
+    return snmpPort;
+  }
+
+  public void setSnmpPort(Integer snmpPort) {
+    this.snmpPort = snmpPort;
   }
 
   public boolean isActive() {

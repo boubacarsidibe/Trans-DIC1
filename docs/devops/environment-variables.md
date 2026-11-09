@@ -52,6 +52,39 @@
 | `PROBE_SCAN_INTERVAL_MS` (propriété `collection.probe.scan-interval-ms`) | Non | Tous | Fréquence de recherche des sondes à échéance, 15000 ms par défaut |
 | `PROBE_PARALLELISM` (propriété `collection.probe.parallelism`) | Non | Tous | Sondes exécutées en même temps, 16 par défaut |
 | `PROBE_MAX_PER_SCAN` (propriété `collection.probe.max-per-scan`) | Non | Tous | Plafond de sondes lancées par passage, 500 par défaut (un passage doit finir dans le verrou de 5 minutes) |
+| (propriété `templates.equipment.location`, sans variable) | Non | Tests | Motif des fichiers de modèles d'équipement, `classpath*:templates/equipment/*.json` par défaut ; à ne pas changer en production (ADR 0022, [modeles-equipement.md](modeles-equipement.md)) |
+| `FORECAST_ENABLED` (propriété `forecast.enabled`) | Non | Tous | Alerte horaire de prévision de saturation (ADR 0020), `true` par défaut ; l'API de prévision reste disponible si elle est désactivée |
+| `FORECAST_CRON` (propriété `forecast.cron`) | Non | Tous | Planification de l'alerte de prévision (UTC), `0 7 * * * *` par défaut (toutes les heures, minute 7) |
+| `FORECAST_KEYS` (propriété `forecast.keys`) | Non | Tous | Familles d'indicateurs en pourcentage suivies, séparées par des virgules, `disk.usage,memory.usage` par défaut ; une famille couvre aussi ses sous-clés (`disk.usage.var`) |
+| `FORECAST_WINDOW_DAYS` (propriété `forecast.window-days`) | Non | Tous | Fenêtre d'observation, 14 jours par défaut |
+| `FORECAST_MIN_SPAN_DAYS`, `FORECAST_MIN_POINTS` (propriétés `forecast.min-span-days`, `forecast.min-points`) | Non | Tous | Données minimales pour prévoir : 3 jours entre le premier et le dernier point et 24 moyennes horaires par défaut |
+| `FORECAST_LIMIT` (propriété `forecast.limit`) | Non | Tous | Limite visée, 100 (%) par défaut |
+| `FORECAST_MIN_R2` (propriété `forecast.min-r2`) | Non | Tous | Coefficient de détermination minimal pour ouvrir une alerte, 0.6 par défaut |
+| `FORECAST_HORIZON_DAYS` (propriété `forecast.horizon-days`) | Non | Tous | Horizon d'alerte, 14 jours par défaut ; résolution au-delà de 1,25 fois l'horizon |
+| `DIAGNOSTIC_WINDOW_MINUTES` (propriété `diagnostic.window-minutes`) | Non | Tous | Demi-fenêtre d'analyse du diagnostic d'incident (ADR 0024) autour de l'ouverture de l'alerte : alertes voisines, événements et changements à ± N minutes, 30 par défaut, ramenée entre 1 et 1440 |
+| `DIAGNOSTIC_TIME_ZONE` (propriété `diagnostic.time-zone`) | Non | Tous | Fuseau des heures écrites dans le résumé du diagnostic, `Africa/Dakar` par défaut (identifiant IANA ; un identifiant invalide empêche le démarrage) |
+| `ONCALL_NOTIFY_MIN_SEVERITY` (propriété `oncall.notify-min-severity`) | Non | Tous | Sévérité minimale d'une alerte pour prévenir la personne d'astreinte (ADR 0025) : `INFO`, `WARNING` (défaut) ou `CRITICAL` |
+| `ONCALL_SECONDARY_AFTER_MINUTES` (propriété `oncall.secondary-after-minutes`) | Non | Tous | Délai après l'ouverture d'une alerte encore non prise en charge avant de prévenir la personne d'astreinte secondaire, 10 minutes par défaut (au moins 1) |
+| `ONCALL_CRITICAL_SECONDARY_AFTER_MINUTES` (propriété `oncall.critical-secondary-after-minutes`) | Non | Tous | Même délai pour une alerte critique, 5 minutes par défaut |
+| `ONCALL_ESCALATION_CRON` (propriété `oncall.escalation.cron`) | Non | Tous | Passage qui prévient les secondaires dus, chaque minute à la seconde 20 par défaut (`20 * * * * *`, UTC) |
+| `ONCALL_ROTATION_HORIZON_DAYS` (propriété `oncall.rotation.horizon-days`) | Non | Tous | Avance gardée par l'extension nocturne des rotations, 60 jours par défaut |
+| `ONCALL_ROTATION_EXTEND_CRON` (propriété `oncall.rotation.extend-cron`) | Non | Tous | Extension nocturne des rotations, 02:30 UTC par défaut (`0 30 2 * * *`) |
+| `STATUSPAGE_CACHE_SECONDS` (propriété `statuspage.cache-seconds`) | Non | Tous | Durée de vie de l'instantané d'une page de statut et `max-age` de la réponse publique, 30 secondes par défaut (ADR 0026) |
+| `STATUSPAGE_AVAILABILITY_CACHE_SECONDS` (propriété `statuspage.availability-cache-seconds`) | Non | Tous | Durée de vie de la disponibilité sur 90 jours d'une page, 300 secondes par défaut |
+| `STATUSPAGE_PUBLIC_RATE_LIMIT_PER_MINUTE` (propriété `statuspage.public.rate-limit-per-minute`) | Non | Tous | Lectures de `/api/v1/public/**` permises par adresse et par minute, puis 429 avec `Retry-After`, 60 par défaut ; l'adresse est celle du client derrière le proxy seulement avec `FORWARD_HEADERS_STRATEGY=native` |
+| `STATUSPAGE_AUTO_INCIDENT_ENABLED` (propriété `statuspage.auto-incident.enabled`) | Non | Tous | Incident automatique « Perturbation détectée » sur panne majeure prolongée d'un composant, `false` par défaut |
+| `STATUSPAGE_AUTO_INCIDENT_MINUTES` (propriété `statuspage.auto-incident.minutes`) | Non | Tous | Durée de panne majeure avant l'incident automatique, 5 minutes par défaut |
+| `STATUSPAGE_AUTO_INCIDENT_CRON` (propriété `statuspage.auto-incident.cron`) | Non | Tous | Passage de l'incident automatique, chaque minute à la seconde 40 par défaut (`40 * * * * *`, UTC) |
+| `EVENTS_SNMP_TRAP_ENABLED`, `EVENTS_SYSLOG_ENABLED` (propriétés `events.snmp-trap.enabled`, `events.syslog.enabled`) | Non | Tous | Récepteurs de traps SNMP et de syslog (ADR 0021, [evenements-reseau.md](evenements-reseau.md)), `false` par défaut |
+| `EVENTS_SNMP_TRAP_PORT`, `EVENTS_SYSLOG_PORT` (propriétés `events.snmp-trap.port`, `events.syslog.port`) | Non | Tous | Ports UDP d'écoute, 1162 et 1514 par défaut (162 et 514 demandent des droits root) |
+| `EVENTS_SNMP_TRAP_BIND_ADDRESS`, `EVENTS_SYSLOG_BIND_ADDRESS` (propriétés `events.*.bind-address`) | Non | Tous | Adresse d'écoute, `0.0.0.0` par défaut |
+| `EVENTS_SNMP_TRAP_COMMUNITY` (propriété `events.snmp-trap.community`) | Non | Tous | Référence `env:NOM` de la communauté attendue en v1/v2c, jamais la valeur ; vide : traps non authentifiés (avertissement au démarrage) |
+| `EVENTS_SNMP_TRAP_V3_USERNAME`, `EVENTS_SNMP_TRAP_V3_AUTH_REFERENCE`, `EVENTS_SNMP_TRAP_V3_PRIV_REFERENCE` (propriétés `events.snmp-trap.v3.*`) | Non | Tous | Utilisateur SNMPv3 unique (SHA, AES-128) et références `env:NOM` de ses mots de passe ; vide : v3 non chargé |
+| `EVENTS_RATE_LIMIT_PER_SOURCE` (propriété `events.rate-limit-per-source`) | Non | Tous | Événements acceptés par adresse source et par seconde, 100 par défaut ; le surplus est rejeté et compté |
+| `EVENTS_QUEUE_CAPACITY`, `EVENTS_WORKERS` (propriétés `events.queue-capacity`, `events.workers`) | Non | Tous | File d'attente (10 000) et travailleurs (2) entre les sockets et la base |
+| `EVENTS_SOURCE_CACHE_SECONDS` (propriété `events.source-cache-seconds`) | Non | Tous | Durée du cache des adresses d'équipements (sous forme canonique, avec leur site), 30 s par défaut (0 : lecture en base à chaque événement). Un équipement ajouté ou dont l'adresse change est reconnu au plus tard après ce délai |
+| `EVENTS_RULE_CACHE_SECONDS` (propriété `events.rule-cache-seconds`) | Non | Tous | Durée du cache des règles d'événements actives, 10 s par défaut ; vidé à chaque modification de règle par l'API (0 : lecture en base à chaque événement) |
+| `EVENTS_RETENTION_DAYS`, `EVENTS_RETENTION_CRON` (propriétés `events.retention-days`, `events.retention-cron`) | Non | Tous | Conservation des événements, 30 jours ; purge `0 15 4 * * *` (UTC) |
 | `GRAFANA_ADMIN_PASSWORD` | Oui | Tous | Mot de passe du compte `admin` de Grafana (profil Compose `observability`) |
 
 Les variables non retenues par la stack devront être supprimées du contrat plutôt que laissées inactives.

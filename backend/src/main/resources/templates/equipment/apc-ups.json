@@ -1,0 +1,88 @@
+{
+  "id": "apc-ups",
+  "version": 1,
+  "name": "Onduleur APC (carte réseau)",
+  "vendor": "APC",
+  "category": "UPS",
+  "description": "Onduleur APC avec carte de gestion réseau (PowerNet-MIB) : capacité de la batterie, charge de sortie, autonomie restante, température batterie et tension d'entrée. OID non validés sur matériel de l'EPT.",
+  "verified": false,
+  "sysDescrHints": ["APC Web/SNMP", "Smart-UPS"],
+  "metrics": [
+    {
+      "name": "Capacité de la batterie",
+      "technicalKey": "ups.battery.capacity",
+      "valueType": "INTEGER",
+      "unit": "%",
+      "snmpOid": "1.3.6.1.4.1.318.1.1.1.2.2.1.0",
+      "source": "PowerNet-MIB::upsAdvBatteryCapacity.0"
+    },
+    {
+      "name": "Charge de sortie",
+      "technicalKey": "ups.output.load",
+      "valueType": "INTEGER",
+      "unit": "%",
+      "snmpOid": "1.3.6.1.4.1.318.1.1.1.4.2.3.0",
+      "source": "PowerNet-MIB::upsAdvOutputLoad.0"
+    },
+    {
+      "name": "Autonomie restante",
+      "technicalKey": "ups.battery.runtime",
+      "valueType": "DECIMAL",
+      "unit": "min",
+      "snmpOid": "1.3.6.1.4.1.318.1.1.1.2.2.3.0",
+      "source": "PowerNet-MIB::upsAdvBatteryRunTimeRemaining.0 (TimeTicks, centièmes de seconde, converti en minutes)",
+      "scale": 0.0001666667
+    },
+    {
+      "name": "Température de la batterie",
+      "technicalKey": "ups.battery.temperature",
+      "valueType": "INTEGER",
+      "unit": "°C",
+      "snmpOid": "1.3.6.1.4.1.318.1.1.1.2.2.2.0",
+      "source": "PowerNet-MIB::upsAdvBatteryTemperature.0"
+    },
+    {
+      "name": "Tension d'entrée",
+      "technicalKey": "ups.input.voltage",
+      "valueType": "INTEGER",
+      "unit": "V",
+      "snmpOid": "1.3.6.1.4.1.318.1.1.1.3.2.1.0",
+      "source": "PowerNet-MIB::upsAdvInputLineVoltage.0"
+    }
+  ],
+  "rules": [
+    {
+      "name": "Batterie faible",
+      "metricKey": "ups.battery.capacity",
+      "operator": "LESS_THAN",
+      "threshold": 50,
+      "recoveryThreshold": 60,
+      "unit": "%",
+      "confirmationSeconds": 60,
+      "severity": "CRITICAL"
+    },
+    {
+      "name": "Autonomie courte",
+      "metricKey": "ups.battery.runtime",
+      "operator": "LESS_THAN",
+      "threshold": 10,
+      "recoveryThreshold": 15,
+      "unit": "min",
+      "confirmationSeconds": 60,
+      "severity": "CRITICAL"
+    },
+    {
+      "name": "Onduleur surchargé",
+      "metricKey": "ups.output.load",
+      "operator": "GREATER_THAN",
+      "threshold": 80,
+      "recoveryThreshold": 70,
+      "unit": "%",
+      "confirmationSeconds": 300,
+      "severity": "WARNING"
+    }
+  ],
+  "probes": [
+    { "name": "Ping", "type": "ICMP", "intervalSeconds": 60 }
+  ]
+}

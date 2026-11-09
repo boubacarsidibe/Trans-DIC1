@@ -44,6 +44,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/regles-evenements/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Consulter une règle d'événement */
+        get: operations["get_1"];
+        /** Remplacer une règle d'événement et sa portée */
+        put: operations["update_2"];
+        post?: never;
+        /**
+         * Supprimer une règle d'événement
+         * @description Refusé si la règle a déjà ouvert des alertes : désactivez-la.
+         */
+        delete: operations["delete_2"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/regles-alertes/{id}": {
         parameters: {
             query?: never;
@@ -52,15 +74,15 @@ export interface paths {
             cookie?: never;
         };
         /** Consulter une règle */
-        get: operations["get_1"];
+        get: operations["get_2"];
         /** Remplacer une règle et sa portée */
-        put: operations["update_2"];
+        put: operations["update_3"];
         post?: never;
         /**
          * Supprimer une règle
          * @description Refusé si la règle a déjà produit des alertes : désactivez-la.
          */
-        delete: operations["delete_2"];
+        delete: operations["delete_3"];
         options?: never;
         head?: never;
         patch?: never;
@@ -86,6 +108,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pages-statut/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Détail d'une page pour l'administration */
+        get: operations["detail"];
+        /** Modifier une page de statut (dont sa visibilité) */
+        put: operations["update_4"];
+        post?: never;
+        /**
+         * Supprimer une page de statut
+         * @description Avec ses composants et incidents.
+         */
+        delete: operations["delete_4"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages-statut/{id}/incidents/{incidentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Modifier un incident
+         * @description Un incident ouvert automatiquement peut aussi être modifié.
+         */
+        put: operations["updateIncident"];
+        post?: never;
+        /** Supprimer un incident */
+        delete: operations["deleteIncident"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages-statut/{id}/composants/{componentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Modifier un composant */
+        put: operations["updateComponent"];
+        post?: never;
+        /** Retirer un composant */
+        delete: operations["deleteComponent"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/mes-preferences": {
         parameters: {
             query?: never;
@@ -97,7 +180,7 @@ export interface paths {
          * Mes préférences de notification
          * @description Inactives par défaut : personne ne reçoit d'e-mail tant qu'il ne l'a pas demandé.
          */
-        get: operations["get_2"];
+        get: operations["get_3"];
         /**
          * Modifier mes préférences
          * @description Canal, sévérité minimale et activation. L'adresse est celle du compte.
@@ -118,12 +201,12 @@ export interface paths {
             cookie?: never;
         };
         /** Consulter un équipement */
-        get: operations["get_3"];
+        get: operations["get_4"];
         /** Modifier un équipement */
-        put: operations["update_3"];
+        put: operations["update_5"];
         post?: never;
         /** Supprimer un équipement */
-        delete: operations["delete_3"];
+        delete: operations["delete_5"];
         options?: never;
         head?: never;
         patch?: never;
@@ -161,7 +244,7 @@ export interface paths {
             cookie?: never;
         };
         /** Consulter la collecte SNMP d'un équipement */
-        get: operations["get_4"];
+        get: operations["get_5"];
         /**
          * Configurer la collecte SNMP
          * @description Crée ou remplace la configuration. Communauté et mots de passe se donnent par référence (env:NOM), jamais en clair. La première lecture a lieu à la prochaine passe.
@@ -172,7 +255,7 @@ export interface paths {
          * Arrêter la collecte SNMP
          * @description Désactive la collecte ; les mesures déjà reçues sont conservées.
          */
-        delete: operations["delete_4"];
+        delete: operations["delete_6"];
         options?: never;
         head?: never;
         patch?: never;
@@ -190,6 +273,67 @@ export interface paths {
         put: operations["updateTemplate"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/plannings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lire un planning */
+        get: operations["getSchedule"];
+        /** Modifier un planning */
+        put: operations["updateSchedule"];
+        post?: never;
+        /**
+         * Supprimer un planning
+         * @description Supprime aussi ses gardes et rotations.
+         */
+        delete: operations["deleteSchedule"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/plannings/{id}/rotation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rotations d'un planning (une par niveau au plus) */
+        get: operations["listRotations"];
+        /**
+         * Créer ou remplacer la rotation d'un niveau
+         * @description Les gardes futures déjà générées par l'ancienne rotation sont retirées (jamais la garde en cours, le passé ni les remplacements) ; régénérer ensuite.
+         */
+        put: operations["saveRotation"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/plannings/{id}/gardes/{shiftId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Modifier une garde saisie à la main */
+        put: operations["updateShift"];
+        post?: never;
+        /** Supprimer une garde saisie à la main */
+        delete: operations["deleteShift"];
         options?: never;
         head?: never;
         patch?: never;
@@ -335,6 +479,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/regles-evenements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lister les règles d'événements
+         * @description 20 par page, par nom.
+         */
+        get: operations["list_3"];
+        put?: never;
+        /** Créer une règle d'événement */
+        post: operations["create_3"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/regles-evenements/tester": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tester une règle sur un exemple
+         * @description Indique si l'événement d'exemple ouvrirait ou résoudrait une alerte. Rien n'est enregistré : ni règle, ni événement, ni alerte.
+         */
+        post: operations["test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/regles-alertes": {
         parameters: {
             query?: never;
@@ -346,10 +531,10 @@ export interface paths {
          * Lister les règles
          * @description Liste paginée (20 par page, tri par nom).
          */
-        get: operations["list_3"];
+        get: operations["list_4"];
         put?: never;
         /** Créer une règle */
-        post: operations["create_3"];
+        post: operations["create_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -369,7 +554,79 @@ export interface paths {
          * Tester une règle sur l'historique
          * @description Rejoue la règle, enregistrée ou non, sur 1 à 7 jours de mesures et indique les alertes qu'elle aurait ouvertes. Rien n'est enregistré : ni règle, ni alerte, ni notification.
          */
-        post: operations["test"];
+        post: operations["test_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages-statut": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lister les pages de statut
+         * @description Pages actives (toutes pour un administrateur), avec leur état global.
+         */
+        get: operations["list_5"];
+        put?: never;
+        /** Créer une page de statut */
+        post: operations["create_5"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages-statut/{id}/incidents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Déclarer un incident */
+        post: operations["createIncident"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages-statut/{id}/incidents/{incidentId}/mises-a-jour": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publier une mise à jour d'incident */
+        post: operations["addUpdate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages-statut/{id}/composants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ajouter un composant */
+        post: operations["addComponent"];
         delete?: never;
         options?: never;
         head?: never;
@@ -387,10 +644,10 @@ export interface paths {
          * Lister les maintenances
          * @description Liste paginée (20 par page, début le plus récent d'abord), filtrable par état, site et équipement.
          */
-        get: operations["list_4"];
+        get: operations["list_6"];
         put?: never;
         /** Planifier une maintenance */
-        post: operations["create_4"];
+        post: operations["create_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -425,10 +682,10 @@ export interface paths {
          * Lister les équipements
          * @description Liste paginée (20 par page, tri par nom), filtrable par site, type et statut.
          */
-        get: operations["list_5"];
+        get: operations["list_7"];
         put?: never;
         /** Créer un équipement */
-        post: operations["create_5"];
+        post: operations["create_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -473,6 +730,46 @@ export interface paths {
          * @description Exécution immédiate ; rien n'est enregistré et aucune alerte n'est ouverte.
          */
         post: operations["testProbe"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipements/{equipmentId}/modele/previsualiser": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Prévisualiser l'application d'un modèle
+         * @description Différentiel sans rien modifier : indicateurs à ajouter ou déjà présents, règles et sondes à créer, éléments ignorés et pourquoi. Identique à ce que fera l'application.
+         */
+        post: operations["previewTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipements/{equipmentId}/modele/appliquer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Appliquer un modèle à un équipement
+         * @description Idempotent : rien n'est créé deux fois (indicateur par clé, règle par nom, sonde par nom). Règles limitées à l'équipement, inactives sauf activateRules. Tout ou rien (une transaction). Secrets SNMP par référence env:NOM uniquement.
+         */
+        post: operations["applyTemplate"];
         delete?: never;
         options?: never;
         head?: never;
@@ -578,7 +875,7 @@ export interface paths {
          * Envoyer un message de test
          * @description Envoie un message fictif immédiatement et indique si le canal répond. Rien n'est enregistré dans l'historique.
          */
-        post: operations["test_1"];
+        post: operations["test_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -676,6 +973,85 @@ export interface paths {
          * @description Retourne un jeton JWT court à envoyer dans l'en-tête Authorization: Bearer et dépose le jeton de renouvellement dans un cookie HttpOnly.
          */
         post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/plannings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les plannings */
+        get: operations["listSchedules"];
+        put?: never;
+        /** Créer un planning */
+        post: operations["createSchedule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/plannings/{id}/rotation/generer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Générer les gardes d'une rotation
+         * @description preview=true : calcule les gardes sans rien écrire. Sinon les crée jusqu'à l'horizon (60 jours par défaut), de façon idempotente.
+         */
+        post: operations["generate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/plannings/{id}/gardes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Gardes d'un planning
+         * @description Gardes qui chevauchent [du, au[ ; par défaut de la veille à 60 jours.
+         */
+        get: operations["listShifts"];
+        put?: never;
+        /** Ajouter une garde (ou un remplacement ponctuel) */
+        post: operations["createShift"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/gardes/{id}/remplacer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Passer une garde à quelqu'un d'autre
+         * @description Crée un remplacement de maintenant à la fin de la garde. Réservé au titulaire de la garde et aux administrateurs.
+         */
+        post: operations["handover"];
         delete?: never;
         options?: never;
         head?: never;
@@ -947,6 +1323,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/statut/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lire une page de statut publique
+         * @description Sans authentification. Titre, description, état global, composants (nom affiché, groupe, état, disponibilité journalière sur 90 jours), incidents des 14 derniers jours. Une page inconnue, interne ou inactive reçoit la même réponse 404.
+         */
+        get: operations["read"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/perimetres": {
         parameters: {
             query?: never;
@@ -955,7 +1351,84 @@ export interface paths {
             cookie?: never;
         };
         /** Comptes limités à certains sites */
-        get: operations["list_6"];
+        get: operations["list_8"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages-statut/{id}/vue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Voir une page de statut
+         * @description Rendu de la page pour un compte connecté : composants de son périmètre de sites. Une page inactive n'est visible qu'en aperçu par un administrateur.
+         */
+        get: operations["view"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages-statut/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Rechercher une source
+         * @description Sondes, équipements ou sites dont le nom contient q (50 au plus).
+         */
+        get: operations["sources"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/modeles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lister les modèles d'équipement
+         * @description Filtres : catégorie, fabricant (sans casse), texte libre (q) et sysDescr d'un équipement découvert (modèles suggérés).
+         */
+        get: operations["listTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/modeles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Consulter un modèle (contenu complet) */
+        get: operations["getTemplate"];
         put?: never;
         post?: never;
         delete?: never;
@@ -996,6 +1469,66 @@ export interface paths {
          * @description Flux text/event-stream. Événements : ready (connexion établie) et alerts (une alerte a changé, à recharger par l'API). Le navigateur doit envoyer l'en-tête Authorization : utiliser fetch plutôt qu'EventSource.
          */
         get: operations["stream"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evenements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lister les événements réseau
+         * @description Liste paginée (50 par page, plus récents d'abord), filtrable par équipement, source, sévérité minimale (EMERGENCY la plus grave), période [from, to[ et texte (titre, détails, OID). 200 événements par page au plus.
+         */
+        get: operations["list_9"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipements/{equipmentId}/previsions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Prévision de saturation d'un équipement
+         * @description Pour chaque indicateur suivi (disque et mémoire en pourcentage par défaut) : tendance linéaire sur les 14 derniers jours de moyennes horaires, jours restants avant 100 % et confiance. Lecture seule, ouverte à tous les rôles dans leur périmètre de sites.
+         */
+        get: operations["forecasts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipements/{equipmentId}/modeles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Modèles appliqués à un équipement
+         * @description Version appliquée, date et auteur ; lecture selon le périmètre par site.
+         */
+        get: operations["listAppliedTemplates"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1072,7 +1605,7 @@ export interface paths {
             cookie?: never;
         };
         /** Consulter une recherche et les équipements trouvés */
-        get: operations["get_5"];
+        get: operations["get_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1186,7 +1719,7 @@ export interface paths {
          * Consulter le journal
          * @description Liste paginée (50 par page, plus récentes d'abord), filtrable par période (from inclus, to exclu), compte, action et cible.
          */
-        get: operations["list_7"];
+        get: operations["list_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1235,6 +1768,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/astreinte/personnes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Personnes pouvant être d'astreinte
+         * @description Administrateurs et opérateurs NOC actifs (choix d'une garde ou d'une passation).
+         */
+        get: operations["people"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/mes-gardes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mes gardes
+         * @description Gardes de l'appelant, en cours ou dans les 60 jours.
+         */
+        get: operations["myShifts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/maintenant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Qui est d'astreinte maintenant
+         * @description Pour chaque site visible : personne d'astreinte principale et secondaire à l'instant présent (planning du site avant planning tous sites, remplacement prioritaire).
+         */
+        get: operations["now"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/agenda": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Agenda des gardes
+         * @description Gardes de tous les plannings visibles sur [debut, debut + jours[ (30 jours par défaut, 62 au plus).
+         */
+        get: operations["agenda"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/alertes": {
         parameters: {
             query?: never;
@@ -1246,7 +1859,7 @@ export interface paths {
          * Lister les alertes
          * @description Liste paginée (20 par page, plus récentes d'abord), filtrable par état, équipement, sévérité ou alertes actives. Les alertes supprimées sont masquées.
          */
-        get: operations["list_8"];
+        get: operations["list_11"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1263,14 +1876,34 @@ export interface paths {
             cookie?: never;
         };
         /** Consulter une alerte et son historique */
-        get: operations["get_6"];
+        get: operations["get_7"];
         put?: never;
         post?: never;
         /**
          * Supprimer une alerte
          * @description Suppression logique : l'alerte et son historique restent en base.
          */
-        delete: operations["delete_5"];
+        delete: operations["delete_7"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alertes/{id}/diagnostic": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Diagnostiquer une alerte
+         * @description Calculé à la demande, de façon déterministe (ADR 0024) : résumé, impact, causes probables classées avec leurs preuves, alertes voisines, événements et changements récents, contexte des mesures, incidents similaires et pistes. Tous les rôles ; même périmètre par site que la lecture de l'alerte.
+         */
+        get: operations["diagnostic"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1288,6 +1921,23 @@ export interface paths {
         post?: never;
         /** Supprimer un lien */
         delete: operations["removeLink"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/astreinte/plannings/{id}/rotation/{niveau}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Supprimer la rotation d'un niveau */
+        delete: operations["deleteRotation"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1327,6 +1977,24 @@ export interface components {
             status?: "ACTIVE" | "INACTIVE";
             slaTarget?: number;
         };
+        EventRuleRequest: {
+            name: string;
+            /** @enum {string} */
+            source?: "SNMP_TRAP" | "SYSLOG";
+            /** @enum {string} */
+            minSeverity?: "EMERGENCY" | "ALERT" | "CRITICAL" | "ERROR" | "WARNING" | "NOTICE" | "INFO" | "DEBUG";
+            oidPrefix?: string;
+            messageRegex?: string;
+            resolveOid?: string;
+            resolveRegex?: string;
+            /** @enum {string} */
+            alertSeverity: "INFO" | "WARNING" | "CRITICAL";
+            /** Format: int32 */
+            dedupWindowSeconds?: number;
+            active?: boolean;
+            siteIds?: string[];
+            equipmentIds?: string[];
+        };
         AlertRuleRequest: {
             name: string;
             metricType: string;
@@ -1346,6 +2014,103 @@ export interface components {
         };
         UserScopeRequest: {
             siteIds: string[];
+        };
+        StatusPageRequest: {
+            /**
+             * @description Partie de l'adresse /statut/{slug}
+             * @example services-ept
+             */
+            slug: string;
+            title: string;
+            description?: string;
+            /** @enum {string} */
+            visibility: "INTERNAL" | "PUBLIC";
+            /** @description Vrai par défaut */
+            active?: boolean;
+        };
+        ComponentDetail: {
+            /** Format: uuid */
+            id?: string;
+            displayName?: string;
+            groupName?: string;
+            /** Format: int32 */
+            position?: number;
+            /** @enum {string} */
+            sourceType?: "PROBE" | "EQUIPMENT" | "SITE";
+            /** Format: uuid */
+            sourceId?: string;
+            /** @description Libellé technique de la source (administrateurs seulement) */
+            sourceLabel?: string;
+            /** @description Vrai si la source n'existe plus */
+            sourceMissing?: boolean;
+            /** @enum {string} */
+            state?: "OPERATIONAL" | "DEGRADED" | "PARTIAL_OUTAGE" | "MAJOR_OUTAGE" | "MAINTENANCE" | "UNKNOWN";
+        };
+        IncidentDetail: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            /** @enum {string} */
+            status?: "INVESTIGATING" | "IDENTIFIED" | "MONITORING" | "RESOLVED";
+            /** @enum {string} */
+            impact?: "NONE" | "MINOR" | "MAJOR";
+            message?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            resolvedAt?: string;
+            author?: string;
+            /** @description Ouvert automatiquement (panne majeure prolongée) */
+            automatic?: boolean;
+            componentIds?: string[];
+            updates?: components["schemas"]["IncidentUpdateDetail"][];
+        };
+        IncidentUpdateDetail: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            status?: "INVESTIGATING" | "IDENTIFIED" | "MONITORING" | "RESOLVED";
+            message?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            author?: string;
+        };
+        StatusPageDetail: {
+            /** Format: uuid */
+            id?: string;
+            slug?: string;
+            title?: string;
+            description?: string;
+            /** @enum {string} */
+            visibility?: "INTERNAL" | "PUBLIC";
+            active?: boolean;
+            /** @enum {string} */
+            overallState?: "OPERATIONAL" | "DEGRADED" | "PARTIAL_OUTAGE" | "MAJOR_OUTAGE" | "MAINTENANCE" | "UNKNOWN";
+            components?: components["schemas"]["ComponentDetail"][];
+            incidents?: components["schemas"]["IncidentDetail"][];
+        };
+        IncidentRequest: {
+            title: string;
+            /** @enum {string} */
+            status: "INVESTIGATING" | "IDENTIFIED" | "MONITORING" | "RESOLVED";
+            /** @enum {string} */
+            impact: "NONE" | "MINOR" | "MAJOR";
+            message: string;
+            componentIds?: string[];
+        };
+        ComponentRequest: {
+            /**
+             * @description Nom vu par les usagers
+             * @example Messagerie
+             */
+            displayName: string;
+            groupName?: string;
+            /** Format: int32 */
+            position?: number;
+            /** @enum {string} */
+            sourceType: "PROBE" | "EQUIPMENT" | "SITE";
+            /** Format: uuid */
+            sourceId: string;
         };
         PreferenceRequest: {
             /** @enum {string} */
@@ -1447,6 +2212,79 @@ export interface components {
             subjectTemplate: string;
             bodyTemplate: string;
         };
+        OnCallScheduleRequest: {
+            name: string;
+            description?: string;
+            timezone?: string;
+            allSites?: boolean;
+            siteIds?: string[];
+            active?: boolean;
+        };
+        OnCallScheduleResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            description?: string;
+            timezone?: string;
+            allSites?: boolean;
+            sites?: components["schemas"]["OnCallSiteRef"][];
+            active?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        OnCallSiteRef: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+        };
+        OnCallRotationRequest: {
+            /** @enum {string} */
+            level: "PRIMARY" | "SECONDARY";
+            userIds: string[];
+            /** Format: date */
+            startDate: string;
+            /** Format: int32 */
+            shiftLengthDays: number;
+            /** Format: time-local */
+            handoverTime: string;
+        };
+        OnCallRotationResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            scheduleId?: string;
+            /** @enum {string} */
+            level?: "PRIMARY" | "SECONDARY";
+            /** Format: date */
+            startDate?: string;
+            /** Format: int32 */
+            shiftLengthDays?: number;
+            /** Format: time-local */
+            handoverTime?: string;
+            members?: components["schemas"]["OnCallUserRef"][];
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        OnCallUserRef: {
+            /** Format: uuid */
+            id?: string;
+            username?: string;
+        };
+        OnCallShiftRequest: {
+            /** Format: uuid */
+            userId: string;
+            /** @enum {string} */
+            level: "PRIMARY" | "SECONDARY";
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            note?: string;
+            override?: boolean;
+        };
         ViewResponse: {
             /** Format: uuid */
             id?: string;
@@ -1513,6 +2351,39 @@ export interface components {
             equipmentCount?: number;
             slaTarget?: number;
         };
+        EventRuleResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            /** @enum {string} */
+            source?: "SNMP_TRAP" | "SYSLOG";
+            /** @enum {string} */
+            minSeverity?: "EMERGENCY" | "ALERT" | "CRITICAL" | "ERROR" | "WARNING" | "NOTICE" | "INFO" | "DEBUG";
+            oidPrefix?: string;
+            messageRegex?: string;
+            resolveOid?: string;
+            resolveRegex?: string;
+            /** @enum {string} */
+            alertSeverity?: "INFO" | "WARNING" | "CRITICAL";
+            /** Format: int32 */
+            dedupWindowSeconds?: number;
+            active?: boolean;
+            siteIds?: string[];
+            equipmentIds?: string[];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        EventRuleTestRequest: {
+            rule: components["schemas"]["EventRuleRequest"];
+            /** @enum {string} */
+            source: "SNMP_TRAP" | "SYSLOG";
+            /** @enum {string} */
+            severity: "EMERGENCY" | "ALERT" | "CRITICAL" | "ERROR" | "WARNING" | "NOTICE" | "INFO" | "DEBUG";
+            trapOid?: string;
+            text?: string;
+        };
         AlertRuleResponse: {
             /** Format: uuid */
             id?: string;
@@ -1540,6 +2411,11 @@ export interface components {
             rule: components["schemas"]["AlertRuleRequest"];
             /** Format: int32 */
             days: number;
+        };
+        IncidentUpdateRequest: {
+            /** @enum {string} */
+            status: "INVESTIGATING" | "IDENTIFIED" | "MONITORING" | "RESOLVED";
+            message: string;
         };
         MaintenanceRequest: {
             /** Format: uuid */
@@ -1598,6 +2474,33 @@ export interface components {
             lastError?: string;
             /** Format: int32 */
             consecutiveFailures?: number;
+        };
+        Options: {
+            /** @enum {string} */
+            snmpVersion?: "V2C" | "V3";
+            communityReference?: string;
+            securityIdentity?: string;
+            secretReference?: string;
+            /**
+             * Format: int32
+             * @description Port SNMP ; vide : port par défaut du serveur
+             */
+            snmpPort?: number;
+            /**
+             * Format: int32
+             * @description 60 par défaut
+             */
+            pollIntervalSeconds?: number;
+            /** @description Vrai par défaut */
+            createRules?: boolean;
+            /** @description Faux par défaut : les règles sont créées inactives */
+            activateRules?: boolean;
+            /** @description Vrai par défaut */
+            createProbes?: boolean;
+        };
+        TemplateApplyRequest: {
+            templateId: string;
+            options?: components["schemas"]["Options"];
         };
         AgentRegistrationResponse: {
             /** Format: uuid */
@@ -1664,6 +2567,58 @@ export interface components {
         LoginRequest: {
             username: string;
             password: string;
+        };
+        OnCallGenerateRequest: {
+            /** @enum {string} */
+            level: "PRIMARY" | "SECONDARY";
+            /** Format: int32 */
+            horizonDays?: number;
+            preview?: boolean;
+        };
+        OnCallGenerateResponse: {
+            preview?: boolean;
+            /** @enum {string} */
+            level?: "PRIMARY" | "SECONDARY";
+            /** Format: int32 */
+            count?: number;
+            shifts?: components["schemas"]["OnCallSlotResponse"][];
+        };
+        OnCallSlotResponse: {
+            /** Format: date-time */
+            startsAt?: string;
+            /** Format: date-time */
+            endsAt?: string;
+            /** Format: uuid */
+            userId?: string;
+            username?: string;
+        };
+        OnCallShiftResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            scheduleId?: string;
+            scheduleName?: string;
+            /** Format: uuid */
+            userId?: string;
+            username?: string;
+            /** @enum {string} */
+            level?: "PRIMARY" | "SECONDARY";
+            /** Format: date-time */
+            startsAt?: string;
+            /** Format: date-time */
+            endsAt?: string;
+            note?: string;
+            override?: boolean;
+            generated?: boolean;
+            /** Format: uuid */
+            replacesShiftId?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        OnCallHandoverRequest: {
+            /** Format: uuid */
+            userId: string;
+            note?: string;
         };
         CommentRequest: {
             comment?: string;
@@ -1839,6 +2794,10 @@ export interface components {
             content?: components["schemas"]["SiteResponse"][];
             page?: components["schemas"]["PageMetadata"];
         };
+        PagedModelEventRuleResponse: {
+            content?: components["schemas"]["EventRuleResponse"][];
+            page?: components["schemas"]["PageMetadata"];
+        };
         PagedModelAlertRuleResponse: {
             content?: components["schemas"]["AlertRuleResponse"][];
             page?: components["schemas"]["PageMetadata"];
@@ -1847,6 +2806,50 @@ export interface components {
             /** Format: uuid */
             userId?: string;
             siteIds?: string[];
+        };
+        StatusPageSummary: {
+            /** Format: uuid */
+            id?: string;
+            slug?: string;
+            title?: string;
+            description?: string;
+            /** @enum {string} */
+            visibility?: "INTERNAL" | "PUBLIC";
+            active?: boolean;
+            /** @enum {string} */
+            overallState?: "OPERATIONAL" | "DEGRADED" | "PARTIAL_OUTAGE" | "MAJOR_OUTAGE" | "MAINTENANCE" | "UNKNOWN";
+            /** Format: int32 */
+            componentCount?: number;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        SourceOption: {
+            /** @enum {string} */
+            type?: "PROBE" | "EQUIPMENT" | "SITE";
+            /** Format: uuid */
+            id?: string;
+            label?: string;
+            detail?: string;
+        };
+        TemplateSummaryResponse: {
+            id?: string;
+            /** Format: int32 */
+            version?: number;
+            name?: string;
+            vendor?: string;
+            /** @enum {string} */
+            category?: "ROUTER" | "SWITCH" | "ACCESS_POINT" | "SERVER" | "UPS" | "PRINTER" | "SERVICE" | "GENERIC";
+            description?: string;
+            /** @description Faux : OID non validés sur un matériel réel */
+            verified?: boolean;
+            /** Format: int32 */
+            metricCount?: number;
+            /** Format: int32 */
+            ruleCount?: number;
+            /** Format: int32 */
+            probeCount?: number;
+            /** Format: int32 */
+            eventRuleCount?: number;
         };
         MetricResponse: {
             /** Format: int64 */
@@ -1865,9 +2868,93 @@ export interface components {
             content?: components["schemas"]["MaintenanceResponse"][];
             page?: components["schemas"]["PageMetadata"];
         };
+        NetworkEventResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            equipmentId?: string;
+            equipmentName?: string;
+            /** @enum {string} */
+            source?: "SNMP_TRAP" | "SYSLOG";
+            /** @enum {string} */
+            severity?: "EMERGENCY" | "ALERT" | "CRITICAL" | "ERROR" | "WARNING" | "NOTICE" | "INFO" | "DEBUG";
+            title?: string;
+            details?: string;
+            trapOid?: string;
+            sourceAddress?: string;
+            hostname?: string;
+            appName?: string;
+            /** Format: int32 */
+            facility?: number;
+            /** Format: date-time */
+            receivedAt?: string;
+        };
+        PagedModelNetworkEventResponse: {
+            content?: components["schemas"]["NetworkEventResponse"][];
+            page?: components["schemas"]["PageMetadata"];
+        };
         PagedModelEquipmentResponse: {
             content?: components["schemas"]["EquipmentResponse"][];
             page?: components["schemas"]["PageMetadata"];
+        };
+        CapacityForecastResponse: {
+            /** @description Indicateur, par exemple disk.usage */
+            key?: string;
+            /** @description Unité des mesures (%) */
+            unit?: string;
+            /**
+             * Format: double
+             * @description Valeur la plus récente (moyenne de la dernière heure mesurée)
+             */
+            current?: number;
+            /**
+             * Format: double
+             * @description Tendance en points par jour (pente de la droite)
+             */
+            slopePerDay?: number;
+            /**
+             * Format: double
+             * @description Coefficient de détermination r², de 0 à 1
+             */
+            r2?: number;
+            /**
+             * Format: double
+             * @description Jours avant d'atteindre la limite ; absent sans tendance à la hausse
+             */
+            daysToLimit?: number;
+            /**
+             * Format: date-time
+             * @description Date estimée de saturation ; absente sans tendance à la hausse
+             */
+            projectedAt?: string;
+            /** @enum {string} */
+            status?: "OK" | "NOT_ENOUGH_DATA" | "NO_GROWTH" | "ALREADY_FULL";
+            /** @description Confiance : haute (r² ≥ 0,8), moyenne (≥ 0,5) ou faible */
+            confidence?: string;
+            /**
+             * Format: double
+             * @description Limite visée (100 pour un pourcentage)
+             */
+            limit?: number;
+            /**
+             * Format: int32
+             * @description Fenêtre d'observation en jours
+             */
+            windowDays?: number;
+            /**
+             * Format: int32
+             * @description Période minimale de mesures, en jours, pour une prévision
+             */
+            minSpanDays?: number;
+            /**
+             * Format: int32
+             * @description Nombre de points (moyennes horaires) utilisés
+             */
+            points?: number;
+            /** Format: date-time */
+            firstPointAt?: string;
+            /** Format: date-time */
+            lastPointAt?: string;
         };
         MetricHistoryResponse: {
             /** Format: uuid */
@@ -1952,6 +3039,28 @@ export interface components {
             clientId?: string;
             scopes?: string;
         };
+        OnCallNowResponse: {
+            /** Format: uuid */
+            siteId?: string;
+            siteCode?: string;
+            siteName?: string;
+            covered?: boolean;
+            primary?: components["schemas"]["OnCallPersonResponse"];
+            secondary?: components["schemas"]["OnCallPersonResponse"];
+        };
+        OnCallPersonResponse: {
+            /** Format: uuid */
+            userId?: string;
+            username?: string;
+            /** Format: uuid */
+            shiftId?: string;
+            /** Format: uuid */
+            scheduleId?: string;
+            scheduleName?: string;
+            /** Format: date-time */
+            endsAt?: string;
+            override?: boolean;
+        };
         AlertResponse: {
             /** Format: uuid */
             id?: string;
@@ -1960,7 +3069,7 @@ export interface components {
             equipmentName?: string;
             ruleName?: string;
             /** @enum {string} */
-            type?: "THRESHOLD" | "COLLECTION" | "ANOMALY";
+            type?: "THRESHOLD" | "COLLECTION" | "ANOMALY" | "FORECAST" | "EVENT";
             /** @enum {string} */
             state?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ARCHIVED" | "DELETED";
             /** @enum {string} */
@@ -1983,6 +3092,146 @@ export interface components {
         PagedModelAlertResponse: {
             content?: components["schemas"]["AlertResponse"][];
             page?: components["schemas"]["PageMetadata"];
+        };
+        AlerteVoisine: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            equipementId?: string;
+            equipementNom?: string;
+            /** @enum {string} */
+            type?: "THRESHOLD" | "COLLECTION" | "ANOMALY" | "FORECAST" | "EVENT";
+            /** @enum {string} */
+            severite?: "INFO" | "WARNING" | "CRITICAL";
+            /** @enum {string} */
+            etat?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ARCHIVED" | "DELETED";
+            message?: string;
+            /** Format: date-time */
+            declencheeLe?: string;
+            /** @enum {string} */
+            relation?: "MEME_EQUIPEMENT" | "AMONT" | "AVAL" | "MEME_SITE";
+        };
+        CauseProbable: {
+            /** @enum {string} */
+            source?: "AMONT_EN_ALERTE" | "EVENEMENT_RECENT" | "CHANGEMENT_RECENT" | "SILENCE_COLLECTE" | "TENDANCE_SATURATION" | "ANOMALIE";
+            /**
+             * Format: double
+             * @description Score déterministe entre 0 et 1
+             */
+            score?: number;
+            libelle?: string;
+            /** @description Preuves : faits qui justifient la cause */
+            raisons?: string[];
+            /** Format: uuid */
+            equipementId?: string | null;
+            /** Format: uuid */
+            alerteId?: string | null;
+            /** Format: date-time */
+            survenueLe?: string | null;
+        };
+        ChangementRecent: {
+            action?: string;
+            libelle?: string;
+            auteur?: string | null;
+            /** Format: date-time */
+            effectueLe?: string;
+            cible?: string;
+        };
+        ContexteMetrique: {
+            metrique?: string;
+            unite?: string | null;
+            dernieresValeurs?: components["schemas"]["Valeur"][];
+            /** Format: double */
+            valeurOuverture?: number | null;
+            /**
+             * Format: double
+             * @description Moyenne à la même heure (UTC) sur les 7 jours précédents, ou null
+             */
+            moyenneReference?: number | null;
+            /**
+             * Format: int32
+             * @description Jours ayant servi à la moyenne de référence
+             */
+            joursReference?: number;
+            /** Format: double */
+            ecartPourcent?: number | null;
+            /** Format: double */
+            seuil?: number | null;
+            operateur?: string | null;
+            prevision?: components["schemas"]["CapacityForecastResponse"];
+        };
+        DiagnosticResponse: {
+            /** Format: uuid */
+            alerteId?: string;
+            /** Format: date-time */
+            calculeLe?: string;
+            /**
+             * Format: date-time
+             * @description Instant d'ouverture retenu (dernière ouverture si l'alerte a été rouverte)
+             */
+            ouverture?: string;
+            /**
+             * Format: int32
+             * @description Demi-fenêtre d'analyse autour de l'ouverture, en minutes
+             */
+            fenetreMinutes?: number;
+            resume?: string;
+            impact?: components["schemas"]["Impact"];
+            /** @description Cinq causes au plus, de la plus probable à la moins probable */
+            causesProbables?: components["schemas"]["CauseProbable"][];
+            alertesVoisines?: components["schemas"]["AlerteVoisine"][];
+            evenementsRecents?: components["schemas"]["EvenementRecent"][];
+            changementsRecents?: components["schemas"]["ChangementRecent"][];
+            contexteMetrique?: components["schemas"]["ContexteMetrique"];
+            incidentsSimilaires?: components["schemas"]["IncidentsSimilaires"];
+            /** @description Pistes de vérification (2 à 5), choisies dans un catalogue fixe */
+            pistes?: string[];
+        };
+        EvenementRecent: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            equipementId?: string;
+            equipementNom?: string;
+            source?: string;
+            severite?: string;
+            titre?: string;
+            /** Format: date-time */
+            recuLe?: string;
+            /** @enum {string} */
+            relation?: "MEME_EQUIPEMENT" | "AMONT" | "AVAL" | "MEME_SITE";
+        };
+        IncidentsSimilaires: {
+            /** @description MEME_EQUIPEMENT, MEME_SITE ou AUCUN */
+            critere?: string;
+            /** Format: int32 */
+            nombre?: number;
+            /** Format: int32 */
+            resolus?: number;
+            /** Format: double */
+            medianeMinutes?: number | null;
+            /** Format: double */
+            moyenneMinutes?: number | null;
+            dernieres?: components["schemas"]["Resolution"][];
+        };
+        Resolution: {
+            /** Format: uuid */
+            alerteId?: string;
+            /** Format: date-time */
+            declencheeLe?: string;
+            /** Format: date-time */
+            resolueLe?: string;
+            /** Format: int64 */
+            dureeMinutes?: number;
+            typeResolution?: string | null;
+            auteur?: string | null;
+            commentaire?: string | null;
+        };
+        Valeur: {
+            /** Format: date-time */
+            le?: string;
+            /** Format: double */
+            valeur?: number;
         };
         ApiError: {
             /** Format: int32 */
@@ -2276,7 +3525,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AlertRuleRequest"];
+                "application/json": components["schemas"]["EventRuleRequest"];
             };
         };
         responses: {
@@ -2322,6 +3571,152 @@ export interface operations {
         };
     };
     delete_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Règle introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description La règle a ouvert des alertes */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Règle introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AlertRuleRequest"];
+            };
+        };
+        responses: {
+            /** @description Règle invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Règle introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nom déjà utilisé */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -2422,7 +3817,295 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Page introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatusPageRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StatusPageDetail"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    delete_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    updateIncident: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                incidentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IncidentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IncidentDetail"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    deleteIncident: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                incidentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    updateComponent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                componentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComponentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ComponentDetail"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    deleteComponent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                componentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    get_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -2502,7 +4185,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -2542,7 +4225,7 @@ export interface operations {
             };
         };
     };
-    update_3: {
+    update_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -2604,7 +4287,7 @@ export interface operations {
             };
         };
     };
-    delete_3: {
+    delete_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -2752,7 +4435,7 @@ export interface operations {
             };
         };
     };
-    get_4: {
+    get_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -2839,7 +4522,7 @@ export interface operations {
             };
         };
     };
-    delete_4: {
+    delete_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -2919,6 +4602,299 @@ export interface operations {
             };
             /** @description Modèle introuvable */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Planning introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnCallScheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallScheduleResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    deleteSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listRotations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallRotationResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    saveRotation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnCallRotationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallRotationResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    updateShift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                shiftId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnCallShiftRequest"];
+            };
+        };
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Garde générée par la rotation */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteShift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                shiftId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Garde générée par la rotation */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3426,7 +5402,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PagedModelAlertRuleResponse"];
+                    "*/*": components["schemas"]["PagedModelEventRuleResponse"];
                 };
             };
             /** @description Authentification requise ou jeton expiré */
@@ -3450,6 +5426,142 @@ export interface operations {
         };
     };
     create_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventRuleRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EventRuleResponse"];
+                };
+            };
+            /** @description Règle invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Nom déjà utilisé */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    test: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventRuleTestRequest"];
+            };
+        };
+        responses: {
+            /** @description Règle ou exemple invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    list_4: {
+        parameters: {
+            query: {
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelAlertRuleResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    create_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -3505,7 +5617,7 @@ export interface operations {
             };
         };
     };
-    test: {
+    test_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -3545,7 +5657,262 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StatusPageSummary"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    create_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatusPageRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StatusPageDetail"];
+                };
+            };
+            /** @description Saisie invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Identifiant déjà utilisé ou 10 pages atteintes */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createIncident: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IncidentRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IncidentDetail"];
+                };
+            };
+            /** @description Saisie invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    addUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                incidentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IncidentUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IncidentDetail"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 50 mises à jour atteintes */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    addComponent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComponentRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ComponentDetail"];
+                };
+            };
+            /** @description Saisie invalide ou source inexistante */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 50 composants atteints */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_6: {
         parameters: {
             query: {
                 state?: "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
@@ -3588,7 +5955,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    create_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -3682,7 +6049,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_7: {
         parameters: {
             query: {
                 siteId?: string;
@@ -3726,7 +6093,7 @@ export interface operations {
             };
         };
     };
-    create_5: {
+    create_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -3920,6 +6287,104 @@ export interface operations {
                 };
             };
             /** @description Sonde introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    previewTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplateApplyRequest"];
+            };
+        };
+        responses: {
+            /** @description Application impossible */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Équipement ou modèle introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    applyTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplateApplyRequest"];
+            };
+        };
+        responses: {
+            /** @description Application impossible */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Équipement ou modèle introuvable */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4234,7 +6699,7 @@ export interface operations {
             };
         };
     };
-    test_1: {
+    test_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -4467,6 +6932,289 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["TokenResponse"];
                 };
+            };
+        };
+    };
+    listSchedules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallScheduleResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    createSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnCallScheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallScheduleResponse"];
+                };
+            };
+            /** @description Saisie invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Nom déjà utilisé */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    generate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnCallGenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallGenerateResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listShifts: {
+        parameters: {
+            query?: {
+                du?: string;
+                au?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallShiftResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    createShift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnCallShiftRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallShiftResponse"];
+                };
+            };
+            /** @description Saisie invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    handover: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnCallHandoverRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallShiftResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Garde terminée */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5048,7 +7796,34 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Page introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Trop de requêtes depuis cette adresse (en-tête Retry-After) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -5083,6 +7858,166 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ApiError"];
                 };
+            };
+        };
+    };
+    view: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Page introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    sources: {
+        parameters: {
+            query: {
+                type: "PROBE" | "EQUIPMENT" | "SITE";
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SourceOption"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listTemplates: {
+        parameters: {
+            query?: {
+                category?: "ROUTER" | "SWITCH" | "ACCESS_POINT" | "SERVER" | "UPS" | "PRINTER" | "SERVICE" | "GENERIC";
+                vendor?: string;
+                q?: string;
+                sysDescr?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TemplateSummaryResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Modèle introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5153,6 +8088,130 @@ export interface operations {
             };
             /** @description Trop de clients connectés */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_9: {
+        parameters: {
+            query: {
+                equipmentId?: string;
+                source?: "SNMP_TRAP" | "SYSLOG";
+                minSeverity?: "EMERGENCY" | "ALERT" | "CRITICAL" | "ERROR" | "WARNING" | "NOTICE" | "INFO" | "DEBUG";
+                from?: string;
+                to?: string;
+                q?: string;
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelNetworkEventResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    forecasts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CapacityForecastResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listAppliedTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Équipement introuvable */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5285,7 +8344,7 @@ export interface operations {
             };
         };
     };
-    get_5: {
+    get_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -5497,7 +8556,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_10: {
         parameters: {
             query: {
                 from?: string;
@@ -5608,7 +8667,162 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    people: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallUserRef"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    myShifts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallShiftResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    now: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallNowResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    agenda: {
+        parameters: {
+            query?: {
+                debut?: string;
+                jours?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnCallShiftResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    list_11: {
         parameters: {
             query: {
                 state?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ARCHIVED" | "DELETED";
@@ -5652,7 +8866,7 @@ export interface operations {
             };
         };
     };
-    get_6: {
+    get_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -5690,7 +8904,7 @@ export interface operations {
             };
         };
     };
-    delete_5: {
+    delete_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -5728,6 +8942,53 @@ export interface operations {
             };
             /** @description Transition impossible depuis l'état actuel de l'alerte */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    diagnostic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Diagnostic calculé */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DiagnosticResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Alerte introuvable */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5777,6 +9038,45 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    deleteRotation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                niveau: "PRIMARY" | "SECONDARY";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
             };
         };
     };

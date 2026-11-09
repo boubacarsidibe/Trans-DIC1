@@ -6,6 +6,7 @@ export const TEMPLATE_LABELS = {
   ALERT_OPENED: "Alerte ouverte",
   ALERT_RESOLVED: "Alerte résolue",
   ALERT_ESCALATED: "Alerte non prise en charge",
+  ALERT_ONCALL: "Personne d'astreinte prévenue",
 };
 
 export const STATE_LABELS = {

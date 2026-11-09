@@ -35,6 +35,86 @@ export async function listIndicators(equipmentId) {
   return data;
 }
 
+/** Prévision de saturation de chaque indicateur suivi (disque, mémoire) : ADR 0020. */
+export async function getForecasts(equipmentId) {
+  const { data } = await apiClient.get(`/equipements/${equipmentId}/previsions`);
+  return data;
+}
+
+const FORECAST_SUBJECTS = [
+  { family: "disk.usage", label: "Disque", full: "Plein" },
+  { family: "memory.usage", label: "Mémoire", full: "Pleine" },
+];
+
+function forecastSubject(key) {
+  const subject = FORECAST_SUBJECTS.find((s) => key === s.family || key.startsWith(`${s.family}.`));
+  if (!subject) return { label: key, full: "Plein" };
+  return { label: key === subject.family ? subject.label : `${subject.label} (${key})`, full: subject.full };
+}
+
+const formatDay = (iso) =>
+  new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+/**
+ * Textes d'une carte de prévision : titre, valeur actuelle, tendance par jour et conclusion
+ * (« plein dans ~N jours le … », pas de tendance, pas assez de données ou déjà plein).
+ */
+export function describeForecast(forecast) {
+  const { label, full } = forecastSubject(forecast.key);
+  const unit = forecast.unit || "%";
+  const slope = forecast.slopePerDay;
+  // Deux décimales pour une pente faible : jamais « +0 % par jour » pour une tendance réelle.
+  const trend =
+    slope === null || slope === undefined
+      ? null
+      : `${slope > 0 ? "+" : ""}${
+          Math.abs(slope) < 0.1 && slope !== 0 ? formatPrecise(slope, unit) : formatValue(slope, unit)
+        } par jour`;
+  let outlook;
+  switch (forecast.status) {
+    case "OK": {
+      const days = forecast.daysToLimit;
+      if (days > MAX_FORECAST_DAYS) {
+        outlook = `${full} dans plus d'un an`;
+      } else {
+        const when = days < 1 ? "moins d'un jour" : `~${Math.round(days)} jour${Math.round(days) > 1 ? "s" : ""}`;
+        outlook = `${full} dans ${when} le ${formatDay(forecast.projectedAt)}`;
+      }
+      break;
+    }
+    case "ALREADY_FULL":
+      outlook = `${full} : la limite de ${formatValue(forecast.limit, unit)} est atteinte`;
+      break;
+    case "NO_GROWTH":
+      outlook = "Pas de tendance à la hausse";
+      break;
+    default: {
+      const span = forecast.minSpanDays ?? 3;
+      outlook = `Pas assez de données (il faut ${span} jour${span > 1 ? "s" : ""} de mesures)`;
+    }
+  }
+  const indicative = forecast.status === "OK" && forecast.confidence === "faible";
+  let confidence = null;
+  if (forecast.status === "OK" && forecast.confidence) {
+    confidence = indicative ? "Confiance faible : estimation indicative" : `Confiance ${forecast.confidence}`;
+  }
+  return {
+    title: `Prévision : ${label}`,
+    current: forecast.current === null || forecast.current === undefined ? null : formatValue(forecast.current, unit),
+    trend,
+    outlook,
+    confidence,
+    indicative,
+  };
+}
+
+/** Au-delà d'un an, une date de saturation n'a plus de sens : « plus d'un an ». */
+const MAX_FORECAST_DAYS = 365;
+
+function formatPrecise(value, unit) {
+  return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(value)} ${unit ?? ""}`.trim();
+}
+
 const STEP_MS = {
   RAW: 30_000,
   MIN5: 5 * 60_000,

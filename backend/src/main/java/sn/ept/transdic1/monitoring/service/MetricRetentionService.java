@@ -42,7 +42,10 @@ public class MetricRetentionService {
     this.hourlyRetentionMonths = hourlyRetentionMonths;
   }
 
-  /** Agrège par heure les mesures des heures terminées. Idempotent : peut être relancé. */
+  /**
+   * Agrège par heure les mesures valables (qualité autre que BAD) des heures terminées. Idempotent
+   * : peut être relancé.
+   */
   @Scheduled(cron = "${monitoring.metric.aggregation-cron:0 5 * * * *}", zone = "UTC")
   public int aggregateCompletedHours() {
     Instant end = clock.instant().truncatedTo(ChronoUnit.HOURS);
@@ -58,7 +61,10 @@ public class MetricRetentionService {
                 + " date_trunc('hour', collected_at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC',"
                 + " max(unit), count(*), min(metric_value), max(metric_value),"
                 + " round(avg(metric_value), 4)"
-                + " FROM metric WHERE collected_at >= ? AND collected_at < ?"
+                // Comme les lectures brutes (historique, anomalies, prévisions), les mesures de
+                // qualité BAD (l'agent envoie 0 quand une lecture échoue) sont écartées : une heure
+                // sans mesure valable n'a pas d'agrégat.
+                + " FROM metric WHERE collected_at >= ? AND collected_at < ? AND quality <> 'BAD'"
                 + " GROUP BY equipment_id, metric_key,"
                 + " date_trunc('hour', collected_at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'"
                 + " ON CONFLICT (equipment_id, metric_key, hour_start) DO UPDATE SET"

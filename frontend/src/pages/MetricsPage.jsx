@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   Area,
@@ -15,7 +15,9 @@ import { getEquipment } from "../api/collection.js";
 import {
   CHART_METRICS,
   PERIODS,
+  describeForecast,
   formatTime,
+  getForecasts,
   getHistory,
   listIndicators,
   periodRange,
@@ -177,6 +179,36 @@ function MetricChart({ metric, history, periodHours, error, loading }) {
   );
 }
 
+// Une carte par indicateur suivi : valeur actuelle, tendance et date de saturation estimée.
+// Une confiance faible : la carte a un bord en pointillé et se dit « indicative » (sans baisser le
+// contraste du texte).
+function ForecastCard({ forecast }) {
+  const text = describeForecast(forecast);
+  const titleId = useId();
+  return (
+    <section
+      aria-labelledby={titleId}
+      data-indicative={text.indicative || undefined}
+      className={`panel${text.indicative ? " border-dashed" : ""}`}
+    >
+      <h2 id={titleId} className="text-base text-white">
+        {text.title}
+      </h2>
+      <p className="mt-2 text-sm text-slate-300">
+        {text.current && (
+          <>
+            Actuel : <strong className="text-white">{text.current}</strong>
+          </>
+        )}
+        {text.current && text.trend && " · "}
+        {text.trend && <>Tendance : {text.trend}</>}
+      </p>
+      <p className="mt-2 text-white">{text.outlook}</p>
+      {text.confidence && <p className="mt-1 text-xs text-slate-400">{text.confidence}</p>}
+    </section>
+  );
+}
+
 function MetricsPage() {
   const { id } = useParams();
   const [equipment, setEquipment] = useState(null);
@@ -187,6 +219,7 @@ function MetricsPage() {
   const [loadError, setLoadError] = useState("");
   const [indicators, setIndicators] = useState([]);
   const [tab, setTab] = useState("overview");
+  const [forecastState, setForecastState] = useState({ id: null, list: [], error: false });
 
   useEffect(() => {
     getEquipment(id)
@@ -226,6 +259,24 @@ function MetricsPage() {
   // Même liste de graphes = même identité : l'arrivée des indicateurs ne recharge pas tout.
   const signature = computed.map((metric) => metric.key).join("|");
   const charts = useMemo(() => computed, [signature]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Les prévisions sont recalculées par heure : un chargement par équipement suffit. En changeant
+  // d'équipement, les cartes du précédent disparaissent et sa réponse tardive est ignorée.
+  useEffect(() => {
+    let current = true;
+    getForecasts(id)
+      .then((data) => {
+        if (current) setForecastState({ id, list: Array.isArray(data) ? data : [], error: false });
+      })
+      .catch(() => {
+        if (current) setForecastState({ id, list: [], error: true });
+      });
+    return () => {
+      current = false;
+    };
+  }, [id]);
+  // Réponse d'un autre équipement (avant la suivante) : rien n'est affiché.
+  const forecasts = forecastState.id === id ? forecastState.list : [];
+  const forecastError = forecastState.id === id && forecastState.error;
 
   const load = useCallback(async () => {
     const range = periodRange(period);
@@ -314,6 +365,19 @@ function MetricsPage() {
             </button>
           ))}
         </div>
+
+        {forecastError && (
+          <p role="status" className="mt-4 text-sm text-slate-400">
+            Prévisions de saturation indisponibles.
+          </p>
+        )}
+        {forecasts.length > 0 && (
+          <div aria-label="Prévisions de saturation" role="group" className="mt-5 grid gap-4 sm:grid-cols-2">
+            {forecasts.map((forecast) => (
+              <ForecastCard key={forecast.key} forecast={forecast} />
+            ))}
+          </div>
+        )}
 
         {tab === "overview" && sorted.length > 0 && (
           <section aria-labelledby="dernieres" className="panel mt-5">

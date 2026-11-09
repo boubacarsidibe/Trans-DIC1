@@ -1,0 +1,68 @@
+{
+  "id": "hpe-aruba-switch",
+  "version": 1,
+  "name": "Commutateur HPE / Aruba (ProCurve)",
+  "vendor": "HPE Aruba",
+  "category": "SWITCH",
+  "description": "Commutateur HPE / Aruba de la gamme ProCurve (ArubaOS-Switch) : CPU (STATISTICS-MIB hpSwitchCpuStat) et mémoire du premier module (NETSWITCH-MIB hpLocalMem). Les gammes AOS-CX utilisent d'autres MIB. OID non validés sur matériel de l'EPT.",
+  "verified": false,
+  "sysDescrHints": ["ProCurve", "Aruba"],
+  "metrics": [
+    {
+      "name": "Charge CPU",
+      "technicalKey": "cpu.usage",
+      "valueType": "INTEGER",
+      "unit": "%",
+      "snmpOid": "1.3.6.1.4.1.11.2.14.11.5.1.9.6.1.0",
+      "source": "STATISTICS-MIB::hpSwitchCpuStat.0"
+    },
+    {
+      "name": "Mémoire libre",
+      "technicalKey": "memory.free",
+      "valueType": "DECIMAL",
+      "unit": "Mo",
+      "snmpOid": "1.3.6.1.4.1.11.2.14.11.5.1.1.2.1.1.1.6.1",
+      "source": "NETSWITCH-MIB::hpLocalMemFreeBytes.1 (octets, converti en Mo)",
+      "scale": 0.000001
+    },
+    {
+      "name": "Mémoire totale",
+      "technicalKey": "memory.total",
+      "valueType": "DECIMAL",
+      "unit": "Mo",
+      "snmpOid": "1.3.6.1.4.1.11.2.14.11.5.1.1.2.1.1.1.5.1",
+      "source": "NETSWITCH-MIB::hpLocalMemTotalBytes.1 (octets, converti en Mo)",
+      "scale": 0.000001
+    },
+    {
+      "name": "Nombre d'interfaces",
+      "technicalKey": "interfaces.count",
+      "valueType": "INTEGER",
+      "snmpOid": "1.3.6.1.2.1.2.1.0",
+      "source": "IF-MIB::ifNumber.0"
+    }
+  ],
+  "rules": [
+    {
+      "name": "CPU élevé",
+      "metricKey": "cpu.usage",
+      "operator": "GREATER_THAN",
+      "threshold": 80,
+      "recoveryThreshold": 70,
+      "unit": "%",
+      "confirmationSeconds": 300,
+      "severity": "WARNING"
+    }
+  ],
+  "probes": [
+    { "name": "Ping", "type": "ICMP", "intervalSeconds": 60 }
+  ],
+  "eventRules": [
+    {
+      "name": "Lien tombé (trap linkDown)",
+      "description": "Trap standard linkDown (IF-MIB) : un port est passé hors service.",
+      "oidPrefix": "1.3.6.1.6.3.1.1.5.3",
+      "severity": "WARNING"
+    }
+  ]
+}

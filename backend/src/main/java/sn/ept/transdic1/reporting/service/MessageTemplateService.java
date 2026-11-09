@@ -69,7 +69,8 @@ public class MessageTemplateService {
   private Map<String, String> values(Alert alert) {
     Map<String, String> values = new LinkedHashMap<>();
     values.put("equipement", alert.getEquipment().getName());
-    values.put("site", alert.getEquipment().getSite().getName());
+    var site = alert.getEquipment().getSite();
+    values.put("site", site == null ? "sans site" : site.getName());
     values.put("severite", NotificationQueueService.label(alert.getSeverity()));
     values.put("message", alert.getMessage());
     values.put("declenchee", DATE.format(alert.getTriggeredAt()));

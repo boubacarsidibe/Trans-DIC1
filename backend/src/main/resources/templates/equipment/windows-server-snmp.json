@@ -1,0 +1,66 @@
+{
+  "id": "windows-server-snmp",
+  "version": 1,
+  "name": "Serveur Windows (service SNMP)",
+  "vendor": "Microsoft",
+  "category": "SERVER",
+  "description": "Serveur Windows avec le service SNMP activé : HOST-RESOURCES-MIB. Les index (processeur, volume C:) varient selon la machine : vérifier avec snmpwalk sur hrProcessorLoad et hrStorageDescr, puis corriger les OID dans la page Collecte si besoin. OID non validés sur matériel de l'EPT.",
+  "verified": false,
+  "sysDescrHints": ["Windows"],
+  "metrics": [
+    {
+      "name": "Charge du processeur (premier cœur)",
+      "technicalKey": "cpu.usage",
+      "valueType": "INTEGER",
+      "unit": "%",
+      "snmpOid": "1.3.6.1.2.1.25.3.3.1.2.4",
+      "source": "HOST-RESOURCES-MIB::hrProcessorLoad.4 (index le plus courant, à vérifier)"
+    },
+    {
+      "name": "Volume 1 utilisé (unités d'allocation)",
+      "technicalKey": "storage1.used",
+      "valueType": "INTEGER",
+      "snmpOid": "1.3.6.1.2.1.25.2.3.1.6.1",
+      "source": "HOST-RESOURCES-MIB::hrStorageUsed.1 (souvent C:\\)"
+    },
+    {
+      "name": "Volume 1 taille (unités d'allocation)",
+      "technicalKey": "storage1.size",
+      "valueType": "INTEGER",
+      "snmpOid": "1.3.6.1.2.1.25.2.3.1.5.1",
+      "source": "HOST-RESOURCES-MIB::hrStorageSize.1"
+    },
+    {
+      "name": "Mémoire physique",
+      "technicalKey": "memory.total",
+      "valueType": "DECIMAL",
+      "unit": "Mio",
+      "snmpOid": "1.3.6.1.2.1.25.2.2.0",
+      "source": "HOST-RESOURCES-MIB::hrMemorySize.0 (Kio, converti en Mio)",
+      "scale": 0.0009765625
+    },
+    {
+      "name": "Processus en cours",
+      "technicalKey": "system.processes",
+      "valueType": "INTEGER",
+      "snmpOid": "1.3.6.1.2.1.25.1.6.0",
+      "source": "HOST-RESOURCES-MIB::hrSystemProcesses.0"
+    }
+  ],
+  "rules": [
+    {
+      "name": "CPU élevé",
+      "metricKey": "cpu.usage",
+      "operator": "GREATER_THAN",
+      "threshold": 90,
+      "recoveryThreshold": 80,
+      "unit": "%",
+      "confirmationSeconds": 300,
+      "severity": "WARNING"
+    }
+  ],
+  "probes": [
+    { "name": "Ping", "type": "ICMP", "intervalSeconds": 60 },
+    { "name": "Bureau à distance (RDP)", "type": "TCP_PORT", "port": 3389, "intervalSeconds": 120 }
+  ]
+}

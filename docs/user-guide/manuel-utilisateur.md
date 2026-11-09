@@ -49,6 +49,14 @@ Les chiffres clés en haut : équipements, alertes actives, alertes critiques. E
 - Le trait montre la moyenne, la zone claire l'écart entre minimum et maximum, le pointillé rouge le seuil d'alerte.
 - **Voir les valeurs en tableau** donne les chiffres exacts (utile aussi avec un lecteur d'écran).
 
+**Prévision de saturation.** Au-dessus des courbes, une carte **Prévision** par indicateur suivi (disque et mémoire) donne la valeur actuelle, la tendance par jour et la conclusion :
+
+- « Plein dans ~12 jours le 17/11/2026 » : si la tendance des 14 derniers jours se poursuit, la limite de 100 % sera atteinte vers cette date ; la **confiance** (haute, moyenne, faible) dit à quel point la tendance est régulière ;
+- « Pas de tendance à la hausse » : la valeur est stable ou baisse ;
+- « Pas assez de données (il faut 3 jours de mesures) » : l'équipement est suivi depuis trop peu de temps.
+
+La prévision suit une droite : elle ne connaît ni les cycles (sauvegardes de nuit) ni les purges à venir. C'est un ordre de grandeur pour planifier un nettoyage ou un agrandissement, pas une date exacte.
+
 ### Alertes
 
 ![Alertes vues par un lecteur](images/06-alertes-lecteur.png)
@@ -66,7 +74,34 @@ Quand un équipement de cœur (un routeur, un commutateur de distribution) tombe
 
 Une alerte de type **Anomalie** signale une mesure inhabituelle pour l'heure et le jour (par exemple un processeur très chargé un dimanche à 3 h), même si aucun seuil n'est dépassé.
 
+Une alerte de type **Prévision** annonce qu'un disque ou une mémoire sera plein dans moins de 14 jours si la tendance se poursuit, par exemple « Disque plein dans ~12 jours (tendance +2,0 %/jour, confiance haute) ». Elle devient **critique** à 3 jours ou moins, son message est actualisé au plus une fois par jour, et elle se résout seule quand la tendance disparaît ou que la saturation recule nettement (au-delà de 17 jours et demi).
+
+Une alerte de type **Événement** vient d'un trap SNMP ou d'un message syslog envoyé par l'équipement lui-même et retenu par une règle d'événement, par exemple « Événement réseau « Interface coupée (linkDown) » : linkDown (interface coupée) ». Elle se résout seule quand l'équipement annonce le retour (linkUp), sinon à la main.
+
 Le lecteur voit tout, mais aucun bouton d'action : c'est normal.
+
+### Diagnostic d'un incident
+
+Le bouton **Historique** d'une alerte ouvre son détail, qui commence par le panneau **Diagnostic**. Il est calculé au moment où vous l'ouvrez (bouton **Recalculer** pour le refaire), à partir des seules données de Trans-DIC1 : topologie, autres alertes, traps et messages syslog, journal d'audit, mesures et prévisions. Ce sont des règles fixes, pas une intelligence artificielle, et rien ne sort du serveur.
+
+- **Résumé**, en tête : ce qui se passe, ce que ça touche et la cause la plus probable, par exemple « Le routeur R1 est injoignable depuis 14:02. 3 équipements en aval sont touchés. Cause probable : Interface coupée sur R1 (trap linkDown) (14:01). » Le résumé ne cite que des faits présents plus bas ; sans indice, il le dit : « Aucune cause probable identifiée dans les données disponibles. »
+- **Impact** : alerte racine ou regroupée, équipements en aval (les dix plus proches, avec un lien vers leur historique), services supervisés concernés, sites.
+- **Causes probables** : cinq au plus, de la plus probable à la moins probable, avec leur origine (équipement amont en panne, événement réseau récent, changement récent, silence de collecte, tendance de saturation, anomalie) et une probabilité estimée. Le bouton **Pourquoi ?** déplie les preuves : quel équipement, à quelle heure, quel trap, qui a modifié quoi. **Lisez toujours les preuves** : une cause probable reste une hypothèse (une coïncidence dans le temps peut tromper).
+- **Alertes voisines** : autres alertes ouvertes 30 minutes avant ou après, sur le même équipement, en amont, en aval ou sur le même site. **Ouvrir** affiche leur détail.
+- **Événements récents** et **changements récents** : traps et syslog de l'équipement et de son amont, actions tracées dans l'audit (règle modifiée, modèle appliqué, maintenance, sonde modifiée...) avec l'auteur et l'heure. Les valeurs modifiées ne sont pas montrées : elles restent dans le journal d'audit réservé aux administrateurs.
+- **Contexte des mesures** : pour une alerte de seuil, la valeur à l'ouverture, le seuil, les dernières valeurs et l'écart à la moyenne des 7 jours précédents à la même heure (s'il y a au moins 3 jours d'historique) ; pour une prévision, la tendance et la date de saturation estimée.
+- **Incidents similaires** : même règle sur le même équipement (ou, à défaut, sur le même site) dans les 90 derniers jours, durée médiane et moyenne de résolution, et les trois dernières résolutions avec leur commentaire. D'où l'intérêt de **commenter vos résolutions**.
+- **Pistes de vérification** : deux à cinq actions conseillées selon la cause (par exemple « Vérifier l'alimentation et le câble du port signalé par le trap linkDown. »). Les cases servent d'aide-mémoire et ne sont pas enregistrées.
+
+Un compte limité à certains sites ne voit dans le diagnostic que ce qui concerne ses sites : un équipement amont d'un autre site n'est ni nommé ni proposé comme cause.
+
+### Événements
+
+**Supervision > Événements** liste les traps SNMP et les messages syslog reçus des équipements inventoriés, du plus récent au plus ancien : date de réception, équipement (lien vers son historique) et adresse d'envoi, source (Trap SNMP ou Syslog), sévérité et texte. Pour un trap, l'OID de la notification est affiché ; **Détails** déplie les variables du trap ou le message complet.
+
+Les filtres se combinent : équipement, source, **sévérité minimale** (de la plus grave, Urgence, à la moins grave, Débogage : « Erreur » montre Erreur, Critique, Alerte et Urgence), période (**Depuis**, **Jusqu'à**) et texte libre (titre, détails ou OID). Cliquez sur **Filtrer** ; **Réinitialiser** les efface.
+
+Un opérateur limité à certains sites ne voit que les événements de leurs équipements. Les événements sont conservés 30 jours. Un message venu d'une adresse qui n'est celle d'aucun équipement inventorié n'apparaît jamais : c'est voulu (voir [evenements-reseau.md](../devops/evenements-reseau.md)). La page est vide tant que l'exploitation n'a pas activé la réception.
 
 ### Topologie
 
@@ -125,6 +160,24 @@ Une ligne dont le code d'inventaire ou l'adresse existe déjà est refusée comm
 
 **Réglages > Mes notifications** : choisir de recevoir ou non un message à l'ouverture et à la résolution des alertes, et à partir de quelle sévérité. Le canal par défaut est l'e-mail ; d'autres canaux (Teams, Slack, webhook) sont configurés par un administrateur.
 
+### Astreinte
+
+**Supervision > Astreinte** dit qui doit réagir quand une alerte s'ouvre, par exemple la nuit ou le week-end. Tous les rôles voient la page ; le tableau de bord résume la même information dans la carte **D'astreinte**.
+
+- **D'astreinte maintenant** : pour chaque site couvert par un planning, la personne d'astreinte **principale** et la **secondaire**, par exemple « D'astreinte maintenant : awa (principal), moussa (secondaire) ». Un planning propre à un site passe avant un planning « tous les sites » ; si le planning du site n'a personne à un niveau, le planning tous sites prend le relais.
+- **Mes gardes** : vos gardes en cours et des 60 prochains jours.
+- **Agenda des 30 prochains jours** : un tableau, une ligne par jour, avec les personnes de garde au niveau principal et secondaire et leurs heures. Une garde marquée **Remplacement** l'emporte sur la garde normale. **Mes gardes uniquement** ne garde que les vôtres.
+
+Quand une alerte (avertissement ou critique) s'ouvre sur un site couvert, hors maintenance :
+
+1. la personne d'astreinte principale est prévenue **tout de suite**, sur son canal de **Mes notifications** (message « Vous êtes d'astreinte : alerte … ») ;
+2. si personne n'a pris l'alerte en charge après **10 minutes** (5 si critique), la personne secondaire est prévenue ;
+3. après 30 minutes (10 si critique), les administrateurs sont prévenus, comme avant.
+
+**Prendre en charge** ou **résoudre** l'alerte arrête la chaîne. Chaque étape apparaît dans l'**Historique** de l'alerte (« Astreinte : awa prévenu(e) (niveau principal) »). **Important** : la personne d'astreinte n'est prévenue que si elle a une préférence active dans **Mes notifications**. Sinon l'historique indique « Astreinte sans canal » et la secondaire est prévenue sans attendre. Il n'y a ni SMS ni appel : choisissez un canal qui sonne sur votre téléphone (application Teams ou Slack, e-mail avec notifications).
+
+**Passer sa garde** : un opérateur empêché clique sur **Passer ma garde** dans **Mes gardes**, choisit le collègue qui reprend et confirme. Un remplacement est créé de maintenant à la fin de la garde ; la garde d'origine reste dans l'historique et l'action est tracée dans le journal d'audit. On ne peut passer que ses propres gardes (un administrateur peut passer celles de tous) et pas une garde terminée.
+
 ## 4. Parcours de l'administrateur
 
 ### Comptes et rôles
@@ -147,10 +200,37 @@ Avant d'enregistrer ou d'activer une règle, **Tester sur l'historique** la rejo
 
 Une règle qui a déjà ouvert des alertes ne peut pas être supprimée : il faut la désactiver.
 
+### Plannings d'astreinte
+
+En bas de **Supervision > Astreinte**, la partie **Gérer les plannings** est réservée aux administrateurs.
+
+1. **Nouveau planning** : nom (unique), description, fuseau horaire IANA (`Africa/Dakar` par défaut ; il sert à placer l'heure de relève), **Tous les sites** ou une liste de sites.
+2. **Gardes** : ajouter une garde (personne, niveau principal ou secondaire, début, fin, note). Cocher **Remplacement ponctuel** pour qu'elle l'emporte sur les gardes normales (congé, échange). Seuls les administrateurs et opérateurs NOC actifs peuvent être d'astreinte. Le menu **Remplacer par…** d'une ligne confie le reste de la garde à quelqu'un d'autre.
+3. **Rotation** (une par niveau) : cocher les membres dans l'ordre de passage, date de début, durée d'une garde en jours et heure de relève, puis **Enregistrer la rotation**. **Aperçu des gardes générées** montre les gardes des 60 prochains jours sans rien enregistrer ; **Confirmer la génération** les crée. Une tâche de nuit garde ensuite 60 jours d'avance. Relancer la génération ne crée pas de doublon. Changer une rotation retire seulement ses gardes futures (pas la garde en cours, ni le passé, ni les remplacements) : prévisualisez et confirmez de nouveau. Une garde issue d'une rotation ne se supprime pas seule : modifiez la rotation ou créez un remplacement.
+
+Les changements d'heure (pays à heure d'été) sont gérés : la relève a toujours lieu à l'heure locale choisie. Toutes les actions sont tracées dans le journal d'audit. Vérifiez que chaque personne d'astreinte a une préférence active dans **Mes notifications** : sans canal, elle n'est pas prévenue.
+
+### Pages de statut
+
+**Supervision > Pages de statut** montre à tous les comptes connectés l'état des services de l'école tel que le voient les usagers : un bandeau d'état global (« Tous les services fonctionnent normalement », « Panne partielle en cours »…), chaque service avec son état (mot et icône), une barre par jour sur 90 jours (survolez une barre pour lire le jour et sa disponibilité, un lecteur d'écran lit chaque jour ; hachurée = aucune mesure ce jour-là, jamais comptée à 100 %), les incidents en cours et ceux des 14 derniers jours. La page se met à jour toute seule chaque minute. Un compte limité à certains sites ne voit que les services de ses sites.
+
+L'état d'un service se calcule ainsi : maintenance en cours sur l'équipement ou son site → **En maintenance** ; sonde en ligne → **Opérationnel** ; 1 ou 2 échecs de suite → **Dégradé** ; 3 échecs ou plus, ou équipement injoignable → **Panne majeure** ; alerte critique → **Panne partielle**, alerte d'avertissement → **Dégradé** ; sonde désactivée, jamais exécutée ou sans résultat récent → **État inconnu**. Un site agrège ses équipements.
+
+Administrateurs :
+
+1. **Nouvelle page** : titre, identifiant de l'adresse (minuscules, chiffres et tirets, par exemple `services-ept`), description, visibilité **Interne** (comptes connectés) ou **Publique**, page active. **10 pages au plus.**
+2. **Gérer** une page : ajouter des composants (50 au plus) en choisissant le type de source (sonde, équipement ou site), en la cherchant par son nom, puis en lui donnant un **nom affiché aux usagers** (« Messagerie », « Wi-Fi bâtiment B ») et un groupe facultatif. Seul ce nom apparaît sur la page, jamais le nom technique de la sonde ou de l'équipement.
+3. **Déclarer un incident** : titre, statut (analyse en cours, cause identifiée, sous surveillance, résolu), impact, message aux usagers et services touchés ; puis **Publier la mise à jour** à chaque étape. Texte brut uniquement (les caractères `<` et `>` sont refusés), 2000 caractères au plus.
+4. Si l'exploitation a activé l'incident automatique, un service en panne majeure plus de 5 minutes ouvre « Perturbation détectée », résolu quand le service revient ; vous pouvez le modifier ou le supprimer (il n'est pas rouvert pendant la même panne).
+
+Une page publique et active se lit **sans connexion** à l'adresse `https://<serveur>/statut/<identifiant>` : pas de menu, pas de compte, même contenu pour tout le monde, thème sombre si le navigateur le demande. Une page interne, inactive ou inexistante donne la même réponse (« Cette page de statut n'existe pas ou n'est pas publique »).
+
+**Avant de rendre une page publique : relire ce qu'elle montre.** Tout le monde pourra voir les noms des services, leurs pannes et leurs maintenances sur 90 jours, ainsi que vos messages d'incident. Choisissez des noms compréhensibles par les usagers et qui ne révèlent rien du réseau interne (pas de nom de serveur, d'adresse, de salle technique) ; écrivez les messages pour le public, sans détail technique ni nom de personne ; n'ajoutez que les services que l'école accepte de montrer. Toutes les actions sont tracées dans le journal d'audit.
+
 ### Collecte d'un équipement
 
 Depuis la liste des équipements, **Collecte** ouvre la configuration de la collecte :
-- **Agent** : enregistrer un agent Trans-DIC1 pour un serveur. Le jeton n'est affiché **qu'une seule fois** et doit être copié aussitôt ([installation de l'agent](../devops/agent.md)).
+- **Agent** : enregistrer un agent Trans-DIC1 pour un serveur Linux ou Windows. Le jeton n'est affiché **qu'une seule fois** et doit être copié aussitôt ([installation de l'agent](../devops/agent.md), [section Windows](../devops/agent.md#windows)). Un agent Windows envoie en plus `uptime.seconds` (durée depuis le démarrage, en secondes), visible dans l'historique de l'équipement.
 - **SNMP** : version, référence du secret (`env:NOM`, jamais le mot de passe lui-même), OID à lire.
 
 ### Sondes (supervision sans agent)
@@ -190,6 +270,41 @@ Chaque sonde ouvre sa propre alerte : deux sondes en panne sur le même équipem
 **Interpréter `probe.tls.days_left`** : c'est le nombre de jours entiers qui restent avant la date de fin du certificat. 30 : il reste un mois ; 13 : la règle par défaut s'ouvre ; 0 : il expire dans moins de 24 heures ; une valeur négative : il est déjà expiré. La sonde Certificat TLS lit le certificat **sans en valider la chaîne**, exprès : elle mesure la date, même d'un certificat auto-signé ou d'une autorité inconnue. Une sonde HTTPS, elle, **valide** le certificat et échoue s'il est invalide.
 
 **Limites actuelles** : pas de sonde DNS, pas de scénario web à plusieurs étapes, pas d'en-têtes ni d'authentification HTTP, pas d'exécuteur par site. Le panneau « Tester sur l'historique » des règles ne rejoue pas encore les mesures `probe.*`. Le ping fonctionne sur un serveur Linux ou Windows (Windows en anglais, français, allemand ou espagnol) et, en conteneur, demande une configuration décrite dans [sondes-icmp-conteneur.md](../devops/sondes-icmp-conteneur.md).
+
+### Règles d'événements
+
+**Réglages > Règles d'événements** décide quels traps et messages syslog ouvrent une alerte de type Événement. Tout le monde peut lire les règles ; seul l'administrateur les modifie.
+
+Une règle combine les critères renseignés, qui doivent **tous** être vrais (au moins un des trois derniers est obligatoire) :
+
+- **Source** : Trap SNMP, Syslog ou toutes ;
+- **Sévérité minimale** : par exemple Erreur ;
+- **Préfixe d'OID du trap** : `1.3.6.1.6.3.1.1.5.3` (linkDown) couvre cet OID et ceux qui sont dessous, pas `…5.30` ;
+- **Expression sur le texte** : expression régulière, insensible à la casse, 200 caractères au plus, cherchée dans le message syslog ou dans le titre et les variables du trap. Inutile d'écrire `.*` autour : `disk (full|plein)` suffit. Une expression qui demanderait trop de calcul est refusée à l'enregistrement.
+
+Facultatif : **OID de retour** ou **expression de retour** (par exemple `1.3.6.1.6.3.1.1.5.4`, linkUp) : l'événement correspondant résout l'alerte automatiquement. Choisissez aussi la **sévérité de l'alerte** et la **fenêtre de déduplication** (300 s par défaut) : une seule alerte reste active par équipement et par règle ; si l'alerte se rouvre moins de 300 s après sa dernière ouverture (interface qui bagote), elle se rouvre sans nouvelle notification. Pendant une maintenance, l'alerte est tracée sans notification.
+
+**Sans site ni équipement coché, la règle vaut pour tous les équipements** (contrairement aux règles de seuil).
+
+Le cadre **Tester sur un exemple** indique si un événement d'exemple (source, sévérité, OID, texte) ouvrirait ou résoudrait l'alerte, sans rien enregistrer. Trois règles sont livrées **désactivées** : Interface coupée (linkDown, résolue par linkUp), Échec d'authentification SNMP, Erreur système (syslog de sévérité Erreur ou plus grave). Une règle qui a déjà ouvert des alertes ne se supprime pas : désactivez-la.
+
+**Limites** : une seule alerte par équipement et par règle, quelle que soit l'interface (un linkUp de l'interface 2 résout l'alerte du linkDown de l'interface 1) ; pas de traduction des OID propriétaires (affichés en chiffres).
+
+### Modèles d'équipement
+
+La page **Modèles** (menu Parc, visible par tous) présente la bibliothèque livrée : hôte SNMP générique, serveurs Linux et Windows, MikroTik, Cisco IOS, UniFi, HPE/Aruba, onduleur APC, imprimante, service web HTTPS. Chaque carte indique le fabricant, la catégorie, le nombre d'indicateurs, de règles et de sondes ; **Voir le détail** montre les OID, l'objet de MIB d'où ils viennent, les conversions (par exemple « 100 - x » pour une charge CPU calculée depuis l'inactivité) et les seuils proposés.
+
+Le badge **« Non validé sur matériel »** signifie que les OID viennent de la documentation publique et n'ont pas encore été essayés sur un équipement de l'EPT : contrôlez les premières mesures avant de vous fier aux alertes.
+
+Pour appliquer un modèle (administrateur) :
+
+1. Page **Équipements**, bouton **Modèle** sur la ligne de l'équipement.
+2. Choisissez le modèle. Si l'équipement n'a pas encore de collecte SNMP, indiquez la version et la **référence** de la communauté (`env:SNMP_CAMPUS`) ou du compte SNMPv3 — jamais le secret lui-même — et, au besoin, le port.
+3. Cochez ou non : créer les règles d'alerte suggérées, **les activer** (sinon elles sont créées inactives, à régler puis activer dans la page Règles), créer les sondes suggérées.
+4. **Prévisualiser** : la liste annonce ce qui sera créé, ce qui existe déjà et ce qui est ignoré (avec la raison). Rien n'est encore modifié.
+5. **Confirmer l'application**. Les règles portent le nom du modèle suivi du code d'inventaire et ne visent que cet équipement.
+
+Réappliquer le même modèle ne crée rien en double ; appliquer un autre modèle ajoute ses éléments sans rien supprimer. Le panneau rappelle les modèles déjà appliqués (version, date, auteur). Les règles d'événements proposées par certains modèles sont seulement suggérées : créez-les depuis la page Règles d'événements.
 
 ### Découverte automatique
 

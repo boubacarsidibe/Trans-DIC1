@@ -1,8 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// Tests de bout en bout (QA-02) : navigateur, API et base réelles. Lancer avec e2e/run-e2e.sh, qui
-// démarre la pile de test et fournit les identifiants. En cas d'échec, trace, capture et vidéo sont
-// gardées dans test-results/ et le rapport HTML dans playwright-report/.
+// Tests de bout en bout (QA-02) : navigateur, API et base réelles. Lancer avec scripts/run-e2e-native.ps1
+// (poste Windows, sans Docker) ou e2e/run-e2e.sh (serveur avec Docker), qui démarrent la pile de test et
+// fournissent les identifiants. En cas d'échec, trace, capture et vidéo sont gardées dans test-results/
+// et le rapport HTML dans playwright-report/.
 export default defineConfig({
   testDir: "./e2e",
   testMatch: "**/*.spec.js",

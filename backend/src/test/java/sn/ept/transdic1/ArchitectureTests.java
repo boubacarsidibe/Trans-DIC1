@@ -139,6 +139,8 @@ class ArchitectureTests {
   // repository),
   //                                  alerting (service, domain, repository) ; personne ne dépend
   // d'elle
+  //   events                      -> inventory (domain, repository), alerting (service, domain,
+  //                                  repository), audit.service, common ; personne ne dépend d'elle
 
   @ArchTest
   static final ArchRule auditOnlyDependsOnSecurity =
@@ -238,6 +240,162 @@ class ArchitectureTests {
           .because(
               "collection orchestre monitoring et alerting : eux ne la connaissent pas, ce qui"
                   + " évite tout cycle");
+
+  @ArchTest
+  static final ArchRule noModuleDependsOnEvents =
+      noClasses()
+          .that()
+          .resideOutsideOfPackage(ROOT + ".events..")
+          .and()
+          .resideInAPackage(ROOT + "..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage(ROOT + ".events..")
+          .because(
+              "events (traps, syslog, ADR 0021) ouvre des alertes via alerting : personne ne"
+                  + " dépend d'elle, ce qui évite tout cycle");
+
+  @ArchTest
+  static final ArchRule eventsOnlyUsesDomainsAndServicesOfOtherModules =
+      noClasses()
+          .that()
+          .resideInAPackage(ROOT + ".events..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              ROOT + ".inventory.controller..",
+              ROOT + ".inventory.service..",
+              ROOT + ".monitoring..",
+              ROOT + ".collection..",
+              ROOT + ".alerting.controller..",
+              ROOT + ".alerting.dto..",
+              ROOT + ".security.service..",
+              ROOT + ".reporting..",
+              ROOT + ".access..")
+          .because(
+              "events lit les entités et passe par les services d'alerting, pas par leurs API");
+
+  @ArchTest
+  static final ArchRule noModuleDependsOnDiagnostic =
+      noClasses()
+          .that()
+          .resideOutsideOfPackage(ROOT + ".diagnostic..")
+          .and()
+          .resideInAPackage(ROOT + "..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage(ROOT + ".diagnostic..")
+          .because(
+              "diagnostic (F2.1, ADR 0024) ne fait que lire les autres modules : personne ne"
+                  + " dépend de lui, ce qui évite tout cycle");
+
+  @ArchTest
+  static final ArchRule diagnosticOnlyReadsDomainsAndAlertingServices =
+      noClasses()
+          .that()
+          .resideInAPackage(ROOT + ".diagnostic..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              ROOT + ".inventory.controller..",
+              ROOT + ".inventory.service..",
+              ROOT + ".monitoring.controller..",
+              ROOT + ".monitoring.service..",
+              ROOT + ".alerting.controller..",
+              ROOT + ".alerting.repository..",
+              ROOT + ".audit..",
+              ROOT + ".security..",
+              ROOT + ".reporting..",
+              ROOT + ".access..",
+              ROOT + ".overview..")
+          .because(
+              "le diagnostic lit la base par ses propres requêtes bornées et ne passe que par le"
+                  + " port SiteScope et la prévision d'alerting ; il ne lit jamais le détail de"
+                  + " l'audit par son API");
+
+  @ArchTest
+  static final ArchRule noModuleDependsOnOncall =
+      noClasses()
+          .that()
+          .resideOutsideOfPackage(ROOT + ".oncall..")
+          .and()
+          .resideInAPackage(ROOT + "..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage(ROOT + ".oncall..")
+          .because(
+              "l'astreinte (F2.2, ADR 0025) écoute les alertes et passe par la file des"
+                  + " notifications : personne ne dépend d'elle, ce qui évite tout cycle");
+
+  @ArchTest
+  static final ArchRule oncallOnlyUsesDomainsAndAllowedServices =
+      noClasses()
+          .that()
+          .resideInAPackage(ROOT + ".oncall..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              ROOT + ".inventory.controller..",
+              ROOT + ".inventory.service..",
+              ROOT + ".inventory.dto..",
+              ROOT + ".monitoring..",
+              ROOT + ".collection..",
+              ROOT + ".events..",
+              ROOT + ".diagnostic..",
+              ROOT + ".overview..",
+              ROOT + ".access..",
+              ROOT + ".alerting.controller..",
+              ROOT + ".alerting.service..",
+              ROOT + ".alerting.dto..",
+              ROOT + ".reporting.controller..",
+              ROOT + ".reporting.repository..",
+              ROOT + ".reporting.dto..",
+              ROOT + ".security.service..",
+              ROOT + ".security.controller..")
+          .because(
+              "l'astreinte lit les entités, met ses messages en file par NotificationQueueService"
+                  + " et lit le périmètre par le port SiteScope");
+
+  @ArchTest
+  static final ArchRule noModuleDependsOnStatuspage =
+      noClasses()
+          .that()
+          .resideOutsideOfPackage(ROOT + ".statuspage..")
+          .and()
+          .resideInAPackage(ROOT + "..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage(ROOT + ".statuspage..")
+          .because(
+              "les pages de statut (F2.3, ADR 0026) ne font que lire l'état supervisé : personne ne"
+                  + " dépend d'elles, ce qui évite tout cycle");
+
+  @ArchTest
+  static final ArchRule statuspageOnlyUsesAuditServiceAndCommon =
+      noClasses()
+          .that()
+          .resideInAPackage(ROOT + ".statuspage..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              ROOT + ".inventory..",
+              ROOT + ".monitoring..",
+              ROOT + ".alerting..",
+              ROOT + ".reporting..",
+              ROOT + ".access..",
+              ROOT + ".collection..",
+              ROOT + ".events..",
+              ROOT + ".diagnostic..",
+              ROOT + ".oncall..",
+              ROOT + ".overview..",
+              ROOT + ".security..",
+              ROOT + ".audit.controller..",
+              ROOT + ".audit.repository..",
+              ROOT + ".audit.domain..")
+          .because(
+              "la page de statut lit l'état par ses propres requêtes bornées (aucune entité d'un"
+                  + " autre module, donc aucun nom d'hôte ni adresse ne peut fuir par sérialisation),"
+                  + " trace par AuditService et lit le périmètre par le port SiteScope");
 
   @ArchTest
   static final ArchRule noModuleDependsOnOverview =

@@ -16,10 +16,11 @@ import { Archive, BellOff, CheckCircle2, History } from "lucide-react";
 import { useLiveUpdates } from "../hooks/useLiveUpdates.js";
 import { AlertStateBadge, LiveIndicator } from "../ui/Badges.jsx";
 import { ProcessTable } from "../ui/EquipmentInsight.jsx";
-import { SEVERITY, label } from "../ui/labels.js";
+import { ALERT_TYPE, SEVERITY, label } from "../ui/labels.js";
 import { humanMessage } from "../ui/metricCatalog.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import AssigneesEditor from "./AssigneesEditor.jsx";
+import DiagnosticPanel from "./DiagnosticPanel.jsx";
 import Pagination from "../ui/Pagination.jsx";
 
 const formatDate = (value) =>
@@ -146,6 +147,15 @@ function AlertsPage() {
     }
   }
 
+  // Une alerte voisine citée par le diagnostic s'ouvre à la place de l'alerte affichée.
+  async function openAlert(id) {
+    try {
+      setDetail(await getAlert(id));
+    } catch {
+      setError("Impossible d'ouvrir cette alerte.");
+    }
+  }
+
   const items = data.content;
   const totalPages = data.page?.totalPages ?? 0;
 
@@ -250,6 +260,9 @@ function AlertsPage() {
                   </td>
                   <td className="cell-strong">{alert.equipmentName}</td>
                   <td className="cell-message">
+                    {alert.type && alert.type !== "THRESHOLD" && (
+                      <span className="cell-type">{`${label(ALERT_TYPE, alert.type)} · `}</span>
+                    )}
                     {humanMessage(alert.message)}
                     {alert.correlationReason && (
                       <span className="cell-grouped">Regroupée, sans notification : {alert.correlationReason}</span>
@@ -320,6 +333,7 @@ function AlertsPage() {
                 Fermer
               </button>
             </div>
+            <DiagnosticPanel key={detail.alert.id} alertId={detail.alert.id} onOpenAlert={openAlert} />
             {canAdminister && (
               <AssigneesEditor
                 alert={detail.alert}

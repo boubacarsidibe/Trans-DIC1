@@ -1,15 +1,20 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import {
+  Activity,
   Bell,
   BellRing,
   Building2,
   FileBarChart2,
+  Gauge,
+  Funnel,
   LayoutDashboard,
   LayoutTemplate,
+  LibraryBig,
   Network,
   LogOut,
   Menu,
+  PhoneCall,
   Radar,
   ScrollText,
   Send,
@@ -36,6 +41,9 @@ const SECTIONS = [
       { to: "/tableau-de-bord", label: "Tableau de bord", icon: LayoutDashboard },
       { to: "/vues", label: "Mes vues", icon: LayoutTemplate },
       { to: "/alertes", label: "Alertes", icon: BellRing },
+      { to: "/astreinte", label: "Astreinte", icon: PhoneCall },
+      { to: "/pages-statut", label: "Pages de statut", icon: Gauge },
+      { to: "/evenements", label: "Événements", icon: Activity },
       { to: "/rapports", label: "Rapports", icon: FileBarChart2 },
     ],
   },
@@ -43,6 +51,7 @@ const SECTIONS = [
     title: "Parc",
     links: [
       { to: "/equipements", label: "Équipements", icon: Server },
+      { to: "/modeles", label: "Modèles", icon: LibraryBig },
       { to: "/sites", label: "Sites", icon: Building2 },
       { to: "/topologie", label: "Topologie", icon: Network },
       { to: "/maintenances", label: "Maintenances", icon: Wrench },
@@ -54,6 +63,7 @@ const SECTIONS = [
     title: "Réglages",
     links: [
       { to: "/regles", label: "Règles", icon: SlidersHorizontal },
+      { to: "/regles-evenements", label: "Règles d'événements", icon: Funnel },
       { to: "/notifications", label: "Mes notifications", icon: Bell },
     ],
   },

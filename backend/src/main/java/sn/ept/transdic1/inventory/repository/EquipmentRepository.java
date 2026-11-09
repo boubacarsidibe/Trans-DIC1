@@ -53,6 +53,15 @@ public interface EquipmentRepository
   /** Équipements des sites donnés (portée d'une règle testée sur l'historique). */
   List<Equipment> findBySiteIdIn(java.util.Collection<UUID> siteIds);
 
+  /**
+   * Adresse, identifiant et site des équipements supervisés : cache des sources de traps et de
+   * messages syslog (authentification par adresse, ADR 0021).
+   */
+  @Query(
+      "select e.managementAddress, e.id, s.id from Equipment e left join e.site s"
+          + " where e.monitoringEnabled = true")
+  List<Object[]> findMonitoredSources();
+
   /** Équipements à superviser : entrée du planificateur de collecte. */
   List<Equipment> findByMonitoringEnabledTrue();
 }

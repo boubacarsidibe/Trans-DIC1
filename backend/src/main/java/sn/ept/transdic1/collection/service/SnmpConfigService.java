@@ -189,7 +189,10 @@ public class SnmpConfigService {
                         d.getSnmpOid(),
                         d.getUnit(),
                         d.getValueType(),
-                        d.isActive()))
+                        d.isActive(),
+                        d.getScale(),
+                        d.getValueOffset(),
+                        d.isInvertPercent()))
             .toList();
     return new SnmpConfigResponse(
         c.getId(),
@@ -198,6 +201,7 @@ public class SnmpConfigService {
         c.getCommunityReference(),
         c.getSecurityIdentity(),
         c.getSecretReference(),
+        c.getSnmpPort(),
         (int) c.getPollInterval().toSeconds(),
         (int) c.getTimeout().toSeconds(),
         c.getRetryCount(),

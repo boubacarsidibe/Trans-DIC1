@@ -1,0 +1,81 @@
+{
+  "id": "mikrotik-routeros",
+  "version": 1,
+  "name": "Routeur MikroTik RouterOS",
+  "vendor": "MikroTik",
+  "category": "ROUTER",
+  "description": "Routeur MikroTik sous RouterOS : charge CPU (HOST-RESOURCES-MIB), température (MIKROTIK-MIB, en dixièmes de degré) et mémoire (hrStorage, index 65536 = mémoire principale sur RouterOS). La température n'existe pas sur tous les modèles. OID non validés sur matériel de l'EPT.",
+  "verified": false,
+  "sysDescrHints": ["RouterOS"],
+  "metrics": [
+    {
+      "name": "Charge CPU",
+      "technicalKey": "cpu.usage",
+      "valueType": "INTEGER",
+      "unit": "%",
+      "snmpOid": "1.3.6.1.2.1.25.3.3.1.2.1",
+      "source": "HOST-RESOURCES-MIB::hrProcessorLoad.1"
+    },
+    {
+      "name": "Température",
+      "technicalKey": "temperature",
+      "valueType": "DECIMAL",
+      "unit": "°C",
+      "snmpOid": "1.3.6.1.4.1.14988.1.1.3.10.0",
+      "source": "MIKROTIK-MIB::mtxrHlTemperature.0 (dixièmes de degré, converti)",
+      "scale": 0.1
+    },
+    {
+      "name": "Mémoire utilisée",
+      "technicalKey": "memory.used",
+      "valueType": "DECIMAL",
+      "unit": "Mio",
+      "snmpOid": "1.3.6.1.2.1.25.2.3.1.6.65536",
+      "source": "HOST-RESOURCES-MIB::hrStorageUsed.65536 (unités de 1 Kio sur RouterOS, converti)",
+      "scale": 0.0009765625
+    },
+    {
+      "name": "Mémoire totale",
+      "technicalKey": "memory.total",
+      "valueType": "DECIMAL",
+      "unit": "Mio",
+      "snmpOid": "1.3.6.1.2.1.25.2.3.1.5.65536",
+      "source": "HOST-RESOURCES-MIB::hrStorageSize.65536 (unités de 1 Kio sur RouterOS, converti)",
+      "scale": 0.0009765625
+    },
+    {
+      "name": "Durée de fonctionnement",
+      "technicalKey": "system.uptime",
+      "valueType": "DECIMAL",
+      "unit": "s",
+      "snmpOid": "1.3.6.1.2.1.1.3.0",
+      "source": "SNMPv2-MIB::sysUpTime.0 (centièmes de seconde, converti en secondes)",
+      "scale": 0.01
+    }
+  ],
+  "rules": [
+    {
+      "name": "CPU élevé",
+      "metricKey": "cpu.usage",
+      "operator": "GREATER_THAN",
+      "threshold": 85,
+      "recoveryThreshold": 75,
+      "unit": "%",
+      "confirmationSeconds": 300,
+      "severity": "WARNING"
+    },
+    {
+      "name": "Température élevée",
+      "metricKey": "temperature",
+      "operator": "GREATER_THAN",
+      "threshold": 70,
+      "recoveryThreshold": 65,
+      "unit": "°C",
+      "confirmationSeconds": 300,
+      "severity": "CRITICAL"
+    }
+  ],
+  "probes": [
+    { "name": "Ping", "type": "ICMP", "intervalSeconds": 60 }
+  ]
+}

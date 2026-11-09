@@ -207,6 +207,49 @@ class SnmpCollectionTests {
   }
 
   @Test
+  void derivedValuesAreStoredAfterScaleOffsetAndInversion() {
+    var configuration = configure(SnmpVersion.V2C, "env:SNMP_TEST_COMMUNITY");
+    // L'agent renvoie 95 et 40 : charge = 100 - 95 = 5 ; mémoire = 40 × 0,5 + 1 = 21.
+    for (var definition : definitions.findByConfigurationId(configuration.getId())) {
+      if (definition.getTechnicalKey().equals("cpu.usage")) {
+        definition.setInvertPercent(true);
+      } else {
+        definition.setScale(new BigDecimal("0.5"));
+        definition.setValueOffset(BigDecimal.ONE);
+      }
+      definitions.saveAndFlush(definition);
+    }
+
+    collection.collectDue();
+
+    assertThat(
+            metrics
+                .findFirstByEquipmentIdAndKeyOrderByCollectedAtDesc(equipment.getId(), "cpu.usage")
+                .orElseThrow()
+                .getValue())
+        .isEqualByComparingTo("5");
+    assertThat(
+            metrics
+                .findFirstByEquipmentIdAndKeyOrderByCollectedAtDesc(
+                    equipment.getId(), "memory.usage")
+                .orElseThrow()
+                .getValue())
+        .isEqualByComparingTo("21");
+  }
+
+  @Test
+  void aConfigurationPortOverridesTheDefaultPort() {
+    var configuration = configure(SnmpVersion.V2C, "env:SNMP_TEST_COMMUNITY");
+    // Port fermé : la lecture échoue, preuve que le port de la configuration est utilisé.
+    configuration.setSnmpPort(AGENT.port() == 1 ? 2 : 1);
+    configurations.saveAndFlush(configuration);
+
+    collection.collectDue();
+
+    assertThat(alertsOf(AlertType.COLLECTION)).hasSize(1);
+  }
+
+  @Test
   void theNextReadIsScheduledAndNotRepeatedBeforeItsTime() {
     var configuration = configure(SnmpVersion.V2C, "env:SNMP_TEST_COMMUNITY");
 

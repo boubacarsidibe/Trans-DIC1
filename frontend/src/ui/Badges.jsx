@@ -1,4 +1,4 @@
-import { ALERT_STATE, EQUIPMENT_STATUS, SEVERITY, label } from "./labels.js";
+import { ALERT_STATE, EQUIPMENT_STATUS, EVENT_SEVERITY, SEVERITY, label } from "./labels.js";
 
 /*
  * États : un point de couleur suivi du libellé. L'information ne dépend jamais de la couleur seule,
@@ -26,6 +26,22 @@ export const StatusBadge = ({ status }) => (
 
 export const SeverityBadge = ({ severity }) => (
   <Badge tone={SEVERITY_TONE[severity]}>{label(SEVERITY, severity)}</Badge>
+);
+
+// Sévérités syslog des événements réseau : erreur et au-delà en rouge.
+const EVENT_SEVERITY_TONE = {
+  EMERGENCY: "bad",
+  ALERT: "bad",
+  CRITICAL: "bad",
+  ERROR: "bad",
+  WARNING: "warn",
+  NOTICE: "info",
+  INFO: "info",
+  DEBUG: "muted",
+};
+
+export const EventSeverityBadge = ({ severity }) => (
+  <Badge tone={EVENT_SEVERITY_TONE[severity]}>{label(EVENT_SEVERITY, severity)}</Badge>
 );
 
 export const AlertStateBadge = ({ state }) => (

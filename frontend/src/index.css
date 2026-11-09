@@ -4004,3 +4004,443 @@ thead {
     grid-column: span 2;
   }
 }
+
+/* ==== Ajouts de feature/depassement (fusion) ==== */
+
+/* Type d'alerte (anomalie, prévision, collecte) devant le message. */
+.cell-type {
+  font-weight: 600;
+  color: var(--muted);
+}
+
+
+
+/* Diagnostic d'incident (ADR 0024) : résumé en tête, causes classées et leurs preuves. */
+.diag {
+  margin: 0.75rem 0 1.25rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--signal);
+  border-radius: var(--radius-lg);
+}
+
+.diag-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.diag-head h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.diag-resume {
+  margin: 0.6rem 0 0.3rem;
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.diag-section {
+  margin-top: 1rem;
+}
+
+.diag-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 0.4rem;
+}
+
+.diag-muted,
+.diag-empty {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.diag-empty {
+  margin: 0;
+}
+
+.diag-loading {
+  margin: 0.75rem 0;
+  color: var(--muted);
+}
+
+.diag-error {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.diag-facts,
+.diag-list,
+.diag-reasons,
+.diag-steps,
+.diag-causes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.diag-facts li,
+.diag-list li {
+  padding: 0.2rem 0;
+}
+
+.diag-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.diag-line {
+  flex-basis: 100%;
+  font-size: 0.9rem;
+}
+
+.diag-link {
+  color: var(--signal);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.diag-cause {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.diag-cause-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.diag-rank {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: var(--signal);
+  color: #fff;
+}
+
+.diag-cause-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.diag-cause-meta {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.diag-score {
+  flex: none;
+  width: 5rem;
+  height: 0.45rem;
+  margin-top: 0.45rem;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.diag-score span {
+  display: block;
+  height: 100%;
+  background: var(--signal);
+}
+
+.diag-why {
+  margin: 0.35rem 0 0 2.1rem;
+}
+
+.diag-reasons {
+  margin: 0.35rem 0 0 2.1rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--line);
+}
+
+.diag-reasons li {
+  padding: 0.15rem 0;
+  font-size: 0.9rem;
+}
+
+.diag-steps li label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+  cursor: pointer;
+}
+
+.diag-steps input {
+  margin-top: 0.25rem;
+}
+
+.diag-table td,
+.diag-table th {
+  font-size: 0.88rem;
+}
+/* ------------------------------------------------------------------ Pages de statut (ADR 0026) */
+
+.status-view {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.status-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 600;
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+
+.status-state-ok { color: #16704a; }
+.status-state-warn { color: #7f5200; }
+.status-state-partial { color: #9a4500; }
+.status-state-bad { color: #b3261e; }
+.status-state-info { color: #1160a8; }
+.status-state-muted { color: #59626f; }
+
+.status-overall {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--line);
+  border-left-width: 6px;
+  background: var(--surface);
+}
+
+.status-overall .status-state { font-size: 1.05rem; }
+.status-overall-text { margin: 0; font-size: 1.1rem; font-weight: 600; }
+.status-overall-ok { border-left-color: #1f8a5b; }
+.status-overall-warn { border-left-color: #b87400; }
+.status-overall-partial { border-left-color: #c25a00; }
+.status-overall-bad { border-left-color: #c4302b; }
+.status-overall-info { border-left-color: #1160a8; }
+.status-overall-muted { border-left-color: #8a98ac; }
+
+.status-heading {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+}
+
+.status-group + .status-group { margin-top: 1rem; }
+
+.status-group-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  color: #3a4350;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.status-components,
+.status-incidents,
+.status-timeline,
+.status-page-list,
+.status-admin-list,
+.status-source-options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.status-component {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--surface);
+}
+
+.status-component + .status-component { margin-top: 0.5rem; }
+
+.status-component-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.status-component-name { font-weight: 600; }
+
+.status-component-uptime {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: #3a4350;
+}
+
+.status-bars-wrap { margin-top: 0.5rem; }
+
+.status-bars {
+  display: flex;
+  gap: 2px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.status-bar {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 2px;
+  border-radius: 2px;
+}
+
+.status-bar-ok { background: #1f8a5b; }
+.status-bar-warn { background: #d99a1e; }
+.status-bar-bad { background: #c4302b; }
+/* Jour sans donnée : hachures, pour ne pas le confondre avec une couleur d'état. */
+.status-bar-none {
+  background: repeating-linear-gradient(135deg, #d3dce7 0 3px, #eef2f7 3px 6px);
+}
+
+.status-bars-legend {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.25rem 0 0;
+  font-size: 0.78rem;
+  color: #59626f;
+}
+
+.status-incident {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-left: 4px solid #b87400;
+  border-radius: 0.5rem;
+  background: var(--surface);
+}
+
+.status-incident + .status-incident { margin-top: 0.5rem; }
+.status-incident-resolved { border-left-color: #1f8a5b; }
+.status-incident-title { margin: 0; font-size: 1.02rem; }
+.status-incident-meta { margin: 0.2rem 0 0.5rem; font-size: 0.88rem; color: #3a4350; }
+
+.status-timeline li {
+  padding-left: 0.9rem;
+  border-left: 2px solid var(--line);
+}
+
+.status-timeline li + li { margin-top: 0.5rem; }
+.status-timeline-head { margin: 0; font-size: 0.85rem; }
+.status-timeline-head time { color: #59626f; }
+
+/* Texte brut des administrateurs : les retours à la ligne sont gardés, rien n'est interprété. */
+.status-message {
+  margin: 0.15rem 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.status-empty { color: #59626f; }
+
+.status-error {
+  padding: 0.75rem 1rem;
+  border: 1px solid #e3a49f;
+  border-radius: 0.5rem;
+  background: #fbe9e7;
+  color: #8c1c15;
+}
+
+.status-page-item,
+.status-admin-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.status-page-link { font-weight: 600; color: var(--signal); }
+.status-page-link:hover { text-decoration: underline; }
+.status-admin { display: grid; gap: 1rem; margin-top: 1rem; }
+
+/* Page publique : plein écran, sans menu, lisible en clair comme en sombre. */
+.status-public {
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.status-public-header,
+.status-public-main,
+.status-public-footer {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.status-public-header { padding-top: 2rem; padding-bottom: 1rem; }
+.status-public-brand { margin: 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: #59626f; }
+.status-public-title { margin: 0.25rem 0 0; font-size: clamp(1.6rem, 3vw, 2.2rem); }
+.status-public-description { margin: 0.5rem 0 0; color: #3a4350; }
+.status-public-main { padding-bottom: 2rem; }
+.status-public-footer { padding-bottom: 2rem; font-size: 0.85rem; color: #59626f; }
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 0.375rem;
+  z-index: 10;
+}
+
+.skip-link:focus { left: 0.5rem; }
+
+@media (prefers-color-scheme: dark) {
+  .status-public {
+    --paper: #0f1722;
+    --surface: #182231;
+    --ink: #e8eef6;
+    --line: #2b3a4f;
+    --signal: #7cc4e4;
+  }
+
+  .status-public .status-state-ok { color: #6fd3a2; }
+  .status-public .status-state-warn { color: #f0c062; }
+  .status-public .status-state-partial { color: #f4a261; }
+  .status-public .status-state-bad { color: #ff8a80; }
+  .status-public .status-state-info { color: #8cc4ff; }
+  .status-public .status-state-muted,
+  .status-public .status-bars-legend,
+  .status-public .status-empty,
+  .status-public .status-public-brand,
+  .status-public .status-public-footer,
+  .status-public .status-timeline-head time { color: #a9b6c6; }
+  .status-public .status-group-title,
+  .status-public .status-component-uptime,
+  .status-public .status-incident-meta,
+  .status-public .status-public-description { color: #c9d4e1; }
+  .status-public .status-bar-none {
+    background: repeating-linear-gradient(135deg, #2b3a4f 0 3px, #182231 3px 6px);
+  }
+  .status-public .status-error { background: #3a1714; border-color: #7a2a24; color: #ffb4ab; }
+}

@@ -10,6 +10,7 @@ import Honeycomb from "../ui/dashboard/Honeycomb.jsx";
 import ProblemsTable from "../ui/dashboard/ProblemsTable.jsx";
 import TopHosts from "../ui/dashboard/TopHosts.jsx";
 import { elapsed, hostState, isSilent, percent } from "../ui/dashboard/hostState.js";
+import OnCallCard from "./OnCallCard.jsx";
 
 const SEVERITIES = [
   { id: "CRITICAL", label: "Critique" },
@@ -177,7 +178,9 @@ function DashboardPage() {
               <Link to="/mur" className="btn btn-secondary">
                 <Monitor size={16} aria-hidden="true" /> Mur NOC
               </Link>
-              {board && (
+              <OnCallCard />
+
+        {board && (
                 <Link to="/alertes?actives=1" className={`health ${critical > 0 ? "health-bad" : "health-ok"}`}>
                   {critical > 0 ? (
                     <AlertTriangle size={18} aria-hidden="true" />

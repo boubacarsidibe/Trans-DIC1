@@ -3,11 +3,16 @@ import ViewsPage from "./pages/ViewsPage.jsx";
 import OidcCallbackPage from "./pages/OidcCallbackPage.jsx";
 import TopologyPage from "./pages/TopologyPage.jsx";
 import WallPage from "./pages/WallPage.jsx";
+import EventsPage from "./pages/EventsPage.jsx";
+import EventRulesPage from "./pages/EventRulesPage.jsx";
 import AppLayout from "./auth/AppLayout.jsx";
 import ProtectedRoute from "./auth/ProtectedRoute.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import MaintenancesPage from "./pages/MaintenancesPage.jsx";
+import OnCallPage from "./pages/OnCallPage.jsx";
+import StatusPagesPage from "./pages/StatusPagesPage.jsx";
+import StatusPageViewPage from "./pages/StatusPageViewPage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
 import ReportsPage from "./pages/ReportsPage.jsx";
 import RulesPage from "./pages/RulesPage.jsx";
@@ -18,6 +23,7 @@ import AlertsPage from "./pages/AlertsPage.jsx";
 import CollectionPage from "./pages/CollectionPage.jsx";
 import ProbesPage from "./pages/ProbesPage.jsx";
 import EquipmentPage from "./pages/EquipmentPage.jsx";
+import TemplatesPage from "./pages/TemplatesPage.jsx";
 import AuditPage from "./pages/AuditPage.jsx";
 import ChannelsPage from "./pages/ChannelsPage.jsx";
 import DiscoveryPage from "./pages/DiscoveryPage.jsx";
@@ -38,12 +44,18 @@ function App() {
           <Route path="/equipements" element={<EquipmentPage />} />
           <Route path="/equipements/:id/historique" element={<MetricsPage />} />
           <Route path="/equipements/:id/sondes" element={<ProbesPage />} />
+          <Route path="/modeles" element={<TemplatesPage />} />
           <Route path="/sites" element={<SitesPage />} />
           <Route path="/topologie" element={<TopologyPage />} />
           <Route path="/alertes" element={<AlertsPage />} />
           <Route path="/maintenances" element={<MaintenancesPage />} />
+          <Route path="/astreinte" element={<OnCallPage />} />
+          <Route path="/pages-statut" element={<StatusPagesPage />} />
+          <Route path="/pages-statut/:id" element={<StatusPageViewPage />} />
           <Route path="/rapports" element={<ReportsPage />} />
           <Route path="/regles" element={<RulesPage />} />
+          <Route path="/evenements" element={<EventsPage />} />
+          <Route path="/regles-evenements" element={<EventRulesPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route element={<ProtectedRoute roles={["ADMIN", "NOC_OPERATOR"]} />}>
             <Route path="/import" element={<ImportPage />} />

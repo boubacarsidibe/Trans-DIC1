@@ -96,6 +96,9 @@ La documentation est active par défaut. Elle est désactivée avec `OPENAPI_ENA
 ## Tests, lint et build
 
 ```powershell
+# Tous les contrôles d'un coup (remplace la CI supprimée, docs/devops/verification-locale.md)
+.\scripts\verify-all.ps1
+
 # Contrôle du dépôt
 pwsh ./scripts/verify-repository.ps1
 
@@ -110,8 +113,10 @@ npm run lint
 npm test
 npm run build
 
-# Parcours de bout en bout dans un vrai navigateur (Docker et Chrome requis, docs/devops/e2e-tests.md)
-sh e2e/run-e2e.sh
+# Parcours de bout en bout dans un vrai navigateur, sans Docker (PostgreSQL 16 et Chrome installés, docs/devops/e2e-tests.md)
+Set-Location ..
+.\scripts\run-e2e-native.ps1
+Set-Location frontend
 
 # Sauvegarde et restauration PostgreSQL (Docker requis)
 Set-Location ..

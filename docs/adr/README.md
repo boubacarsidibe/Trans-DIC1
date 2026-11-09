@@ -23,6 +23,13 @@ Chaque décision structurante est consignée dans un ADR : contexte, options com
 | [0017](0017-oidc.md) | Connexion unique OIDC : client public PKCE, backend serveur de ressources | acceptée, implémentée (fournisseur réel à valider) |
 | [0018](0018-perimetre-par-site.md) | Périmètre d'accès par site : port `SiteScope`, filtrage côté serveur partout | acceptée, implémentée |
 | [0019](0019-sondes-actives.md) | Sondes actives sans agent (ICMP, TCP, HTTP(S), certificat TLS) lancées depuis le serveur, garde-fous SSRF | acceptée, implémentée (e2e et ping en conteneur à vérifier) |
+| [0020](0020-prevision-saturation.md) | Prévision de saturation (disque, mémoire) par régression linéaire sur les moyennes horaires, alerte FORECAST | acceptée, implémentée |
+| [0021](0021-evenements-reseau.md) | Récepteurs de traps SNMP et de syslog, authentification par adresse, règles d'événements vers alertes EVENT, expressions bornées | acceptée, implémentée (aucun émetteur réel essayé) |
+| [0022](0022-modeles-equipement.md) | Bibliothèque de modèles d'équipement en fichiers JSON versionnés, valeur SNMP dérivée, application idempotente (aperçu = application) | acceptée, implémentée (aucun modèle validé sur matériel) |
+| [0023](0023-agent-windows.md) | Agent Windows : même paquet Python, API Win32 par ctypes, contrôle de l'ACL du jeton, tâche planifiée SYSTEM | acceptée, implémentée (validée sur Windows 11 seulement, pas sur Windows Server) |
+| [0024](0024-diagnostic-incident.md) | Diagnostic d'incident par règles déterministes : causes classées par un score documenté, preuves affichées, périmètre et confidentialité, sans apprentissage ni LLM | acceptée, implémentée (poids non validés sur incidents réels) |
+| [0025](0025-astreinte.md) | Astreinte : plannings, gardes et rotations (heure d'été gérée), résolution déterministe, chaîne principal → secondaire avant les administrateurs, idempotente | acceptée, implémentée (pas de SMS ni d'appel : canaux existants seulement) |
+| [0026](0026-page-de-statut.md) | Page de statut des services, interne ou publique : état déterministe des composants, disponibilité 90 jours, incidents, lecture publique en liste blanche (même 404, limitation par adresse, cache 30 s) | acceptée, implémentée (pas d'abonnement des usagers ; cache et limitation par instance) |
 
 L'ADR 0008 a d'abord été publié sous le numéro 0007, déjà attribué aux e-mails : il a été renuméroté sans changement de décision.
 
