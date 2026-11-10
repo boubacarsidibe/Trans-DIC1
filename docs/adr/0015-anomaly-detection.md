@@ -44,6 +44,25 @@ Avec une sensibilité de 3,5 on attend environ 0,5 % de fausses alertes par heur
 indicateur ; sur un parc réel, ce taux est à vérifier pendant la validation sur l'infrastructure de
 l'EPT (S4-TEST) et la sensibilité à ajuster avec le CRI (S4-SEUILS).
 
+## Mise à jour du 2026-11-10 : normale robuste
+
+Un incident passé gonflait l'écart-type de son créneau et masquait les incidents suivants. Avant de
+calculer la moyenne et l'écart-type, les valeurs passées à plus de 5 écarts médians de la médiane
+(écart absolu médian × 1,4826, avec le même plancher) sont écartées ; le message de l'alerte dit
+combien l'ont été. Si moins de 3 valeurs restent, rien n'est écarté.
+
+Mesure sur le même jeu synthétique (`AnomalyDetectorEvaluationTests`) :
+
+| Historique | Fausses alertes | Anomalies détectées |
+|---|---|---|
+| Propre, avant | 0,52 % | 100 % |
+| Propre, après | 0,73 % | 100 % |
+| 8 % d'heures passées polluées (+ 40 points), avant | non mesuré | 31,1 % |
+| 8 % d'heures passées polluées, après | 0,77 % | 99,4 % |
+
+Le prix est une hausse des fausses alertes sur un historique propre (0,52 % à 0,73 %). Ces chiffres
+viennent d'un jeu synthétique, pas de mesures de l'EPT.
+
 ## Alternatives écartées
 
 - Modèles saisonniers (Holt-Winters, Prophet) ou apprentissage automatique : meilleurs sur de

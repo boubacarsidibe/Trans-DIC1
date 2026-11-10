@@ -83,6 +83,87 @@ class AnomalyDetectorEvaluationTests {
     assertThat(recall).isGreaterThan(0.95);
   }
 
+  /**
+   * Historique pollué : 8 % des heures passées portent un ancien incident (+ 40 points). Une
+   * normale faite de la moyenne et de l'écart-type bruts gonfle et ne voit plus qu'une partie des
+   * anomalies ; en écartant les anciens incidents, le détecteur doit en voir plus de 95 %.
+   */
+  @Test
+  void unHistoriquePolluParDAnciensIncidentsNeMasquePasLesAnomalies() {
+    var random = new Random(7);
+    int normalHours = 0;
+    int falseAlarms = 0;
+    int injected = 0;
+    int detected = 0;
+    int detectedNaive = 0;
+    for (int s = 0; s < SERIES; s++) {
+      int days = HISTORY_DAYS + 7;
+      double[][] clean = new double[days][24];
+      double[][] polluted = new double[days][24];
+      for (int d = 0; d < days; d++) {
+        for (int h = 0; h < 24; h++) {
+          clean[d][h] = normal(s, d, h, random);
+          boolean incident = d < HISTORY_DAYS && random.nextDouble() < 0.08;
+          polluted[d][h] = clean[d][h] + (incident ? 40 : 0);
+        }
+      }
+      for (int d = HISTORY_DAYS; d < days; d++) {
+        for (int h = 0; h < 24; h++) {
+          List<Double> past = history(polluted, d, h);
+          var baseline = AnomalyDetector.baseline(past).orElseThrow();
+          normalHours++;
+          if (AnomalyDetector.isAnomalous(baseline, clean[d][h], SENSITIVITY)) {
+            falseAlarms++;
+          }
+          if ((d * 24 + h + s) % 6 == 0) {
+            injected++;
+            double spike = clean[d][h] + ((d + h) % 2 == 0 ? 25 : -25);
+            if (AnomalyDetector.isAnomalous(baseline, spike, SENSITIVITY)) {
+              detected++;
+            }
+            if (naiveScore(past, spike) >= SENSITIVITY) {
+              detectedNaive++;
+            }
+          }
+        }
+      }
+    }
+    double falseRate = (double) falseAlarms / normalHours;
+    double recall = (double) detected / injected;
+    double naiveRecall = (double) detectedNaive / injected;
+    System.out.printf(
+        "Évaluation anomalies, historique pollué : %d heures normales, %d fausses alertes (%.2f"
+            + " %%), %d anomalies, %d détectées (%.1f %%) contre %.1f %% sans écarter les anciens"
+            + " incidents%n",
+        normalHours,
+        falseAlarms,
+        falseRate * 100,
+        injected,
+        detected,
+        recall * 100,
+        naiveRecall * 100);
+    assertThat(falseRate).isLessThan(0.015);
+    assertThat(recall).isGreaterThan(0.95);
+    assertThat(naiveRecall).isLessThan(0.6);
+  }
+
+  /** Ancienne méthode, gardée comme point de comparaison : moyenne et écart-type bruts. */
+  private static double naiveScore(List<Double> history, double value) {
+    double mean = history.stream().mapToDouble(Double::doubleValue).average().orElse(0);
+    double variance =
+        history.stream().mapToDouble(v -> (v - mean) * (v - mean)).sum() / (history.size() - 1);
+    return Math.abs(value - mean) / Math.max(Math.sqrt(variance), Math.max(0.5, mean * 0.01));
+  }
+
+  @Test
+  void lesAnciensIncidentsSontEcartesEtComptes() {
+    var b =
+        AnomalyDetector.baseline(List.of(40.0, 42.0, 38.0, 41.0, 39.0, 40.0, 95.0)).orElseThrow();
+    assertThat(b.excluded()).isEqualTo(1);
+    assertThat(b.samples()).isEqualTo(6);
+    assertThat(b.mean()).isBetween(39.0, 41.0);
+  }
+
   @Test
   void uneSerieTropCourteNeDonnePasDeBaseEtUneSeriePlateNEstPasHypersensible() {
     assertThat(AnomalyDetector.baseline(List.of(10.0, 11.0))).isEmpty();

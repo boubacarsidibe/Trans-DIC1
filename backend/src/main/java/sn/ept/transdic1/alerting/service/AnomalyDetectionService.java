@@ -242,7 +242,10 @@ public class AnomalyDetectionService {
         + round(b.deviation())
         + " (écart de "
         + round(Math.abs(b.score(recent.value())))
-        + " écarts-types)";
+        + " écarts-types)"
+        + (b.excluded() > 0
+            ? " ; relevés passés inhabituels écartés de la normale : " + b.excluded()
+            : "");
   }
 
   private static String round(double value) {
