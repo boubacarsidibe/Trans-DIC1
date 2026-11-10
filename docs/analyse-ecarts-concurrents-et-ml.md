@@ -119,8 +119,45 @@ M9 et M12 ont besoin de plusieurs semaines d'alertes réelles : sans données de
 2. **Lot 2, corrélation** : M10, M11, M9 (suggestions), M4, détection du clignotement.
 3. **Lot 3, manques simples et visibles** : double authentification, jetons d'API, absence de donnée, conditions composées, rapports planifiés, sonde DNS, Telegram.
 4. **Lot 4, gros morceaux** : M2, M5, M13, M14, voisins LLDP, NetFlow puis M7, LDAP, proxys de collecte.
+5. **Lot 5, sécurité** (section 5) : S1 à S3 et S7 d'abord, puis S4 et S5 ; S6 après NetFlow.
 
 Hors périmètre proposé : facturation du trafic, sauvegarde des configurations, haute disponibilité, remédiation par script (risque de sécurité à décider avec le CRI).
+
+## 5. Volet sécurité (demandé le 2026-11-10)
+
+But : voir les attaques en cours à partir de ce que la plateforme reçoit déjà ou peut recevoir (journaux, requêtes des serveurs web, événements réseau), à la manière d'un SIEM léger. Trans-DIC1 resterait un outil qui **détecte et alerte**, pas un pare-feu : lire un journal, c'est voir l'attaque après la requête, et rien n'est bloqué.
+
+### 5.1 Ce que font les outils de sécurité libres
+
+| Outil | Ce qu'il fait | Licence |
+| --- | --- | --- |
+| Wazuh | Analyse de journaux par règles, intégrité des fichiers, détection de vulnérabilités, contrôle de configuration, réponse active (blocage d'adresse, arrêt de processus), repères MITRE ATT&CK | GPLv2 (d'après des sources secondaires) |
+| CrowdSec | Analyseurs qui structurent les journaux, scénarios en « seau percé » (dix échecs SSH d'une adresse en une minute), liste noire communautaire | MIT d'après une source secondaire, à confirmer |
+| OWASP Core Rule Set | Règles de détection des attaques web (plus de 50 pour l'injection SQL, XSS, inclusion de fichier, exécution de code), score d'anomalie cumulé par requête, niveaux de paranoïa | Libre, licence à confirmer |
+| Suricata, Zeek, Fail2ban | Détection d'intrusion réseau et bannissement | Non consultés |
+
+### 5.2 Ce que Trans-DIC1 a déjà pour cela
+
+Récepteur syslog et traps SNMP, règles d'événements vers alertes, agent sur les serveurs, journal d'audit, verrouillage des comptes de la plateforme. Il manque : la lecture des journaux par l'agent, l'analyse des requêtes web, des règles de sécurité livrées, et tout modèle appris.
+
+### 5.3 Proposition
+
+| # | Fonction | Méthode | Dépend de |
+| --- | --- | --- | --- |
+| S1 | Lecture de journaux par l'agent : authentification (Linux, Windows), journaux d'accès nginx et Apache | Suivi de fichier, envoi par lots, sans contenu de mot de passe | Agent |
+| S2 | Scénarios de force brute et de balayage | Seau percé par adresse source : échecs SSH, échecs de connexion web, rafale de 404, balayage de ports vu par syslog | S1 |
+| S3 | Attaques dans les requêtes web, par règles | Signatures reprises des familles de l'OWASP CRS (injection SQL, XSS, traversée de répertoire, exécution de commande), score cumulé par requête | S1 |
+| S4 | Attaques dans les requêtes web, par modèle appris | Classifieur sur n-grammes de caractères de l'URL et des paramètres, entraîné par nous et jugé sur le jeu public CSIC 2010 ; complète S3 pour les formes inconnues | S1, licence du jeu à vérifier |
+| S5 | Comportement inhabituel d'une adresse ou d'un compte | Normale par heure (M1) sur le nombre de requêtes, d'erreurs et de connexions ; première connexion d'un compte depuis une adresse jamais vue | S1 |
+| S6 | Balayage et inondation sur le réseau | Entropie des adresses et des ports (M7) | NetFlow, lot 4 |
+| S7 | Tableau de bord sécurité | Attaques en cours, adresses sources les plus actives, serveurs visés, repère MITRE ATT&CK par scénario | S2, S3 |
+| S8 | Passerelle vers un vrai SIEM | Envoi des alertes en syslog ou webhook vers Wazuh ; réception de ses alertes par le récepteur existant | — |
+
+**Modèle déjà entraîné et gratuit** : la recherche n'en a pas trouvé un avec une licence claire. Les articles publient des résultats sur CSIC 2010 (réseaux à caractères, CNN-LSTM annoncé à 99,77 %), pas des modèles téléchargeables ; le seul résultat sur Hugging Face est entraîné sur 440 exemples synthétiques et ne convient pas. Télécharger des poids depuis un dépôt public est par ailleurs un risque en soi (du code peut s'exécuter au chargement). La voie proposée est donc un petit modèle entraîné par nous, en Java, mesuré sur un jeu public.
+
+**Hors périmètre proposé** : blocage automatique d'adresses (un faux positif coupe un usager ; à décider avec le CRI), intégrité des fichiers, recherche de vulnérabilités, antivirus. Pour ces besoins, brancher Wazuh (S8) plutôt que le refaire.
+
+**Limites** : les journaux d'accès contiennent des adresses et des URL d'usagers, donc des données personnelles ; durée de conservation et accès sont à fixer avec l'école. Sans trafic réel, les taux de détection viendront d'un jeu public ancien (2010), pas des serveurs de l'EPT.
 
 ## Sources consultées le 2026-11-10
 
@@ -139,4 +176,6 @@ Hors périmètre proposé : facturation du trafic, sauvegarde des configurations
 - [SolarWinds NetPath](https://documentation.solarwinds.com/en/success_center/npm/content/npm-orion-integration-with-netpath.htm), [seuils adaptatifs OpManager](https://www.manageengine.com/uk/network-monitoring/adaptive-thresholds.html).
 - Détection sur le réseau : [SNMP et NetFlow combinés chez un opérateur](https://typeset.io/pdf/lads-large-scale-automated-ddos-detection-system-3yr0x1hq93.pdf), [apprentissage sur les données SNMP-MIB](https://www.inderscience.com/offer.php?id=94644), [entropie sur NetFlow](https://archive.cps-vo.org/node/64325).
 
-Non consulté : Nagios, Icinga, Observium, Centreon, LogicMonitor. La recherche sur Icinga n'a rien rendu.
+- Sécurité : [Wazuh, dépôt](https://github.com/wazuh/wazuh), [présentation de Wazuh](https://inlab.fib.upc.edu/en/blog/wazuh-an-open-source-platform-unifying-siem-and-xdr), [score d'anomalie de l'OWASP CRS](https://coreruleset.org/docs/concepts/anomaly_scoring), [scénarios CrowdSec](https://crowdsec.net/blog/why-develop-new-scenarios), [détection de requêtes malveillantes par CNN à caractères](https://www.researchgate.net/publication/335743823_Malicious_Web_Request_Detection_Using_Character-Level_CNN), [XSS et injection SQL par apprentissage profond](https://www.nature.com/articles/s41598-023-48845-4), [risques des modèles préentraînés](https://arxiv.org/pdf/2409.09368).
+
+Non consulté : Nagios, Icinga, Observium, Centreon, LogicMonitor, Suricata, Zeek, Fail2ban, Sigma. La recherche sur Icinga n'a rien rendu.
