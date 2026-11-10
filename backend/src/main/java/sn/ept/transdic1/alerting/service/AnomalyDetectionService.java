@@ -31,7 +31,9 @@ import sn.ept.transdic1.alerting.domain.Severity;
 import sn.ept.transdic1.alerting.repository.AlertEventRepository;
 import sn.ept.transdic1.alerting.repository.AlertRepository;
 import sn.ept.transdic1.common.scheduling.JobGuard;
+import sn.ept.transdic1.inventory.domain.MonitoredService;
 import sn.ept.transdic1.inventory.repository.EquipmentRepository;
+import sn.ept.transdic1.inventory.repository.MonitoredServiceRepository;
 
 /**
  * Détection d'anomalies sur les indicateurs. Pour chaque équipement supervisé et chaque indicateur
@@ -40,7 +42,8 @@ import sn.ept.transdic1.inventory.repository.EquipmentRepository;
  * même heure (heure de Dakar), ou, faute de données, à la même heure tous les jours. Un écart d'au
  * moins {@code sensitivity} écarts-types ouvre une alerte {@code ANOMALY} ; elle se résout seule
  * quand la valeur revient sous 70 % de ce seuil. Les mesures de sondes sans agent (avec service) ne
- * sont pas examinées.
+ * sont pas examinées, sauf la latence : un service nettement plus lent que d'habitude ouvre une
+ * alerte avant de tomber (voir {@link #scanProbeLatency}).
  */
 @Service
 public class AnomalyDetectionService {
@@ -52,6 +55,7 @@ public class AnomalyDetectionService {
   private final AlertRepository alerts;
   private final AlertEventRepository events;
   private final EquipmentRepository equipments;
+  private final MonitoredServiceRepository services;
   private final ApplicationEventPublisher publisher;
   private final JobGuard guard;
   private final Clock clock;
@@ -63,6 +67,7 @@ public class AnomalyDetectionService {
       AlertRepository alerts,
       AlertEventRepository events,
       EquipmentRepository equipments,
+      MonitoredServiceRepository services,
       ApplicationEventPublisher publisher,
       JobGuard guard,
       Clock clock,
@@ -72,6 +77,7 @@ public class AnomalyDetectionService {
     this.alerts = alerts;
     this.events = events;
     this.equipments = equipments;
+    this.services = services;
     this.publisher = publisher;
     this.guard = guard;
     this.clock = clock;
@@ -121,7 +127,151 @@ public class AnomalyDetectionService {
         opened++;
       }
     }
+    return opened + scanProbeLatency(now);
+  }
+
+  /** Mesures de latence nécessaires dans les 15 dernières minutes : une seule ne prouve rien. */
+  static final int MIN_LATENCY_SAMPLES = 3;
+
+  /** Écart minimal en millisecondes : sous ce seuil, une sonde locale « bruite » sans gravité. */
+  static final double LATENCY_FLOOR_MS = 5.0;
+
+  /** Écart minimal en part de la latence habituelle. */
+  static final double LATENCY_FLOOR_RATIO = 0.2;
+
+  /**
+   * Latence des sondes, service par service. Seul un ralentissement compte (un service plus rapide
+   * n'est pas un problème). La normale vient des mesures brutes des 28 derniers jours, regroupées
+   * par heure : les agrégats horaires ne distinguent pas les services d'un même équipement. Avec la
+   * rétention par défaut des mesures brutes (30 jours), tout l'historique utile est disponible.
+   */
+  int scanProbeLatency(Instant now) {
+    var recent =
+        jdbc.query(
+            "SELECT m.equipment_id, m.service_id, avg(m.metric_value), count(*) FROM metric m"
+                + " JOIN equipment e ON e.id = m.equipment_id AND e.monitoring_enabled"
+                + " JOIN monitored_service s ON s.id = m.service_id AND s.active"
+                + " WHERE m.collected_at >= ? AND m.quality <> 'BAD'"
+                + " AND m.metric_key = 'probe.latency'"
+                + " GROUP BY m.equipment_id, m.service_id",
+            (rs, i) ->
+                new RecentLatency(
+                    rs.getObject(1, UUID.class),
+                    rs.getObject(2, UUID.class),
+                    rs.getBigDecimal(3).doubleValue(),
+                    rs.getInt(4)),
+            Timestamp.from(now.minus(Duration.ofMinutes(15))));
+    int opened = 0;
+    for (RecentLatency value : recent) {
+      if (value.samples() >= MIN_LATENCY_SAMPLES && evaluateLatency(value, now)) {
+        opened++;
+      }
+    }
     return opened;
+  }
+
+  private record RecentLatency(UUID equipmentId, UUID serviceId, double value, int samples) {}
+
+  Optional<AnomalyDetector.Baseline> latencyBaseline(UUID serviceId, Instant at) {
+    ZonedDateTime local = at.atZone(ZONE);
+    boolean weekend = local.getDayOfWeek().getValue() >= 6;
+    Timestamp since = Timestamp.from(at.minus(Duration.ofDays(28)));
+    Timestamp until = Timestamp.from(at.minus(Duration.ofHours(1)));
+    String head =
+        "SELECT avg(metric_value) FROM metric WHERE service_id = ? AND metric_key = 'probe.latency'"
+            + " AND quality <> 'BAD' AND collected_at >= ? AND collected_at < ?"
+            + " AND extract(hour FROM collected_at AT TIME ZONE 'Africa/Dakar') = ?";
+    String tail = " GROUP BY date_trunc('hour', collected_at)";
+    List<Double> sameSlot =
+        jdbc.query(
+            head
+                + " AND (extract(isodow FROM collected_at AT TIME ZONE 'Africa/Dakar') >= 6) = ?"
+                + tail,
+            (rs, i) -> rs.getBigDecimal(1).doubleValue(),
+            serviceId,
+            since,
+            until,
+            local.getHour(),
+            weekend);
+    List<Double> history =
+        sameSlot.size() >= MIN_SLOT_SAMPLES
+            ? sameSlot
+            : jdbc.query(
+                head + tail,
+                (rs, i) -> rs.getBigDecimal(1).doubleValue(),
+                serviceId,
+                since,
+                until,
+                local.getHour());
+    // Plancher propre à la latence : quelques millisecondes de plus ne sont pas un incident.
+    return AnomalyDetector.baseline(history)
+        .map(
+            b ->
+                new AnomalyDetector.Baseline(
+                    b.mean(),
+                    b.deviation(),
+                    Math.max(LATENCY_FLOOR_MS, b.mean() * LATENCY_FLOOR_RATIO),
+                    b.samples(),
+                    b.excluded()));
+  }
+
+  private boolean evaluateLatency(RecentLatency recent, Instant now) {
+    var baseline = latencyBaseline(recent.serviceId(), now);
+    if (baseline.isEmpty()) {
+      return false;
+    }
+    var b = baseline.get();
+    // Un seul sens : seul un service plus lent que d'habitude est signalé.
+    double score = b.score(recent.value());
+    String prefix =
+        "anomaly:" + recent.equipmentId() + ":probe.latency:" + recent.serviceId() + "-";
+    Optional<Alert> active = alerts.findFirstByOccurrenceKeyStartingWithAndStateIn(prefix, ACTIVE);
+    if (active.isPresent()) {
+      if (score < sensitivity * 0.7) {
+        resolve(active.get(), now);
+      }
+      return false;
+    }
+    if (score < sensitivity) {
+      return false;
+    }
+    MonitoredService service = services.findById(recent.serviceId()).orElse(null);
+    if (service == null) {
+      return false;
+    }
+    ZonedDateTime local = now.atZone(ZONE);
+    String message =
+        "Service plus lent que d'habitude : "
+            + service.getName()
+            + " répond en "
+            + round(recent.value())
+            + " ms alors que la normale "
+            + (local.getDayOfWeek().getValue() >= 6 ? "le week-end" : "en semaine")
+            + " vers "
+            + local.getHour()
+            + " h est "
+            + round(b.mean())
+            + " ± "
+            + round(b.deviation())
+            + " ms";
+    var alert =
+        new Alert(
+            service.getEquipment(),
+            prefix + now.toEpochMilli(),
+            AlertType.ANOMALY,
+            AlertState.OPEN,
+            Severity.WARNING,
+            message,
+            now);
+    alert.setService(service);
+    var event = new AlertEvent(alert, AlertEventType.OPENED, now);
+    event.setNewState(AlertState.OPEN);
+    alerts.save(alert);
+    events.save(event);
+    publisher.publishEvent(new AlertChangedEvent(alert.getId(), AlertEventType.OPENED));
+    publisher.publishEvent(new AlertActivityEvent(alert.getId(), AlertEventType.OPENED));
+    LOG.info("Latence inhabituelle sur le service {}", recent.serviceId());
+    return true;
   }
 
   private record Recent(UUID equipmentId, String key, double value, String unit) {}

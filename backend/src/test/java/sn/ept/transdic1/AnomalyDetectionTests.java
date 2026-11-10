@@ -163,6 +163,91 @@ class AnomalyDetectionTests {
     assertThat(active()).isZero();
   }
 
+  /** 10 jours de latence habituelle (autour de 20 ms), une mesure toutes les 20 minutes. */
+  private MonitoredService probeWithHistory() {
+    var service = services.saveAndFlush(new MonitoredService(server, "Portail", ServiceType.HTTPS));
+    Instant hour = Instant.now().truncatedTo(ChronoUnit.HOURS);
+    for (int h = 2; h <= 10 * 24; h++) {
+      for (int m = 0; m < 60; m += 20) {
+        Instant at = hour.minus(Duration.ofHours(h)).plus(Duration.ofMinutes(m));
+        latency(service, 20 + (h + m) % 3, at);
+      }
+    }
+    return service;
+  }
+
+  private void latency(MonitoredService service, double value, Instant at) {
+    jdbc.update(
+        "INSERT INTO metric(equipment_id, service_id, metric_key, metric_value, unit, quality,"
+            + " collected_at, received_at) VALUES (?, ?, 'probe.latency', ?, 'ms', 'GOOD', ?, ?)",
+        server.getId(),
+        service.getId(),
+        value,
+        Timestamp.from(at),
+        Timestamp.from(at));
+  }
+
+  private void recentLatency(MonitoredService service, double value) {
+    for (int minutes = 1; minutes <= 3; minutes++) {
+      latency(service, value, Instant.now().minus(Duration.ofMinutes(minutes)));
+    }
+  }
+
+  @Test
+  void unServiceNettementPlusLentOuvreUneAlerteRattacheeAuServicePuisSeResout() {
+    var service = probeWithHistory();
+    recentLatency(service, 180);
+
+    anomalies.scan();
+    anomalies.scan();
+
+    assertThat(active()).isEqualTo(1);
+    var row =
+        jdbc.queryForMap(
+            "SELECT message, service_id FROM alert WHERE equipment_id = ? AND type = 'ANOMALY'",
+            server.getId());
+    assertThat((String) row.get("message"))
+        .startsWith("Service plus lent que d'habitude : Portail répond en 180.0 ms")
+        .contains("normale");
+    assertThat(row.get("service_id")).isEqualTo(service.getId());
+
+    jdbc.update(
+        "DELETE FROM metric WHERE service_id = ? AND collected_at >= ?",
+        service.getId(),
+        Timestamp.from(Instant.now().minus(Duration.ofMinutes(15))));
+    recentLatency(service, 21);
+    anomalies.scan();
+    assertThat(active()).isZero();
+  }
+
+  @Test
+  void unServicePlusRapideOuAPeinePlusLentNOuvreRien() {
+    var service = probeWithHistory();
+    // Plus rapide que d'habitude : ce n'est pas un problème.
+    recentLatency(service, 2);
+    anomalies.scan();
+    assertThat(active()).isZero();
+
+    jdbc.update(
+        "DELETE FROM metric WHERE service_id = ? AND collected_at >= ?",
+        service.getId(),
+        Timestamp.from(Instant.now().minus(Duration.ofMinutes(15))));
+    // 4 ms de plus : beaucoup d'écarts-types sur une série très régulière, mais sans gravité.
+    recentLatency(service, 25);
+    anomalies.scan();
+    assertThat(active()).isZero();
+  }
+
+  @Test
+  void uneSeuleMesureLenteNeSuffitPas() {
+    var service = probeWithHistory();
+    latency(service, 500, Instant.now().minus(Duration.ofMinutes(1)));
+
+    anomalies.scan();
+
+    assertThat(active()).isZero();
+  }
+
   @Test
   void laSensibiliteSeRegle() {
     measure(36);
