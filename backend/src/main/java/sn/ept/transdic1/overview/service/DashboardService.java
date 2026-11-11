@@ -7,7 +7,9 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -23,6 +25,7 @@ import sn.ept.transdic1.overview.dto.DashboardResponse.Host;
 import sn.ept.transdic1.overview.dto.DashboardResponse.HourlyCount;
 import sn.ept.transdic1.overview.dto.DashboardResponse.LoadPoint;
 import sn.ept.transdic1.overview.dto.DashboardResponse.Problem;
+import sn.ept.transdic1.overview.dto.DashboardResponse.SiteHealth;
 
 /**
  * Écran d'accueil : tout le parc d'un coup d'œil. Une seule lecture pour que les chiffres d'un
@@ -33,6 +36,10 @@ public class DashboardService {
   private static final int MAX_HOSTS = 500;
   private static final int MAX_PROBLEMS = 30;
   private static final Duration RECENT = Duration.ofMinutes(15);
+
+  /** Un agent envoie chaque minute : dix minutes sans mesure et l'équipement est tenu pour muet. */
+  private static final Duration SILENT_AFTER = Duration.ofMinutes(10);
+
   private static final String ACTIVE = "a.state IN ('OPEN', 'IN_PROGRESS')";
   private static final Map<String, Integer> RANK = Map.of("CRITICAL", 3, "WARNING", 2, "INFO", 1);
 
@@ -46,7 +53,7 @@ public class DashboardService {
     this.scope = scope;
   }
 
-  private record Severities(String worst, int count) {}
+  private record Severities(String worst, int count, int critical, int warning, int info) {}
 
   private record Latest(BigDecimal cpu, BigDecimal memory, BigDecimal disk, Instant seen) {
     Latest with(String key, BigDecimal value, Instant at) {
@@ -74,12 +81,14 @@ public class DashboardService {
     var restriction = scope.restriction();
     if (restriction.isPresent()) {
       if (restriction.get().isEmpty()) {
-        return new DashboardResponse(now, List.of(), List.of(), List.of(), List.of(), List.of());
+        return new DashboardResponse(
+            now, List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
       }
       params.addValue("sites", restriction.get());
       sites = " AND e.site_id IN (:sites)";
     }
     params.addValue("recent", Timestamp.from(now.minus(RECENT)));
+    params.addValue("anomalyRates", Timestamp.from(now.minus(Duration.ofHours(1))));
     params.addValue("day", Timestamp.from(now.minus(Duration.ofHours(24))));
     params.addValue("week", Timestamp.from(now.minus(Duration.ofDays(7))));
     params.addValue("hosts", MAX_HOSTS);
@@ -87,13 +96,58 @@ public class DashboardService {
 
     Map<UUID, Severities> severities = severities(params, sites);
     Map<UUID, Latest> latest = latest(params, sites);
+    List<Host> hosts = hosts(params, sites, severities, latest, anomalyRates(params, sites), now);
     return new DashboardResponse(
         now,
-        hosts(params, sites, severities, latest),
+        hosts,
         problems(params, sites),
         activity(params, sites, now),
         forecasts(params, sites),
-        loadTrend(params, sites));
+        loadTrend(params, sites),
+        siteHealth(hosts));
+  }
+
+  /**
+   * Part des indicateurs hors de leur normale, écrite par le détecteur d'anomalies. Un taux plus
+   * vieux qu'une heure n'est plus représentatif : le détecteur passe toutes les dix minutes.
+   */
+  private Map<UUID, Double> anomalyRates(MapSqlParameterSource params, String sites) {
+    Map<UUID, Double> rates = new HashMap<>();
+    jdbc.query(
+        "SELECT r.equipment_id, r.judged, r.anomalous FROM equipment_anomaly_rate r"
+            + " JOIN equipment e ON e.id = r.equipment_id"
+            + " WHERE r.judged > 0 AND r.computed_at >= :anomalyRates"
+            + sites,
+        params,
+        rs -> {
+          rates.put(rs.getObject(1, UUID.class), rs.getInt(3) / (double) rs.getInt(2));
+        });
+    return rates;
+  }
+
+  /** Santé par site : moyenne des équipements jugés, les sites les plus faibles d'abord. */
+  private List<SiteHealth> siteHealth(List<Host> hosts) {
+    Map<UUID, List<Host>> bySite = new LinkedHashMap<>();
+    for (Host host : hosts) {
+      if (host.siteId() != null) {
+        bySite.computeIfAbsent(host.siteId(), id -> new ArrayList<>()).add(host);
+      }
+    }
+    return bySite.values().stream()
+        .map(
+            group -> {
+              var health = HealthScore.ofSite(group.stream().map(Host::health).toList());
+              return new SiteHealth(
+                  group.get(0).siteId(),
+                  group.get(0).site(),
+                  health.score(),
+                  health.level(),
+                  group.size());
+            })
+        .sorted(
+            Comparator.comparing(SiteHealth::health, Comparator.nullsLast(Integer::compareTo))
+                .thenComparing(SiteHealth::site))
+        .toList();
   }
 
   /**
@@ -144,13 +198,21 @@ public class DashboardService {
           int count = rs.getInt(3);
           found.merge(
               id,
-              new Severities(severity, count),
+              new Severities(
+                  severity,
+                  count,
+                  "CRITICAL".equals(severity) ? count : 0,
+                  "WARNING".equals(severity) ? count : 0,
+                  "INFO".equals(severity) ? count : 0),
               (a, b) ->
                   new Severities(
                       RANK.getOrDefault(b.worst(), 0) > RANK.getOrDefault(a.worst(), 0)
                           ? b.worst()
                           : a.worst(),
-                      a.count() + b.count()));
+                      a.count() + b.count(),
+                      a.critical() + b.critical(),
+                      a.warning() + b.warning(),
+                      a.info() + b.info()));
         });
     return found;
   }
@@ -191,7 +253,9 @@ public class DashboardService {
       MapSqlParameterSource params,
       String sites,
       Map<UUID, Severities> severities,
-      Map<UUID, Latest> latest) {
+      Map<UUID, Latest> latest,
+      Map<UUID, Double> anomalyRates,
+      Instant now) {
     return jdbc.query(
         "SELECT e.id, e.name, e.equipment_type, e.operational_status, s.id AS site_id,"
             + " s.name AS site FROM equipment e JOIN site s ON s.id = e.site_id WHERE 1 = 1"
@@ -202,19 +266,33 @@ public class DashboardService {
           UUID id = rs.getObject(1, UUID.class);
           var severity = severities.get(id);
           var values = latest.getOrDefault(id, new Latest(null, null, null, null));
+          String status = rs.getString(4);
+          // Muet : il a déjà parlé, mais plus rien depuis dix minutes (même seuil que l'écran).
+          boolean silent = values.seen() != null && values.seen().isBefore(now.minus(SILENT_AFTER));
+          var health =
+              HealthScore.of(
+                  status,
+                  severity == null ? 0 : severity.critical(),
+                  severity == null ? 0 : severity.warning(),
+                  severity == null ? 0 : severity.info(),
+                  silent,
+                  anomalyRates.get(id));
           return new Host(
               id,
               rs.getString(2),
               rs.getString(3),
               rs.getObject(5, UUID.class),
               rs.getString(6),
-              rs.getString(4),
+              status,
               severity == null ? null : severity.worst(),
               severity == null ? 0 : severity.count(),
               values.cpu(),
               values.memory(),
               values.disk(),
-              values.seen());
+              values.seen(),
+              health.score(),
+              health.level(),
+              health.reasons());
         });
   }
 

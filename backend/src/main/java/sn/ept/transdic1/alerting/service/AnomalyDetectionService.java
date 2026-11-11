@@ -7,7 +7,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -122,12 +124,52 @@ public class AnomalyDetectionService {
                     rs.getString(4)),
             Timestamp.from(now.minus(Duration.ofMinutes(15))));
     int opened = 0;
+    var tally = new HashMap<UUID, int[]>();
     for (Recent value : recent) {
-      if (evaluate(value, now)) {
+      Outcome outcome = evaluate(value, now);
+      if (outcome.judged()) {
+        int[] counts = tally.computeIfAbsent(value.equipmentId(), id -> new int[2]);
+        counts[0]++;
+        if (outcome.anomalous()) {
+          counts[1]++;
+        }
+      }
+      if (outcome.opened()) {
         opened++;
       }
     }
+    storeAnomalyRates(tally, now);
     return opened + scanProbeLatency(now);
+  }
+
+  /**
+   * Part des indicateurs hors de leur normale, par équipement (M3) : le détecteur vient de juger
+   * chaque indicateur, autant garder le compte. Le score de santé le lit sans tout recalculer. Une
+   * seule ligne par équipement, remplacée à chaque passage.
+   */
+  private void storeAnomalyRates(Map<UUID, int[]> tally, Instant now) {
+    for (var entry : tally.entrySet()) {
+      jdbc.update(
+          "INSERT INTO equipment_anomaly_rate(equipment_id, judged, anomalous, computed_at)"
+              + " VALUES (?, ?, ?, ?) ON CONFLICT (equipment_id) DO UPDATE"
+              + " SET judged = excluded.judged, anomalous = excluded.anomalous,"
+              + " computed_at = excluded.computed_at",
+          entry.getKey(),
+          entry.getValue()[0],
+          entry.getValue()[1],
+          Timestamp.from(now));
+    }
+  }
+
+  /**
+   * Verdict sur un indicateur : jugé ou non (sans normale fiable, on ne juge pas), hors de sa
+   * normale ou non, et alerte ouverte ou non (une alerte déjà active n'en rouvre pas une).
+   */
+  private record Outcome(boolean judged, boolean anomalous, boolean opened) {
+    static final Outcome NOT_JUDGED = new Outcome(false, false, false);
+    static final Outcome NORMAL = new Outcome(true, false, false);
+    static final Outcome ANOMALOUS = new Outcome(true, true, false);
+    static final Outcome OPENED = new Outcome(true, true, true);
   }
 
   /** Mesures de latence nécessaires dans les 15 dernières minutes : une seule ne prouve rien. */
@@ -317,10 +359,10 @@ public class AnomalyDetectionService {
     return AnomalyDetector.baseline(sameHour);
   }
 
-  private boolean evaluate(Recent recent, Instant now) {
+  private Outcome evaluate(Recent recent, Instant now) {
     var baseline = baseline(recent.equipmentId(), recent.key(), now);
     if (baseline.isEmpty()) {
-      return false;
+      return Outcome.NOT_JUDGED;
     }
     String prefix = "anomaly:" + recent.equipmentId() + ":" + recent.key() + ":";
     Optional<Alert> active = alerts.findFirstByOccurrenceKeyStartingWithAndStateIn(prefix, ACTIVE);
@@ -328,15 +370,16 @@ public class AnomalyDetectionService {
     if (active.isPresent()) {
       if (AnomalyDetector.isBackToNormal(b, recent.value(), sensitivity)) {
         resolve(active.get(), now);
+        return Outcome.NORMAL;
       }
-      return false;
+      return Outcome.ANOMALOUS;
     }
     if (!AnomalyDetector.isAnomalous(b, recent.value(), sensitivity)) {
-      return false;
+      return Outcome.NORMAL;
     }
     var equipment = equipments.findById(recent.equipmentId()).orElse(null);
     if (equipment == null) {
-      return false;
+      return Outcome.ANOMALOUS;
     }
     String message = explain(recent, b, now);
     var alert =
@@ -355,7 +398,7 @@ public class AnomalyDetectionService {
     publisher.publishEvent(new AlertChangedEvent(alert.getId(), AlertEventType.OPENED));
     publisher.publishEvent(new AlertActivityEvent(alert.getId(), AlertEventType.OPENED));
     LOG.info("Anomalie ouverte sur {} ({})", recent.equipmentId(), recent.key());
-    return true;
+    return Outcome.OPENED;
   }
 
   private void resolve(Alert alert, Instant now) {

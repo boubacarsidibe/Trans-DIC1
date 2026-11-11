@@ -6,6 +6,7 @@ import { useLiveUpdates } from "../hooks/useLiveUpdates.js";
 import { LiveIndicator } from "../ui/Badges.jsx";
 import PageHeader from "../ui/PageHeader.jsx";
 import ActivityChart from "../ui/dashboard/ActivityChart.jsx";
+import HealthPanel from "../ui/dashboard/HealthPanel.jsx";
 import Honeycomb from "../ui/dashboard/Honeycomb.jsx";
 import ProblemsTable from "../ui/dashboard/ProblemsTable.jsx";
 import TopHosts from "../ui/dashboard/TopHosts.jsx";
@@ -142,6 +143,11 @@ function DashboardPage() {
     [board, visible],
   );
 
+  // Santé par site, limitée aux sites visibles quand un filtre de site est posé.
+  const siteHealth = useMemo(
+    () => (board?.siteHealth ?? []).filter((s) => !site || s.siteId === site),
+    [board, site],
+  );
   const forecasts = useMemo(
     () => (board?.forecasts ?? []).filter((f) => visible.has(f.equipmentId)),
     [board, visible],
@@ -240,6 +246,13 @@ function DashboardPage() {
                   </Link>
                 </div>
                 <ProblemsTable problems={problems} />
+              </section>
+
+              <section aria-labelledby="sante" className="panel dash-wide">
+                <div className="panel-head">
+                  <h2 id="sante">Santé du parc</h2>
+                </div>
+                <HealthPanel sites={siteHealth} hosts={hosts} />
               </section>
 
               <section aria-labelledby="charges" className="panel">

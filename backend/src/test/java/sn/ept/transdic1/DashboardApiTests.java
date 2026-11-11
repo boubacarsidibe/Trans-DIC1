@@ -262,4 +262,57 @@ class DashboardApiTests {
     assertThat(dashboard.dashboard().forecasts())
         .noneMatch(f -> f.equipmentId().equals(equipment.getId()));
   }
+
+  @Test
+  void unEquipementSansProblemeEstAuMaximumDeSante() {
+    var host = host();
+
+    assertThat(host.health()).isEqualTo(100);
+    assertThat(host.healthLevel()).isEqualTo("bon");
+    assertThat(host.healthReasons()).containsExactly("Rien à signaler");
+  }
+
+  @Test
+  void lesAlertesActivesEtLeTauxDAnomalieFontBaisserLaSante() {
+    alert(Severity.CRITICAL, AlertState.OPEN);
+    alert(Severity.WARNING, AlertState.OPEN);
+    // Deux indicateurs sur quatre hors de leur normale au dernier passage du détecteur.
+    jdbc.update(
+        "INSERT INTO equipment_anomaly_rate(equipment_id, judged, anomalous, computed_at)"
+            + " VALUES (?, 4, 2, now())",
+        equipment.getId());
+
+    var host = host();
+
+    // 100 − 25 (critique) − 8 (avertissement) − 20 (la moitié des indicateurs)
+    assertThat(host.health()).isEqualTo(47);
+    assertThat(host.healthLevel()).isEqualTo("degrade");
+    assertThat(host.healthReasons())
+        .contains("1 alerte critique (−25)", "Indicateurs hors de leur normale : 50 % (−20)");
+  }
+
+  @Test
+  void unTauxDAnomalieTropVieuxEstIgnore() {
+    jdbc.update(
+        "INSERT INTO equipment_anomaly_rate(equipment_id, judged, anomalous, computed_at)"
+            + " VALUES (?, 4, 4, now() - interval '3 hours')",
+        equipment.getId());
+
+    assertThat(host().health()).isEqualTo(100);
+  }
+
+  @Test
+  void laSanteDuSiteResumeSesEquipements() {
+    alert(Severity.CRITICAL, AlertState.OPEN);
+
+    var site =
+        dashboard.dashboard().siteHealth().stream()
+            .filter(s -> s.siteId().equals(equipment.getSite().getId()))
+            .findFirst()
+            .orElseThrow();
+
+    assertThat(site.health()).isEqualTo(75);
+    assertThat(site.healthLevel()).isEqualTo("surveiller");
+    assertThat(site.equipments()).isEqualTo(1);
+  }
 }
