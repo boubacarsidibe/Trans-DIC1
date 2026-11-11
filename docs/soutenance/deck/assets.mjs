@@ -1,5 +1,7 @@
-// Fonds et icônes de la présentation de soutenance (générés, aucune image externe hors la photo
-// de la page de connexion : Scott Rodgerson, Unsplash, licence libre).
+// Fonds, logo, icônes et cadres de captures de la présentation (tout est généré, aucune image externe).
+// Direction visuelle : sombre anthracite et vert d'état pour l'ouverture, la démo et la conclusion
+// (inspiré des modèles « Mobile Network » de GoodPello), clair pour le contenu (« Clean IT »),
+// grands chiffres légers pour les résultats (pitch decks sombres de Behance).
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -13,22 +15,33 @@ const { renderToStaticMarkup } = reqFront("react-dom/server");
 const lucide = reqFront("lucide-react");
 
 export const OUT = path.join(ROOT, "docs/soutenance/deck/build");
+export const APP = path.join(OUT, "app");
 const W = 2560;
 const H = 1440;
 
-export const COLORS = {
-  night: "0B1220",
-  night2: "121B2E",
-  ivory: "F4EFE6",
-  mist: "AEB6C4",
-  muted: "7F8AA0",
-  gold: "C9A24A",
-  goldLight: "E5C97E",
-  red: "C8574B",
-  green: "5FAE8C",
+export const K = {
+  night: "16191D",
+  night2: "1F242A",
+  night3: "2A3038",
+  nightLine: "3A414B",
+  mint: "34D399",
+  mintDeep: "0B7A57",
+  mintTint: "E7F6EF",
+  ink: "15202B",
+  slate: "55606E",
+  muted: "8A949F",
+  paper: "FFFFFF",
+  panel: "F3F6F8",
+  line: "DDE3E8",
+  onDark: "EEF2F5",
+  onDarkMuted: "9AA4AF",
+  warn: "E8A33D",
+  warnDeep: "9A6206",
+  crit: "E5484D",
+  critDeep: "C53035",
+  critTint: "FCEBEB",
 };
 
-// Générateur pseudo-aléatoire stable : les fonds sont identiques à chaque construction.
 function rng(seed) {
   let s = seed;
   return () => {
@@ -37,202 +50,157 @@ function rng(seed) {
   };
 }
 
-/** Constellation de nœuds reliés (le réseau supervisé), dense à droite, effacée à gauche. */
-function constellation(seed, { count = 70, xMin = 0.45, opacity = 1 } = {}) {
+/** Pistes de circuit imprimé : segments horizontaux et diagonales à 45°, terminés par un nœud. */
+function traces(seed, { count, x0, x1, y0, y1, xMin = x0, yMin = -Infinity, color, opacity, width = 2.2, node = "#16191D" }) {
   const r = rng(seed);
-  const nodes = Array.from({ length: count }, () => ({
-    x: (xMin + r() * (1 - xMin)) * W,
-    y: r() * H,
-    big: r() > 0.88,
-  }));
-  let lines = "";
-  for (let i = 0; i < nodes.length; i++) {
-    for (let j = i + 1; j < nodes.length; j++) {
-      const a = nodes[i];
-      const b = nodes[j];
-      const d = Math.hypot(a.x - b.x, a.y - b.y);
-      if (d < 250) {
-        lines += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#${COLORS.gold}" stroke-opacity="${(0.16 * (1 - d / 250) * opacity).toFixed(3)}" stroke-width="1.4"/>`;
-      }
-    }
-  }
-  const dots = nodes
-    .map(
-      (n) =>
-        `<circle cx="${n.x}" cy="${n.y}" r="${n.big ? 4.5 : 2.4}" fill="#${n.big ? COLORS.goldLight : COLORS.gold}" fill-opacity="${((n.big ? 0.55 : 0.32) * opacity).toFixed(2)}"/>`,
-    )
-    .join("");
-  return lines + dots;
-}
-
-function contentSvg({ seed, ring = true }) {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
-  <defs>
-    <radialGradient id="glow" cx="0.82" cy="0.18" r="0.75">
-      <stop offset="0" stop-color="#1B2A47"/>
-      <stop offset="0.55" stop-color="#101A2D"/>
-      <stop offset="1" stop-color="#0A101C"/>
-    </radialGradient>
-    <linearGradient id="fade" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#000" stop-opacity="1"/>
-      <stop offset="0.5" stop-color="#000" stop-opacity="0.15"/>
-      <stop offset="1" stop-color="#000" stop-opacity="0"/>
-    </linearGradient>
-    <mask id="m"><rect width="${W}" height="${H}" fill="#fff"/><rect width="${W}" height="${H}" fill="url(#fade)"/></mask>
-  </defs>
-  <rect width="${W}" height="${H}" fill="url(#glow)"/>
-  <g mask="url(#m)">${constellation(seed)}</g>
-  ${
-    ring
-      ? `<circle cx="${W - 120}" cy="${H + 60}" r="620" fill="none" stroke="#${COLORS.gold}" stroke-opacity="0.13" stroke-width="3"/>
-         <circle cx="${W - 120}" cy="${H + 60}" r="560" fill="none" stroke="#${COLORS.gold}" stroke-opacity="0.06" stroke-width="2"/>`
-      : ""
-  }
-</svg>`;
-}
-
-
-/** Courbes de niveau (fond « vagues ») : lignes dorées très légères, denses en bas à droite. */
-function wavesSvg() {
-  let paths = "";
-  for (let i = 0; i < 26; i++) {
-    const y0 = 760 + i * 30;
-    const amp = 60 + i * 6;
-    let d = `M -50 ${y0}`;
-    for (let x = -50; x <= W + 50; x += 40) {
-      const y = y0 - amp * Math.sin((x / W) * Math.PI * 1.4 + i * 0.18) - (x / W) * 260;
-      d += ` L ${x} ${y.toFixed(1)}`;
-    }
-    paths += `<path d="${d}" fill="none" stroke="#${COLORS.gold}" stroke-opacity="${(0.04 + i * 0.004).toFixed(3)}" stroke-width="2"/>`;
-  }
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
-    <defs><radialGradient id="g" cx="0.15" cy="0.1" r="0.9"><stop offset="0" stop-color="#18243D"/><stop offset="1" stop-color="#0A0F1A"/></radialGradient></defs>
-    <rect width="${W}" height="${H}" fill="url(#g)"/>${paths}</svg>`;
-}
-
-/** Grille de circuit (fond « architecture ») : pistes orthogonales et pastilles. */
-function circuitSvg(seed) {
-  const r = rng(seed);
+  const step = 40;
   let out = "";
-  for (let i = 0; i < 46; i++) {
-    let x = Math.round((0.42 + r() * 0.58) * W / 40) * 40;
-    let y = Math.round((r() * H) / 40) * 40;
-    let d = `M ${x} ${y}`;
-    for (let k = 0; k < 4; k++) {
-      const len = 80 + Math.round(r() * 6) * 40;
-      if (k % 2 === 0) x += r() > 0.5 ? len : -len;
-      else y += r() > 0.5 ? len : -len;
-      d += ` L ${x} ${y}`;
+  for (let i = 0; i < count; i++) {
+    let x = Math.round((x0 + r() * (x1 - x0)) / step) * step;
+    let y = Math.round((y0 + r() * (y1 - y0)) / step) * step;
+    const pts = [[x, y]];
+    const n = 2 + Math.floor(r() * 4);
+    for (let s = 0; s < n; s++) {
+      // Les pistes restent dans leur zone : elles ne passent jamais derrière le texte.
+      const kind = r();
+      let nx = x;
+      let ny = y;
+      if (kind < 0.55) nx -= step * (2 + Math.floor(r() * 7));
+      else {
+        const l = step * (1 + Math.floor(r() * 3));
+        nx -= l;
+        ny += r() < 0.5 ? -l : l;
+      }
+      if (nx < xMin || ny < yMin) break;
+      x = nx;
+      y = ny;
+      pts.push([x, y]);
     }
-    out += `<path d="${d}" fill="none" stroke="#${COLORS.gold}" stroke-opacity="0.10" stroke-width="2.2"/>`;
-    out += `<circle cx="${x}" cy="${y}" r="6" fill="none" stroke="#${COLORS.gold}" stroke-opacity="0.22" stroke-width="2"/>`;
+    if (pts.length < 2) continue;
+    const op = (opacity * (0.55 + r() * 0.45)).toFixed(3);
+    out += `<polyline points="${pts.map((p) => p.join(",")).join(" ")}" fill="none" stroke="${color}" stroke-opacity="${op}" stroke-width="${width}" stroke-linejoin="round"/>`;
+    const [ex, ey] = pts[pts.length - 1];
+    out += `<circle cx="${ex}" cy="${ey}" r="7" fill="${node}" stroke="${color}" stroke-opacity="${op}" stroke-width="${width}"/>`;
+    const [sx, sy] = pts[0];
+    out += `<circle cx="${sx}" cy="${sy}" r="3.5" fill="${color}" fill-opacity="${op}"/>`;
   }
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
-    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0A0F1A"/><stop offset="1" stop-color="#141F35"/></linearGradient>
-    <linearGradient id="f" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity="1"/><stop offset="0.55" stop-color="#000" stop-opacity="0"/></linearGradient>
-    <mask id="m"><rect width="${W}" height="${H}" fill="#fff"/><rect width="${W}" height="${H}" fill="url(#f)"/></mask></defs>
-    <rect width="${W}" height="${H}" fill="url(#g)"/><g mask="url(#m)">${out}</g></svg>`;
+  return out;
 }
 
-/** Fond calme pour les diagrammes : dégradé uni, aucun motif qui gênerait la lecture. */
-function plainSvg() {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
-    <defs><radialGradient id="g" cx="0.5" cy="0.35" r="0.85"><stop offset="0" stop-color="#141E33"/><stop offset="1" stop-color="#090D16"/></radialGradient></defs>
-    <rect width="${W}" height="${H}" fill="url(#g)"/></svg>`;
+const svgDoc = (body, defs = "") =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><defs>${defs}</defs>${body}</svg>`;
+
+const BACKGROUNDS = {
+  // Couverture : pistes denses à droite, halo vert très léger en haut à droite.
+  "bg-cover.png": () =>
+    svgDoc(
+      `<rect width="${W}" height="${H}" fill="#${K.night}"/>
+       <rect width="${W}" height="${H}" fill="url(#glow)"/>
+       ${traces(11, { count: 60, x0: 1700, x1: 2600, xMin: 1380, y0: 0, y1: H, color: "#34D399", opacity: 0.34 })}`,
+      `<radialGradient id="glow" cx="0.86" cy="0.16" r="0.62"><stop offset="0" stop-color="#34D399" stop-opacity="0.13"/><stop offset="1" stop-color="#34D399" stop-opacity="0"/></radialGradient>`,
+    ),
+  // Diapositives sombres : quelques pistes discrètes en bas à droite.
+  "bg-dark.png": () =>
+    svgDoc(
+      `<rect width="${W}" height="${H}" fill="#${K.night}"/>
+       <rect width="${W}" height="${H}" fill="url(#glow)"/>
+       ${traces(37, { count: 26, x0: 2050, x1: 2600, xMin: 1850, y0: 1180, y1: H, yMin: 1140, color: "#34D399", opacity: 0.18 })}`,
+      `<radialGradient id="glow" cx="0.95" cy="1" r="0.55"><stop offset="0" stop-color="#34D399" stop-opacity="0.07"/><stop offset="1" stop-color="#34D399" stop-opacity="0"/></radialGradient>`,
+    ),
+  // Diapositives claires : blanc, pistes à peine visibles dans le coin bas droit.
+  "bg-light.png": () =>
+    svgDoc(
+      `<rect width="${W}" height="${H}" fill="#FFFFFF"/>
+       ${traces(53, { count: 18, x0: 2250, x1: 2600, xMin: 2000, y0: 1330, y1: H, yMin: 1310, color: "#C9D2DA", opacity: 0.5, node: "#FFFFFF" })}`,
+    ),
+};
+
+/** Logo : une vigie qui balaie l'horizon (anneau, point central, faisceau). */
+export function logoSvg(color = "#34D399", size = 512) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="40" fill="none" stroke="${color}" stroke-width="6"/>
+    <circle cx="50" cy="50" r="22" fill="none" stroke="${color}" stroke-width="4" stroke-opacity="0.55"/>
+    <path d="M50 50 L84 22 A40 40 0 0 1 90 50 Z" fill="${color}" fill-opacity="0.35"/>
+    <circle cx="50" cy="50" r="8" fill="${color}"/>
+    <circle cx="78" cy="30" r="5" fill="${color}"/>
+  </svg>`;
 }
 
-/** Intercalaire : grands arcs dorés concentriques (l'anneau du logo), placés différemment à chaque partie. */
-function sectionSvg(cx, cy) {
-  const rings = [380, 520, 660, 800, 940]
-    .map((rad, i) => `<circle cx="${cx}" cy="${cy}" r="${rad}" fill="none" stroke="#${COLORS.gold}" stroke-opacity="${(0.28 - i * 0.05).toFixed(2)}" stroke-width="${i === 0 ? 3 : 2}"/>`)
-    .join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
-    <defs><radialGradient id="g" cx="${cx / W}" cy="${cy / H}" r="0.8"><stop offset="0" stop-color="#1B2742"/><stop offset="1" stop-color="#080C15"/></radialGradient></defs>
-    <rect width="${W}" height="${H}" fill="url(#g)"/>${rings}
-    <circle cx="${cx}" cy="${cy}" r="34" fill="#${COLORS.gold}" fill-opacity="0.6"/></svg>`;
-}
-
-async function photo(file, overlay, source = "reseau-2000.webp") {
-  const base = await sharp(path.join(ROOT, "frontend/src/assets/login", source))
-    .resize(W, H, { fit: "cover", position: "center" })
-    .modulate({ saturation: 0.75 })
-    .toBuffer();
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${overlay}</svg>`;
-  await sharp(base)
-    .composite([{ input: Buffer.from(svg) }])
-    .jpeg({ quality: 86 })
-    .toFile(path.join(OUT, file));
-}
-
-/** Icône lucide en PNG (trait doré par défaut), pour les anneaux du motif. */
-export async function icon(name, color = COLORS.gold, size = 256) {
-  const file = path.join(OUT, `icon-${name}-${color}.png`);
-  try {
-    await fs.access(file);
-  } catch {
-    const svg = renderToStaticMarkup(
-      React.createElement(lucide[name], { color: `#${color}`, size, strokeWidth: 1.6 }),
-    );
-    await sharp(Buffer.from(svg)).resize(size, size).png().toFile(file);
-  }
+const iconCache = new Map();
+/** Icône Lucide rendue en PNG, à la couleur demandée (hex sans #). */
+export async function icon(name, color, size = 256) {
+  const key = `${name}-${color}`;
+  if (iconCache.has(key)) return iconCache.get(key);
+  const Cmp = lucide[name];
+  if (!Cmp) throw new Error(`Icône inconnue : ${name}`);
+  const svg = renderToStaticMarkup(React.createElement(Cmp, { size, color: `#${color}`, strokeWidth: 1.75 }));
+  const file = path.join(OUT, `icon-${key}.png`);
+  await sharp(Buffer.from(svg)).resize(size, size).png().toFile(file);
+  iconCache.set(key, file);
   return file;
 }
 
-/** Capture de l'application, recadrée en 16:10, coins arrondis. */
-async function screenshot(name) {
-  const src = path.join(ROOT, "output/ui", `${name}.png`);
-  const width = 1440;
-  const height = 900;
-  const radius = 18;
-  const mask = Buffer.from(
-    `<svg width="${width}" height="${height}"><rect width="${width}" height="${height}" rx="${radius}" ry="${radius}"/></svg>`,
-  );
-  await sharp(src)
-    .extract({ left: 0, top: 0, width, height })
-    .composite([{ input: mask, blend: "dest-in" }])
-    .png()
-    .toFile(path.join(OUT, `shot-${name}.png`));
+const LOGOS = path.join(ROOT, "docs/soutenance/deck/logos");
+/** Logo d'une technologie (SVG Simple Icons de logos/, déjà à la couleur de la marque) rendu en PNG. */
+export async function logo(slug, size = 256) {
+  const file = path.join(OUT, `logo-${slug}.png`);
+  const svg = await fs.readFile(path.join(LOGOS, `${slug}.svg`));
+  await sharp(svg, { density: 384 }).resize(size, size, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toFile(file);
+  return file;
+}
+
+/** Monogramme sobre pour un outil sans icône libre (lettres blanches sur carré arrondi). */
+export async function monogram(text, color, size = 256) {
+  const file = path.join(OUT, `mono-${text.replace(/\W/g, "")}-${color}.png`);
+  const fsz = text.length > 3 ? 64 : text.length > 2 ? 86 : text.length > 1 ? 104 : 150;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 256 256">
+    <rect x="8" y="8" width="240" height="240" rx="48" fill="#${color}"/>
+    <text x="128" y="${128 + fsz * 0.35}" font-family="Segoe UI, Arial, sans-serif" font-weight="700" font-size="${fsz}" fill="#FFFFFF" text-anchor="middle">${text}</text>
+  </svg>`;
+  await sharp(Buffer.from(svg)).png().toFile(file);
+  return file;
+}
+
+/**
+ * Place une capture dans une fenêtre de navigateur sobre (barre à trois points, coins arrondis, ombre).
+ * Renvoie le chemin du PNG et son rapport largeur / hauteur.
+ */
+export async function browserFrame(src, name, { dark = false } = {}) {
+  const meta = await sharp(src).metadata();
+  const scale = 1600 / meta.width;
+  const sw = 1600;
+  const sh = Math.round(meta.height * scale);
+  const bar = 44;
+  const pad = 36;
+  const radius = 14;
+  const w = sw + pad * 2;
+  const h = sh + bar + pad * 2;
+  const barFill = dark ? "#2A3038" : "#EEF2F5";
+  const dot = (cx, c) => `<circle cx="${pad + cx}" cy="${pad + bar / 2}" r="7" fill="${c}"/>`;
+  const frame = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
+    <defs><filter id="s" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#0B1220" flood-opacity="${dark ? 0.55 : 0.18}"/></filter>
+    <clipPath id="c"><rect x="${pad}" y="${pad}" width="${sw}" height="${sh + bar}" rx="${radius}"/></clipPath></defs>
+    <rect x="${pad}" y="${pad}" width="${sw}" height="${sh + bar}" rx="${radius}" fill="${barFill}" filter="url(#s)"/>
+    <g clip-path="url(#c)"><rect x="${pad}" y="${pad}" width="${sw}" height="${bar}" fill="${barFill}"/></g>
+    ${dot(26, "#E5484D")}${dot(50, "#E8A33D")}${dot(74, "#34D399")}
+    <rect x="${pad + 120}" y="${pad + 11}" width="${Math.min(520, sw - 240)}" height="22" rx="11" fill="${dark ? "#1F242A" : "#FFFFFF"}"/>
+  </svg>`;
+  const shotBuf = await sharp(src).resize(sw, sh).png().toBuffer();
+  const mask = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${sw}" height="${sh}">
+    <rect width="${sw}" height="${sh}" fill="#fff"/><rect x="0" y="${sh - radius}" width="${radius}" height="${radius}" fill="#000"/>
+    <rect x="${sw - radius}" y="${sh - radius}" width="${radius}" height="${radius}" fill="#000"/>
+    <circle cx="${radius}" cy="${sh - radius}" r="${radius}" fill="#fff"/><circle cx="${sw - radius}" cy="${sh - radius}" r="${radius}" fill="#fff"/></svg>`);
+  const rounded = await sharp(shotBuf).composite([{ input: await sharp(mask).png().toBuffer(), blend: "dest-in" }]).png().toBuffer();
+  const file = path.join(OUT, `frame-${name}.png`);
+  await sharp(Buffer.from(frame)).composite([{ input: rounded, left: pad, top: pad + bar }]).png().toFile(file);
+  return { file, ratio: w / h };
 }
 
 export async function buildAssets() {
   await fs.mkdir(OUT, { recursive: true });
-  await sharp(Buffer.from(contentSvg({ seed: 7 }))).png().toFile(path.join(OUT, "bg-content.png"));
-  await sharp(Buffer.from(contentSvg({ seed: 21, ring: false })))
-    .png()
-    .toFile(path.join(OUT, "bg-annexe.png"));
-  await photo(
-    "bg-cover.jpg",
-    `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="0">
-       <stop offset="0" stop-color="#070C16" stop-opacity="0.96"/>
-       <stop offset="0.48" stop-color="#0A1222" stop-opacity="0.82"/>
-       <stop offset="1" stop-color="#0A1222" stop-opacity="0.38"/></linearGradient>
-       <linearGradient id="v" x1="0" y1="0" x2="0" y2="1">
-       <stop offset="0.6" stop-color="#070C16" stop-opacity="0"/>
-       <stop offset="1" stop-color="#070C16" stop-opacity="0.85"/></linearGradient></defs>
-     <rect width="${W}" height="${H}" fill="url(#g)"/><rect width="${W}" height="${H}" fill="url(#v)"/>`,
-  );
-  await photo(
-    "bg-photo.jpg",
-    `<rect width="${W}" height="${H}" fill="#070C16" fill-opacity="0.86"/>
-     <circle cx="${W - 120}" cy="${H + 60}" r="620" fill="none" stroke="#${COLORS.gold}" stroke-opacity="0.16" stroke-width="3"/>`,
-  );
-  await sharp(Buffer.from(wavesSvg())).png().toFile(path.join(OUT, "bg-waves.png"));
-  await sharp(Buffer.from(circuitSvg(5))).png().toFile(path.join(OUT, "bg-circuit.png"));
-  await sharp(Buffer.from(plainSvg())).png().toFile(path.join(OUT, "bg-plain.png"));
-  const spots = [[2250, 1250], [2300, 200], [300, 1300], [2100, 720], [420, 180], [2350, 1100]];
-  for (const [i, [cx, cy]] of spots.entries()) {
-    await sharp(Buffer.from(sectionSvg(cx, cy))).png().toFile(path.join(OUT, `bg-section-${i + 1}.png`));
+  for (const [file, make] of Object.entries(BACKGROUNDS)) {
+    await sharp(Buffer.from(make())).png().toFile(path.join(OUT, file));
   }
-  await photo(
-    "bg-photo-gris.jpg",
-    `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="0">
-       <stop offset="0" stop-color="#080C15" stop-opacity="0.95"/>
-       <stop offset="0.55" stop-color="#0A1222" stop-opacity="0.80"/>
-       <stop offset="1" stop-color="#0A1222" stop-opacity="0.55"/></linearGradient></defs>
-     <rect width="${W}" height="${H}" fill="url(#g)"/>`,
-    "reseau-gris-1600.webp",
-  );
-  for (const shot of ["bureau-tableau-de-bord", "bureau-topologie", "bureau-alertes", "bureau-rapports"]) {
-    await screenshot(shot);
-  }
+  await sharp(Buffer.from(logoSvg("#34D399"))).png().toFile(path.join(OUT, "logo-mint.png"));
+  await sharp(Buffer.from(logoSvg("#0B7A57"))).png().toFile(path.join(OUT, "logo-deep.png"));
 }
