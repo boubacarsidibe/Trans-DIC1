@@ -60,6 +60,8 @@ class Config:
         log_file=None,
         sys_root="/sys",
         services=(),
+        auth_logs=None,
+        access_logs=(),
     ):
         self.server_url = server_url.rstrip("/")
         self.token = token
@@ -75,6 +77,10 @@ class Config:
         self.log_file = log_file
         self.sys_root = sys_root
         self.services = tuple(services)
+        # Journaux d'authentification : ceux du système par défaut, sauf réglage explicite.
+        self.auth_logs = tuple(auth_logs) if auth_logs is not None else None
+        # Journaux d'accès web : rien par défaut, car leur chemin dépend du site servi.
+        self.access_logs = tuple(access_logs)
         self.validate()
 
     @property
@@ -84,6 +90,10 @@ class Config:
     @property
     def snapshot_url(self):
         return self.server_url + "/api/v1/agent/snapshot"
+
+    @property
+    def logs_url(self):
+        return self.server_url + "/api/v1/agent/journaux"
 
     def validate(self):
         if not self.server_url.startswith(("https://", "http://")):
@@ -140,6 +150,11 @@ def _flag(value):
     return str(value).strip().lower() in ("1", "true", "yes", "oui")
 
 
+def _paths(value):
+    """Liste de chemins séparés par des virgules, sans les vides."""
+    return [part.strip() for part in (value or "").split(",") if part.strip()]
+
+
 def load(path=None, environ=None):
     """Construit la configuration depuis le fichier puis l'environnement (prioritaire)."""
     environ = os.environ if environ is None else environ
@@ -178,6 +193,10 @@ def load(path=None, environ=None):
             log_file=get("log_file") or None,
             sys_root=get("sys_root", "/sys"),
             services=[s.strip() for s in get("services", "").split(",") if s.strip()],
+            # « auth_logs=  » (vide) coupe la lecture ; absent, les journaux habituels du
+            # système sont suivis. « access_logs » attend des chemins séparés par des virgules.
+            auth_logs=_paths(get("auth_logs")) if get("auth_logs") is not None else None,
+            access_logs=_paths(get("access_logs", "")),
         )
     except ValueError as error:
         raise ConfigError("valeur numérique invalide : %s" % error)

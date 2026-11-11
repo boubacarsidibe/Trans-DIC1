@@ -3801,6 +3801,42 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/securite:
+    get:
+      tags:
+      - Sécurité
+      summary: Vue d'ensemble de la sécurité
+      description: "Chiffres de la période, adresses les plus actives, équipements\
+        \ visés et dernières lignes retenues. Une requête web ordinaire n'y figure\
+        \ jamais."
+      operationId: overview_1
+      parameters:
+      - name: heures
+        in: query
+        description: Fenêtre en heures (1 à 168) ; par défaut 24
+        required: false
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SecurityOverview"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/rapports/sla:
     get:
       tags:
@@ -7456,6 +7492,107 @@ components:
             $ref: "#/components/schemas/SiteResponse"
         page:
           $ref: "#/components/schemas/PageMetadata"
+    Attacker:
+      type: object
+      properties:
+        address:
+          type: string
+        attacks:
+          type: integer
+          format: int32
+        authFailures:
+          type: integer
+          format: int32
+        webErrors:
+          type: integer
+          format: int32
+        lastSeen:
+          type: string
+          format: date-time
+    Counts:
+      type: object
+      properties:
+        attacks:
+          type: integer
+          format: int32
+        authFailures:
+          type: integer
+          format: int32
+        webErrors:
+          type: integer
+          format: int32
+        distinctSources:
+          type: integer
+          format: int32
+    RecentEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        equipmentId:
+          type: string
+          format: uuid
+        equipment:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+        kind:
+          type: string
+        sourceAddress:
+          type: string
+        username:
+          type: string
+        method:
+          type: string
+        request:
+          type: string
+        status:
+          type: integer
+          format: int32
+        families:
+          type: string
+        score:
+          type: integer
+          format: int32
+    SecurityOverview:
+      type: object
+      properties:
+        generatedAt:
+          type: string
+          format: date-time
+        hours:
+          type: integer
+          format: int32
+        counts:
+          $ref: "#/components/schemas/Counts"
+        topAttackers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Attacker"
+        targets:
+          type: array
+          items:
+            $ref: "#/components/schemas/TargetedEquipment"
+        recent:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecentEvent"
+    TargetedEquipment:
+      type: object
+      properties:
+        equipmentId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        events:
+          type: integer
+          format: int32
+        lastSeen:
+          type: string
+          format: date-time
     PagedModelEventRuleResponse:
       type: object
       properties:

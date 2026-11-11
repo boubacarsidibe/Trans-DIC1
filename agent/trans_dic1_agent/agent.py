@@ -6,9 +6,21 @@ import time
 
 from .client import AuthError, RejectedError, SendError
 from .config import MAX_BATCH
+from .logs import LogReader, default_auth_files
 
 # Inventaire et top des processus : au démarrage, puis toutes les 5 minutes.
 SNAPSHOT_SECONDS = 300
+
+
+def _log_reader(config):
+    """Lecteur de journaux, ou None si l'agent n'a rien à suivre sur cette machine."""
+    auth = getattr(config, "auth_logs", None)
+    access = getattr(config, "access_logs", ())
+    if auth is None:
+        auth = default_auth_files()
+    if not auth and not access:
+        return None
+    return LogReader(auth_files=auth, access_files=access)
 
 LOG = logging.getLogger("trans-dic1-agent")
 
@@ -27,6 +39,8 @@ class Agent:
         self.stopped = False
         self.next_snapshot = None
         self.snapshot_supported = True
+        self.logs_supported = True
+        self.log_reader = _log_reader(config)
 
     def enqueue(self, measures):
         overflow = len(self.pending) + len(measures) - self.pending.maxlen
@@ -73,7 +87,31 @@ class Agent:
             LOG.error("relevé impossible : %s", error)
         sent = self.flush()
         self.send_snapshot()
+        self.send_logs()
         return sent
+
+    def send_logs(self):
+        """Lit les journaux suivis et envoie ce qui est apparu depuis le passage précédent."""
+        if self.log_reader is None or not self.logs_supported:
+            return
+        send = getattr(self.client, "send_logs", None)
+        if send is None:
+            return
+        try:
+            entries = self.log_reader.read()
+        except OSError as error:
+            LOG.warning("journaux illisibles : %s", error)
+            return
+        if not entries:
+            return
+        try:
+            self.logs_supported = send(entries)
+            if not self.logs_supported:
+                LOG.info("le serveur ne reçoit pas les journaux : lecture arrêtée")
+        except (AuthError, SendError, OSError, ValueError) as error:
+            # Les journaux ne sont pas mis en file : une ligne manquée vaut mieux qu'une
+            # mémoire qui enfle. Les mesures, elles, gardent leur tampon.
+            LOG.warning("journaux non envoyés : %s", error)
 
     def send_snapshot(self):
         read = getattr(self.collector, "snapshot", None)

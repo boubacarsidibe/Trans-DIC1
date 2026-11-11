@@ -158,6 +158,8 @@ Le fichier `/etc/trans-dic1-agent/agent.conf` est commenté (modèle : `agent/pa
 | `max_retries`, `backoff` | 3, 2 | réessais après une erreur temporaire, attente initiale doublée à chaque essai (s) |
 | `buffer_limit` | 2000 | mesures gardées pendant une panne de la plateforme |
 | `ca_file` | — | autorité de certification interne, si le certificat de la plateforme n'est pas public |
+| `auth_logs` | journaux du système présents | journaux d'authentification suivis (`/var/log/auth.log`, `/var/log/secure`) ; liste vide pour ne rien lire |
+| `access_logs` | — | journaux d'accès web au format courant, séparés par des virgules |
 
 Après une modification : `sudo systemctl restart trans-dic1-agent`. Pour vérifier une configuration sans rien envoyer :
 
@@ -172,6 +174,25 @@ Sans configuration, à chaque intervalle : processeur (total, utilisateur, syst�
 Toutes les 5 minutes, un instantané part séparément : inventaire du système et processus les plus gourmands. Il est visible sur la fiche de l'équipement et copié dans une alerte à son ouverture.
 
 Une carte jamais vue active (port non branché) ne remonte rien. Une fois vue active, sa coupure ouvre une alerte.
+
+### Journaux de sécurité
+
+À chaque intervalle, l'agent envoie séparément les lignes nouvelles des journaux suivis. Il lit et
+découpe seulement : c'est le serveur qui décide si une ligne trahit une attaque (voir
+[ADR 0028](../adr/0028-supervision-securite.md)), pour que la règle soit la même sur tout le parc
+et s'améliore sans mise à jour des agents.
+
+- **Authentification** : échecs et réussites SSH des journaux du système, suivis sans réglage. Le
+  compte utilisé par le service doit pouvoir lire le fichier (groupe `adm` sous Debian).
+- **Accès web** : rien par défaut, car le chemin dépend du site servi. Renseigner `access_logs`
+  pour les suivre ; seul le format courant (nginx, Apache) est reconnu.
+
+Le suivi est incrémental et **part de la fin du fichier au démarrage** : installer l'agent ne
+renvoie pas des mois de journal. Une rotation (fichier remplacé ou vidé) est détectée et la lecture
+repart du début. 500 lignes au plus par passage et par fichier. Contrairement aux mesures, les
+journaux ne sont pas mis en file d'attente si la plateforme est injoignable : une ligne manquée vaut
+mieux qu'une mémoire qui enfle sur une machine de production. Un serveur plus ancien qui ne connaît
+pas le point d'entrée (404) fait taire l'envoi sans erreur répétée.
 
 ## Comportement en cas de problème
 

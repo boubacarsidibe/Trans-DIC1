@@ -84,6 +84,23 @@ class Client:
             raise SendError("instantané non envoyé (%s)" % type(error).__name__)
         return True
 
+    def send_logs(self, entries):
+        """Envoie des lignes de journal. Faux si le serveur ne connaît pas cette route."""
+        body = json.dumps({"entries": entries}).encode("utf-8")
+        try:
+            self._post(body, self.config.logs_url)
+        except urllib.error.HTTPError as error:
+            status = error.code
+            error.close()
+            if status in (401, 403):
+                raise AuthError("jeton d'agent refusé par le serveur (HTTP %d)" % status)
+            if status in (404, 405):
+                return False
+            raise SendError("journaux refusés (HTTP %d)" % status)
+        except (urllib.error.URLError, OSError) as error:
+            raise SendError("journaux non envoyés (%s)" % type(error).__name__)
+        return True
+
     def _post(self, body, url=None):
         request = urllib.request.Request(
             url or self.config.measures_url,

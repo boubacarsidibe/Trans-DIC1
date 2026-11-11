@@ -28,3 +28,15 @@ buffer_limit = 2000
 
 # Services surveillés, séparés par des virgules (état remonté dans service.up[nom]).
 # services = nginx, ssh
+
+# --- Journaux de sécurité ---------------------------------------------------
+# L'agent lit et découpe les lignes, le serveur juge s'il s'agit d'une attaque.
+# Il part de la fin des fichiers au démarrage : rien d'ancien n'est renvoye.
+
+# Journaux d'authentification. Par défaut, ceux du système qui existent
+# (/var/log/auth.log, /var/log/secure). Mettre une liste vide pour ne rien lire.
+# auth_logs = /var/log/auth.log
+
+# Journaux d'accès web au format courant (nginx, Apache), séparés par des virgules.
+# Rien par défaut : le chemin dépend du site servi. Un format personnalisé n'est pas lu.
+# access_logs = /var/log/nginx/access.log

@@ -4637,3 +4637,11 @@ thead {
   letter-spacing: 0.08em;
   overflow-wrap: anywhere;
 }
+
+/* Requête suspecte dans le journal de sécurité : lisible sans déborder du tableau. */
+.security-request {
+  display: block;
+  margin-top: 0.15rem;
+  overflow-wrap: anywhere;
+  font-size: 0.82rem;
+}

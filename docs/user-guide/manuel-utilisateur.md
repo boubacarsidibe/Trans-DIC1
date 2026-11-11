@@ -109,6 +109,36 @@ Les filtres se combinent : équipement, source, **sévérité minimale** (de la 
 
 Un opérateur limité à certains sites ne voit que les événements de leurs équipements. Les événements sont conservés 30 jours. Un message venu d'une adresse qui n'est celle d'aucun équipement inventorié n'apparaît jamais : c'est voulu (voir [evenements-reseau.md](../devops/evenements-reseau.md)). La page est vide tant que l'exploitation n'a pas activé la réception.
 
+### Sécurité
+
+**Supervision > Sécurité** montre ce que les journaux des serveurs révèlent sur la période choisie
+(dernière heure, 24 heures ou 7 jours) : **attaques repérées**, **échecs d'authentification**, **requêtes en erreur**
+et nombre d'**adresses distinctes**.
+
+- **Adresses les plus actives** : pour chaque adresse, le compte d'attaques, d'échecs de connexion
+  et de requêtes en erreur, et la dernière fois qu'on l'a vue. C'est là qu'on reconnaît une adresse
+  qui insiste.
+- **Équipements visés** : les serveurs qui ont vu passer ces lignes, avec un lien vers leur
+  historique.
+- **Dernières lignes retenues** : date, nature (attaque web, échec ou réussite d'authentification,
+  requête en erreur), équipement, adresse d'origine et détail — le compte visé, la requête, et pour
+  une attaque les familles reconnues (injection SQL, script injecté, traversée de répertoire,
+  exécution de commande, injection de modèle, reconnaissance).
+
+Les attaques et les balayages ouvrent aussi des alertes de type **Sécurité**, traitées comme les
+autres : une seule par adresse, équipement et nature, dont le message se met à jour tant que cela
+continue.
+
+**Ce qui n'est pas conservé.** Une requête ordinaire ne laisse aucune trace : ni l'adresse de
+l'usager, ni la page consultée. Seules sont gardées les tentatives d'authentification, les requêtes
+reconnues comme attaques et les requêtes en erreur ; elles sont effacées au bout de trente jours. Un
+compte limité à certains sites ne voit que les lignes de leurs équipements.
+
+**Ce que l'écran ne fait pas.** Ce n'est pas un pare-feu : la plateforme lit un journal, elle ne
+bloque rien et voit l'attaque après la requête, jamais pendant. Une attaque d'une forme inconnue des
+signatures n'apparaîtra pas. L'écran reste vide tant que l'exploitation n'a pas fait lire les
+journaux aux agents (voir [agent.md](../devops/agent.md)).
+
 ### Topologie
 
 **Parc > Topologie** dessine les liens entre équipements, niveau par niveau depuis le cœur du réseau. En choisissant un équipement, on voit tout ce qui en dépend : c'est l'**impact d'une panne**.

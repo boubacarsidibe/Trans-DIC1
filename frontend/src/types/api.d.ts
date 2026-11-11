@@ -1406,6 +1406,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/securite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Vue d'ensemble de la sécurité
+         * @description Chiffres de la période, adresses les plus actives, équipements visés et dernières lignes retenues. Une requête web ordinaire n'y figure jamais.
+         */
+        get: operations["overview_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rapports/sla": {
         parameters: {
             query?: never;
@@ -3085,6 +3105,65 @@ export interface components {
         PagedModelSiteResponse: {
             content?: components["schemas"]["SiteResponse"][];
             page?: components["schemas"]["PageMetadata"];
+        };
+        Attacker: {
+            address?: string;
+            /** Format: int32 */
+            attacks?: number;
+            /** Format: int32 */
+            authFailures?: number;
+            /** Format: int32 */
+            webErrors?: number;
+            /** Format: date-time */
+            lastSeen?: string;
+        };
+        Counts: {
+            /** Format: int32 */
+            attacks?: number;
+            /** Format: int32 */
+            authFailures?: number;
+            /** Format: int32 */
+            webErrors?: number;
+            /** Format: int32 */
+            distinctSources?: number;
+        };
+        RecentEvent: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            equipmentId?: string;
+            equipment?: string;
+            /** Format: date-time */
+            occurredAt?: string;
+            kind?: string;
+            sourceAddress?: string;
+            username?: string;
+            method?: string;
+            request?: string;
+            /** Format: int32 */
+            status?: number;
+            families?: string;
+            /** Format: int32 */
+            score?: number;
+        };
+        SecurityOverview: {
+            /** Format: date-time */
+            generatedAt?: string;
+            /** Format: int32 */
+            hours?: number;
+            counts?: components["schemas"]["Counts"];
+            topAttackers?: components["schemas"]["Attacker"][];
+            targets?: components["schemas"]["TargetedEquipment"][];
+            recent?: components["schemas"]["RecentEvent"][];
+        };
+        TargetedEquipment: {
+            /** Format: uuid */
+            equipmentId?: string;
+            name?: string;
+            /** Format: int32 */
+            events?: number;
+            /** Format: date-time */
+            lastSeen?: string;
         };
         PagedModelEventRuleResponse: {
             content?: components["schemas"]["EventRuleResponse"][];
@@ -8392,6 +8471,47 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["Impact"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    overview_1: {
+        parameters: {
+            query?: {
+                /** @description Fenêtre en heures (1 à 168) ; par défaut 24 */
+                heures?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SecurityOverview"];
                 };
             };
             /** @description Authentification requise ou jeton expiré */
