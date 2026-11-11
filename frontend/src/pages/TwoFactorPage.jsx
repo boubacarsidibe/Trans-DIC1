@@ -79,7 +79,7 @@ function TwoFactorPage() {
   }
 
   return (
-    <main className="page">
+    <main className="app-shell page">
       <div className="page-inner">
         <PageHeader
           title="Double authentification"

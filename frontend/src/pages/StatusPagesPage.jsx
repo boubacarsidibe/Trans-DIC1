@@ -55,7 +55,7 @@ function StatusPagesPage() {
   }
 
   return (
-    <main className="page">
+    <main className="app-shell page">
       <div className="page-inner">
         <PageHeader
           title="Pages de statut"

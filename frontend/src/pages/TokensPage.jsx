@@ -66,7 +66,7 @@ function TokensPage() {
   }
 
   return (
-    <main className="page">
+    <main className="app-shell page">
       <div className="page-inner">
         <PageHeader
           title="Jetons d'API"
