@@ -7341,6 +7341,7 @@ components:
           - ANOMALY
           - FORECAST
           - EVENT
+          - PEER
         state:
           type: string
           enum:
@@ -7415,6 +7416,7 @@ components:
           - ANOMALY
           - FORECAST
           - EVENT
+          - PEER
         severite:
           type: string
           enum:

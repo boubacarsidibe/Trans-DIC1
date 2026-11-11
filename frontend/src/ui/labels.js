@@ -38,6 +38,7 @@ export const ALERT_TYPE = {
   THRESHOLD: "Seuil",
   COLLECTION: "Collecte",
   ANOMALY: "Anomalie",
+  PEER: "Écart aux semblables",
   FORECAST: "Prévision",
   EVENT: "Événement",
 };

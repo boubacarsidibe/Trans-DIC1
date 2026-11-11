@@ -3086,7 +3086,7 @@ export interface components {
             equipmentName?: string;
             ruleName?: string;
             /** @enum {string} */
-            type?: "THRESHOLD" | "COLLECTION" | "ANOMALY" | "FORECAST" | "EVENT";
+            type?: "THRESHOLD" | "COLLECTION" | "ANOMALY" | "FORECAST" | "EVENT" | "PEER";
             /** @enum {string} */
             state?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ARCHIVED" | "DELETED";
             /** @enum {string} */
@@ -3122,7 +3122,7 @@ export interface components {
             equipementId?: string;
             equipementNom?: string;
             /** @enum {string} */
-            type?: "THRESHOLD" | "COLLECTION" | "ANOMALY" | "FORECAST" | "EVENT";
+            type?: "THRESHOLD" | "COLLECTION" | "ANOMALY" | "FORECAST" | "EVENT" | "PEER";
             /** @enum {string} */
             severite?: "INFO" | "WARNING" | "CRITICAL";
             /** @enum {string} */
