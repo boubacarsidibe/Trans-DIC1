@@ -43,7 +43,7 @@ function SecurityPage() {
       <div className="page-inner">
         <PageHeader
           title="Sécurité"
-          description="Ce que les journaux des serveurs révèlent : attaques repérées, tentatives d'authentification et balayages."
+          description="Ce que les journaux des serveurs révèlent : attaques repérées, formes inhabituelles, tentatives d'authentification et balayages."
           actions={
             <label className="text-sm">
               Période
@@ -77,6 +77,11 @@ function SecurityPage() {
                 tone={counts.attacks ? "bad" : "ok"}
               />
               <Tile
+                label="Formes inhabituelles"
+                value={counts.suspects}
+                tone={counts.suspects ? "warn" : "plain"}
+              />
+              <Tile
                 label="Échecs d’authentification"
                 value={counts.authFailures}
                 tone={counts.authFailures ? "warn" : "plain"}
@@ -100,6 +105,7 @@ function SecurityPage() {
                       <tr>
                         <th>Adresse</th>
                         <th>Attaques</th>
+                        <th>Inhabituelles</th>
                         <th>Échecs</th>
                         <th>Erreurs</th>
                         <th>Vue</th>
@@ -112,6 +118,7 @@ function SecurityPage() {
                             <code>{attacker.address}</code>
                           </td>
                           <td>{attacker.attacks}</td>
+                          <td>{attacker.suspects}</td>
                           <td>{attacker.authFailures}</td>
                           <td>{attacker.webErrors}</td>
                           <td>{formatDate(attacker.lastSeen)}</td>
@@ -150,8 +157,10 @@ function SecurityPage() {
                 </div>
                 <p className="diag-note">
                   Une requête ordinaire n’apparaît jamais ici : seules les tentatives
-                  d’authentification, les attaques reconnues et les requêtes en erreur sont
-                  conservées, puis effacées au bout de trente jours.
+                  d’authentification, les attaques reconnues, les formes jugées inhabituelles et
+                  les requêtes en erreur sont conservées, puis effacées au bout de trente jours.
+                  Une « forme inhabituelle » vient du modèle appris et non d’une règle : c’est un
+                  soupçon à vérifier dans le journal du serveur, pas un verdict.
                 </p>
                 {overview.recent.length === 0 ? (
                   <p className="dash-empty">Aucune ligne sur la période.</p>

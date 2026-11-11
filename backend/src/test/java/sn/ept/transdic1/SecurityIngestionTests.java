@@ -180,6 +180,55 @@ class SecurityIngestionTests {
         .contains("40 requêtes en erreur en 5 min");
   }
 
+  /** Charge utile qu'aucune signature ne reconnaît, mais que le modèle appris trouve louche. */
+  private static final String FORME_INHABITUELLE = "/produits?id=1%3B%7C%7Ccalc%28%29";
+
+  @Test
+  void uneFormeInhabituelleEstRetenueSansOuvrirDAlerte() {
+    var result = send(web("203.0.113.30", FORME_INHABITUELLE, 200));
+
+    // Aucune signature n'a parlé : ce n'est pas comptabilisé comme attaque.
+    assertThat(result.attacks()).isZero();
+    assertThat(storedEvents("WEB_ATTACK")).isZero();
+    assertThat(storedEvents("WEB_SUSPECT")).isEqualTo(1);
+    // Une seule requête douteuse ne réveille personne : le modèle se trompe parfois.
+    assertThat(alertMessages()).isEmpty();
+  }
+
+  @Test
+  void plusieursFormesInhabituellesDeLaMemeAdresseOuvrentUnAvertissement() {
+    var entries = new ArrayList<LogEntry>();
+    for (int i = 0; i < 5; i++) {
+      entries.add(web("203.0.113.31", FORME_INHABITUELLE + "&n=" + i, 200));
+    }
+
+    ingestion.ingest(server.getId(), new LogBatch(entries));
+
+    assertThat(storedEvents("WEB_SUSPECT")).isEqualTo(5);
+    assertThat(alertMessages())
+        .hasSize(1)
+        .first(org.assertj.core.api.InstanceOfAssertFactories.STRING)
+        .startsWith("Requêtes de forme inhabituelle depuis 203.0.113.31")
+        .contains("5 en 5 min", "aucune signature");
+    // Jamais critique : le modèle seul ne suffit pas à réveiller quelqu'un la nuit.
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT severity FROM alert WHERE equipment_id = ? AND type = 'SECURITY'",
+                String.class,
+                server.getId()))
+        .isEqualTo("WARNING");
+  }
+
+  @Test
+  void uneRequeteReconnueParUneSignatureResteUneAttaque() {
+    // Le modèle n'est pas interrogé quand une règle a déjà parlé : la famille vaut mieux qu'un
+    // soupçon.
+    send(web("203.0.113.32", "/p?id=1' UNION SELECT mot_de_passe FROM users--", 200));
+
+    assertThat(storedEvents("WEB_ATTACK")).isEqualTo(1);
+    assertThat(storedEvents("WEB_SUSPECT")).isZero();
+  }
+
   @Test
   void uneAttaqueQuiContinueMetAJourLAlerteSansEnEmpiler() {
     send(web("203.0.113.10", "/p?id=1' OR 1=1--", 200));

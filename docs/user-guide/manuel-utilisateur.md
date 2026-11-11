@@ -120,10 +120,17 @@ et nombre d'**adresses distinctes**.
   qui insiste.
 - **Équipements visés** : les serveurs qui ont vu passer ces lignes, avec un lien vers leur
   historique.
-- **Dernières lignes retenues** : date, nature (attaque web, échec ou réussite d'authentification,
-  requête en erreur), équipement, adresse d'origine et détail — le compte visé, la requête, et pour
+- **Dernières lignes retenues** : date, nature (attaque web, forme inhabituelle, échec ou réussite
+  d'authentification, requête en erreur), équipement, adresse d'origine et détail — le compte visé, la requête, et pour
   une attaque les familles reconnues (injection SQL, script injecté, traversée de répertoire,
   exécution de commande, injection de modèle, reconnaissance).
+
+**Forme inhabituelle.** À côté des règles, un modèle appris juge l'allure de la requête : il
+repère des charges utiles qu'aucune règle ne décrit, mais il ne sait pas dire laquelle, et il se
+trompe parfois. Une requête qu'il trouve louche apparaît donc comme **forme inhabituelle** et non
+comme attaque, le chiffre à côté est sa confiance en pour cent, et c'est un soupçon à vérifier dans
+le journal du serveur avant de conclure. Une seule ne déclenche rien : il en faut cinq de la même
+adresse en cinq minutes pour ouvrir un **avertissement** — jamais une alerte critique.
 
 Les attaques et les balayages ouvrent aussi des alertes de type **Sécurité**, traitées comme les
 autres : une seule par adresse, équipement et nature, dont le message se met à jour tant que cela
@@ -136,7 +143,7 @@ compte limité à certains sites ne voit que les lignes de leurs équipements.
 
 **Ce que l'écran ne fait pas.** Ce n'est pas un pare-feu : la plateforme lit un journal, elle ne
 bloque rien et voit l'attaque après la requête, jamais pendant. Une attaque d'une forme inconnue des
-signatures n'apparaîtra pas. L'écran reste vide tant que l'exploitation n'a pas fait lire les
+signatures et du modèle n'apparaîtra pas. L'écran reste vide tant que l'exploitation n'a pas fait lire les
 journaux aux agents (voir [agent.md](../devops/agent.md)).
 
 ### Topologie

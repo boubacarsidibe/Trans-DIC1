@@ -3111,6 +3111,8 @@ export interface components {
             /** Format: int32 */
             attacks?: number;
             /** Format: int32 */
+            suspects?: number;
+            /** Format: int32 */
             authFailures?: number;
             /** Format: int32 */
             webErrors?: number;
@@ -3120,6 +3122,8 @@ export interface components {
         Counts: {
             /** Format: int32 */
             attacks?: number;
+            /** Format: int32 */
+            suspects?: number;
             /** Format: int32 */
             authFailures?: number;
             /** Format: int32 */

@@ -9,5 +9,11 @@ public enum SecurityEventKind {
   /** Requête web dans laquelle une signature d'attaque a été reconnue. */
   WEB_ATTACK,
   /** Requête web en erreur (4xx ou 5xx) sans signature : utile pour voir un balayage. */
-  WEB_ERROR
+  WEB_ERROR,
+  /**
+   * Requête dont la <i>forme</i> a été jugée inhabituelle par le modèle appris, sans qu'aucune
+   * signature ne la reconnaisse. Moins sûr qu'une signature : il en faut plusieurs d'une même
+   * adresse pour ouvrir une alerte, et jamais une alerte critique.
+   */
+  WEB_SUSPECT
 }

@@ -7500,6 +7500,9 @@ components:
         attacks:
           type: integer
           format: int32
+        suspects:
+          type: integer
+          format: int32
         authFailures:
           type: integer
           format: int32
@@ -7513,6 +7516,9 @@ components:
       type: object
       properties:
         attacks:
+          type: integer
+          format: int32
+        suspects:
           type: integer
           format: int32
         authFailures:

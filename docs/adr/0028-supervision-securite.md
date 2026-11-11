@@ -64,9 +64,9 @@ Ces lignes portent des données personnelles : elles sont purgées au bout de 30
   SIEM, et les siennes revenir par le récepteur syslog déjà en place (ADR 0021).
 - **Bloquer automatiquement les adresses** (à la façon de fail2ban) : un faux positif couperait un
   usager de l'école. À décider avec le CRI, pas à imposer.
-- **Un modèle appris sur les requêtes** (S4 du plan) : la recherche n'a pas trouvé de modèle libre
-  avec une licence claire, et télécharger des poids depuis un dépôt public est un risque en soi.
-  Un petit classifieur entraîné par nous et mesuré sur un jeu public reste la voie, plus tard.
+- **Un modèle appris sur les requêtes** (S4 du plan) : repoussé ici faute de modèle libre à
+  licence claire, puis fait dans l'[ADR 0029](0029-modele-appris-requetes-web.md) — un classifieur
+  entraîné par nous sur un corpus versionné, qui complète les signatures sans les remplacer.
 - **Faire juger l'agent** : moins de trafic, mais il faudrait mettre à jour tous les agents à
   chaque nouvelle signature.
 
@@ -75,7 +75,8 @@ Ces lignes portent des données personnelles : elles sont purgées au bout de 30
 - **Ce n'est pas un pare-feu applicatif.** On lit un journal : l'attaque est vue après la requête,
   jamais pendant, et le corps des requêtes n'est pas visible. Une injection passée en POST ne se
   voit donc pas.
-- Les formes d'attaque inconnues des signatures passent. C'est la limite assumée de cette méthode.
+- Les formes d'attaque inconnues des signatures passent. C'est la limite assumée de cette méthode,
+  que le modèle appris de l'[ADR 0029](0029-modele-appris-requetes-web.md) réduit sans l'effacer.
 - Les journaux d'accès web ne sont pas suivis par défaut : leur chemin dépend du site servi, un
   administrateur doit l'indiquer (`access_logs`).
 - Le format d'accès reconnu est le format courant (nginx, Apache). Un format personnalisé n'est

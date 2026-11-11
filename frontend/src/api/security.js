@@ -14,6 +14,7 @@ export async function getSecurityOverview(hours = 24) {
 /** Nature d'une ligne, en français, avec le ton de son bandeau. */
 export const EVENT_KINDS = {
   WEB_ATTACK: { label: "Attaque web", tone: "bad" },
+  WEB_SUSPECT: { label: "Forme inhabituelle", tone: "warn" },
   AUTH_FAILURE: { label: "Échec d’authentification", tone: "warn" },
   AUTH_SUCCESS: { label: "Authentification réussie", tone: "ok" },
   WEB_ERROR: { label: "Requête en erreur", tone: "plain" },

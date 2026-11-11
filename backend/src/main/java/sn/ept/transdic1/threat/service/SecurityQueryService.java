@@ -52,11 +52,17 @@ public class SecurityQueryService {
       List<RecentEvent> recent) {}
 
   /** Chiffres clés de la période. */
-  public record Counts(int attacks, int authFailures, int webErrors, int distinctSources) {}
+  public record Counts(
+      int attacks, int suspects, int authFailures, int webErrors, int distinctSources) {}
 
   /** Une adresse qui frappe, avec ce qu'elle a tenté. */
   public record Attacker(
-      String address, int attacks, int authFailures, int webErrors, Instant lastSeen) {}
+      String address,
+      int attacks,
+      int suspects,
+      int authFailures,
+      int webErrors,
+      Instant lastSeen) {}
 
   /** Un équipement visé. */
   public record TargetedEquipment(UUID equipmentId, String name, int events, Instant lastSeen) {}
@@ -90,7 +96,12 @@ public class SecurityQueryService {
     if (restriction.isPresent()) {
       if (restriction.get().isEmpty()) {
         return new SecurityOverview(
-            now, (int) window.toHours(), new Counts(0, 0, 0, 0), List.of(), List.of(), List.of());
+            now,
+            (int) window.toHours(),
+            new Counts(0, 0, 0, 0, 0),
+            List.of(),
+            List.of(),
+            List.of());
       }
       params.addValue("sites", restriction.get());
       sites = " AND e.site_id IN (:sites)";
@@ -103,24 +114,28 @@ public class SecurityQueryService {
     Counts counts =
         jdbc.queryForObject(
             "SELECT count(*) FILTER (WHERE s.kind = 'WEB_ATTACK'),"
+                + " count(*) FILTER (WHERE s.kind = 'WEB_SUSPECT'),"
                 + " count(*) FILTER (WHERE s.kind = 'AUTH_FAILURE'),"
                 + " count(*) FILTER (WHERE s.kind = 'WEB_ERROR'),"
                 + " count(DISTINCT s.source_address)"
                 + from,
             params,
-            (rs, i) -> new Counts(rs.getInt(1), rs.getInt(2), rs.getInt(3), rs.getInt(4)));
+            (rs, i) ->
+                new Counts(rs.getInt(1), rs.getInt(2), rs.getInt(3), rs.getInt(4), rs.getInt(5)));
 
     List<Attacker> attackers =
         jdbc.query(
             "SELECT s.source_address,"
                 + " count(*) FILTER (WHERE s.kind = 'WEB_ATTACK'),"
+                + " count(*) FILTER (WHERE s.kind = 'WEB_SUSPECT'),"
                 + " count(*) FILTER (WHERE s.kind = 'AUTH_FAILURE'),"
                 + " count(*) FILTER (WHERE s.kind = 'WEB_ERROR'),"
                 + " max(s.occurred_at)"
                 + from
                 + " AND s.source_address IS NOT NULL"
                 + " GROUP BY s.source_address"
-                + " ORDER BY count(*) FILTER (WHERE s.kind = 'WEB_ATTACK') DESC, count(*) DESC"
+                + " ORDER BY count(*) FILTER (WHERE s.kind IN ('WEB_ATTACK', 'WEB_SUSPECT')) DESC,"
+                + " count(*) DESC"
                 + " LIMIT :limit",
             params,
             (rs, i) ->
@@ -129,7 +144,8 @@ public class SecurityQueryService {
                     rs.getInt(2),
                     rs.getInt(3),
                     rs.getInt(4),
-                    rs.getTimestamp(5).toInstant()));
+                    rs.getInt(5),
+                    rs.getTimestamp(6).toInstant()));
 
     List<TargetedEquipment> targets =
         jdbc.query(
@@ -169,7 +185,7 @@ public class SecurityQueryService {
     return new SecurityOverview(
         now,
         (int) window.toHours(),
-        counts == null ? new Counts(0, 0, 0, 0) : counts,
+        counts == null ? new Counts(0, 0, 0, 0, 0) : counts,
         attackers,
         targets,
         new ArrayList<>(recent));

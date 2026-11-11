@@ -43,6 +43,9 @@ import sn.ept.transdic1.threat.repository.SecurityEventRepository;
  * <ul>
  *   <li><b>Attaque dans une requête web</b> : signatures à score cumulé ({@link
  *       WebAttackSignatures}). Une seule requête suffit.
+ *   <li><b>Forme inhabituelle</b> : modèle appris ({@link UrlModel}) sur les suites de caractères,
+ *       pour les charges utiles qu'aucune signature ne couvre. Moins sûr qu'une signature : il en
+ *       faut plusieurs d'une même adresse, et cela n'ouvre jamais qu'un avertissement.
  *   <li><b>Force brute</b> : échecs d'authentification répétés depuis une même adresse.
  *   <li><b>Balayage web</b> : requêtes en erreur en rafale depuis une même adresse.
  * </ul>
@@ -65,6 +68,10 @@ public class SecurityIngestionService {
 
   private static final String SCAN_KEY = "security:scan:";
   private static final String ATTACK_KEY = "security:attack:";
+  private static final String SUSPECT_KEY = "security:suspect:";
+
+  /** Ce que l'écran et l'alerte affichent pour une requête retenue par le seul modèle. */
+  static final String SUSPECT_LABEL = "Forme inhabituelle (modèle appris)";
 
   private final EquipmentRepository equipments;
   private final SecurityEventRepository events;
@@ -73,9 +80,12 @@ public class SecurityIngestionService {
   private final JdbcTemplate jdbc;
   private final ApplicationEventPublisher publisher;
   private final Clock clock;
+  private final UrlModel model;
   private final Duration window;
   private final int authThreshold;
   private final int scanThreshold;
+  private final double modelThreshold;
+  private final int suspectThreshold;
 
   public SecurityIngestionService(
       EquipmentRepository equipments,
@@ -85,9 +95,12 @@ public class SecurityIngestionService {
       JdbcTemplate jdbc,
       ApplicationEventPublisher publisher,
       Clock clock,
+      UrlModel model,
       @Value("${threat.window-minutes:5}") long windowMinutes,
       @Value("${threat.auth-failures:10}") int authThreshold,
-      @Value("${threat.web-errors:40}") int scanThreshold) {
+      @Value("${threat.web-errors:40}") int scanThreshold,
+      @Value("${threat.model.threshold:0.9}") double modelThreshold,
+      @Value("${threat.suspect-requests:5}") int suspectThreshold) {
     this.equipments = equipments;
     this.events = events;
     this.alerts = alerts;
@@ -95,9 +108,14 @@ public class SecurityIngestionService {
     this.jdbc = jdbc;
     this.publisher = publisher;
     this.clock = clock;
+    this.model = model;
     this.window = Duration.ofMinutes(Math.max(1, windowMinutes));
     this.authThreshold = Math.max(3, authThreshold);
     this.scanThreshold = Math.max(10, scanThreshold);
+    // Un seuil bas rendrait le modèle bavard : on ne descend pas sous 0,5, et jamais au-dessus
+    // de 1, sans quoi plus rien ne passerait.
+    this.modelThreshold = Math.min(1, Math.max(0.5, modelThreshold));
+    this.suspectThreshold = Math.max(2, suspectThreshold);
   }
 
   /** Ce que l'agent apprend de son envoi : combien de lignes retenues, combien d'alertes. */
@@ -158,23 +176,37 @@ public class SecurityIngestionService {
     }
     var verdict = WebAttackSignatures.examine(entry.request());
     boolean error = entry.status() != null && entry.status() >= 400;
-    if (!verdict.isAttack() && !error) {
+    // Le modèle n'est interrogé que si aucune signature n'a parlé : quand une règle reconnaît la
+    // requête, elle dit déjà mieux ce dont il s'agit.
+    double probability = verdict.isAttack() ? 0 : model.probability(entry.request());
+    boolean suspect = probability >= modelThreshold;
+    if (!verdict.isAttack() && !suspect && !error) {
       // Requête ordinaire : rien n'est conservé, ni l'URL ni l'adresse de l'usager.
       return null;
     }
-    var event =
-        new SecurityEvent(
-            equipment,
-            verdict.isAttack() ? SecurityEventKind.WEB_ATTACK : SecurityEventKind.WEB_ERROR,
-            entry.occurredAt(),
-            now);
+    SecurityEventKind webKind;
+    if (verdict.isAttack()) {
+      webKind = SecurityEventKind.WEB_ATTACK;
+    } else if (suspect) {
+      webKind = SecurityEventKind.WEB_SUSPECT;
+    } else {
+      webKind = SecurityEventKind.WEB_ERROR;
+    }
+    var event = new SecurityEvent(equipment, webKind, entry.occurredAt(), now);
     event.setSourceAddress(entry.sourceAddress());
     event.setMethod(entry.method());
     event.setRequest(truncate(entry.request()));
     event.setStatus(entry.status());
-    event.setScore(verdict.score());
-    if (!verdict.families().isEmpty()) {
-      event.setFamilies(truncateFamilies(verdict.summary()));
+    if (webKind == SecurityEventKind.WEB_SUSPECT) {
+      // Le score affiché est la confiance du modèle, en pour cent : il n'y a pas de famille à
+      // nommer, le modèle ne juge que la forme.
+      event.setScore((int) Math.round(probability * 100));
+      event.setFamilies(SUSPECT_LABEL);
+    } else {
+      event.setScore(verdict.score());
+      if (!verdict.families().isEmpty()) {
+        event.setFamilies(truncateFamilies(verdict.summary()));
+      }
     }
     return event;
   }
@@ -188,6 +220,7 @@ public class SecurityIngestionService {
       opened += attackAlert(equipment, address, now);
       opened += authAlert(equipment, address, now);
       opened += scanAlert(equipment, address, now);
+      opened += suspectAlert(equipment, address, now);
     }
     return opened;
   }
@@ -225,6 +258,37 @@ public class SecurityIngestionService {
             + (attacks > 1 ? " requêtes reconnues" : " requête reconnue")
             + (families.isBlank() ? "" : " (" + families + ")");
     return open(equipment, ATTACK_KEY, address, Severity.CRITICAL, message, now);
+  }
+
+  /**
+   * Avertissement quand le modèle a trouvé plusieurs requêtes de forme inhabituelle venant de la
+   * même adresse. Une seule ne suffit pas : le modèle se trompe, et une alerte critique sur une
+   * requête légitime mal formée ferait perdre confiance à l'équipe.
+   */
+  private int suspectAlert(Equipment equipment, String address, Instant now) {
+    Integer suspects =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM security_event WHERE equipment_id = ? AND source_address = ?"
+                + " AND kind = 'WEB_SUSPECT' AND occurred_at >= ?",
+            Integer.class,
+            equipment.getId(),
+            address,
+            Timestamp.from(now.minus(window)));
+    if (suspects == null || suspects < suspectThreshold) {
+      return 0;
+    }
+    String message =
+        "Requêtes de forme inhabituelle depuis "
+            + address
+            + " sur "
+            + equipment.getName()
+            + " : "
+            + suspects
+            + " en "
+            + window.toMinutes()
+            + " min, reconnues par le modèle appris et par aucune signature. À regarder dans le"
+            + " journal du serveur avant de conclure.";
+    return open(equipment, SUSPECT_KEY, address, Severity.WARNING, message, now);
   }
 
   private int authAlert(Equipment equipment, String address, Instant now) {
