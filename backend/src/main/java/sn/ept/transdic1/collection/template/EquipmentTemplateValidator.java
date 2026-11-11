@@ -16,7 +16,8 @@ final class EquipmentTemplateValidator {
   static final Pattern SLUG = Pattern.compile("[a-z0-9]+(-[a-z0-9]+)*");
   static final Pattern KEY = Pattern.compile("[a-z0-9][a-z0-9._-]*");
   static final Pattern OID = Pattern.compile("[0-9]+(\\.[0-9]+)+");
-  static final Set<String> PROBE_KEYS = Set.of("probe.up", "probe.latency", "probe.tls.days_left");
+  static final Set<String> PROBE_KEYS =
+      Set.of("probe.up", "probe.latency", "probe.loss", "probe.jitter", "probe.tls.days_left");
   static final Set<ServiceType> PROBE_TYPES =
       Set.of(
           ServiceType.TCP_PORT,

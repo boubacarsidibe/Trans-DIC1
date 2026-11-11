@@ -122,14 +122,15 @@ public class MeasureIngestionService {
   }
 
   /**
-   * Résultat d'une sonde : stocke {@code probe.up}, {@code probe.latency} et {@code
-   * probe.tls.days_left} (ces deux dernières si présentes) avec le service, évalue les règles et
-   * met à jour le dernier état du service. Une sonde ne prouve pas que la source de collecte répond
-   * : ni le statut de l'équipement ni l'alerte de collecte ne bougent, sauf pour une sonde ICMP sur
-   * un équipement sans agent actif ni collecte SNMP active, qui pilote alors le statut et l'alerte
-   * de collecte (ouverte au 3e échec consécutif, résolue au premier succès si aucune autre sonde
-   * ICMP active n'est à 3 échecs, voir {@link IcmpReachabilityService}). Un résultat indéterminé ne
-   * stocke aucune mesure et ne change pas le compte des échecs consécutifs.
+   * Résultat d'une sonde : stocke {@code probe.up}, {@code probe.latency}, {@code probe.loss},
+   * {@code probe.jitter} et {@code probe.tls.days_left} (hors la première, si présentes) avec le
+   * service, évalue les règles et met à jour le dernier état du service. Une sonde ne prouve pas
+   * que la source de collecte répond : ni le statut de l'équipement ni l'alerte de collecte ne
+   * bougent, sauf pour une sonde ICMP sur un équipement sans agent actif ni collecte SNMP active,
+   * qui pilote alors le statut et l'alerte de collecte (ouverte au 3e échec consécutif, résolue au
+   * premier succès si aucune autre sonde ICMP active n'est à 3 échecs, voir {@link
+   * IcmpReachabilityService}). Un résultat indéterminé ne stocke aucune mesure et ne change pas le
+   * compte des échecs consécutifs.
    */
   @Transactional
   public IngestionResult ingestProbe(UUID serviceId, ProbeResult result, Instant at) {
@@ -168,6 +169,26 @@ public class MeasureIngestionService {
           service,
           "probe.latency",
           BigDecimal.valueOf(result.latencyMs()),
+          "ms",
+          at,
+          tally);
+    }
+    if (result.lossPercent() != null) {
+      store(
+          equipment,
+          service,
+          "probe.loss",
+          BigDecimal.valueOf(result.lossPercent()),
+          "%",
+          at,
+          tally);
+    }
+    if (result.jitterMs() != null) {
+      store(
+          equipment,
+          service,
+          "probe.jitter",
+          BigDecimal.valueOf(result.jitterMs()),
           "ms",
           at,
           tally);

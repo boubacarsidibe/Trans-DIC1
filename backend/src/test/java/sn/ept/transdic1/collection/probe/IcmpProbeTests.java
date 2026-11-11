@@ -101,6 +101,87 @@ class IcmpProbeTests {
     }
   }
 
+  private static final String FOUR_REPLIES =
+      "64 bytes from 192.0.2.10: icmp_seq=1 ttl=64 time=10.0 ms\n"
+          + "64 bytes from 192.0.2.10: icmp_seq=2 ttl=64 time=14.0 ms\n"
+          + "64 bytes from 192.0.2.10: icmp_seq=3 ttl=64 time=12.0 ms\n"
+          + "64 bytes from 192.0.2.10: icmp_seq=4 ttl=64 time=20.0 ms\n"
+          + "4 packets transmitted, 4 received, 0% packet loss";
+
+  private static ProbeResult multi(IcmpProbe.CommandRunner runner, boolean windows)
+      throws Exception {
+    return new IcmpProbe(runner, (a, t) -> false, windows, 4)
+        .run(request(ip("192.0.2.10"), null, Duration.ofSeconds(5)));
+  }
+
+  @Test
+  void plusieursPaquetsDonnentLatenceMoyennePerteEtGigue() throws Exception {
+    ProbeResult all = multi(ok(FOUR_REPLIES), false);
+    assertThat(all.up()).isTrue();
+    assertThat(all.latencyMs()).isEqualTo(14);
+    assertThat(all.lossPercent()).isZero();
+    // Écarts successifs : 4, 2 et 8 ms, soit 4,67 en moyenne.
+    assertThat(all.jitterMs()).isEqualTo(4.67);
+
+    String twoReplies =
+        "64 bytes from 192.0.2.10: icmp_seq=1 ttl=64 time=10.0 ms\n"
+            + "64 bytes from 192.0.2.10: icmp_seq=4 ttl=64 time=30.0 ms\n";
+    ProbeResult half = multi(ok(twoReplies), false);
+    assertThat(half.up()).isTrue();
+    assertThat(half.lossPercent()).isEqualTo(50);
+    assertThat(half.jitterMs()).isEqualTo(20.0);
+  }
+
+  @Test
+  void uneSeuleReponseSurQuatreNeDonnePasDeGigue() throws Exception {
+    ProbeResult one = multi(ok("64 bytes from 192.0.2.10: icmp_seq=2 ttl=64 time=9.0 ms"), false);
+    assertThat(one.up()).isTrue();
+    assertThat(one.lossPercent()).isEqualTo(75);
+    assertThat(one.jitterMs()).isNull();
+  }
+
+  @Test
+  void aucuneReponseAPlusieursPaquetsVautCentPourCentDePerte() throws Exception {
+    var noReply = new RecordingRunner(new IcmpProbe.CommandOutput(1, ""), null);
+    ProbeResult down = multi(noReply, false);
+    assertThat(down.up()).isFalse();
+    assertThat(down.lossPercent()).isEqualTo(100);
+
+    // Windows sort parfois en 0 sans aucune réponse : toujours en panne, perte totale.
+    ProbeResult windows = multi(ok("Délai d'attente de la demande dépassé."), true);
+    assertThat(windows.up()).isFalse();
+    assertThat(windows.lossPercent()).isEqualTo(100);
+  }
+
+  @Test
+  void laCommandeAPlusieursPaquetsResteBorneeParLeDelai() throws Exception {
+    RecordingRunner linux = ok(FOUR_REPLIES);
+    new IcmpProbe(linux, (a, t) -> false, false, 4)
+        .run(request(ip("192.0.2.10"), null, Duration.ofSeconds(5)));
+    assertThat(linux.commands.get(0).subList(1, 8))
+        .containsExactly("-c", "4", "-i", "0.2", "-W", "1", "192.0.2.10");
+
+    // Délai de 2 s : deux paquets seulement, pour ne pas dépasser le délai demandé.
+    RecordingRunner brief = ok(FOUR_REPLIES);
+    new IcmpProbe(brief, (a, t) -> false, false, 4)
+        .run(request(ip("192.0.2.10"), null, Duration.ofSeconds(2)));
+    assertThat(brief.commands.get(0).subList(1, 3)).containsExactly("-c", "2");
+
+    // Windows attend une seconde entre deux paquets : trois au plus, délai partagé.
+    RecordingRunner windows = ok("Reply from 192.0.2.10: bytes=32 time=5ms TTL=64");
+    new IcmpProbe(windows, (a, t) -> false, true, 4)
+        .run(request(ip("192.0.2.10"), null, Duration.ofSeconds(3)));
+    assertThat(windows.commands.get(0).subList(1, 6))
+        .containsExactly("-n", "3", "-w", "1000", "192.0.2.10");
+  }
+
+  @Test
+  void unSeulPaquetNeMesureNiPerteNiGigue() {
+    ProbeResult single = probeFor("64 bytes from 192.0.2.10: icmp_seq=1 ttl=64 time=12.3 ms");
+    assertThat(single.lossPercent()).isNull();
+    assertThat(single.jitterMs()).isNull();
+  }
+
   @Test
   void usesMeasuredDurationWhenNoLatencyInOutput() {
     ProbeResult result = probeFor("some unparsable output");
