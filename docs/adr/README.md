@@ -30,6 +30,7 @@ Chaque décision structurante est consignée dans un ADR : contexte, options com
 | [0024](0024-diagnostic-incident.md) | Diagnostic d'incident par règles déterministes : causes classées par un score documenté, preuves affichées, périmètre et confidentialité, sans apprentissage ni LLM | acceptée, implémentée (poids non validés sur incidents réels) |
 | [0025](0025-astreinte.md) | Astreinte : plannings, gardes et rotations (heure d'été gérée), résolution déterministe, chaîne principal → secondaire avant les administrateurs, idempotente | acceptée, implémentée (pas de SMS ni d'appel : canaux existants seulement) |
 | [0026](0026-page-de-statut.md) | Page de statut des services, interne ou publique : état déterministe des composants, disponibilité 90 jours, incidents, lecture publique en liste blanche (même 404, limitation par adresse, cache 30 s) | acceptée, implémentée (pas d'abonnement des usagers ; cache et limitation par instance) |
+| [0027](0027-interfaces-reseau-et-sante.md) | Interfaces réseau par SNMP (découverte horaire puis relevé des compteurs, débit, erreurs, rejets, occupation par port), perte de paquets et gigue de la sonde ICMP, normale d'anomalie robuste aux incidents passés, latence anormale d'un service, score de santé par équipement et par site | acceptée, implémentée (jamais essayée sur du matériel réel) |
 
 L'ADR 0008 a d'abord été publié sous le numéro 0007, déjà attribué aux e-mails : il a été renuméroté sans changement de décision.
 

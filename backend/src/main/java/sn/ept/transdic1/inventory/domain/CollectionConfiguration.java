@@ -60,6 +60,10 @@ public class CollectionConfiguration {
   @Column(name = "active", nullable = false)
   private boolean active;
 
+  /** Découverte et suivi des interfaces réseau par SNMP (IF-MIB), inactifs par défaut. */
+  @Column(name = "discover_interfaces", nullable = false)
+  private boolean discoverInterfaces;
+
   @Column(name = "last_run_at")
   private Instant lastRunAt;
 
@@ -179,6 +183,14 @@ public class CollectionConfiguration {
 
   public void setActive(boolean active) {
     this.active = active;
+  }
+
+  public boolean isDiscoverInterfaces() {
+    return discoverInterfaces;
+  }
+
+  public void setDiscoverInterfaces(boolean discoverInterfaces) {
+    this.discoverInterfaces = discoverInterfaces;
   }
 
   public Instant getLastRunAt() {

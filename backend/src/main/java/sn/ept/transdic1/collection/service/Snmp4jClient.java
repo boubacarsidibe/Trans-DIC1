@@ -55,17 +55,74 @@ class Snmp4jClient implements SnmpClient {
           return read(target, oids);
         } finally {
           // Les identifiants ne restent pas en mémoire une fois la lecture terminée.
-          var usm =
-              (USM)
-                  SecurityModels.getInstance()
-                      .getSecurityModel(new Integer32(SecurityModel.SECURITY_MODEL_USM));
-          if (usm != null) {
-            usm.removeAllUsers(new OctetString(target.username()));
-          }
+          forgetUser(target);
         }
       }
     }
     return read(target, oids);
+  }
+
+  @Override
+  public List<Reading> walk(Target target, String rootOid, int maxRows) throws SnmpFailure {
+    if (target.version() == SnmpVersion.V3) {
+      synchronized (V3_LOCK) {
+        try {
+          return readTable(target, rootOid, maxRows);
+        } finally {
+          forgetUser(target);
+        }
+      }
+    }
+    return readTable(target, rootOid, maxRows);
+  }
+
+  /** Oublie les identifiants v3 du moteur partagé une fois la lecture finie. */
+  private static void forgetUser(Target target) {
+    var usm =
+        (USM)
+            SecurityModels.getInstance()
+                .getSecurityModel(new Integer32(SecurityModel.SECURITY_MODEL_USM));
+    if (usm != null) {
+      usm.removeAllUsers(new OctetString(target.username()));
+    }
+  }
+
+  private List<Reading> readTable(Target target, String rootOid, int maxRows) throws SnmpFailure {
+    OID root = new OID(rootOid);
+    var readings = new ArrayList<Reading>();
+    try (Snmp snmp = open(target)) {
+      var destination = destination(target);
+      OID current = root;
+      while (readings.size() < maxRows) {
+        PDU pdu = target.version() == SnmpVersion.V3 ? new ScopedPDU() : new PDU();
+        pdu.setType(PDU.GETNEXT);
+        pdu.add(new VariableBinding(current));
+        var response = snmp.send(pdu, destination);
+        if (response == null || response.getResponse() == null) {
+          throw new SnmpFailure("Aucune réponse de l'équipement (délai dépassé)");
+        }
+        PDU answer = response.getResponse();
+        if (answer.getErrorStatus() != PDU.noError) {
+          throw new SnmpFailure("Erreur SNMP : " + answer.getErrorStatusText());
+        }
+        if (answer.getVariableBindings().isEmpty()) {
+          break;
+        }
+        VariableBinding binding = answer.get(0);
+        OID next = binding.getOid();
+        // Fin de la colonne, fin de la MIB, ou équipement qui n'avance pas : on arrête.
+        if (binding.getVariable().isException()
+            || !next.startsWith(root)
+            || next.compareTo(current) <= 0) {
+          break;
+        }
+        readings.add(reading(binding));
+        current = next;
+      }
+      return readings;
+    } catch (IOException | IllegalArgumentException e) {
+      throw new SnmpFailure("Lecture SNMP impossible : " + e.getClass().getSimpleName(), e);
+    }
   }
 
   private List<Reading> read(Target target, List<String> oids) throws SnmpFailure {

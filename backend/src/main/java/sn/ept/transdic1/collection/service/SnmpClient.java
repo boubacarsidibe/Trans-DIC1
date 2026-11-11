@@ -42,6 +42,13 @@ public interface SnmpClient {
   /** Lit les OID demandés en une requête GET. */
   List<Reading> get(Target target, List<String> oids) throws SnmpFailure;
 
+  /**
+   * Parcourt une colonne de table SNMP (GETNEXT successifs) et rend ses valeurs dans l'ordre des
+   * OID. Le parcours s'arrête dès qu'il sort de {@code rootOid} ou au bout de {@code maxRows}
+   * valeurs : un équipement bavard ou mal élevé ne doit pas bloquer la collecte.
+   */
+  List<Reading> walk(Target target, String rootOid, int maxRows) throws SnmpFailure;
+
   /** Échec de lecture : délai dépassé, erreur SNMP, authentification refusée. */
   class SnmpFailure extends Exception {
     public SnmpFailure(String message) {

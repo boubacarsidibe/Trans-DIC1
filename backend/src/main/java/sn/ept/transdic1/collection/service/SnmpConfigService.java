@@ -87,6 +87,7 @@ public class SnmpConfigService {
     configuration.setSecurityIdentity(v3 ? request.securityIdentity() : null);
     configuration.setSecretReference(v3 ? request.secretReference() : null);
     configuration.setActive(request.active() == null || request.active());
+    configuration.setDiscoverInterfaces(Boolean.TRUE.equals(request.discoverInterfaces()));
     if (existing.isEmpty() || configuration.getNextRunAt() == null) {
       // Première lecture à la prochaine passe du planificateur.
       configuration.setNextRunAt(clock.instant());
@@ -206,6 +207,7 @@ public class SnmpConfigService {
         (int) c.getTimeout().toSeconds(),
         c.getRetryCount(),
         c.isActive(),
+        c.isDiscoverInterfaces(),
         c.getLastRunAt(),
         c.getNextRunAt(),
         metrics);

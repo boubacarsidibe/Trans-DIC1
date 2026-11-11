@@ -22,6 +22,8 @@ public record SnmpConfigResponse(
     int timeoutSeconds,
     int retryCount,
     boolean active,
+    @Schema(description = "Découverte et suivi des interfaces réseau (IF-MIB)")
+        boolean discoverInterfaces,
     Instant lastRunAt,
     Instant nextRunAt,
     List<Metric> metrics) {

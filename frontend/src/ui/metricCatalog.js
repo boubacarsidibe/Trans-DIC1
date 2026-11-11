@@ -31,6 +31,8 @@ const FAMILIES = {
   "net.out": { label: "Trafic sortant", group: "network", order: 1 },
   "net.errors": { label: "Erreurs réseau", group: "network", order: 2 },
   "net.up": { label: "Liaison", group: "network", order: 3 },
+  "net.usage": { label: "Occupation du lien", group: "network", order: 4 },
+  "net.discards": { label: "Paquets rejetés", group: "network", order: 5 },
   "service.up": { label: "Service", group: "services", order: 0 },
   "probe.up": { label: "Sonde joignable", group: "probes", order: 0 },
   "probe.latency": { label: "Temps de réponse", group: "probes", order: 1 },

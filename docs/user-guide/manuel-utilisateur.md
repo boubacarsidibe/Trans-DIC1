@@ -31,6 +31,8 @@ Compte ou mot de passe oublié : contactez le CRI.
 
 Les chiffres clés en haut : équipements, alertes actives, alertes critiques. En dessous : les équipements par statut, les alertes actives par sévérité et la dernière mesure reçue. La page se met à jour en direct, sans avoir à la recharger.
 
+**Santé du parc** donne une note de 0 à 100 par site, puis les équipements qui perdent le plus de points, avec la raison : alertes actives (une critique coûte 25 points, un avertissement 8, une information 2), fonctionnement dégradé, silence de plus de dix minutes, et part des indicateurs qui sortent de leur comportement habituel. Un équipement hors service est à 0 ; un équipement en maintenance n'est pas noté. La note d'un site est la moyenne de ses équipements notés. C'est un résumé pour savoir par où commencer, pas un remplacement de la liste des alertes.
+
 ### Mes vues et écran mural
 
 **Supervision > Mes vues** : composer son propre tableau de bord avec les blocs utiles (résumé, équipements par statut, alertes par sévérité, alertes ouvertes, équipements en panne, dernière mesure). Une vue peut être partagée avec les autres utilisateurs.
@@ -72,7 +74,7 @@ La prévision suit une droite : elle ne connaît ni les cycles (sauvegardes de n
 
 Quand un équipement de cœur (un routeur, un commutateur de distribution) tombe, les équipements situés derrière lui ne répondent plus non plus. Leurs alertes sont **regroupées sous l'alerte racine** : elles apparaissent en retrait, avec la mention « regroupée sous… », pour que l'opérateur traite d'abord la cause.
 
-Une alerte de type **Anomalie** signale une mesure inhabituelle pour l'heure et le jour (par exemple un processeur très chargé un dimanche à 3 h), même si aucun seuil n'est dépassé.
+Une alerte de type **Anomalie** signale une mesure inhabituelle pour l'heure et le jour (par exemple un processeur très chargé un dimanche à 3 h), même si aucun seuil n'est dépassé. La normale est calculée sur les quatre dernières semaines au même créneau, en écartant les relevés qui étaient eux-mêmes inhabituels : un incident passé ne masque pas le suivant. Le message de l'alerte dit combien de relevés ont été écartés. Le temps de réponse d'une sonde est surveillé de la même façon.
 
 Une alerte de type **Prévision** annonce qu'un disque ou une mémoire sera plein dans moins de 14 jours si la tendance se poursuit, par exemple « Disque plein dans ~12 jours (tendance +2,0 %/jour, confiance haute) ». Elle devient **critique** à 3 jours ou moins, son message est actualisé au plus une fois par jour, et elle se résout seule quand la tendance disparaît ou que la saturation recule nettement (au-delà de 17 jours et demi).
 
@@ -233,6 +235,10 @@ Depuis la liste des équipements, **Collecte** ouvre la configuration de la coll
 - **Agent** : enregistrer un agent Trans-DIC1 pour un serveur Linux ou Windows. Le jeton n'est affiché **qu'une seule fois** et doit être copié aussitôt ([installation de l'agent](../devops/agent.md), [section Windows](../devops/agent.md#windows)). Un agent Windows envoie en plus `uptime.seconds` (durée depuis le démarrage, en secondes), visible dans l'historique de l'équipement.
 - **SNMP** : version, référence du secret (`env:NOM`, jamais le mot de passe lui-même), OID à lire.
 
+**Suivre les interfaces réseau** (case à cocher de la configuration SNMP, décochée par défaut) ajoute la supervision port par port, sans rien déclarer : Trans-DIC1 lit la table des interfaces de l'équipement (une fois par heure) puis relève leurs compteurs à chaque passage. Pour chaque port apparaissent, dans l'onglet **Réseau** de son historique, le trafic entrant et sortant, les erreurs et les rejets par seconde, l'occupation du lien en pourcentage de sa vitesse, et son état. Les règles d'alerte par famille s'y appliquent : deux règles sont livrées inactives, **Lien réseau saturé** et **Erreurs sur un lien réseau**, à activer dans **Règles d'alerte**.
+
+À savoir : les débits n'apparaissent qu'au deuxième passage (un compteur seul ne dit rien, il faut deux relevés) et après le redémarrage d'un équipement. Le bouclage et les ports désactivés par l'administrateur sont inventoriés mais pas suivis. Un port ajouté met jusqu'à une heure à apparaître. L'occupation du lien dépend de la vitesse annoncée par l'équipement : si elle est mal renseignée, le pourcentage l'est aussi.
+
 ### Sondes (supervision sans agent)
 
 Pour un équipement qui n'a ni agent ni SNMP (imprimante, borne Wi-Fi, ENT, messagerie, site web), **Parc > Équipements**, bouton **Sondes** sur la ligne de l'équipement. Tous les rôles voient la page (dans leur périmètre de sites) ; seuls les administrateurs ajoutent, modifient, testent, réactivent ou suppriment.
@@ -243,10 +249,14 @@ Les sondes sont lancées **par le serveur Trans-DIC1** : elles ne voient que ce 
 
 | Type | Ce qui est vérifié | Cible |
 | --- | --- | --- |
-| Ping (ICMP) | l'équipement répond au ping ; latence | adresse de l'équipement, ou une adresse IP ou un nom d'hôte saisi (sans `icmp://`) |
+| Ping (ICMP) | l'équipement répond au ping ; latence, perte de paquets et gigue | adresse de l'équipement, ou une adresse IP ou un nom d'hôte saisi (sans `icmp://`) |
 | Port TCP | une connexion s'ouvre sur le port ; latence | adresse de l'équipement ou nom d'hôte (sans schéma), plus le port |
 | HTTP / HTTPS | la page répond avec un statut attendu (200 à 399 par défaut), éventuellement avec un texte attendu ; latence | adresse ou URL (`http://` pour HTTP, `https://` pour HTTPS ; sans identifiant dans l'URL) |
 | Certificat TLS | nombre de jours avant l'expiration du certificat présenté par le serveur | nom d'hôte, plus le port |
+
+La sonde **Ping** envoie quatre paquets à chaque passage : elle mesure donc aussi la **perte de paquets** (`probe.loss`, en %) et la **gigue** (`probe.jitter`, en millisecondes, l'écart moyen entre deux réponses), et la latence rendue est la moyenne des réponses reçues. Un lien qui perd des paquets ou dont la gigue monte se dégrade avant de tomber. Une règle **Perte de paquets** est livrée inactive, à activer dans **Règles d'alerte**.
+
+Trans-DIC1 surveille aussi le **temps de réponse inhabituel** d'un service : si une sonde répond nettement plus lentement que d'habitude au même moment de la semaine, une alerte d'anomalie s'ouvre sur le service, avant la panne. Un service plus rapide que d'habitude ne déclenche rien.
 
 Un nom d'hôte est résolu **une fois** à chaque vérification ; si le nom donne plusieurs adresses, la première adresse autorisée est utilisée (une adresse interdite, comme la boucle locale, est ignorée).
 

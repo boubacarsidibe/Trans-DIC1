@@ -365,6 +365,14 @@ function SnmpSection({ equipmentId, onError, onNotice }) {
             />
             Collecte active
           </label>
+          <label className="flex items-center gap-3 text-sm text-slate-300">
+            <input
+              type="checkbox"
+              checked={values.discoverInterfaces}
+              onChange={(e) => setValues({ ...values, discoverInterfaces: e.target.checked })}
+            />
+            Suivre les interfaces réseau (débit, erreurs, occupation par port)
+          </label>
 
           <label className="block text-sm text-slate-300 md:col-span-2">
             Modèle d’équipement

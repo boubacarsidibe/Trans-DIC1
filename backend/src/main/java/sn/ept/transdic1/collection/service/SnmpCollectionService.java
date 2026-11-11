@@ -20,13 +20,10 @@ import sn.ept.transdic1.alerting.service.CollectionAlertService;
 import sn.ept.transdic1.collection.dto.MeasureInput;
 import sn.ept.transdic1.collection.service.SnmpClient.Reading;
 import sn.ept.transdic1.collection.service.SnmpClient.SnmpFailure;
-import sn.ept.transdic1.collection.service.SnmpClient.Target;
 import sn.ept.transdic1.common.scheduling.JobGuard;
-import sn.ept.transdic1.common.secret.SecretResolver;
 import sn.ept.transdic1.inventory.domain.CollectionConfiguration;
 import sn.ept.transdic1.inventory.domain.CollectionMode;
 import sn.ept.transdic1.inventory.domain.MetricDefinition;
-import sn.ept.transdic1.inventory.domain.SnmpVersion;
 import sn.ept.transdic1.inventory.domain.ValueType;
 import sn.ept.transdic1.inventory.repository.CollectionConfigurationRepository;
 import sn.ept.transdic1.inventory.repository.MetricDefinitionRepository;
@@ -46,10 +43,9 @@ public class SnmpCollectionService {
   private final MeasureIngestionService ingestion;
   private final CollectionAlertService collectionAlerts;
   private final SnmpClient client;
-  private final SecretResolver secrets;
+  private final SnmpTargets targets;
   private final TransactionTemplate transaction;
   private final Clock clock;
-  private final int port;
   private final ExecutorService executor;
   private final JobGuard guard;
 
@@ -59,22 +55,20 @@ public class SnmpCollectionService {
       MeasureIngestionService ingestion,
       CollectionAlertService collectionAlerts,
       SnmpClient client,
-      SecretResolver secrets,
+      SnmpTargets targets,
       TransactionTemplate transaction,
       Clock clock,
       JobGuard guard,
-      @Value("${collection.snmp.default-port:161}") int port,
       @Value("${collection.snmp.parallelism:8}") int parallelism) {
     this.configurations = configurations;
     this.definitions = definitions;
     this.ingestion = ingestion;
     this.collectionAlerts = collectionAlerts;
     this.client = client;
-    this.secrets = secrets;
+    this.targets = targets;
     this.transaction = transaction;
     this.clock = clock;
     this.guard = guard;
-    this.port = port;
     // parallelism <= 1 : tout se passe dans le thread appelant (tests, petits parcs).
     this.executor = parallelism > 1 ? Executors.newFixedThreadPool(parallelism) : null;
   }
@@ -162,7 +156,7 @@ public class SnmpCollectionService {
     }
     List<Reading> readings =
         client.get(
-            target(configuration, equipment.getManagementAddress()),
+            targets.of(configuration, equipment.getManagementAddress()),
             metrics.stream().map(MetricDefinition::getSnmpOid).toList());
 
     Instant now = clock.instant();
@@ -191,35 +185,5 @@ public class SnmpCollectionService {
       throw new SnmpFailure("Aucune valeur numérique exploitable dans la réponse");
     }
     ingestion.ingest(equipment.getId(), measures);
-  }
-
-  private Target target(CollectionConfiguration configuration, String host) {
-    int retries = configuration.getRetryCount() == null ? 0 : configuration.getRetryCount();
-    int port =
-        configuration.getSnmpPort() == null ? this.port : configuration.getSnmpPort().intValue();
-    if (configuration.getSnmpVersion() == SnmpVersion.V3) {
-      String secret = secrets.resolve(configuration.getSecretReference());
-      String[] parts = secret.split("\\|", 2);
-      return new Target(
-          host,
-          port,
-          SnmpVersion.V3,
-          null,
-          configuration.getSecurityIdentity(),
-          parts[0],
-          parts.length > 1 && !parts[1].isBlank() ? parts[1] : null,
-          configuration.getTimeout(),
-          retries);
-    }
-    return new Target(
-        host,
-        port,
-        SnmpVersion.V2C,
-        secrets.resolve(configuration.getCommunityReference()),
-        null,
-        null,
-        null,
-        configuration.getTimeout(),
-        retries);
   }
 }

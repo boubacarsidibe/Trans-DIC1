@@ -5548,6 +5548,10 @@ components:
           minimum: 0
         active:
           type: boolean
+        discoverInterfaces:
+          type: boolean
+          description: "Découvrir et suivre les interfaces réseau (IF-MIB) : débit,\
+            \ erreurs, rejets et occupation par port"
         metrics:
           type: array
           items:
@@ -6651,6 +6655,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/LoadPoint"
+        siteHealth:
+          type: array
+          items:
+            $ref: "#/components/schemas/SiteHealth"
     Forecast:
       type: object
       properties:
@@ -6696,6 +6704,15 @@ components:
         lastSeen:
           type: string
           format: date-time
+        health:
+          type: integer
+          format: int32
+        healthLevel:
+          type: string
+        healthReasons:
+          type: array
+          items:
+            type: string
     HourlyCount:
       type: object
       properties:
@@ -6735,6 +6752,22 @@ components:
         triggeredAt:
           type: string
           format: date-time
+    SiteHealth:
+      type: object
+      properties:
+        siteId:
+          type: string
+          format: uuid
+        site:
+          type: string
+        health:
+          type: integer
+          format: int32
+        healthLevel:
+          type: string
+        equipments:
+          type: integer
+          format: int32
     Pageable:
       type: object
       properties:

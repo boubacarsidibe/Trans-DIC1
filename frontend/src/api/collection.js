@@ -62,6 +62,7 @@ export const EMPTY_SNMP = {
   timeoutSeconds: "5",
   retryCount: "1",
   active: true,
+  discoverInterfaces: false,
   metrics: [{ key: "", name: "", oid: "", unit: "", valueType: "INTEGER" }],
 };
 
@@ -76,6 +77,7 @@ export function fromConfig(config) {
     timeoutSeconds: String(config.timeoutSeconds),
     retryCount: String(config.retryCount),
     active: config.active,
+    discoverInterfaces: config.discoverInterfaces ?? false,
     // Les indicateurs retirés auparavant restent en base mais ne se modifient plus ici.
     metrics: config.metrics
       .filter((m) => m.active)
@@ -146,6 +148,7 @@ export function toSnmpPayload(values) {
     timeoutSeconds: Number(values.timeoutSeconds),
     retryCount: Number(values.retryCount),
     active: values.active,
+    discoverInterfaces: values.discoverInterfaces,
     metrics: values.metrics.map((m) => ({
       key: m.key,
       name: m.name.trim(),

@@ -19,6 +19,7 @@ import org.snmp4j.security.USM;
 import org.snmp4j.security.UsmUser;
 import org.snmp4j.smi.Address;
 import org.snmp4j.smi.Null;
+import org.snmp4j.smi.OID;
 import org.snmp4j.smi.OctetString;
 import org.snmp4j.smi.UdpAddress;
 import org.snmp4j.smi.Variable;
@@ -26,8 +27,9 @@ import org.snmp4j.smi.VariableBinding;
 import org.snmp4j.transport.DefaultUdpTransportMapping;
 
 /**
- * Faux équipement SNMP pour les tests : répond aux GET sur une valeur fixe par OID, en v2c (si la
- * communauté est la bonne, sinon silence comme un vrai équipement) et en v3 (utilisateur connu).
+ * Faux équipement SNMP pour les tests : répond aux GET sur une valeur fixe par OID et aux GETNEXT
+ * (parcours de table), en v2c (si la communauté est la bonne, sinon silence comme un vrai
+ * équipement) et en v3 (utilisateur connu).
  */
 public final class SnmpTestAgent implements AutoCloseable {
   private final Snmp snmp;
@@ -83,7 +85,7 @@ public final class SnmpTestAgent implements AutoCloseable {
             + event.getSecurityName()
             + " pdu="
             + request);
-    if (request == null || request.getType() != PDU.GET) {
+    if (request == null || (request.getType() != PDU.GET && request.getType() != PDU.GETNEXT)) {
       return;
     }
     if (event.getMessageProcessingModel() == MPv2c.ID
@@ -103,9 +105,13 @@ public final class SnmpTestAgent implements AutoCloseable {
     response.setType(PDU.RESPONSE);
     response.setRequestID(request.getRequestID());
     for (VariableBinding binding : request.getVariableBindings()) {
-      Variable value = values.get(binding.getOid().toDottedString());
-      response.add(
-          new VariableBinding(binding.getOid(), value != null ? value : Null.noSuchObject));
+      if (request.getType() == PDU.GETNEXT) {
+        response.add(next(binding.getOid()));
+      } else {
+        Variable value = values.get(binding.getOid().toDottedString());
+        response.add(
+            new VariableBinding(binding.getOid(), value != null ? value : Null.noSuchObject));
+      }
     }
     try {
       snmp.getMessageDispatcher()
@@ -122,6 +128,20 @@ public final class SnmpTestAgent implements AutoCloseable {
       throw new IllegalStateException(e);
     }
     event.setProcessed(true);
+  }
+
+  /** OID suivant dans l'ordre de la MIB, comme un vrai agent répond à un GETNEXT. */
+  private VariableBinding next(OID asked) {
+    OID best = null;
+    for (String oid : values.keySet()) {
+      OID candidate = new OID(oid);
+      if (candidate.compareTo(asked) > 0 && (best == null || candidate.compareTo(best) < 0)) {
+        best = candidate;
+      }
+    }
+    return best == null
+        ? new VariableBinding(asked, Null.endOfMibView)
+        : new VariableBinding(best, values.get(best.toDottedString()));
   }
 
   @Override

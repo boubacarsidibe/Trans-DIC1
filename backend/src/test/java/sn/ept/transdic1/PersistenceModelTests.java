@@ -297,8 +297,10 @@ class PersistenceModelTests {
             "StatusPage",
             "StatusComponent",
             "StatusIncident",
-            "StatusIncidentUpdate")
-        .hasSize(41);
+            "StatusIncidentUpdate",
+            // Interfaces réseau découvertes par SNMP (ADR 0027).
+            "EquipmentInterface")
+        .hasSize(42);
   }
 
   @Test

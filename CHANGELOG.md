@@ -6,6 +6,11 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 
 ### Added
 
+- Interfaces réseau par SNMP (IF-MIB), au choix par configuration de collecte : découverte des ports toutes les heures (nom, description, type, vitesse, état), puis relevé des compteurs à chaque passage ; mesures `net.in[port]`, `net.out`, `net.errors`, `net.discards`, `net.usage` (occupation du lien) et `net.up`, avec débordement et redémarrage des compteurs pris en compte ; deux règles livrées inactives (« Lien réseau saturé », « Erreurs sur un lien réseau ») et une case « Suivre les interfaces réseau » dans l'écran Collecte (ADR 0027, migration V38).
+- Perte de paquets et gigue : la sonde ICMP envoie quatre paquets par passage et dépose `probe.loss` et `probe.jitter` en plus de la latence moyenne ; règle « Perte de paquets » livrée inactive (ADR 0027, migration V36).
+- Score de santé de 0 à 100 par équipement et par site, avec le détail des points perdus (alertes, statut, silence, indicateurs hors normale), montré dans un panneau « Santé du parc » sur le tableau de bord (ADR 0027, migration V37).
+- Détection d'anomalies plus fiable : les anciens incidents sont écartés de la normale d'un créneau, et un service dont la latence sort de l'ordinaire ouvre une alerte avant de tomber (ADR 0027, mise à jour de l'ADR 0015).
+
 - Agent 2.0 : gabarit OS complet sous Linux et Windows sans configuration, disques et cartes découverts seuls (clés `famille[instance]`), inventaire et top des processus copiés dans les alertes, 6 règles livrées actives, règles `famille[*]` et portée « tous les équipements » (migration V29).
 - Tableau de bord entièrement cliquable : tuiles-filtres, carte du parc, sévérités, problèmes, plus chargés, activité, saturation prévue des disques, équipements muets, filtre par site.
 - Mur NOC : widgets « Charge du parc » et « Activité des alertes », messages d'alerte en français et cliquables ; le texte reste dans son cadre.

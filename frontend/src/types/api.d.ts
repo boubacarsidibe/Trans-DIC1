@@ -2206,6 +2206,8 @@ export interface components {
             /** Format: int32 */
             retryCount: number;
             active?: boolean;
+            /** @description Découvrir et suivre les interfaces réseau (IF-MIB) : débit, erreurs, rejets et occupation par port */
+            discoverInterfaces?: boolean;
             metrics: components["schemas"]["Metric"][];
         };
         TemplateRequest: {
@@ -2698,6 +2700,7 @@ export interface components {
             activity?: components["schemas"]["HourlyCount"][];
             forecasts?: components["schemas"]["Forecast"][];
             loadTrend?: components["schemas"]["LoadPoint"][];
+            siteHealth?: components["schemas"]["SiteHealth"][];
         };
         Forecast: {
             /** Format: uuid */
@@ -2724,6 +2727,10 @@ export interface components {
             disk?: number;
             /** Format: date-time */
             lastSeen?: string;
+            /** Format: int32 */
+            health?: number;
+            healthLevel?: string;
+            healthReasons?: string[];
         };
         HourlyCount: {
             /** Format: date-time */
@@ -2748,6 +2755,16 @@ export interface components {
             message?: string;
             /** Format: date-time */
             triggeredAt?: string;
+        };
+        SiteHealth: {
+            /** Format: uuid */
+            siteId?: string;
+            site?: string;
+            /** Format: int32 */
+            health?: number;
+            healthLevel?: string;
+            /** Format: int32 */
+            equipments?: number;
         };
         Pageable: {
             /** Format: int32 */

@@ -1,5 +1,6 @@
 package sn.ept.transdic1.collection.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -26,6 +27,10 @@ public record SnmpConfigRequest(
     @NotNull @Min(1) @Max(60) Integer timeoutSeconds,
     @NotNull @Min(0) @Max(5) Integer retryCount,
     Boolean active,
+    @Schema(
+            description =
+                "Découvrir et suivre les interfaces réseau (IF-MIB) : débit, erreurs, rejets et occupation par port")
+        Boolean discoverInterfaces,
     @NotEmpty @Size(max = 50) List<@Valid Metric> metrics) {
 
   /** Un indicateur lu sur un OID. */
