@@ -2347,7 +2347,7 @@ export interface components {
         };
         PreferenceRequest: {
             /** @enum {string} */
-            channel: "EMAIL" | "WEBHOOK" | "TEAMS" | "SLACK" | "TELEGRAM";
+            channel: "EMAIL" | "WEBHOOK" | "TEAMS" | "SLACK" | "TELEGRAM" | "SYSLOG";
             /** @enum {string} */
             minimumSeverity: "INFO" | "WARNING" | "CRITICAL";
             active: boolean;
@@ -2355,7 +2355,7 @@ export interface components {
         };
         PreferenceResponse: {
             /** @enum {string} */
-            channel?: "EMAIL" | "WEBHOOK" | "TEAMS" | "SLACK" | "TELEGRAM";
+            channel?: "EMAIL" | "WEBHOOK" | "TEAMS" | "SLACK" | "TELEGRAM" | "SYSLOG";
             /** @enum {string} */
             minimumSeverity?: "INFO" | "WARNING" | "CRITICAL";
             active?: boolean;
@@ -2822,7 +2822,7 @@ export interface components {
         };
         TestRequest: {
             /** @enum {string} */
-            channel: "EMAIL" | "WEBHOOK" | "TEAMS" | "SLACK" | "TELEGRAM";
+            channel: "EMAIL" | "WEBHOOK" | "TEAMS" | "SLACK" | "TELEGRAM" | "SYSLOG";
             destination: string;
         };
         TestResponse: {
@@ -3387,7 +3387,7 @@ export interface components {
             sentAt?: string;
             username?: string;
             /** @enum {string} */
-            channel?: "EMAIL" | "WEBHOOK" | "TEAMS" | "SLACK" | "TELEGRAM";
+            channel?: "EMAIL" | "WEBHOOK" | "TEAMS" | "SLACK" | "TELEGRAM" | "SYSLOG";
             destination?: string;
             subject?: string;
             /** @enum {string} */

@@ -5805,6 +5805,7 @@ components:
           - TEAMS
           - SLACK
           - TELEGRAM
+          - SYSLOG
         minimumSeverity:
           type: string
           enum:
@@ -5832,6 +5833,7 @@ components:
           - TEAMS
           - SLACK
           - TELEGRAM
+          - SYSLOG
         minimumSeverity:
           type: string
           enum:
@@ -6895,6 +6897,7 @@ components:
           - TEAMS
           - SLACK
           - TELEGRAM
+          - SYSLOG
         destination:
           type: string
           maxLength: 254
@@ -7978,6 +7981,7 @@ components:
           - TEAMS
           - SLACK
           - TELEGRAM
+          - SYSLOG
         destination:
           type: string
         subject:

@@ -65,6 +65,26 @@ class NotificationChannelTests {
   private static final HttpServer SERVER = startServer();
   private static final List<Received> RECEIVED = new CopyOnWriteArrayList<>();
 
+  /** Faux collecteur syslog : un socket UDP qui garde ce qu'on lui envoie. */
+  private static final java.net.DatagramSocket SYSLOG = openSyslog();
+
+  private static java.net.DatagramSocket openSyslog() {
+    try {
+      var socket = new java.net.DatagramSocket(0, java.net.InetAddress.getByName("127.0.0.1"));
+      socket.setSoTimeout(5_000);
+      return socket;
+    } catch (Exception e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  /** Premier datagramme reçu, ou échec au bout de cinq secondes. */
+  private static String receivedSyslog() throws Exception {
+    var packet = new java.net.DatagramPacket(new byte[4096], 4096);
+    SYSLOG.receive(packet);
+    return new String(packet.getData(), 0, packet.getLength(), StandardCharsets.UTF_8);
+  }
+
   record Received(String path, Map<String, String> headers, String body) {}
 
   private static HttpServer startServer() {
@@ -101,6 +121,7 @@ class NotificationChannelTests {
   @AfterAll
   static void stop() {
     SERVER.stop(0);
+    SYSLOG.close();
   }
 
   @DynamicPropertySource
@@ -113,6 +134,8 @@ class NotificationChannelTests {
     registry.add("PANNE_URL", () -> base + "/panne");
     registry.add("NOTIFICATION_WEBHOOK_SECRET", () -> SIGNING_SECRET);
     registry.add("notification.webhook.allow-insecure", () -> "true");
+    registry.add("SIEM_SYSLOG", () -> "udp://127.0.0.1:" + SYSLOG.getLocalPort());
+    registry.add("notification.syslog.hostname", () -> "supervision.ept.sn");
   }
 
   @Autowired private MockMvc mockMvc;
@@ -263,6 +286,24 @@ class NotificationChannelTests {
         .contains("Routeur des canaux")
         .contains("disable_web_page_preview")
         .doesNotContain("*");
+  }
+
+  @Test
+  void leCollecteurSyslogRecoitLAlerteAuFormatRfc5424() throws Exception {
+    prefer(NotificationChannel.SYSLOG, "env:SIEM_SYSLOG");
+
+    queue.queueFor(UUID.randomUUID(), alert.getId(), AlertEventType.OPENED);
+    dispatch.dispatchPending();
+
+    String message = receivedSyslog();
+    // Priorité 162 = local4 (20) * 8 + critical (2) : une alerte critique n'est pas une urgence
+    // syslog, qui annonce un système inutilisable.
+    assertThat(message).startsWith("<162>1 ");
+    assertThat(message)
+        .contains(" supervision.ept.sn trans-dic1 - ALERT_OPENED - ")
+        .contains("Routeur des canaux");
+    // Un seul datagramme, sur une seule ligne : un retour à la ligne le couperait en deux.
+    assertThat(message).doesNotContain(System.lineSeparator());
   }
 
   @Test

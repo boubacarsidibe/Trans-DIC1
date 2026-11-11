@@ -5,5 +5,9 @@ public enum NotificationChannel {
   WEBHOOK,
   TEAMS,
   SLACK,
-  TELEGRAM
+  TELEGRAM,
+  /**
+   * Collecteur syslog d'un SIEM (ADR 0031) : l'alerte part en RFC 5424 vers Wazuh ou équivalent.
+   */
+  SYSLOG
 }

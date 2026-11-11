@@ -11,6 +11,7 @@ export const CHANNEL_CHOICES = [
   { value: "TEAMS", label: "Microsoft Teams" },
   { value: "SLACK", label: "Slack" },
   { value: "TELEGRAM", label: "Telegram" },
+  { value: "SYSLOG", label: "Collecteur syslog (SIEM)" },
   { value: "WEBHOOK", label: "Webhook signé" },
 ];
 

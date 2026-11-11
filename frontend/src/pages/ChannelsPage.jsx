@@ -71,12 +71,22 @@ function TestForm() {
               ? "nom@ept.sn"
               : channel === "TELEGRAM"
                 ? "env:TELEGRAM_NOC_URL"
-                : "env:TEAMS_NOC_URL"
+                : channel === "SYSLOG"
+                  ? "env:SIEM_SYSLOG"
+                  : "env:TEAMS_NOC_URL"
           }
           autoComplete="off"
           className="field mt-2"
         />
       </label>
+      {channel === "SYSLOG" && (
+        <p className="text-sm text-slate-400 md:col-span-3">
+          Le secret contient l’adresse du collecteur, <code>udp://siem.ept.sn:514</code> ou{" "}
+          <code>tcp://siem.ept.sn:514</code>. L’alerte part au format RFC 5424, sa sévérité
+          traduite en gravité syslog. En UDP, rien ne garantit l’arrivée : c’est le
+          fonctionnement habituel du syslog.
+        </p>
+      )}
       {channel === "TELEGRAM" && (
         <p className="text-sm text-slate-400 md:col-span-3">
           Le secret contient l’URL complète de l’API du bot, jeton et destinataire compris :{" "}

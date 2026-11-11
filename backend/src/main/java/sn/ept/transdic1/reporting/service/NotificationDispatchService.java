@@ -115,7 +115,10 @@ public class NotificationDispatchService {
         throw new IllegalStateException("Canal non pris en charge");
       }
       sender.send(
-          notification.getDestinationAddress(), notification.getSubject(), body(notification));
+          notification.getDestinationAddress(),
+          notification.getSubject(),
+          body(notification),
+          context(notification));
       attempts.save(new NotificationAttempt(notification, number, SendResult.SUCCESS, now));
       notification.setState(NotificationState.SENT);
       notification.setSentAt(now);
@@ -132,6 +135,15 @@ public class NotificationDispatchService {
       }
       return false;
     }
+  }
+
+  /** Ce que le canal peut savoir de l'alerte : sa sévérité et la nature de l'événement. */
+  private NotificationSender.Context context(Notification notification) {
+    if (notification.getAlert() == null) {
+      return NotificationSender.Context.unknown();
+    }
+    return new NotificationSender.Context(
+        notification.getAlert().getSeverity(), notification.getKind());
   }
 
   private String body(Notification notification) {

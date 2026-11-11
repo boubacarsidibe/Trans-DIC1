@@ -230,6 +230,15 @@ En trois temps, pour qu'on ne puisse pas se verrouiller dehors :
 
 À la connexion, le champ du code n'apparaît qu'une fois le mot de passe accepté. Un code faux compte comme un échec de connexion : le compte se verrouille comme pour un mot de passe erroné. **Téléphone perdu** : un administrateur coupe la double authentification du compte depuis **Administration > Utilisateurs**, ce qui est tracé dans le journal d'audit.
 
+### Envoyer les alertes à un SIEM
+
+Si l'école exploite un SIEM (Wazuh ou un autre), le canal **Collecteur syslog (SIEM)** lui envoie
+les alertes de la plateforme, et ses propres alertes peuvent revenir ici. La mise en place est du
+ressort de l'exploitation : voir [passerelle-siem.md](../devops/passerelle-siem.md).
+
+Une fois l'adresse du collecteur déclarée par l'exploitation, le canal se choisit dans **Réglages >
+Mes notifications** comme les autres, avec sa sévérité minimale.
+
 ### Jetons d'API
 
 **Réglages > Jetons d'API** : créer un jeton pour qu'un autre outil (tableau Grafana, script, ordonnanceur) appelle l'API en votre nom, sans partager votre mot de passe. Le jeton s'utilise dans l'en-tête `Authorization: Bearer <jeton>`, exactement comme un jeton de connexion.
