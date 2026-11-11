@@ -10,6 +10,9 @@ import photoSmall from "../assets/login/reseau-900.webp";
 function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  // Le champ n'apparaît qu'une fois le mot de passe accepté : inutile de le montrer à tout le monde.
+  const [codeRequired, setCodeRequired] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
   const [error, setError] = useState("");
@@ -44,10 +47,20 @@ function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      await login(username.trim(), password);
+      await login(username.trim(), password, code);
       navigate(destination, { replace: true });
-    } catch {
-      setError("Identifiants invalides ou service indisponible.");
+    } catch (failure) {
+      const message = failure?.response?.data?.error ?? "";
+      if (message.includes("double authentification")) {
+        setCodeRequired(true);
+        setError("Saisissez le code de votre application d’authentification.");
+      } else {
+        setError(
+          codeRequired
+            ? "Code incorrect, ou identifiants invalides."
+            : "Identifiants invalides ou service indisponible.",
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -207,6 +220,25 @@ function LoginPage() {
               <p id="login-caps" role="status" className="login-caps">
                 Verrouillage majuscules activé.
               </p>
+            )}
+
+            {codeRequired && (
+              <>
+                <label htmlFor="login-code" className="login-label">
+                  Code de double authentification
+                </label>
+                <input
+                  id="login-code"
+                  required
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={10}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="123456"
+                  className="login-input"
+                />
+              </>
             )}
 
             {error && (

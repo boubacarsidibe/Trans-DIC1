@@ -15,6 +15,7 @@ import StatusPagesPage from "./pages/StatusPagesPage.jsx";
 import StatusPageViewPage from "./pages/StatusPageViewPage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
 import TokensPage from "./pages/TokensPage.jsx";
+import TwoFactorPage from "./pages/TwoFactorPage.jsx";
 import ReportSchedulesPage from "./pages/ReportSchedulesPage.jsx";
 import ReportsPage from "./pages/ReportsPage.jsx";
 import RulesPage from "./pages/RulesPage.jsx";
@@ -60,6 +61,7 @@ function App() {
           <Route path="/regles-evenements" element={<EventRulesPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/jetons" element={<TokensPage />} />
+          <Route path="/double-authentification" element={<TwoFactorPage />} />
           <Route element={<ProtectedRoute roles={["ADMIN", "NOC_OPERATOR"]} />}>
             <Route path="/import" element={<ImportPage />} />
           </Route>

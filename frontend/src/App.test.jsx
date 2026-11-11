@@ -89,9 +89,11 @@ describe("authentification", () => {
     expect(
       await screen.findByRole("heading", { name: "Tableau de bord" }),
     ).toBeInTheDocument();
+    // Sans double authentification, le code part à null : le serveur l'ignore.
     expect(apiClient.post).toHaveBeenCalledWith("/auth/login", {
       username: "admin",
       password: "secret",
+      code: null,
     });
   });
 

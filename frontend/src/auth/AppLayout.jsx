@@ -19,6 +19,7 @@ import {
   PhoneCall,
   Radar,
   ScrollText,
+  ShieldCheck,
   Send,
   Server,
   SlidersHorizontal,
@@ -68,6 +69,7 @@ const SECTIONS = [
       { to: "/regles-evenements", label: "Règles d'événements", icon: Funnel },
       { to: "/notifications", label: "Mes notifications", icon: Bell },
       { to: "/jetons", label: "Jetons d'API", icon: KeyRound },
+      { to: "/double-authentification", label: "Double authentification", icon: ShieldCheck },
     ],
   },
   {

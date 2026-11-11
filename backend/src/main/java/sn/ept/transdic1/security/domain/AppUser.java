@@ -44,6 +44,14 @@ public class AppUser {
 
   protected AppUser() {}
 
+  /** Secret partagé de la double authentification ; nul tant qu'elle n'a jamais été préparée. */
+  @Column(name = "totp_secret", length = 64)
+  private String totpSecret;
+
+  /** Vrai une fois qu'un premier code a confirmé que l'application est bien configurée. */
+  @Column(name = "totp_enabled", nullable = false)
+  private boolean totpEnabled;
+
   public AppUser(String u, String e, String p, Role r) {
     id = UUID.randomUUID();
     username = u;
@@ -61,6 +69,31 @@ public class AppUser {
 
   public String getPasswordHash() {
     return passwordHash;
+  }
+
+  public String getTotpSecret() {
+    return totpSecret;
+  }
+
+  public boolean isTotpEnabled() {
+    return totpEnabled;
+  }
+
+  /** Prépare la double authentification : le secret est posé, mais rien n'est encore exigé. */
+  public void prepareTotp(String secret) {
+    this.totpSecret = secret;
+    this.totpEnabled = false;
+  }
+
+  /** Active la double authentification une fois un premier code vérifié. */
+  public void enableTotp() {
+    this.totpEnabled = true;
+  }
+
+  /** Coupe la double authentification et oublie le secret. */
+  public void disableTotp() {
+    this.totpSecret = null;
+    this.totpEnabled = false;
   }
 
   public Role getRole() {

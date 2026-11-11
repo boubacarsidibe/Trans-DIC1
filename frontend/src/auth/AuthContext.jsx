@@ -41,10 +41,12 @@ export function AuthProvider({ children }) {
   // la session avec le cookie de renouvellement avant de rediriger.
   const [initializing, setInitializing] = useState(() => !readSession());
 
-  const login = useCallback(async (username, password) => {
+  /** Le code n'est joint que si le compte a activé la double authentification. */
+  const login = useCallback(async (username, password, code) => {
     const { data } = await apiClient.post("/auth/login", {
       username,
       password,
+      code: code ? code.trim() : null,
     });
     setSession(saveSession(data));
   }, []);

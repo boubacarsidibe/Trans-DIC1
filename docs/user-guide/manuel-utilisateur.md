@@ -164,6 +164,18 @@ Une ligne dont le code d'inventaire ou l'adresse existe déjà est refusée comm
 
 ### Mes notifications
 
+### Double authentification
+
+**Réglages > Double authentification** : ajouter un code à six chiffres, demandé après le mot de passe à chaque connexion. Il faut une application d'authentification sur son téléphone (Google Authenticator, FreeOTP, Aegis).
+
+En trois temps, pour qu'on ne puisse pas se verrouiller dehors :
+
+1. **Commencer** crée une clé, affichée **une seule fois**. On l'ajoute à l'application, à la main ou par le lien qui l'ouvre directement sur téléphone.
+2. **Activer** demande le code affiché par l'application : c'est la preuve qu'elle est bien configurée. Tant que ce code n'a pas été saisi, la connexion ne change pas.
+3. **Couper** redemande le mot de passe, pour qu'une session volée ne suffise pas à l'enlever.
+
+À la connexion, le champ du code n'apparaît qu'une fois le mot de passe accepté. Un code faux compte comme un échec de connexion : le compte se verrouille comme pour un mot de passe erroné. **Téléphone perdu** : un administrateur coupe la double authentification du compte depuis **Administration > Utilisateurs**, ce qui est tracé dans le journal d'audit.
+
 ### Jetons d'API
 
 **Réglages > Jetons d'API** : créer un jeton pour qu'un autre outil (tableau Grafana, script, ordonnanceur) appelle l'API en votre nom, sans partager votre mot de passe. Le jeton s'utilise dans l'en-tête `Authorization: Bearer <jeton>`, exactement comme un jeton de connexion.

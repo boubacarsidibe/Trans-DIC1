@@ -25,6 +25,12 @@ import sn.ept.transdic1.security.repository.UserSessionRepository;
 public class AuthService {
   private static final String INVALID = "Identifiants invalides";
 
+  /**
+   * Message rendu quand le mot de passe est bon mais que le code à usage unique manque : l'écran de
+   * connexion s'en sert pour demander le code, sans révéler autre chose.
+   */
+  public static final String TOTP_REQUIRED = "Code de double authentification requis";
+
   /** Hash factice : le cout est identique que le compte existe ou non. */
   private final String dummyHash;
 
@@ -96,6 +102,21 @@ public class AuthService {
       audit.record(
           u.isLocked(now) ? "ACCOUNT_LOCKED" : "LOGIN_FAILED", u.getUsername(), r.username());
       throw unauthorized();
+    }
+
+    if (u.isTotpEnabled()) {
+      if (r.code() == null || r.code().isBlank()) {
+        // Le mot de passe est bon mais il manque le second facteur : le client doit le demander.
+        audit.record("LOGIN_TOTP_REQUIRED", u.getUsername(), r.username());
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, TOTP_REQUIRED);
+      }
+      if (!Totp.verify(u.getTotpSecret(), r.code(), now)) {
+        // Un code faux compte comme un échec : sinon on pourrait les essayer sans limite.
+        u.registerFailedLogin(now, lockThreshold, baseLock, maxLock);
+        users.save(u);
+        audit.record("LOGIN_TOTP_FAILED", u.getUsername(), r.username());
+        throw unauthorized();
+      }
     }
 
     u.registerSuccessfulLogin();

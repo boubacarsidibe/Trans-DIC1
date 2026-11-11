@@ -79,6 +79,8 @@ tags:
     \ stockées ni renvoyées : on ne manipule que la référence du secret (env:NOM)."
 - name: Règles d'alerte
   description: "Seuils, durée de confirmation, hystérésis et portée des règles."
+- name: Authentification
+  description: "Connexion, renouvellement, mot de passe et double authentification."
 - name: Temps réel
   description: Flux d'événements serveur (SSE) pour rafraîchir les écrans.
 - name: Topologie
@@ -3145,6 +3147,61 @@ paths:
               schema:
                 $ref: "#/components/schemas/TokenResponse"
       security: []
+  /api/v1/auth/double-authentification/preparer:
+    post:
+      tags:
+      - Authentification
+      summary: Préparer la double authentification
+      description: "Crée un secret et le rend une seule fois, avec l'adresse otpauth://\
+        \ à scanner. Tant qu'un premier code n'a pas confirmé, la connexion ne change\
+        \ pas."
+      operationId: prepare
+      responses:
+        "409":
+          description: Déjà active
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/auth/double-authentification/activer:
+    post:
+      tags:
+      - Authentification
+      summary: Activer après vérification d'un code
+      description: Prouve que l'application est bien configurée avant d'exiger le
+        code.
+      operationId: activate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CodeRequest"
+        required: true
+      responses:
+        "400":
+          description: Code incorrect
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/astreinte/plannings:
     get:
       tags:
@@ -4547,6 +4604,61 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/auth/double-authentification:
+    get:
+      tags:
+      - Authentification
+      summary: État de la double authentification du compte connecté
+      operationId: status
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Status"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      tags:
+      - Authentification
+      summary: Couper la double authentification
+      description: "Le mot de passe est redemandé, pour qu'une session volée ne suffise\
+        \ pas."
+      operationId: disable
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordRequest"
+        required: true
+      responses:
+        "400":
+          description: Mot de passe incorrect
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/auth/configuration:
     get:
       tags:
@@ -5045,6 +5157,38 @@ paths:
       responses:
         "404":
           description: Jeton introuvable
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/auth/double-authentification/comptes/{userId}:
+    delete:
+      tags:
+      - Authentification
+      summary: Couper la double authentification d'un compte
+      description: Pour un téléphone perdu. Réservé aux administrateurs et tracé dans
+        l'audit.
+      operationId: disableFor
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Compte introuvable
         "204":
           description: No Content
         "401":
@@ -6733,9 +6877,24 @@ components:
         password:
           type: string
           minLength: 1
+        code:
+          type: string
+          description: "Code à six chiffres de l'application d'authentification, si\
+            \ elle est active"
+          maxLength: 10
+          minLength: 0
       required:
       - password
       - username
+    CodeRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          maxLength: 10
+          minLength: 0
+      required:
+      - code
     OnCallGenerateRequest:
       type: object
       properties:
@@ -7631,6 +7790,13 @@ components:
           type: string
         role:
           type: string
+    Status:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        prepared:
+          type: boolean
     Configuration:
       type: object
       properties:
@@ -8077,6 +8243,14 @@ components:
         valeur:
           type: number
           format: double
+    PasswordRequest:
+      type: object
+      properties:
+        password:
+          type: string
+          minLength: 1
+      required:
+      - password
     ApiError:
       properties:
         status:
