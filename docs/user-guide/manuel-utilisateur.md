@@ -241,6 +241,12 @@ Une page publique et active se lit **sans connexion** à l'adresse `https://<ser
 
 **Avant de rendre une page publique : relire ce qu'elle montre.** Tout le monde pourra voir les noms des services, leurs pannes et leurs maintenances sur 90 jours, ainsi que vos messages d'incident. Choisissez des noms compréhensibles par les usagers et qui ne révèlent rien du réseau interne (pas de nom de serveur, d'adresse, de salle technique) ; écrivez les messages pour le public, sans détail technique ni nom de personne ; n'ajoutez que les services que l'école accepte de montrer. Toutes les actions sont tracées dans le journal d'audit.
 
+### Rapports planifiés
+
+**Administration > Rapports planifiés** : programmer l'envoi automatique du rapport de disponibilité par e-mail, avec le PDF en pièce jointe. On choisit un nom, une fréquence (chaque jour, chaque semaine, chaque mois), l'heure d'envoi (heure de Dakar), le périmètre (un site ou tout le parc) et les destinataires parmi les comptes actifs.
+
+La période couverte est celle qui vient de s'achever : la veille pour un envoi quotidien, les sept derniers jours pour un hebdomadaire, le mois écoulé pour un mensuel. Un envoi manqué (serveur arrêté) part au prochain passage, une seule fois : il n'y a jamais de rafale de rattrapage. Le bouton **Envoyer** déclenche l'envoi tout de suite, pour vérifier la liste des destinataires sans attendre l'heure dite. Un destinataire désactivé ou sans adresse ne reçoit rien.
+
 ### Collecte d'un équipement
 
 Depuis la liste des équipements, **Collecte** ouvre la configuration de la collecte :

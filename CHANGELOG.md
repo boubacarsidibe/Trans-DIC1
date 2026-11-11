@@ -6,6 +6,7 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 
 ### Added
 
+- Rapports planifiés : à l'heure dite, le rapport de disponibilité de la période écoulée part par e-mail à ses destinataires, avec le PDF en pièce jointe (quotidien, hebdomadaire ou mensuel, sur un site ou tout le parc). Écran d'administration avec envoi immédiat pour vérifier les destinataires.
 - Jetons d'API personnels : chacun crée des jetons pour qu'un autre outil appelle l'API en son nom (en-tête `Authorization: Bearer`). Le secret n'est montré qu'à la création et seule son empreinte est stockée ; le jeton porte les droits et le périmètre de son propriétaire, relus à chaque appel, avec expiration facultative, révocation, date de dernier usage et audit (migration V43).
 - Alerte « Absence de donnée » : un indicateur qui arrivait régulièrement et cesse d'arriver pendant 30 minutes, alors que l'équipement répond par ailleurs (disque démonté, service disparu, OID muet). Rien n'est ouvert si l'équipement est déjà en perte de collecte ; l'alerte se résout au retour des mesures (migration V42).
 - Canal de notification Telegram : message texte envoyé à l'API d'un bot, dont l'URL complète (jeton compris) vit dans une référence de secret comme les autres canaux web (migration V41).

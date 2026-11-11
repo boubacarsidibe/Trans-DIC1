@@ -4603,3 +4603,18 @@ thead {
   background: #59626f;
   color: #fff;
 }
+
+/* Liste des destinataires d'un rapport planifié : plusieurs colonnes pour rester compacte. */
+.recipients {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  columns: 3;
+  column-gap: 1.5rem;
+}
+
+@media (max-width: 62rem) {
+  .recipients {
+    columns: 1;
+  }
+}

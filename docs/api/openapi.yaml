@@ -97,6 +97,9 @@ tags:
 - name: Agents de collecte
   description: Enregistrement des agents par un administrateur et réception de leurs
     mesures (jeton d'agent).
+- name: Rapports
+  description: "Rapports de disponibilité, d'incidents, de SLA et leurs envois planifié\
+    s."
 - name: Événements réseau
   description: "Traps SNMP et messages syslog reçus des équipements inventoriés (ADR\
     \ 0021). Lecture pour tous les rôles, limitée au périmètre d'accès par site."
@@ -460,6 +463,67 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/rapports/planifications/{id}:
+    put:
+      tags:
+      - Rapports
+      summary: Modifier un rapport planifié
+      operationId: update_4
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduleRequest"
+        required: true
+      responses:
+        "404":
+          description: Planification introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      tags:
+      - Rapports
+      summary: Supprimer un rapport planifié
+      operationId: delete_4
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/perimetres/{userId}:
     put:
       tags:
@@ -530,7 +594,7 @@ paths:
       tags:
       - Pages de statut
       summary: Modifier une page de statut (dont sa visibilité)
-      operationId: update_4
+      operationId: update_5
       parameters:
       - name: id
         in: path
@@ -568,7 +632,7 @@ paths:
       - Pages de statut
       summary: Supprimer une page de statut
       description: Avec ses composants et incidents.
-      operationId: delete_4
+      operationId: delete_5
       parameters:
       - name: id
         in: path
@@ -841,7 +905,7 @@ paths:
       tags:
       - Équipements
       summary: Modifier un équipement
-      operationId: update_5
+      operationId: update_6
       parameters:
       - name: id
         in: path
@@ -890,7 +954,7 @@ paths:
       tags:
       - Équipements
       summary: Supprimer un équipement
-      operationId: delete_5
+      operationId: delete_6
       parameters:
       - name: id
         in: path
@@ -1068,7 +1132,7 @@ paths:
       - Collecte SNMP
       summary: Arrêter la collecte SNMP
       description: Désactive la collecte ; les mesures déjà reçues sont conservées.
-      operationId: delete_6
+      operationId: delete_7
       parameters:
       - name: equipmentId
         in: path
@@ -1910,6 +1974,102 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/rapports/planifications:
+    get:
+      tags:
+      - Rapports
+      summary: Lister les rapports planifiés
+      operationId: list_5
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScheduleView"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      tags:
+      - Rapports
+      summary: Planifier un rapport
+      description: "La période couverte est celle qui vient de s'achever : la veille\
+        \ pour un envoi quotidien, les sept derniers jours pour un hebdomadaire, le\
+        \ mois écoulé pour un mensuel. Sans site, le rapport porte sur tout le parc."
+      operationId: create_5
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduleRequest"
+        required: true
+      responses:
+        "400":
+          description: Demande invalide
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ScheduleView"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/rapports/planifications/{id}/envoyer:
+    post:
+      tags:
+      - Rapports
+      summary: Envoyer tout de suite
+      description: "Envoie le rapport sans attendre l'heure dite, pour vérifier les\
+        \ destinataires."
+      operationId: sendNow
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SendResult"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/pages-statut:
     get:
       tags:
@@ -1917,7 +2077,7 @@ paths:
       summary: Lister les pages de statut
       description: "Pages actives (toutes pour un administrateur), avec leur état\
         \ global."
-      operationId: list_5
+      operationId: list_6
       responses:
         "200":
           description: OK
@@ -1943,7 +2103,7 @@ paths:
       tags:
       - Pages de statut
       summary: Créer une page de statut
-      operationId: create_5
+      operationId: create_6
       requestBody:
         content:
           application/json:
@@ -2108,7 +2268,7 @@ paths:
       summary: Lister les maintenances
       description: "Liste paginée (20 par page, début le plus récent d'abord), filtrable\
         \ par état, site et équipement."
-      operationId: list_6
+      operationId: list_7
       parameters:
       - name: state
         in: query
@@ -2160,7 +2320,7 @@ paths:
       tags:
       - Maintenances
       summary: Planifier une maintenance
-      operationId: create_6
+      operationId: create_7
       requestBody:
         content:
           application/json:
@@ -2224,7 +2384,7 @@ paths:
       - Jetons d'API
       summary: Lister ses jetons
       description: Le secret n'est jamais renvoyé.
-      operationId: list_7
+      operationId: list_8
       responses:
         "200":
           description: OK
@@ -2253,7 +2413,7 @@ paths:
       description: "Le secret n'est montré qu'ici, une seule fois : il n'est pas ré\
         cupérable ensuite. Il s'utilise dans l'en-tête « Authorization: Bearer <jeton>\
         \ », comme un jeton de connexion."
-      operationId: create_7
+      operationId: create_8
       requestBody:
         content:
           application/json:
@@ -2288,7 +2448,7 @@ paths:
       summary: Lister les équipements
       description: "Liste paginée (20 par page, tri par nom), filtrable par site,\
         \ type et statut."
-      operationId: list_8
+      operationId: list_9
       parameters:
       - name: siteId
         in: query
@@ -2351,7 +2511,7 @@ paths:
       tags:
       - Équipements
       summary: Créer un équipement
-      operationId: create_8
+      operationId: create_9
       requestBody:
         content:
           application/json:
@@ -3733,7 +3893,7 @@ paths:
       tags:
       - Périmètres d'accès
       summary: Comptes limités à certains sites
-      operationId: list_9
+      operationId: list_10
       responses:
         "200":
           description: OK
@@ -3974,7 +4134,7 @@ paths:
       description: "Liste paginée (50 par page, plus récents d'abord), filtrable par\
         \ équipement, source, sévérité minimale (EMERGENCY la plus grave), période\
         \ [from, to[ et texte (titre, détails, OID). 200 événements par page au plus."
-      operationId: list_10
+      operationId: list_11
       parameters:
       - name: equipmentId
         in: query
@@ -4410,7 +4570,7 @@ paths:
       summary: Consulter le journal
       description: "Liste paginée (50 par page, plus récentes d'abord), filtrable\
         \ par période (from inclus, to exclu), compte, action et cible."
-      operationId: list_11
+      operationId: list_12
       parameters:
       - name: from
         in: query
@@ -4683,7 +4843,7 @@ paths:
       description: "Liste paginée (20 par page, plus récentes d'abord), filtrable\
         \ par état, équipement, sévérité ou alertes actives. Les alertes supprimé\
         es sont masquées."
-      operationId: list_12
+      operationId: list_13
       parameters:
       - name: state
         in: query
@@ -4774,7 +4934,7 @@ paths:
       - Alertes
       summary: Supprimer une alerte
       description: "Suppression logique : l'alerte et son historique restent en base."
-      operationId: delete_7
+      operationId: delete_8
       parameters:
       - name: id
         in: path
@@ -5147,6 +5307,31 @@ components:
       - name
       - operator
       - threshold
+    ScheduleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        frequency:
+          type: string
+          enum:
+          - DAILY
+          - WEEKLY
+          - MONTHLY
+        executionTime:
+          type: string
+        active:
+          type: boolean
+        recipientIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        siteIds:
+          type: array
+          items:
+            type: string
+            format: uuid
     UserScopeRequest:
       type: object
       properties:
@@ -6138,6 +6323,42 @@ components:
       required:
       - days
       - rule
+    ScheduleView:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        frequency:
+          type: string
+          enum:
+          - DAILY
+          - WEEKLY
+          - MONTHLY
+        executionTime:
+          type: string
+        active:
+          type: boolean
+        nextRunAt:
+          type: string
+          format: date-time
+        recipientIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        siteIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+    SendResult:
+      type: object
+      properties:
+        sent:
+          type: boolean
     IncidentUpdateRequest:
       type: object
       properties:

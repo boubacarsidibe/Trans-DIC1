@@ -13,6 +13,7 @@ import {
   LibraryBig,
   Network,
   LogOut,
+  CalendarClock,
   KeyRound,
   Menu,
   PhoneCall,
@@ -75,6 +76,7 @@ const SECTIONS = [
     links: [
       { to: "/utilisateurs", label: "Utilisateurs", icon: Users },
       { to: "/canaux", label: "Canaux", icon: Send },
+      { to: "/rapports-planifies", label: "Rapports planifiés", icon: CalendarClock },
       { to: "/audit", label: "Journal d'audit", icon: ScrollText },
     ],
   },

@@ -15,6 +15,7 @@ import StatusPagesPage from "./pages/StatusPagesPage.jsx";
 import StatusPageViewPage from "./pages/StatusPageViewPage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
 import TokensPage from "./pages/TokensPage.jsx";
+import ReportSchedulesPage from "./pages/ReportSchedulesPage.jsx";
 import ReportsPage from "./pages/ReportsPage.jsx";
 import RulesPage from "./pages/RulesPage.jsx";
 import MetricsPage from "./pages/MetricsPage.jsx";
@@ -67,6 +68,7 @@ function App() {
             <Route path="/utilisateurs" element={<UsersPage />} />
             <Route path="/audit" element={<AuditPage />} />
             <Route path="/canaux" element={<ChannelsPage />} />
+            <Route path="/rapports-planifies" element={<ReportSchedulesPage />} />
             <Route
               path="/equipements/:id/collecte"
               element={<CollectionPage />}

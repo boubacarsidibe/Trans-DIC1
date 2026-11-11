@@ -88,6 +88,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rapports/planifications/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Modifier un rapport planifié */
+        put: operations["update_4"];
+        post?: never;
+        /** Supprimer un rapport planifié */
+        delete: operations["delete_4"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/perimetres/{userId}": {
         parameters: {
             query?: never;
@@ -118,13 +136,13 @@ export interface paths {
         /** Détail d'une page pour l'administration */
         get: operations["detail"];
         /** Modifier une page de statut (dont sa visibilité) */
-        put: operations["update_4"];
+        put: operations["update_5"];
         post?: never;
         /**
          * Supprimer une page de statut
          * @description Avec ses composants et incidents.
          */
-        delete: operations["delete_4"];
+        delete: operations["delete_5"];
         options?: never;
         head?: never;
         patch?: never;
@@ -203,10 +221,10 @@ export interface paths {
         /** Consulter un équipement */
         get: operations["get_4"];
         /** Modifier un équipement */
-        put: operations["update_5"];
+        put: operations["update_6"];
         post?: never;
         /** Supprimer un équipement */
-        delete: operations["delete_5"];
+        delete: operations["delete_6"];
         options?: never;
         head?: never;
         patch?: never;
@@ -255,7 +273,7 @@ export interface paths {
          * Arrêter la collecte SNMP
          * @description Désactive la collecte ; les mesures déjà reçues sont conservées.
          */
-        delete: operations["delete_6"];
+        delete: operations["delete_7"];
         options?: never;
         head?: never;
         patch?: never;
@@ -561,6 +579,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rapports/planifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les rapports planifiés */
+        get: operations["list_5"];
+        put?: never;
+        /**
+         * Planifier un rapport
+         * @description La période couverte est celle qui vient de s'achever : la veille pour un envoi quotidien, les sept derniers jours pour un hebdomadaire, le mois écoulé pour un mensuel. Sans site, le rapport porte sur tout le parc.
+         */
+        post: operations["create_5"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rapports/planifications/{id}/envoyer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Envoyer tout de suite
+         * @description Envoie le rapport sans attendre l'heure dite, pour vérifier les destinataires.
+         */
+        post: operations["sendNow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/pages-statut": {
         parameters: {
             query?: never;
@@ -572,10 +631,10 @@ export interface paths {
          * Lister les pages de statut
          * @description Pages actives (toutes pour un administrateur), avec leur état global.
          */
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         /** Créer une page de statut */
-        post: operations["create_5"];
+        post: operations["create_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -644,10 +703,10 @@ export interface paths {
          * Lister les maintenances
          * @description Liste paginée (20 par page, début le plus récent d'abord), filtrable par état, site et équipement.
          */
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         /** Planifier une maintenance */
-        post: operations["create_6"];
+        post: operations["create_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -682,13 +741,13 @@ export interface paths {
          * Lister ses jetons
          * @description Le secret n'est jamais renvoyé.
          */
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         /**
          * Créer un jeton
          * @description Le secret n'est montré qu'ici, une seule fois : il n'est pas récupérable ensuite. Il s'utilise dans l'en-tête « Authorization: Bearer <jeton> », comme un jeton de connexion.
          */
-        post: operations["create_7"];
+        post: operations["create_8"];
         delete?: never;
         options?: never;
         head?: never;
@@ -706,10 +765,10 @@ export interface paths {
          * Lister les équipements
          * @description Liste paginée (20 par page, tri par nom), filtrable par site, type et statut.
          */
-        get: operations["list_8"];
+        get: operations["list_9"];
         put?: never;
         /** Créer un équipement */
-        post: operations["create_8"];
+        post: operations["create_9"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1375,7 +1434,7 @@ export interface paths {
             cookie?: never;
         };
         /** Comptes limités à certains sites */
-        get: operations["list_9"];
+        get: operations["list_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1512,7 +1571,7 @@ export interface paths {
          * Lister les événements réseau
          * @description Liste paginée (50 par page, plus récents d'abord), filtrable par équipement, source, sévérité minimale (EMERGENCY la plus grave), période [from, to[ et texte (titre, détails, OID). 200 événements par page au plus.
          */
-        get: operations["list_10"];
+        get: operations["list_11"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1743,7 +1802,7 @@ export interface paths {
          * Consulter le journal
          * @description Liste paginée (50 par page, plus récentes d'abord), filtrable par période (from inclus, to exclu), compte, action et cible.
          */
-        get: operations["list_11"];
+        get: operations["list_12"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1883,7 +1942,7 @@ export interface paths {
          * Lister les alertes
          * @description Liste paginée (20 par page, plus récentes d'abord), filtrable par état, équipement, sévérité ou alertes actives. Les alertes supprimées sont masquées.
          */
-        get: operations["list_12"];
+        get: operations["list_13"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1907,7 +1966,7 @@ export interface paths {
          * Supprimer une alerte
          * @description Suppression logique : l'alerte et son historique restent en base.
          */
-        delete: operations["delete_7"];
+        delete: operations["delete_8"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2055,6 +2114,15 @@ export interface components {
             siteIds?: string[];
             equipmentIds?: string[];
             allEquipment?: boolean;
+        };
+        ScheduleRequest: {
+            name?: string;
+            /** @enum {string} */
+            frequency?: "DAILY" | "WEEKLY" | "MONTHLY";
+            executionTime?: string;
+            active?: boolean;
+            recipientIds?: string[];
+            siteIds?: string[];
         };
         UserScopeRequest: {
             siteIds: string[];
@@ -2457,6 +2525,22 @@ export interface components {
             rule: components["schemas"]["AlertRuleRequest"];
             /** Format: int32 */
             days: number;
+        };
+        ScheduleView: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            /** @enum {string} */
+            frequency?: "DAILY" | "WEEKLY" | "MONTHLY";
+            executionTime?: string;
+            active?: boolean;
+            /** Format: date-time */
+            nextRunAt?: string;
+            recipientIds?: string[];
+            siteIds?: string[];
+        };
+        SendResult: {
+            sent?: boolean;
         };
         IncidentUpdateRequest: {
             /** @enum {string} */
@@ -3881,6 +3965,86 @@ export interface operations {
             };
         };
     };
+    update_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Planification introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     replace: {
         parameters: {
             query?: never;
@@ -3968,7 +4132,7 @@ export interface operations {
             };
         };
     };
-    update_4: {
+    update_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -4012,7 +4176,7 @@ export interface operations {
             };
         };
     };
-    delete_4: {
+    delete_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -4338,7 +4502,7 @@ export interface operations {
             };
         };
     };
-    update_5: {
+    update_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -4400,7 +4564,7 @@ export interface operations {
             };
         };
     };
-    delete_5: {
+    delete_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -4635,7 +4799,7 @@ export interface operations {
             };
         };
     };
-    delete_6: {
+    delete_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -5785,7 +5949,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["StatusPageSummary"][];
+                    "*/*": components["schemas"]["ScheduleView"][];
                 };
             };
             /** @description Authentification requise ou jeton expiré */
@@ -5809,6 +5973,133 @@ export interface operations {
         };
     };
     create_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ScheduleView"];
+                };
+            };
+            /** @description Demande invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    sendNow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SendResult"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    list_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StatusPageSummary"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    create_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -6025,7 +6316,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query: {
                 state?: "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
@@ -6068,7 +6359,7 @@ export interface operations {
             };
         };
     };
-    create_6: {
+    create_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -6162,7 +6453,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -6200,7 +6491,7 @@ export interface operations {
             };
         };
     };
-    create_7: {
+    create_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -6249,7 +6540,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_9: {
         parameters: {
             query: {
                 siteId?: string;
@@ -6293,7 +6584,7 @@ export interface operations {
             };
         };
     };
-    create_8: {
+    create_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -8023,7 +8314,7 @@ export interface operations {
             };
         };
     };
-    list_9: {
+    list_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -8295,7 +8586,7 @@ export interface operations {
             };
         };
     };
-    list_10: {
+    list_11: {
         parameters: {
             query: {
                 equipmentId?: string;
@@ -8756,7 +9047,7 @@ export interface operations {
             };
         };
     };
-    list_11: {
+    list_12: {
         parameters: {
             query: {
                 from?: string;
@@ -9022,7 +9313,7 @@ export interface operations {
             };
         };
     };
-    list_12: {
+    list_13: {
         parameters: {
             query: {
                 state?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ARCHIVED" | "DELETED";
@@ -9104,7 +9395,7 @@ export interface operations {
             };
         };
     };
-    delete_7: {
+    delete_8: {
         parameters: {
             query?: never;
             header?: never;
