@@ -52,6 +52,8 @@ tags:
 - name: Périmètres d'accès
   description: "Sites visibles par un opérateur ou un lecteur ; sans site attribué\
     , tout le parc."
+- name: Jetons d'API
+  description: Jetons personnels pour appeler l'API depuis un autre outil.
 - name: Notifications
   description: Préférences de notification de l'utilisateur connecté.
 - name: Sondes
@@ -2216,6 +2218,69 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/jetons:
+    get:
+      tags:
+      - Jetons d'API
+      summary: Lister ses jetons
+      description: Le secret n'est jamais renvoyé.
+      operationId: list_7
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TokenView"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      tags:
+      - Jetons d'API
+      summary: Créer un jeton
+      description: "Le secret n'est montré qu'ici, une seule fois : il n'est pas ré\
+        cupérable ensuite. Il s'utilise dans l'en-tête « Authorization: Bearer <jeton>\
+        \ », comme un jeton de connexion."
+      operationId: create_7
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRequest"
+        required: true
+      responses:
+        "409":
+          description: "Nom déjà pris, ou trop de jetons actifs"
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CreatedToken"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/equipements:
     get:
       tags:
@@ -2223,7 +2288,7 @@ paths:
       summary: Lister les équipements
       description: "Liste paginée (20 par page, tri par nom), filtrable par site,\
         \ type et statut."
-      operationId: list_7
+      operationId: list_8
       parameters:
       - name: siteId
         in: query
@@ -2286,7 +2351,7 @@ paths:
       tags:
       - Équipements
       summary: Créer un équipement
-      operationId: create_7
+      operationId: create_8
       requestBody:
         content:
           application/json:
@@ -3668,7 +3733,7 @@ paths:
       tags:
       - Périmètres d'accès
       summary: Comptes limités à certains sites
-      operationId: list_8
+      operationId: list_9
       responses:
         "200":
           description: OK
@@ -3909,7 +3974,7 @@ paths:
       description: "Liste paginée (50 par page, plus récents d'abord), filtrable par\
         \ équipement, source, sévérité minimale (EMERGENCY la plus grave), période\
         \ [from, to[ et texte (titre, détails, OID). 200 événements par page au plus."
-      operationId: list_9
+      operationId: list_10
       parameters:
       - name: equipmentId
         in: query
@@ -4345,7 +4410,7 @@ paths:
       summary: Consulter le journal
       description: "Liste paginée (50 par page, plus récentes d'abord), filtrable\
         \ par période (from inclus, to exclu), compte, action et cible."
-      operationId: list_10
+      operationId: list_11
       parameters:
       - name: from
         in: query
@@ -4618,7 +4683,7 @@ paths:
       description: "Liste paginée (20 par page, plus récentes d'abord), filtrable\
         \ par état, équipement, sévérité ou alertes actives. Les alertes supprimé\
         es sont masquées."
-      operationId: list_11
+      operationId: list_12
       parameters:
       - name: state
         in: query
@@ -4788,6 +4853,38 @@ paths:
       responses:
         "404":
           description: Lien introuvable
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/jetons/{id}:
+    delete:
+      tags:
+      - Jetons d'API
+      summary: Révoquer un jeton
+      description: Le jeton cesse d'être accepté tout de suite ; la ligne reste pour
+        l'audit.
+      operationId: revoke_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Jeton introuvable
         "204":
           description: No Content
         "401":
@@ -6119,6 +6216,50 @@ components:
           type: string
           format: date-time
         cancelledAt:
+          type: string
+          format: date-time
+    CreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+          minLength: 0
+        days:
+          type: integer
+          format: int32
+          description: "Durée de validité en jours ; absente, le jeton n'expire pas"
+          maximum: 730
+          minimum: 1
+      required:
+      - name
+    CreatedToken:
+      type: object
+      properties:
+        token:
+          $ref: "#/components/schemas/TokenView"
+        secret:
+          type: string
+    TokenView:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        prefix:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        lastUsedAt:
+          type: string
+          format: date-time
+        revokedAt:
           type: string
           format: date-time
     ProbeResponse:

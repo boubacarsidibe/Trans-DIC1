@@ -13,6 +13,7 @@ import {
   LibraryBig,
   Network,
   LogOut,
+  KeyRound,
   Menu,
   PhoneCall,
   Radar,
@@ -65,6 +66,7 @@ const SECTIONS = [
       { to: "/regles", label: "Règles", icon: SlidersHorizontal },
       { to: "/regles-evenements", label: "Règles d'événements", icon: Funnel },
       { to: "/notifications", label: "Mes notifications", icon: Bell },
+      { to: "/jetons", label: "Jetons d'API", icon: KeyRound },
     ],
   },
   {

@@ -14,6 +14,7 @@ import OnCallPage from "./pages/OnCallPage.jsx";
 import StatusPagesPage from "./pages/StatusPagesPage.jsx";
 import StatusPageViewPage from "./pages/StatusPageViewPage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
+import TokensPage from "./pages/TokensPage.jsx";
 import ReportsPage from "./pages/ReportsPage.jsx";
 import RulesPage from "./pages/RulesPage.jsx";
 import MetricsPage from "./pages/MetricsPage.jsx";
@@ -57,6 +58,7 @@ function App() {
           <Route path="/evenements" element={<EventsPage />} />
           <Route path="/regles-evenements" element={<EventRulesPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/jetons" element={<TokensPage />} />
           <Route element={<ProtectedRoute roles={["ADMIN", "NOC_OPERATOR"]} />}>
             <Route path="/import" element={<ImportPage />} />
           </Route>

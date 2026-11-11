@@ -299,8 +299,10 @@ class PersistenceModelTests {
             "StatusIncident",
             "StatusIncidentUpdate",
             // Interfaces réseau découvertes par SNMP (ADR 0027).
-            "EquipmentInterface")
-        .hasSize(42);
+            "EquipmentInterface",
+            // Jetons d'API personnels.
+            "ApiToken")
+        .hasSize(43);
   }
 
   @Test

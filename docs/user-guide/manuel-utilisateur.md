@@ -164,6 +164,14 @@ Une ligne dont le code d'inventaire ou l'adresse existe déjà est refusée comm
 
 ### Mes notifications
 
+### Jetons d'API
+
+**Réglages > Jetons d'API** : créer un jeton pour qu'un autre outil (tableau Grafana, script, ordonnanceur) appelle l'API en votre nom, sans partager votre mot de passe. Le jeton s'utilise dans l'en-tête `Authorization: Bearer <jeton>`, exactement comme un jeton de connexion.
+
+Le secret n'est **affiché qu'une seule fois**, à la création : copiez-le aussitôt, il n'est plus récupérable. La base n'en garde qu'une empreinte.
+
+Un jeton donne **exactement vos droits et votre périmètre de sites**, relus à chaque appel : si votre rôle change ou si votre compte est désactivé, ses jetons suivent sans qu'il faille les révoquer un par un. La liste montre le début du jeton, son état, sa date de création, son expiration et son dernier usage — de quoi repérer un jeton oublié. **Révoquer** le coupe tout de suite ; la ligne reste pour l'audit. Vingt jetons actifs au plus par compte, et deux jetons ne peuvent pas porter le même nom.
+
 **Réglages > Mes notifications** : choisir de recevoir ou non un message à l'ouverture et à la résolution des alertes, et à partir de quelle sévérité. Le canal par défaut est l'e-mail ; d'autres canaux (Teams, Slack, Telegram, webhook) sont configurés par un administrateur. Pour Telegram, le secret contient l'URL complète de l'API du bot, jeton et destinataire compris (`https://api.telegram.org/bot<jeton>/sendMessage?chat_id=<identifiant>`) : le jeton n'entre jamais en base ni à l'écran.
 
 ### Astreinte

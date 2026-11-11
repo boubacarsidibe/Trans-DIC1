@@ -11,6 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import sn.ept.transdic1.security.service.AccountService;
+import sn.ept.transdic1.security.service.ApiTokenService;
 import sn.ept.transdic1.security.service.JwtService;
 import sn.ept.transdic1.security.service.OidcAuthenticationService;
 
@@ -22,16 +23,38 @@ public class JwtFilter extends OncePerRequestFilter {
   private final JwtService jwt;
   private final OidcAuthenticationService oidc;
   private final AccountService accounts;
+  private final ApiTokenService apiTokens;
 
-  public JwtFilter(JwtService j, OidcAuthenticationService oidc, AccountService accounts) {
+  public JwtFilter(
+      JwtService j,
+      OidcAuthenticationService oidc,
+      AccountService accounts,
+      ApiTokenService apiTokens) {
     jwt = j;
     this.oidc = oidc;
     this.accounts = accounts;
+    this.apiTokens = apiTokens;
   }
 
   protected void doFilterInternal(HttpServletRequest r, HttpServletResponse s, FilterChain c)
       throws ServletException, IOException {
     String h = r.getHeader("Authorization");
+    if (h != null && h.startsWith("Bearer " + ApiTokenService.PREFIX)) {
+      // Jeton d'API : les droits et le périmètre du propriétaire sont relus à chaque requête,
+      // comme pour un jeton de connexion.
+      apiTokens
+          .authenticate(h.substring(7))
+          .ifPresent(
+              owner ->
+                  SecurityContextHolder.getContext()
+                      .setAuthentication(
+                          new UsernamePasswordAuthenticationToken(
+                              owner.username(),
+                              null,
+                              List.of(new SimpleGrantedAuthority("ROLE_" + owner.role())))));
+      c.doFilter(r, s);
+      return;
+    }
     if (h != null && h.startsWith("Bearer "))
       try {
         var x = jwt.verify(h.substring(7));
