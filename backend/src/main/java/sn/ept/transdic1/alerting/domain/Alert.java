@@ -77,6 +77,13 @@ public class Alert {
   @Column(name = "correlation_reason", length = 255)
   private String correlationReason;
 
+  /**
+   * Depuis quand l'alerte est tenue pour instable (ouvertures répétées) ; nulle si elle est
+   * normale.
+   */
+  @Column(name = "flapping_since")
+  private Instant flappingSince;
+
   /** Disque ou carte concernés, pour une mesure à instance ; null sinon. */
   @Column(name = "metric_instance", length = 64)
   private String metricInstance;
@@ -123,6 +130,14 @@ public class Alert {
 
   public void setContext(String context) {
     this.context = context;
+  }
+
+  public Instant getFlappingSince() {
+    return flappingSince;
+  }
+
+  public void setFlappingSince(Instant flappingSince) {
+    this.flappingSince = flappingSince;
   }
 
   public String getCorrelationReason() {

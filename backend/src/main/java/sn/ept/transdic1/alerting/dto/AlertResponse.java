@@ -25,7 +25,12 @@ public record AlertResponse(
     UUID parentAlertId,
     String correlationReason,
     String metricInstance,
-    String context) {
+    String context,
+    @io.swagger.v3.oas.annotations.media.Schema(
+            description =
+                "Depuis quand l'alerte est tenue pour instable (ouvertures répétées) : elle reste"
+                    + " visible mais ne notifie plus. Nulle si l'alerte est normale.")
+        Instant flappingSince) {
 
   /** {@code assignee} reste le premier assigné, pour les clients qui n'en affichent qu'un. */
   public static AlertResponse from(Alert alert, java.util.List<String> assignees) {
@@ -46,6 +51,7 @@ public record AlertResponse(
         alert.getParentAlertId(),
         alert.getCorrelationReason(),
         alert.getMetricInstance(),
-        alert.getContext());
+        alert.getContext(),
+        alert.getFlappingSince());
   }
 }

@@ -7381,6 +7381,12 @@ components:
           type: string
         context:
           type: string
+        flappingSince:
+          type: string
+          format: date-time
+          description: "Depuis quand l'alerte est tenue pour instable (ouvertures\
+            \ répétées) : elle reste visible mais ne notifie plus. Nulle si l'alerte\
+            \ est normale."
     PagedModelAlertResponse:
       type: object
       properties:

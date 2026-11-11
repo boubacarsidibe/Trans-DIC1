@@ -3105,6 +3105,11 @@ export interface components {
             correlationReason?: string;
             metricInstance?: string;
             context?: string;
+            /**
+             * Format: date-time
+             * @description Depuis quand l'alerte est tenue pour instable (ouvertures répétées) : elle reste visible mais ne notifie plus. Nulle si l'alerte est normale.
+             */
+            flappingSince?: string;
         };
         PagedModelAlertResponse: {
             content?: components["schemas"]["AlertResponse"][];

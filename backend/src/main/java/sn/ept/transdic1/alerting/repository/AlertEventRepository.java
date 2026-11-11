@@ -8,6 +8,10 @@ import sn.ept.transdic1.alerting.domain.*;
 public interface AlertEventRepository extends JpaRepository<AlertEvent, UUID> {
   List<AlertEvent> findByAlertIdOrderByOccurredAtAsc(UUID alertId);
 
+  /** Ouvertures d'une alerte depuis une date : sert à repérer une alerte instable. */
+  int countByAlertIdAndTypeAndOccurredAtGreaterThanEqual(
+      UUID alertId, AlertEventType type, java.time.Instant since);
+
   /** Dernier événement d'un type pour une alerte (dernière ouverture, fenêtre anti-rebond). */
   java.util.Optional<AlertEvent> findFirstByAlertIdAndTypeOrderByOccurredAtDesc(
       UUID alertId, AlertEventType type);

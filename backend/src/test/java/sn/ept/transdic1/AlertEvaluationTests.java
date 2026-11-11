@@ -295,4 +295,34 @@ class AlertEvaluationTests {
     assertThat(events.findByAlertIdOrderByOccurredAtAsc(alert.getId()).get(0).getComment())
         .contains("Maintenance");
   }
+
+  @Test
+  void uneAlerteQuiClignoteCessseDeNotifierPuisRedevientNormale() {
+    rule("0", null);
+    // Quatre ouvertures entrecoupées de retours à la normale : l'alerte clignote.
+    for (int round = 0; round < 4; round++) {
+      send(equipment, round * 2, "95");
+      send(equipment, round * 2 + 1, "50");
+    }
+
+    Alert alert = alertsOf(equipment).get(0);
+    assertThat(alert.getFlappingSince()).isNotNull();
+    var comments =
+        events.findByAlertIdOrderByOccurredAtAsc(alert.getId()).stream()
+            .map(e -> e.getComment())
+            .filter(c -> c != null && c.contains("instable"))
+            .toList();
+    assertThat(comments).isNotEmpty();
+    assertThat(comments.get(0)).contains("ouvertures en 60 min", "notifications suspendues");
+  }
+
+  @Test
+  void deuxOuverturesNeSuffisentPasAJugerUneAlerteInstable() {
+    rule("0", null);
+    send(equipment, 0, "95");
+    send(equipment, 1, "50");
+    send(equipment, 2, "96");
+
+    assertThat(alertsOf(equipment).get(0).getFlappingSince()).isNull();
+  }
 }

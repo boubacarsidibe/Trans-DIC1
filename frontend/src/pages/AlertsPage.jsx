@@ -267,6 +267,11 @@ function AlertsPage() {
                     {alert.correlationReason && (
                       <span className="cell-grouped">Regroupée, sans notification : {alert.correlationReason}</span>
                     )}
+                    {alert.flappingSince && (
+                      <span className="cell-grouped">
+                        Alerte instable : elle s’ouvre et se referme sans arrêt, les notifications sont suspendues
+                      </span>
+                    )}
                   </td>
                   <td>
                     <AlertStateBadge state={alert.state} />

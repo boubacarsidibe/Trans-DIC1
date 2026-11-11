@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +47,8 @@ import sn.ept.transdic1.inventory.repository.AgentSnapshotRepository;
 public class AlertEvaluationService {
   private static final Duration CONTEXT_MAX_AGE = Duration.ofMinutes(10);
   private final AgentSnapshotRepository snapshots;
+  private final int flappingThreshold;
+  private final Duration flappingWindow;
 
   private static final Set<AlertState> ACTIVE = Set.of(AlertState.OPEN, AlertState.IN_PROGRESS);
   private static final Set<MaintenanceState> MAINTENANCE_STATES =
@@ -65,7 +68,9 @@ public class AlertEvaluationService {
       MaintenanceRepository maintenances,
       MetricHistory history,
       ApplicationEventPublisher publisher,
-      AgentSnapshotRepository snapshots) {
+      AgentSnapshotRepository snapshots,
+      @Value("${alerting.flapping.threshold:4}") int flappingThreshold,
+      @Value("${alerting.flapping.window-minutes:60}") long flappingWindowMinutes) {
     this.rules = rules;
     this.alerts = alerts;
     this.events = events;
@@ -73,6 +78,15 @@ public class AlertEvaluationService {
     this.history = history;
     this.publisher = publisher;
     this.snapshots = snapshots;
+    // Au moins deux ouvertures : en dessous, toute réouverture serait « instable ».
+    this.flappingThreshold = Math.max(2, flappingThreshold);
+    this.flappingWindow = Duration.ofMinutes(Math.max(5, flappingWindowMinutes));
+  }
+
+  /** Ouvertures déjà enregistrées pour cette alerte dans la fenêtre d'instabilité. */
+  private int openingsInWindow(java.util.UUID alertId, Instant at) {
+    return events.countByAlertIdAndTypeAndOccurredAtGreaterThanEqual(
+        alertId, AlertEventType.OPENED, at.minus(flappingWindow));
   }
 
   /** Mesure sans service (agents, SNMP) : une alerte par équipement et règle. */
@@ -194,6 +208,7 @@ public class AlertEvaluationService {
         alerts.findLastResolvedForRule(equipment.getId(), rule.getId(), serviceId, instance);
     Alert alert;
     AlertEvent event;
+    String flappingNote = null;
     if (resolved.isPresent()) {
       alert = resolved.get();
       alert.setState(AlertState.OPEN);
@@ -204,6 +219,17 @@ public class AlertEvaluationService {
       event = new AlertEvent(alert, AlertEventType.OPENED, at);
       event.setPreviousState(AlertState.RESOLVED);
       event.setComment("Nouvelle anomalie avant archivage : alerte rouverte");
+      // Celle-ci comprise : l'événement n'est pas encore enregistré.
+      int openings = openingsInWindow(alert.getId(), at) + 1;
+      if (FlappingDetector.isFlapping(openings, flappingThreshold)) {
+        if (alert.getFlappingSince() == null) {
+          alert.setFlappingSince(at);
+        }
+        flappingNote = FlappingDetector.explain(openings, (int) flappingWindow.toMinutes());
+      } else if (alert.getFlappingSince() != null
+          && FlappingDetector.isCalmAgain(openings, flappingThreshold)) {
+        alert.setFlappingSince(null);
+      }
     } else {
       alert =
           new Alert(
@@ -229,6 +255,13 @@ public class AlertEvaluationService {
     alert.setContext(contextFor(equipment, metricKey, at));
     if (!notify) {
       event.setComment("Maintenance en cours : aucune notification");
+    } else if (alert.getFlappingSince() != null) {
+      // L'alerte reste visible et vit sa vie, mais elle ne réveille plus personne.
+      notify = false;
+      event.setComment(
+          flappingNote == null
+              ? "Alerte instable : notifications toujours suspendues"
+              : flappingNote);
     }
     alerts.save(alert);
     events.save(event);

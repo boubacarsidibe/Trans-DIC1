@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import sn.ept.transdic1.alerting.service.CollectionAlertService;
 import sn.ept.transdic1.common.scheduling.JobGuard;
 import sn.ept.transdic1.inventory.domain.AgentStatus;
@@ -29,24 +30,34 @@ public class AgentWatchdogService {
   private final Clock clock;
   private final Duration silence;
   private final JobGuard guard;
+  private final TransactionTemplate transaction;
 
   public AgentWatchdogService(
       CollectionAgentRepository agents,
       CollectionAlertService collectionAlerts,
       Clock clock,
       JobGuard guard,
+      TransactionTemplate transaction,
       @Value("${collection.agent.silence-seconds:300}") long silenceSeconds) {
     this.agents = agents;
     this.collectionAlerts = collectionAlerts;
     this.clock = clock;
     this.silence = Duration.ofSeconds(silenceSeconds);
     this.guard = guard;
+    this.transaction = transaction;
   }
 
-  /** Passage planifié : une seule instance à la fois. */
+  /**
+   * Passage planifié : une seule instance à la fois. L'appel interne à checkAgents ne passe pas par
+   * le proxy Spring : sans transaction explicite, l'équipement de l'agent (chargé à la demande) est
+   * lu hors session et le passage échoue à chaque minute.
+   */
   @Scheduled(cron = "${collection.agent.watchdog-cron:0 * * * * *}", zone = "UTC")
   public void scheduledCheck() {
-    guard.run("collection.agent-watchdog", Duration.ofMinutes(5), this::checkAgents);
+    guard.run(
+        "collection.agent-watchdog",
+        Duration.ofMinutes(5),
+        () -> transaction.execute(s -> checkAgents()));
   }
 
   /** Retourne le nombre d'alertes ouvertes par ce passage. */
