@@ -74,6 +74,10 @@ La prévision suit une droite : elle ne connaît ni les cycles (sauvegardes de n
 
 Quand un équipement de cœur (un routeur, un commutateur de distribution) tombe, les équipements situés derrière lui ne répondent plus non plus. Leurs alertes sont **regroupées sous l'alerte racine** : elles apparaissent en retrait, avec la mention « regroupée sous… », pour que l'opérateur traite d'abord la cause.
 
+Une alerte de type **Absence de donnée** signale un indicateur qui arrivait régulièrement et ne remonte plus depuis une demi-heure, alors que l'équipement répond par ailleurs : un disque démonté, un service disparu de l'agent, un OID devenu muet. Si l'équipement est entièrement muet, c'est une alerte de collecte qui s'ouvre à la place. Elle se résout seule au retour des mesures.
+
+Une alerte de type **Écart aux semblables** signale un équipement qui se comporte autrement que les autres du même type sur le même site, même si aucun seuil n'est franchi et même si c'est son habitude.
+
 Une alerte de type **Anomalie** signale une mesure inhabituelle pour l'heure et le jour (par exemple un processeur très chargé un dimanche à 3 h), même si aucun seuil n'est dépassé. La normale est calculée sur les quatre dernières semaines au même créneau, en écartant les relevés qui étaient eux-mêmes inhabituels : un incident passé ne masque pas le suivant. Le message de l'alerte dit combien de relevés ont été écartés. Le temps de réponse d'une sonde est surveillé de la même façon.
 
 Une alerte de type **Prévision** annonce qu'un disque ou une mémoire sera plein dans moins de 14 jours si la tendance se poursuit, par exemple « Disque plein dans ~12 jours (tendance +2,0 %/jour, confiance haute) ». Elle devient **critique** à 3 jours ou moins, son message est actualisé au plus une fois par jour, et elle se résout seule quand la tendance disparaît ou que la saturation recule nettement (au-delà de 17 jours et demi).

@@ -96,6 +96,10 @@ public interface AlertRepository
   /** Alertes d'un service dans ces états (sonde désactivée). */
   java.util.List<Alert> findByServiceIdAndStateIn(UUID serviceId, Collection<AlertState> states);
 
+  /** Alertes actives d'un type : sert au détecteur d'absence de donnée pour les refermer. */
+  java.util.List<Alert> findByTypeAndStateIn(
+      sn.ept.transdic1.alerting.domain.AlertType type, Collection<AlertState> states);
+
   /** Alerte active dont la clé d'occurrence commence par ce préfixe (anomalies). */
   Optional<Alert> findFirstByOccurrenceKeyStartingWithAndStateIn(
       String prefix, Collection<AlertState> states);

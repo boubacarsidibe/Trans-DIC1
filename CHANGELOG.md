@@ -6,6 +6,7 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 
 ### Added
 
+- Alerte « Absence de donnée » : un indicateur qui arrivait régulièrement et cesse d'arriver pendant 30 minutes, alors que l'équipement répond par ailleurs (disque démonté, service disparu, OID muet). Rien n'est ouvert si l'équipement est déjà en perte de collecte ; l'alerte se résout au retour des mesures (migration V42).
 - Canal de notification Telegram : message texte envoyé à l'API d'un bot, dont l'URL complète (jeton compris) vit dans une référence de secret comme les autres canaux web (migration V41).
 - Sonde DNS : le serveur de noms supervisé est interrogé pour un nom donné (question A en UDP, écrite sans bibliothèque ajoutée) ; panne si le nom est inconnu, si le serveur ne rend aucune adresse, s'il ne répond pas, ou si l'adresse attendue renseignée n'est pas rendue.
 - Alerte instable : au-delà de 4 ouvertures en 60 minutes, une alerte qui clignote reste visible mais ne notifie plus, jusqu'au retour au calme (migration V39).

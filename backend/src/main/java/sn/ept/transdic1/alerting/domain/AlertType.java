@@ -6,5 +6,6 @@ public enum AlertType {
   ANOMALY,
   FORECAST,
   EVENT,
-  PEER
+  PEER,
+  NO_DATA
 }

@@ -39,6 +39,7 @@ export const ALERT_TYPE = {
   COLLECTION: "Collecte",
   ANOMALY: "Anomalie",
   PEER: "Écart aux semblables",
+  NO_DATA: "Absence de donnée",
   FORECAST: "Prévision",
   EVENT: "Événement",
 };

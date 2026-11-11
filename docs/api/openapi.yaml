@@ -7346,6 +7346,7 @@ components:
           - FORECAST
           - EVENT
           - PEER
+          - NO_DATA
         state:
           type: string
           enum:
@@ -7421,6 +7422,7 @@ components:
           - FORECAST
           - EVENT
           - PEER
+          - NO_DATA
         severite:
           type: string
           enum:
