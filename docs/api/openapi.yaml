@@ -54,6 +54,8 @@ tags:
     , tout le parc."
 - name: Jetons d'API
   description: Jetons personnels pour appeler l'API depuis un autre outil.
+- name: Sécurité
+  description: Journaux de sécurité et attaques repérées.
 - name: Notifications
   description: Préférences de notification de l'utilisateur connecté.
 - name: Sondes
@@ -3657,6 +3659,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/agent/journaux:
+    post:
+      tags:
+      - Sécurité
+      summary: Envoyer des lignes de journal (agent)
+      description: "Authentifié par le jeton de l'agent. Le serveur juge les lignes\
+        \ : seules les tentatives d'authentification, les attaques reconnues et les\
+        \ erreurs web sont conservées ; une requête ordinaire ne laisse aucune trace."
+      operationId: receive_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogBatch"
+        required: true
+      responses:
+        "400":
+          description: Lot invalide
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/vue-ensemble:
     get:
       tags:
@@ -7112,6 +7144,50 @@ components:
       - key
       - unit
       - value
+    LogBatch:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/LogEntry"
+          maxItems: 500
+          minItems: 0
+      required:
+      - entries
+    LogEntry:
+      type: object
+      properties:
+        occurredAt:
+          type: string
+          format: date-time
+        kind:
+          type: string
+          maxLength: 24
+          minLength: 0
+        sourceAddress:
+          type: string
+          maxLength: 45
+          minLength: 0
+        username:
+          type: string
+          maxLength: 120
+          minLength: 0
+        method:
+          type: string
+          maxLength: 10
+          minLength: 0
+        request:
+          type: string
+          description: "Chemin et paramètres, jamais le corps de la requête"
+          maxLength: 2000
+          minLength: 0
+        status:
+          type: integer
+          format: int32
+      required:
+      - kind
+      - occurredAt
     AlertSummary:
       type: object
       properties:
@@ -7875,6 +7951,7 @@ components:
           - EVENT
           - PEER
           - NO_DATA
+          - SECURITY
         state:
           type: string
           enum:
@@ -7951,6 +8028,7 @@ components:
           - EVENT
           - PEER
           - NO_DATA
+          - SECURITY
         severite:
           type: string
           enum:

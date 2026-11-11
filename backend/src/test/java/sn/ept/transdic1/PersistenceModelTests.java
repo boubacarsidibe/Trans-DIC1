@@ -301,8 +301,10 @@ class PersistenceModelTests {
             // Interfaces réseau découvertes par SNMP (ADR 0027).
             "EquipmentInterface",
             // Jetons d'API personnels.
-            "ApiToken")
-        .hasSize(43);
+            "ApiToken",
+            // Journaux de sécurité (lot 5).
+            "SecurityEvent")
+        .hasSize(44);
   }
 
   @Test

@@ -276,6 +276,29 @@ class ArchitectureTests {
               "events lit les entités et passe par les services d'alerting, pas par leurs API");
 
   @ArchTest
+  static final ArchRule threatOnlyUsesDomainsAndAllowedServices =
+      noClasses()
+          .that()
+          .resideInAPackage(ROOT + ".threat..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              ROOT + ".inventory.controller..",
+              ROOT + ".inventory.service..",
+              ROOT + ".monitoring..",
+              ROOT + ".audit..",
+              ROOT + ".alerting.controller..",
+              ROOT + ".alerting.dto..",
+              ROOT + ".security.service..",
+              ROOT + ".reporting..",
+              ROOT + ".events..",
+              ROOT + ".collection.service..",
+              ROOT + ".access..")
+          .because(
+              "threat lit les entités et passe par les entités d'alerting, pas par leurs API ;"
+                  + " seul le point d'entrée de l'agent, qui vit dans collection, dépend d'elle");
+
+  @ArchTest
   static final ArchRule noModuleDependsOnDiagnostic =
       noClasses()
           .that()

@@ -1309,6 +1309,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/agent/journaux": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Envoyer des lignes de journal (agent)
+         * @description Authentifié par le jeton de l'agent. Le serveur juge les lignes : seules les tentatives d'authentification, les attaques reconnues et les erreurs web sont conservées ; une requête ordinaire ne laisse aucune trace.
+         */
+        post: operations["receive_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/vue-ensemble": {
         parameters: {
             query?: never;
@@ -2906,6 +2926,21 @@ export interface components {
             /** Format: date-time */
             collectedAt: string;
         };
+        LogBatch: {
+            entries: components["schemas"]["LogEntry"][];
+        };
+        LogEntry: {
+            /** Format: date-time */
+            occurredAt: string;
+            kind: string;
+            sourceAddress?: string;
+            username?: string;
+            method?: string;
+            /** @description Chemin et paramètres, jamais le corps de la requête */
+            request?: string;
+            /** Format: int32 */
+            status?: number;
+        };
         AlertSummary: {
             /** Format: int64 */
             active?: number;
@@ -3330,7 +3365,7 @@ export interface components {
             equipmentName?: string;
             ruleName?: string;
             /** @enum {string} */
-            type?: "THRESHOLD" | "COLLECTION" | "ANOMALY" | "FORECAST" | "EVENT" | "PEER" | "NO_DATA";
+            type?: "THRESHOLD" | "COLLECTION" | "ANOMALY" | "FORECAST" | "EVENT" | "PEER" | "NO_DATA" | "SECURITY";
             /** @enum {string} */
             state?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ARCHIVED" | "DELETED";
             /** @enum {string} */
@@ -3366,7 +3401,7 @@ export interface components {
             equipementId?: string;
             equipementNom?: string;
             /** @enum {string} */
-            type?: "THRESHOLD" | "COLLECTION" | "ANOMALY" | "FORECAST" | "EVENT" | "PEER" | "NO_DATA";
+            type?: "THRESHOLD" | "COLLECTION" | "ANOMALY" | "FORECAST" | "EVENT" | "PEER" | "NO_DATA" | "SECURITY";
             /** @enum {string} */
             severite?: "INFO" | "WARNING" | "CRITICAL";
             /** @enum {string} */
@@ -8159,6 +8194,46 @@ export interface operations {
         };
         responses: {
             /** @description Lot invalide ou horodatage dans le futur */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    receive_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LogBatch"];
+            };
+        };
+        responses: {
+            /** @description Lot invalide */
             400: {
                 headers: {
                     [name: string]: unknown;
