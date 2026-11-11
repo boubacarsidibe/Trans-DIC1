@@ -6,6 +6,11 @@ Toutes les modifications notables de ce projet seront documentées ici. Le proje
 
 ### Added
 
+- Sonde DNS : le serveur de noms supervisé est interrogé pour un nom donné (question A en UDP, écrite sans bibliothèque ajoutée) ; panne si le nom est inconnu, si le serveur ne rend aucune adresse, s'il ne répond pas, ou si l'adresse attendue renseignée n'est pas rendue.
+- Alerte instable : au-delà de 4 ouvertures en 60 minutes, une alerte qui clignote reste visible mais ne notifie plus, jusqu'au retour au calme (migration V39).
+- Écart aux semblables : un équipement comparé aux autres du même type et du même site sur un indicateur en pourcentage ; nouveau type d'alerte « Écart aux semblables » (migration V40).
+- Diagnostic : section « Ce qui a bougé en même temps », indicateurs dont la moyenne a nettement changé à l'ouverture de l'alerte, présentés comme un rapprochement et non comme une cause.
+
 - Interfaces réseau par SNMP (IF-MIB), au choix par configuration de collecte : découverte des ports toutes les heures (nom, description, type, vitesse, état), puis relevé des compteurs à chaque passage ; mesures `net.in[port]`, `net.out`, `net.errors`, `net.discards`, `net.usage` (occupation du lien) et `net.up`, avec débordement et redémarrage des compteurs pris en compte ; deux règles livrées inactives (« Lien réseau saturé », « Erreurs sur un lien réseau ») et une case « Suivre les interfaces réseau » dans l'écran Collecte (ADR 0027, migration V38).
 - Perte de paquets et gigue : la sonde ICMP envoie quatre paquets par passage et dépose `probe.loss` et `probe.jitter` en plus de la latence moyenne ; règle « Perte de paquets » livrée inactive (ADR 0027, migration V36).
 - Score de santé de 0 à 100 par équipement et par site, avec le détail des points perdus (alertes, statut, silence, indicateurs hors normale), montré dans un panneau « Santé du parc » sur le tableau de bord (ADR 0027, migration V37).

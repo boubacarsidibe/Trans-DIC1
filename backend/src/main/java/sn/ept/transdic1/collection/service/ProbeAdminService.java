@@ -217,9 +217,13 @@ public class ProbeAdminService {
     if (type == ServiceType.TCP_PORT && request.port() == null) {
       throw badRequest("Le port est obligatoire pour une sonde TCP");
     }
+    if (type == ServiceType.DNS && isBlank(request.accessPoint())) {
+      throw badRequest("Le nom à résoudre est obligatoire pour une sonde DNS");
+    }
     boolean http = type == ServiceType.HTTP || type == ServiceType.HTTPS;
-    if (!http && !isBlank(request.expectedText())) {
-      throw badRequest("Le texte attendu ne s'applique qu'aux sondes HTTP et HTTPS");
+    // Pour une sonde DNS, le texte attendu est l'adresse que le nom doit rendre.
+    if (!http && type != ServiceType.DNS && !isBlank(request.expectedText())) {
+      throw badRequest("Le texte attendu ne s'applique qu'aux sondes HTTP, HTTPS et DNS");
     }
     if (!http && !isBlank(request.expectedStatus())) {
       throw badRequest("Le statut attendu ne s'applique qu'aux sondes HTTP et HTTPS");
@@ -257,9 +261,9 @@ public class ProbeAdminService {
   }
 
   /**
-   * Le nom est unique par équipement pour tous les services (contrainte en base), y compris les
-   * services DNS ou autres qui ne sont pas des sondes et n'apparaissent pas dans la liste : le
-   * message dit alors pourquoi le nom est pris.
+   * Le nom est unique par équipement pour tous les services (contrainte en base), y compris ceux
+   * qui ne sont pas des sondes et n'apparaissent pas dans la liste : le message dit alors pourquoi
+   * le nom est pris.
    */
   private void requireUniqueName(UUID equipmentId, String name, UUID self) {
     var conflict =
@@ -272,8 +276,7 @@ public class ProbeAdminService {
     MonitoredService existing = conflict.get();
     String message;
     if (!ProbeService.PROBE_TYPES.contains(existing.getType())) {
-      message =
-          "Un service non sondé (DNS ou autre) porte déjà ce nom sur cet équipement : " + name;
+      message = "Un service non sondé porte déjà ce nom sur cet équipement : " + name;
     } else if (!existing.isActive()) {
       message = "Une sonde de ce nom existe déjà (désactivée) : réactivez-la ou renommez-la";
     } else {

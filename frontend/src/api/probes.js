@@ -5,6 +5,7 @@ export const PROBE_TYPES = [
   { value: "HTTP", label: "HTTP" },
   { value: "HTTPS", label: "HTTPS" },
   { value: "ICMP", label: "Ping (ICMP)" },
+  { value: "DNS", label: "DNS (résolution d’un nom)" },
   { value: "TLS_CERT", label: "Certificat TLS" },
 ];
 
@@ -45,6 +46,7 @@ export async function testProbe(equipmentId, probeId) {
 }
 
 export const isHttp = (type) => type === "HTTP" || type === "HTTPS";
+export const isDns = (type) => type === "DNS";
 export const needsPort = (type) => type === "TCP_PORT";
 export const hasPort = (type) => type !== "ICMP";
 
@@ -98,8 +100,11 @@ export function validateProbe(values) {
       errors.expectedStatus = "Un code (200) ou une plage (200-399).";
     }
   }
-  if (isHttp(values.type) && values.expectedText.length > 200) {
+  if ((isHttp(values.type) || isDns(values.type)) && values.expectedText.length > 200) {
     errors.expectedText = "200 caractères au plus.";
+  }
+  if (isDns(values.type) && !values.accessPoint.trim()) {
+    errors.accessPoint = "Indiquez le nom à résoudre, par exemple ent.ept.sn.";
   }
   if (values.accessPoint.length > 255) errors.accessPoint = "255 caractères au plus.";
   return errors;
@@ -116,7 +121,8 @@ export function toProbePayload(values, active) {
     intervalSeconds: Number(values.intervalSeconds),
     timeoutMs: Number(values.timeoutMs),
     expectedStatus: http ? values.expectedStatus.trim() || null : null,
-    expectedText: http ? values.expectedText || null : null,
+    // Pour une sonde DNS, le texte attendu est l'adresse que le nom doit rendre.
+    expectedText: http || isDns(values.type) ? values.expectedText || null : null,
   };
   if (active !== undefined) payload.active = active;
   return payload;

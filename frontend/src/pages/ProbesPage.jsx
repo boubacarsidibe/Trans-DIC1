@@ -8,6 +8,7 @@ import {
   deleteProbe,
   fromProbe,
   hasPort,
+  isDns,
   isHttp,
   listProbes,
   serverMessage,
@@ -88,10 +89,15 @@ function ProbeForm({ initial, submitting, onSubmit, onCancel }) {
         </select>
       </label>
       {hasPort(values.type) && field("port", "Port", { inputMode: "numeric" })}
-      {field("accessPoint", "Adresse ou URL", {
-        placeholder: "Vide : adresse de gestion de l'équipement",
-        maxLength: 255,
-      })}
+      {isDns(values.type)
+        ? field("accessPoint", "Nom à résoudre", {
+            placeholder: "ent.ept.sn",
+            maxLength: 255,
+          })
+        : field("accessPoint", "Adresse ou URL", {
+            placeholder: "Vide : adresse de gestion de l'équipement",
+            maxLength: 255,
+          })}
       {field("intervalSeconds", "Intervalle (secondes)", { inputMode: "numeric" })}
       {field("timeoutMs", "Délai de réponse (ms)", { inputMode: "numeric" })}
       {isHttp(values.type) && (
@@ -100,6 +106,11 @@ function ProbeForm({ initial, submitting, onSubmit, onCancel }) {
           {field("expectedText", "Texte attendu", { maxLength: 200 })}
         </>
       )}
+      {isDns(values.type) &&
+        field("expectedText", "Adresse attendue (facultatif)", {
+          placeholder: "10.1.2.3",
+          maxLength: 200,
+        })}
       <div className="flex flex-wrap gap-3 md:col-span-2">
         <button disabled={submitting} className="btn btn-primary">
           Enregistrer

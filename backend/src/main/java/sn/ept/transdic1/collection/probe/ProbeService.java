@@ -48,7 +48,7 @@ import sn.ept.transdic1.inventory.repository.MonitoredServiceRepository;
 public class ProbeService {
   private static final Logger LOG = LoggerFactory.getLogger(ProbeService.class);
 
-  /** Types de service exécutés par les sondes ; DNS et OTHER sont ignorés. */
+  /** Types de service exécutés par les sondes ; OTHER est ignoré. */
   public static final Set<ServiceType> PROBE_TYPES =
       Collections.unmodifiableSet(
           EnumSet.of(
@@ -56,6 +56,7 @@ public class ProbeService {
               ServiceType.HTTP,
               ServiceType.HTTPS,
               ServiceType.ICMP,
+              ServiceType.DNS,
               ServiceType.TLS_CERT));
 
   private static final String INTERNAL_ERROR = "Erreur interne";
@@ -247,7 +248,12 @@ public class ProbeService {
     String host;
     Integer urlPort = null;
     String path = null;
-    if (accessPoint.isEmpty()) {
+    if (type == ServiceType.DNS) {
+      // La cible est le serveur de noms (l'équipement) ; l'adresse d'accès porte le nom à
+      // résoudre, qui est une donnée de la question et non un hôte à joindre.
+      host = service.getEquipment().getManagementAddress();
+      path = accessPoint.isEmpty() ? null : accessPoint;
+    } else if (accessPoint.isEmpty()) {
       host = service.getEquipment().getManagementAddress();
     } else if (isUrlForm(type, accessPoint)) {
       Target parsed = parseUrl(accessPoint);
@@ -284,7 +290,8 @@ public class ProbeService {
    */
   public static String accessPointHost(ServiceType type, String accessPoint) {
     String value = accessPoint == null ? "" : accessPoint.trim();
-    if (value.isEmpty()) {
+    // Pour une sonde DNS, l'adresse d'accès est le nom à résoudre : la cible reste l'équipement.
+    if (value.isEmpty() || type == ServiceType.DNS) {
       return null;
     }
     return isUrlForm(type, value) ? parseUrl(value).host() : value;
@@ -300,6 +307,7 @@ public class ProbeService {
 
   private static Integer defaultPort(ServiceType type) {
     return switch (type) {
+      case DNS -> 53;
       case HTTP -> 80;
       case HTTPS, TLS_CERT -> 443;
       default -> null;

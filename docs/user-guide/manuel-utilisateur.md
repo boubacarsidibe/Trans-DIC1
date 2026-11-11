@@ -252,6 +252,7 @@ Les sondes sont lancées **par le serveur Trans-DIC1** : elles ne voient que ce 
 | Ping (ICMP) | l'équipement répond au ping ; latence, perte de paquets et gigue | adresse de l'équipement, ou une adresse IP ou un nom d'hôte saisi (sans `icmp://`) |
 | Port TCP | une connexion s'ouvre sur le port ; latence | adresse de l'équipement ou nom d'hôte (sans schéma), plus le port |
 | HTTP / HTTPS | la page répond avec un statut attendu (200 à 399 par défaut), éventuellement avec un texte attendu ; latence | adresse ou URL (`http://` pour HTTP, `https://` pour HTTPS ; sans identifiant dans l'URL) |
+| DNS | le serveur de noms résout bien un nom ; temps de réponse, et adresse attendue si elle est renseignée | le nom à résoudre (par exemple `ent.ept.sn`) ; la question part vers l'adresse de l'équipement, port 53 par défaut |
 | Certificat TLS | nombre de jours avant l'expiration du certificat présenté par le serveur | nom d'hôte, plus le port |
 
 La sonde **Ping** envoie quatre paquets à chaque passage : elle mesure donc aussi la **perte de paquets** (`probe.loss`, en %) et la **gigue** (`probe.jitter`, en millisecondes, l'écart moyen entre deux réponses), et la latence rendue est la moyenne des réponses reçues. Un lien qui perd des paquets ou dont la gigue monte se dégrade avant de tomber. Une règle **Perte de paquets** est livrée inactive, à activer dans **Règles d'alerte**.

@@ -264,14 +264,31 @@ class ProbeApiTests {
   }
 
   @Test
-  void rejectsTypeDnsAndOther() throws Exception {
-    for (String type : List.of("DNS", "OTHER")) {
-      call(post(url).content(probe(type, "\"port\":53")), admin)
-          .andExpect(status().isBadRequest())
-          .andExpect(jsonPath("$.error").value("Type non pris en charge"));
-    }
+  void rejectsTypeOtherAndUnknownTypes() throws Exception {
+    call(post(url).content(probe("OTHER", "\"port\":53")), admin)
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error").value("Type non pris en charge"));
     call(post(url).content(probe("TELNET", "\"port\":23")), admin)
         .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void aDnsProbeNeedsTheNameToResolve() throws Exception {
+    call(post(url).content("{\"name\":\"Résolveur EPT\",\"type\":\"DNS\"}"), admin)
+        .andExpect(status().isBadRequest())
+        .andExpect(
+            jsonPath("$.error").value("Le nom à résoudre est obligatoire pour une sonde DNS"));
+
+    // Le nom à résoudre n'est pas une cible : il n'est pas résolu à la création.
+    call(
+            post(url)
+                .content(
+                    "{\"name\":\"Résolveur EPT\",\"type\":\"DNS\",\"accessPoint\":\"ent.ept.sn\","
+                        + "\"expectedText\":\"10.1.2.3\"}"),
+            admin)
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.accessPoint").value("ent.ept.sn"))
+        .andExpect(jsonPath("$.expectedText").value("10.1.2.3"));
   }
 
   @Test
@@ -403,8 +420,8 @@ class ProbeApiTests {
                 .value(
                     "Une sonde de ce nom existe déjà (désactivée) : réactivez-la ou renommez-la"));
 
-    services.saveAndFlush(new MonitoredService(equipmentA, "Résolveur", ServiceType.DNS));
-    call(post(url).content("{\"name\":\"Résolveur\",\"type\":\"ICMP\"}"), admin)
+    services.saveAndFlush(new MonitoredService(equipmentA, "Annuaire", ServiceType.OTHER));
+    call(post(url).content("{\"name\":\"Annuaire\",\"type\":\"ICMP\"}"), admin)
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.error").value(containsString("non sondé")));
   }
