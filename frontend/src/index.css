@@ -3223,6 +3223,13 @@ thead {
 @media (min-width: 62rem) {
   .dash-grid {
     grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    /* Les petits panneaux remontent combler la colonne laissée libre par un panneau large. */
+    grid-auto-flow: row dense;
+  }
+
+  /* Panneau qui a besoin de toute la largeur : carte du parc, tableaux, courbes. */
+  .dash-grid .dash-wide {
+    grid-column: 1 / -1;
   }
 }
 
@@ -4463,9 +4470,29 @@ thead {
 
 .health-sites li {
   display: grid;
-  grid-template-columns: minmax(6rem, 1fr) minmax(4rem, 2fr) auto auto;
+  /* Barres bornées : sur un panneau pleine largeur, une jauge de 1 000 px ne se lit pas mieux. */
+  grid-template-columns: minmax(6rem, 16rem) minmax(4rem, 26rem) auto auto;
   align-items: center;
   gap: 0.75rem;
+}
+
+.health-hosts {
+  columns: 2;
+  column-gap: 2rem;
+}
+
+@media (max-width: 62rem) {
+  .health-sites li {
+    grid-template-columns: minmax(5rem, 1fr) minmax(3rem, 1fr) auto;
+  }
+
+  .health-count {
+    display: none;
+  }
+
+  .health-hosts {
+    columns: 1;
+  }
 }
 
 .health-name {

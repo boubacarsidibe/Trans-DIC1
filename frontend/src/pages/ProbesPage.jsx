@@ -88,7 +88,11 @@ function ProbeForm({ initial, submitting, onSubmit, onCancel }) {
           ))}
         </select>
       </label>
-      {hasPort(values.type) && field("port", "Port", { inputMode: "numeric" })}
+      {hasPort(values.type) &&
+        field("port", "Port", {
+          inputMode: "numeric",
+          placeholder: isDns(values.type) ? "Vide : 53" : undefined,
+        })}
       {isDns(values.type)
         ? field("accessPoint", "Nom à résoudre", {
             placeholder: "ent.ept.sn",

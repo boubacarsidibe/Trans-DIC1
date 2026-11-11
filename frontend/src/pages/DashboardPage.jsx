@@ -269,7 +269,7 @@ function DashboardPage() {
                 <ActivityChart activity={board.activity} />
               </section>
 
-              <section aria-labelledby="saturation" className="panel dash-wide">
+              <section aria-labelledby="saturation" className="panel">
                 <div className="panel-head">
                   <h2 id="saturation">Saturation prévue</h2>
                 </div>
