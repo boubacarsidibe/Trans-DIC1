@@ -3205,6 +3205,8 @@ export interface components {
             evenementsRecents?: components["schemas"]["EvenementRecent"][];
             changementsRecents?: components["schemas"]["ChangementRecent"][];
             contexteMetrique?: components["schemas"]["ContexteMetrique"];
+            /** @description Indicateurs qui ont nettement changé au moment de l'ouverture, du plus grand changement au plus petit. Ce n'est pas une preuve de cause. */
+            metriquesLiees?: components["schemas"]["MetriqueLiee"][];
             incidentsSimilaires?: components["schemas"]["IncidentsSimilaires"];
             /** @description Pistes de vérification (2 à 5), choisies dans un catalogue fixe */
             pistes?: string[];
@@ -3235,6 +3237,25 @@ export interface components {
             /** Format: double */
             moyenneMinutes?: number | null;
             dernieres?: components["schemas"]["Resolution"][];
+        };
+        MetriqueLiee: {
+            metrique?: string;
+            unite?: string | null;
+            /**
+             * Format: double
+             * @description Moyenne sur les deux heures qui précèdent l'ouverture
+             */
+            avant?: number;
+            /**
+             * Format: double
+             * @description Moyenne autour de l'ouverture
+             */
+            pendant?: number;
+            /**
+             * Format: double
+             * @description Variation en pourcentage, négative si l'indicateur a baissé
+             */
+            variationPourcent?: number;
         };
         Resolution: {
             /** Format: uuid */

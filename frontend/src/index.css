@@ -4540,3 +4540,10 @@ thead {
   display: block;
   margin-top: 0.1rem;
 }
+
+/* Mise en garde d'une section du diagnostic : rapprochement, pas preuve. */
+.diag-note {
+  margin: 0 0 0.5rem;
+  color: #59626f;
+  font-size: 0.85rem;
+}

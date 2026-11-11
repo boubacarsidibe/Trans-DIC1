@@ -32,6 +32,11 @@ public record DiagnosticResponse(
     List<EvenementRecent> evenementsRecents,
     List<ChangementRecent> changementsRecents,
     @Schema(nullable = true) ContexteMetrique contexteMetrique,
+    @Schema(
+            description =
+                "Indicateurs qui ont nettement changé au moment de l'ouverture, du plus grand"
+                    + " changement au plus petit. Ce n'est pas une preuve de cause.")
+        List<MetriqueLiee> metriquesLiees,
     IncidentsSimilaires incidentsSimilaires,
     @Schema(description = "Pistes de vérification (2 à 5), choisies dans un catalogue fixe")
         List<String> pistes) {
@@ -109,6 +114,15 @@ public record DiagnosticResponse(
       @Schema(nullable = true) CapacityForecastResponse prevision) {}
 
   public record Valeur(Instant le, double valeur) {}
+
+  /** Un indicateur qui a changé en même temps que l'alerte s'ouvrait. */
+  public record MetriqueLiee(
+      String metrique,
+      @Schema(nullable = true) String unite,
+      @Schema(description = "Moyenne sur les deux heures qui précèdent l'ouverture") double avant,
+      @Schema(description = "Moyenne autour de l'ouverture") double pendant,
+      @Schema(description = "Variation en pourcentage, négative si l'indicateur a baissé")
+          double variationPourcent) {}
 
   public record IncidentsSimilaires(
       @Schema(description = "MEME_EQUIPEMENT, MEME_SITE ou AUCUN") String critere,

@@ -7585,6 +7585,12 @@ components:
         contexteMetrique:
           type: "null"
           $ref: "#/components/schemas/ContexteMetrique"
+        metriquesLiees:
+          type: array
+          description: "Indicateurs qui ont nettement changé au moment de l'ouverture,\
+            \ du plus grand changement au plus petit. Ce n'est pas une preuve de cause."
+          items:
+            $ref: "#/components/schemas/MetriqueLiee"
         incidentsSimilaires:
           $ref: "#/components/schemas/IncidentsSimilaires"
         pistes:
@@ -7646,6 +7652,27 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Resolution"
+    MetriqueLiee:
+      type: object
+      properties:
+        metrique:
+          type: string
+        unite:
+          type:
+          - string
+          - "null"
+        avant:
+          type: number
+          format: double
+          description: Moyenne sur les deux heures qui précèdent l'ouverture
+        pendant:
+          type: number
+          format: double
+          description: Moyenne autour de l'ouverture
+        variationPourcent:
+          type: number
+          format: double
+          description: "Variation en pourcentage, négative si l'indicateur a baissé"
     Resolution:
       type: object
       properties:

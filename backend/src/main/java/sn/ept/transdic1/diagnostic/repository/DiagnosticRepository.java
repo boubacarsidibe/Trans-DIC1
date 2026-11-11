@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -459,6 +460,49 @@ public class DiagnosticRepository {
             + " AND extract(hour FROM collected_at AT TIME ZONE 'UTC') = ? GROUP BY d) t",
         (rs, i) -> new Reference(number(rs.getBigDecimal(1)), rs.getInt(2)),
         params.toArray());
+  }
+
+  // ------------------------------------------------------------------ métriques liées
+
+  /** Moyennes d'un indicateur avant et autour de l'ouverture, avec le nombre de points. */
+  public record MovedMetric(
+      String key, String unit, Double before, Double during, int pointsBefore, int pointsDuring) {}
+
+  /**
+   * Indicateurs de l'équipement, avec leur moyenne « avant » (deux heures avant l'ouverture,
+   * jusqu'à une demi-heure avant) et « pendant » (le quart d'heure qui précède l'ouverture et les
+   * cinq minutes qui suivent). Les mesures de sonde sont écartées : plusieurs sondes d'un même
+   * équipement partagent la même clé, leurs moyennes n'auraient pas de sens.
+   */
+  public List<MovedMetric> movedMetrics(UUID equipmentId, Instant opened, String excludedKey) {
+    return jdbc.query(
+        "SELECT metric_key, max(unit),"
+            + " avg(metric_value) FILTER (WHERE collected_at < ?) AS before_value,"
+            + " avg(metric_value) FILTER (WHERE collected_at >= ?) AS during_value,"
+            + " count(*) FILTER (WHERE collected_at < ?) AS before_points,"
+            + " count(*) FILTER (WHERE collected_at >= ?) AS during_points"
+            + " FROM metric WHERE equipment_id = ? AND service_id IS NULL AND quality <> 'BAD'"
+            + " AND collected_at >= ? AND collected_at <= ?"
+            // Le type du paramètre doit être dit : PostgreSQL ne le devine pas dans « ? IS NULL ».
+            + " AND (cast(? as text) IS NULL OR metric_key <> ?)"
+            + " GROUP BY metric_key",
+        (rs, i) ->
+            new MovedMetric(
+                rs.getString(1),
+                rs.getString(2),
+                number(rs.getBigDecimal(3)),
+                number(rs.getBigDecimal(4)),
+                rs.getInt(5),
+                rs.getInt(6)),
+        Timestamp.from(opened.minus(Duration.ofMinutes(15))),
+        Timestamp.from(opened.minus(Duration.ofMinutes(15))),
+        Timestamp.from(opened.minus(Duration.ofMinutes(15))),
+        Timestamp.from(opened.minus(Duration.ofMinutes(15))),
+        equipmentId,
+        Timestamp.from(opened.minus(Duration.ofHours(2))),
+        Timestamp.from(opened.plus(Duration.ofMinutes(5))),
+        excludedKey,
+        excludedKey);
   }
 
   // ------------------------------------------------------------------ incidents similaires

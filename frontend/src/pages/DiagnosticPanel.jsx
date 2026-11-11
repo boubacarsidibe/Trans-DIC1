@@ -156,6 +156,31 @@ function Impact({ impact }) {
   );
 }
 
+/**
+ * Indicateurs qui ont changé au moment de l'ouverture. Rapprochement dans le temps seulement :
+ * l'écran le dit, pour que personne ne le lise comme une cause démontrée.
+ */
+function MovedMetrics({ metrics }) {
+  if (!metrics || metrics.length === 0) return null;
+  const show = (value, unit) => `${number(value, 2)}${unit === "%" ? " %" : unit ? ` ${unit}` : ""}`;
+  return (
+    <Section title="Ce qui a bougé en même temps">
+      <p className="diag-note">
+        Ces indicateurs ont changé au moment de l’ouverture. C’est un rapprochement dans le temps, pas une cause
+        démontrée.
+      </p>
+      <ul className="diag-facts">
+        {metrics.map((metric) => (
+          <li key={metric.metrique}>
+            {label(METRIC, metric.metrique)} : {show(metric.avant, metric.unite)} →{" "}
+            {show(metric.pendant, metric.unite)} ({signed(metric.variationPourcent)})
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
+
 function MetricContext({ context }) {
   if (!context) return null;
   const unit = context.unite === "%" ? " %" : context.unite ? ` ${context.unite}` : "";
@@ -418,6 +443,7 @@ function DiagnosticPanel({ alertId, onOpenAlert }) {
       </Section>
 
       <MetricContext context={diagnostic.contexteMetrique} />
+      <MovedMetrics metrics={diagnostic.metriquesLiees} />
       <Similar similar={diagnostic.incidentsSimilaires} />
       <Steps steps={diagnostic.pistes ?? []} />
     </section>

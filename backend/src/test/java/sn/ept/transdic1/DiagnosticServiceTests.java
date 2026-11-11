@@ -674,4 +674,36 @@ class DiagnosticServiceTests {
   private static String serialized(DiagnosticResponse d) {
     return d.toString();
   }
+
+  @Test
+  void lesIndicateursQuiOntBougeEnMemeTempsSontListesDuPlusGrandChangementAuPlusPetit() {
+    Equipment server = equipment("Serveur applicatif", EquipmentType.SERVER, siteA);
+    // Deux heures de calme, puis la mémoire double et le trafic s'effondre à l'ouverture.
+    for (int minutes = 120; minutes > 15; minutes -= 5) {
+      metric(server, "memory.usage", 30, t0.minus(Duration.ofMinutes(minutes)));
+      metric(server, "net.in", 100, t0.minus(Duration.ofMinutes(minutes)));
+      metric(server, "cpu.usage", 50, t0.minus(Duration.ofMinutes(minutes)));
+    }
+    for (int minutes = 12; minutes >= 0; minutes -= 4) {
+      metric(server, "memory.usage", 75, t0.minus(Duration.ofMinutes(minutes)));
+      metric(server, "net.in", 20, t0.minus(Duration.ofMinutes(minutes)));
+      metric(server, "cpu.usage", 51, t0.minus(Duration.ofMinutes(minutes)));
+    }
+    AlertRule cpu = rule("cpu.usage");
+    UUID threshold = alert(server, "THRESHOLD", cpu.getId(), t0, "Processeur haut");
+
+    DiagnosticResponse d = diagnostic.diagnose(threshold);
+
+    assertThat(d.metriquesLiees())
+        .extracting(m -> m.metrique())
+        .containsExactly("memory.usage", "net.in");
+    // La mémoire a plus bougé (+150 %) que le trafic (−80 %) : elle passe devant.
+    var memory = d.metriquesLiees().get(0);
+    assertThat(memory.avant()).isEqualTo(30.0);
+    assertThat(memory.pendant()).isEqualTo(75.0);
+    assertThat(memory.variationPourcent()).isEqualTo(150.0);
+    assertThat(d.metriquesLiees().get(1).variationPourcent()).isEqualTo(-80.0);
+    // L'indicateur de l'alerte elle-même n'est pas répété, et le calme n'est pas listé.
+    assertThat(d.metriquesLiees()).extracting(m -> m.metrique()).doesNotContain("cpu.usage");
+  }
 }

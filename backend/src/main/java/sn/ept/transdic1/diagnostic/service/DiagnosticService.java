@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import sn.ept.transdic1.diagnostic.dto.DiagnosticResponse.EquipementTouche;
 import sn.ept.transdic1.diagnostic.dto.DiagnosticResponse.EvenementRecent;
 import sn.ept.transdic1.diagnostic.dto.DiagnosticResponse.Impact;
 import sn.ept.transdic1.diagnostic.dto.DiagnosticResponse.IncidentsSimilaires;
+import sn.ept.transdic1.diagnostic.dto.DiagnosticResponse.MetriqueLiee;
 import sn.ept.transdic1.diagnostic.dto.DiagnosticResponse.Resolution;
 import sn.ept.transdic1.diagnostic.dto.DiagnosticResponse.ServiceTouche;
 import sn.ept.transdic1.diagnostic.dto.DiagnosticResponse.Valeur;
@@ -195,8 +197,39 @@ public class DiagnosticService {
         events.stream().limit(DISPLAY_LIMIT).map(DiagnosticService::event).toList(),
         changes.stream().limit(DISPLAY_LIMIT).map(DiagnosticService::change).toList(),
         context,
+        movedMetrics(alert, metricKey),
         similar,
         nextSteps(alert, metricKey, ranked));
+  }
+
+  /** Un indicateur et son changement, le temps du classement. */
+  private record Moved(DiagnosticRepository.MovedMetric row, double change) {}
+
+  /**
+   * Indicateurs qui ont nettement changé au moment de l'ouverture, du plus grand changement au plus
+   * petit. Simple rapprochement dans le temps : le diagnostic ne s'en sert pas pour classer ses
+   * causes, et l'écran dit que ce n'est pas une preuve.
+   */
+  private List<MetriqueLiee> movedMetrics(AlertFacts alert, String metricKey) {
+    var moved = new ArrayList<Moved>();
+    for (var row : repository.movedMetrics(alert.equipmentId(), alert.openedAt(), metricKey)) {
+      Double change = MetricMovement.changePercent(row.before(), row.during());
+      if (MetricMovement.isNotable(change, row.pointsBefore(), row.pointsDuring())) {
+        moved.add(new Moved(row, change));
+      }
+    }
+    moved.sort(Comparator.comparingDouble((Moved m) -> Math.abs(m.change())).reversed());
+    return moved.stream()
+        .limit(DISPLAY_LIMIT)
+        .map(
+            m ->
+                new MetriqueLiee(
+                    m.row().key(),
+                    m.row().unit(),
+                    MetricMovement.round(m.row().before()),
+                    MetricMovement.round(m.row().during()),
+                    m.change()))
+        .toList();
   }
 
   // ------------------------------------------------------------------ impact
