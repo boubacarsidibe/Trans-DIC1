@@ -109,6 +109,8 @@ tags:
     \ 0021). Lecture pour tous les rôles, limitée au périmètre d'accès par site."
 - name: Vue d'ensemble
   description: Chiffres clés du tableau de bord.
+- name: Trafic
+  description: Flux réseau rapportés par les équipements (NetFlow).
 - name: Authentification
   description: "Connexion, renouvellement et mot de passe."
 - name: Journal d'audit
@@ -3743,6 +3745,49 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/trafic:
+    get:
+      tags:
+      - Trafic
+      summary: Vue d'ensemble du trafic
+      description: "Totaux de la période, équipements exportateurs, plus grosses conversations,\
+        \ adresses les plus bavardes, services et courbe par minute. Les totaux restent\
+        \ justes même quand le détail a été plafonné ; la réponse le signale."
+      operationId: overview_1
+      parameters:
+      - name: heures
+        in: query
+        description: Fenêtre en heures (1 à 168) ; par défaut 3
+        required: false
+        schema:
+          type: integer
+          format: int32
+      - name: equipement
+        in: query
+        description: Limiter à un équipement exportateur
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TrafficOverview"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/topologie:
     get:
       tags:
@@ -3809,7 +3854,7 @@ paths:
       description: "Chiffres de la période, adresses les plus actives, équipements\
         \ visés et dernières lignes retenues. Une requête web ordinaire n'y figure\
         \ jamais."
-      operationId: overview_1
+      operationId: overview_2
       parameters:
       - name: heures
         in: query
@@ -7446,6 +7491,132 @@ components:
             $ref: "#/components/schemas/UserResponse"
         page:
           $ref: "#/components/schemas/PageMetadata"
+    Conversation:
+      type: object
+      properties:
+        sourceAddress:
+          type: string
+        destinationAddress:
+          type: string
+        protocol:
+          type: integer
+          format: int32
+        destinationPort:
+          type: integer
+          format: int32
+        service:
+          type: string
+        bytes:
+          type: integer
+          format: int64
+        packets:
+          type: integer
+          format: int64
+    Point:
+      type: object
+      properties:
+        minute:
+          type: string
+          format: date-time
+        bytes:
+          type: integer
+          format: int64
+        packets:
+          type: integer
+          format: int64
+    Service:
+      type: object
+      properties:
+        protocol:
+          type: integer
+          format: int32
+        port:
+          type: integer
+          format: int32
+        label:
+          type: string
+        bytes:
+          type: integer
+          format: int64
+        packets:
+          type: integer
+          format: int64
+    Talker:
+      type: object
+      properties:
+        address:
+          type: string
+        bytes:
+          type: integer
+          format: int64
+        packets:
+          type: integer
+          format: int64
+        peers:
+          type: integer
+          format: int32
+    TalkingEquipment:
+      type: object
+      properties:
+        equipmentId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        bytes:
+          type: integer
+          format: int64
+        packets:
+          type: integer
+          format: int64
+    Totals:
+      type: object
+      properties:
+        bytes:
+          type: integer
+          format: int64
+        packets:
+          type: integer
+          format: int64
+        flows:
+          type: integer
+          format: int64
+        equipments:
+          type: integer
+          format: int32
+        detailTruncated:
+          type: boolean
+    TrafficOverview:
+      type: object
+      properties:
+        generatedAt:
+          type: string
+          format: date-time
+        hours:
+          type: integer
+          format: int32
+        totals:
+          $ref: "#/components/schemas/Totals"
+        equipments:
+          type: array
+          items:
+            $ref: "#/components/schemas/TalkingEquipment"
+        conversations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Conversation"
+        talkers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Talker"
+        services:
+          type: array
+          items:
+            $ref: "#/components/schemas/Service"
+        timeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/Point"
     Graph:
       type: object
       properties:
@@ -7899,21 +8070,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Point"
-    Point:
-      type: object
-      properties:
-        at:
-          type: string
-          format: date-time
-        avg:
-          type: number
-        min:
-          type: number
-        max:
-          type: number
-        count:
-          type: integer
-          format: int32
     MetricKeyResponse:
       type: object
       properties:

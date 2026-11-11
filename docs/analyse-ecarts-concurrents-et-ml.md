@@ -18,7 +18,7 @@ Collecte par agent 2.0 (Linux, Windows), SNMP v2c/v3 avec modèles d'équipement
 | --- | --- | --- | --- |
 | Découverte automatique des interfaces par SNMP (IF-MIB) avec débit, erreurs, rejets, taux d'occupation par port | Zabbix (LLD), LibreNMS, PRTG, Checkmk | Partiel : OID d'erreurs dans un modèle côté interface, pas de découverte par port | M |
 | Gigue et perte de paquets (ping à plusieurs paquets), MOS | PRTG (capteurs QoS), Zabbix (`icmppingloss`), LibreNMS (Smokeping) | Absent : la sonde ICMP ne donne que joignable et latence | S |
-| Flux réseau NetFlow, sFlow, IPFIX : qui parle à qui, plus gros consommateurs | PRTG, LibreNMS (NFSen), Checkmk (ntopng, payant), SolarWinds NTA | Absent | L |
+| Flux réseau NetFlow, sFlow, IPFIX : qui parle à qui, plus gros consommateurs | PRTG, LibreNMS (NFSen), Checkmk (ntopng, payant), SolarWinds NTA | ✅ Fait pour NetFlow v5 et v9 (ADR 0032) ; IPFIX et sFlow non lus | L |
 | Voisins LLDP/CDP pour dessiner la topologie seule | LibreNMS, SolarWinds, PRTG | Absent : liens saisis à la main | M |
 | État des voisins BGP et OSPF, changements STP | LibreNMS, Zabbix (modèles) | Absent | M |
 | Tables ARP et MAC : sur quel port est telle machine, conflits d'adresses | LibreNMS, OpManager (IPAM) | Absent | M |
@@ -118,7 +118,7 @@ M9 et M12 ont besoin de plusieurs semaines d'alertes réelles : sans données de
 1. **Lot 1, mesures réseau et socle ML** : découverte des interfaces par SNMP avec débit, erreurs, rejets et occupation ; gigue et perte dans la sonde ICMP ; M1, M3, M6, M8.
 2. **Lot 2, corrélation** : M10, M11, M9 (suggestions), M4, détection du clignotement.
 3. **Lot 3, manques simples et visibles** : double authentification, jetons d'API, absence de donnée, conditions composées, rapports planifiés, sonde DNS, Telegram.
-4. **Lot 4, gros morceaux** : M2, M5, M13, M14, voisins LLDP, NetFlow puis M7, LDAP, proxys de collecte.
+4. **Lot 4, gros morceaux** : M2, M5, M13, M14, voisins LLDP, NetFlow puis M7, LDAP, proxys de collecte. *NetFlow est fait (ADR 0032) : S6 et M7 peuvent suivre.*
 5. **Lot 5, sécurité** (section 5) : S1 à S3 et S7 d'abord, puis S4 et S5 ; S6 après NetFlow.
 
 Hors périmètre proposé : facturation du trafic, sauvegarde des configurations, haute disponibilité, remédiation par script (risque de sécurité à décider avec le CRI).
@@ -159,7 +159,7 @@ Récepteur syslog et traps SNMP, règles d'événements vers alertes, agent sur 
 
 **Fait (ADR 0029)** : S4 est livré — régression logistique sur les suites de trois caractères de l'URL, apprise sur un corpus versionné (listes MIT pour les attaques, contrat d'API et requêtes d'école pour le légitime), faute de licence connue pour CSIC 2010. Mesuré : 97,0 % des attaques connues repérées et 0,0 % de fausses alertes sur les exemples mis de côté, 72,4 % des familles jamais apprises contre 22,9 % pour les signatures. Employé prudemment : avertissement seulement, après cinq requêtes d'une même adresse.
 
-**Fait (ADR 0028)** : S1, S2, S3 et S7 sont livrés — l'agent suit les journaux d'authentification et d'accès, le serveur reconnaît les attaques web par signatures à score cumulé, compte les forces brutes et les balayages, et l'écran « Sécurité » montre les attaques, les adresses actives et les équipements visés. Le repère MITRE ATT&CK de S7 n'est pas fait. **Reste** : S6 seulement, qui attend le NetFlow du lot 4.
+**Fait (ADR 0028)** : S1, S2, S3 et S7 sont livrés — l'agent suit les journaux d'authentification et d'accès, le serveur reconnaît les attaques web par signatures à score cumulé, compte les forces brutes et les balayages, et l'écran « Sécurité » montre les attaques, les adresses actives et les équipements visés. Le repère MITRE ATT&CK de S7 n'est pas fait. **Reste** : S6 seulement, dont la dépendance — le NetFlow du lot 4 — est maintenant levée (ADR 0032).
 
 **Modèle déjà entraîné et gratuit** : la recherche n'en a pas trouvé un avec une licence claire. Les articles publient des résultats sur CSIC 2010 (réseaux à caractères, CNN-LSTM annoncé à 99,77 %), pas des modèles téléchargeables ; le seul résultat sur Hugging Face est entraîné sur 440 exemples synthétiques et ne convient pas. Télécharger des poids depuis un dépôt public est par ailleurs un risque en soi (du code peut s'exécuter au chargement). La voie proposée est donc un petit modèle entraîné par nous, en Java, mesuré sur un jeu public.
 

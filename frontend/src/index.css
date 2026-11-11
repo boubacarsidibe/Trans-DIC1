@@ -4639,6 +4639,12 @@ thead {
 }
 
 /* Requête suspecte dans le journal de sécurité : lisible sans déborder du tableau. */
+/* Précision discrète sous la valeur d'une tuile : le débit moyen, par exemple. */
+.tile-hint {
+  font-style: normal;
+  opacity: 0.75;
+}
+
 .security-request {
   display: block;
   margin-top: 0.15rem;

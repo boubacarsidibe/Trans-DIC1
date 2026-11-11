@@ -19,6 +19,7 @@ import TwoFactorPage from "./pages/TwoFactorPage.jsx";
 import ReportSchedulesPage from "./pages/ReportSchedulesPage.jsx";
 import ReportsPage from "./pages/ReportsPage.jsx";
 import SecurityPage from "./pages/SecurityPage.jsx";
+import TrafficPage from "./pages/TrafficPage.jsx";
 import RulesPage from "./pages/RulesPage.jsx";
 import MetricsPage from "./pages/MetricsPage.jsx";
 import SitesPage from "./pages/SitesPage.jsx";
@@ -60,6 +61,7 @@ function App() {
           <Route path="/regles" element={<RulesPage />} />
           <Route path="/evenements" element={<EventsPage />} />
           <Route path="/securite" element={<SecurityPage />} />
+          <Route path="/trafic" element={<TrafficPage />} />
           <Route path="/regles-evenements" element={<EventRulesPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/jetons" element={<TokensPage />} />

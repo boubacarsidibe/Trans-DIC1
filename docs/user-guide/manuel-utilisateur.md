@@ -163,6 +163,26 @@ bloque rien et voit l'attaque après la requête, jamais pendant. Une attaque d'
 signatures et du modèle n'apparaîtra pas. L'écran reste vide tant que l'exploitation n'a pas fait lire les
 journaux aux agents (voir [agent.md](../devops/agent.md)).
 
+### Trafic
+
+**Supervision > Trafic** montre ce que les équipements rapportent de leur trafic sur la période
+choisie (dernière heure à 7 jours) : le **volume** et le débit moyen, une **courbe minute par
+minute**, les **plus grosses conversations** (qui parle à qui, pour quel service), les **adresses
+les plus bavardes**, les **services** et les **équipements exportateurs**.
+
+C'est la réponse à la question qui suit toujours une alerte de saturation : non pas « le lien est
+à 95 % », mais « à cause de qui ».
+
+L'écran est vide tant que l'exploitation n'a pas activé la réception et réglé les équipements pour
+qu'ils exportent (voir [flux-reseau.md](../devops/flux-reseau.md)). Comptez une à deux minutes
+avant de voir les premiers flux : ils sont additionnés par minute.
+
+**Ce qu'il faut savoir pour lire ces chiffres.** Les volumes sont ceux que l'équipement veut bien
+rapporter : un écart avec les compteurs d'occupation d'un lien est normal, et un équipement qui
+n'envoie qu'un flux sur mille donnera des volumes d'autant plus petits. Quand il y a trop de
+conversations, le détail est plafonné et l'écran le dit : les totaux restent justes, les
+classements ne montrent que les plus grosses. Les adresses sont effacées au bout de sept jours.
+
 ### Topologie
 
 **Parc > Topologie** dessine les liens entre équipements, niveau par niveau depuis le cœur du réseau. En choisissant un équipement, on voit tout ce qui en dépend : c'est l'**impact d'une panne**.

@@ -299,6 +299,42 @@ class ArchitectureTests {
                   + " seul le point d'entrée de l'agent, qui vit dans collection, dépend d'elle");
 
   @ArchTest
+  static final ArchRule noModuleDependsOnFlow =
+      noClasses()
+          .that()
+          .resideOutsideOfPackage(ROOT + ".flow..")
+          .and()
+          .resideInAPackage(ROOT + "..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage(ROOT + ".flow..")
+          .because(
+              "flow (ADR 0032) reçoit les flux et les rend à l'écran : personne ne dépend de lui,"
+                  + " ce qui évite tout cycle");
+
+  @ArchTest
+  static final ArchRule flowOnlyReadsInventoryDomainAndCommon =
+      noClasses()
+          .that()
+          .resideInAPackage(ROOT + ".flow..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              ROOT + ".inventory.controller..",
+              ROOT + ".inventory.service..",
+              ROOT + ".monitoring..",
+              ROOT + ".audit..",
+              ROOT + ".alerting..",
+              ROOT + ".reporting..",
+              ROOT + ".events..",
+              ROOT + ".threat..",
+              ROOT + ".collection..",
+              ROOT + ".access..")
+          .because(
+              "flow ne lit que l'inventaire (pour savoir qui a le droit d'exporter) et le"
+                  + " commun : il n'ouvre pas d'alerte et ne dépend d'aucun autre module");
+
+  @ArchTest
   static final ArchRule noModuleDependsOnDiagnostic =
       noClasses()
           .that()

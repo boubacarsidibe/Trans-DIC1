@@ -1369,6 +1369,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/trafic": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Vue d'ensemble du trafic
+         * @description Totaux de la période, équipements exportateurs, plus grosses conversations, adresses les plus bavardes, services et courbe par minute. Les totaux restent justes même quand le détail a été plafonné ; la réponse le signale.
+         */
+        get: operations["overview_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/topologie": {
         parameters: {
             query?: never;
@@ -1417,7 +1437,7 @@ export interface paths {
          * Vue d'ensemble de la sécurité
          * @description Chiffres de la période, adresses les plus actives, équipements visés et dernières lignes retenues. Une requête web ordinaire n'y figure jamais.
          */
-        get: operations["overview_1"];
+        get: operations["overview_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3082,6 +3102,79 @@ export interface components {
             content?: components["schemas"]["UserResponse"][];
             page?: components["schemas"]["PageMetadata"];
         };
+        Conversation: {
+            sourceAddress?: string;
+            destinationAddress?: string;
+            /** Format: int32 */
+            protocol?: number;
+            /** Format: int32 */
+            destinationPort?: number;
+            service?: string;
+            /** Format: int64 */
+            bytes?: number;
+            /** Format: int64 */
+            packets?: number;
+        };
+        Point: {
+            /** Format: date-time */
+            minute?: string;
+            /** Format: int64 */
+            bytes?: number;
+            /** Format: int64 */
+            packets?: number;
+        };
+        Service: {
+            /** Format: int32 */
+            protocol?: number;
+            /** Format: int32 */
+            port?: number;
+            label?: string;
+            /** Format: int64 */
+            bytes?: number;
+            /** Format: int64 */
+            packets?: number;
+        };
+        Talker: {
+            address?: string;
+            /** Format: int64 */
+            bytes?: number;
+            /** Format: int64 */
+            packets?: number;
+            /** Format: int32 */
+            peers?: number;
+        };
+        TalkingEquipment: {
+            /** Format: uuid */
+            equipmentId?: string;
+            name?: string;
+            /** Format: int64 */
+            bytes?: number;
+            /** Format: int64 */
+            packets?: number;
+        };
+        Totals: {
+            /** Format: int64 */
+            bytes?: number;
+            /** Format: int64 */
+            packets?: number;
+            /** Format: int64 */
+            flows?: number;
+            /** Format: int32 */
+            equipments?: number;
+            detailTruncated?: boolean;
+        };
+        TrafficOverview: {
+            /** Format: date-time */
+            generatedAt?: string;
+            /** Format: int32 */
+            hours?: number;
+            totals?: components["schemas"]["Totals"];
+            equipments?: components["schemas"]["TalkingEquipment"][];
+            conversations?: components["schemas"]["Conversation"][];
+            talkers?: components["schemas"]["Talker"][];
+            services?: components["schemas"]["Service"][];
+            timeline?: components["schemas"]["Point"][];
+        };
         Graph: {
             nodes?: components["schemas"]["Node"][];
             links?: components["schemas"]["Link"][];
@@ -3342,15 +3435,6 @@ export interface components {
             to?: string;
             step?: string;
             points?: components["schemas"]["Point"][];
-        };
-        Point: {
-            /** Format: date-time */
-            at?: string;
-            avg?: number;
-            min?: number;
-            max?: number;
-            /** Format: int32 */
-            count?: number;
         };
         MetricKeyResponse: {
             key?: string;
@@ -8419,6 +8503,49 @@ export interface operations {
             };
         };
     };
+    overview_1: {
+        parameters: {
+            query?: {
+                /** @description Fenêtre en heures (1 à 168) ; par défaut 3 */
+                heures?: number;
+                /** @description Limiter à un équipement exportateur */
+                equipement?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TrafficOverview"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     graph: {
         parameters: {
             query?: never;
@@ -8497,7 +8624,7 @@ export interface operations {
             };
         };
     };
-    overview_1: {
+    overview_2: {
         parameters: {
             query?: {
                 /** @description Fenêtre en heures (1 à 168) ; par défaut 24 */
