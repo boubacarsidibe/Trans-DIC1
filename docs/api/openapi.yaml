@@ -5310,6 +5310,7 @@ components:
           - WEBHOOK
           - TEAMS
           - SLACK
+          - TELEGRAM
         minimumSeverity:
           type: string
           enum:
@@ -5336,6 +5337,7 @@ components:
           - WEBHOOK
           - TEAMS
           - SLACK
+          - TELEGRAM
         minimumSeverity:
           type: string
           enum:
@@ -6318,6 +6320,7 @@ components:
           - WEBHOOK
           - TEAMS
           - SLACK
+          - TELEGRAM
         destination:
           type: string
           maxLength: 254
@@ -7234,6 +7237,7 @@ components:
           - WEBHOOK
           - TEAMS
           - SLACK
+          - TELEGRAM
         destination:
           type: string
         subject:

@@ -66,11 +66,23 @@ function TestForm() {
         <input
           value={destination}
           onChange={(event) => setDestination(event.target.value)}
-          placeholder={channel === "EMAIL" ? "nom@ept.sn" : "env:TEAMS_NOC_URL"}
+          placeholder={
+            channel === "EMAIL"
+              ? "nom@ept.sn"
+              : channel === "TELEGRAM"
+                ? "env:TELEGRAM_NOC_URL"
+                : "env:TEAMS_NOC_URL"
+          }
           autoComplete="off"
           className="field mt-2"
         />
       </label>
+      {channel === "TELEGRAM" && (
+        <p className="text-sm text-slate-400 md:col-span-3">
+          Le secret contient l’URL complète de l’API du bot, jeton et destinataire compris :{" "}
+          <code>https://api.telegram.org/bot&lt;jeton&gt;/sendMessage?chat_id=&lt;identifiant&gt;</code>.
+        </p>
+      )}
       <div className="flex flex-wrap items-center gap-3 md:col-span-3">
         <button
           disabled={sending}

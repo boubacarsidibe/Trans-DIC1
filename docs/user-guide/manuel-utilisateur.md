@@ -160,7 +160,7 @@ Une ligne dont le code d'inventaire ou l'adresse existe déjà est refusée comm
 
 ### Mes notifications
 
-**Réglages > Mes notifications** : choisir de recevoir ou non un message à l'ouverture et à la résolution des alertes, et à partir de quelle sévérité. Le canal par défaut est l'e-mail ; d'autres canaux (Teams, Slack, webhook) sont configurés par un administrateur.
+**Réglages > Mes notifications** : choisir de recevoir ou non un message à l'ouverture et à la résolution des alertes, et à partir de quelle sévérité. Le canal par défaut est l'e-mail ; d'autres canaux (Teams, Slack, Telegram, webhook) sont configurés par un administrateur. Pour Telegram, le secret contient l'URL complète de l'API du bot, jeton et destinataire compris (`https://api.telegram.org/bot<jeton>/sendMessage?chat_id=<identifiant>`) : le jeton n'entre jamais en base ni à l'écran.
 
 ### Astreinte
 

@@ -109,6 +109,7 @@ class NotificationChannelTests {
     registry.add("HOOK_URL", () -> base + "/hook");
     registry.add("TEAMS_URL", () -> base + "/teams");
     registry.add("SLACK_URL", () -> base + "/slack");
+    registry.add("TELEGRAM_URL", () -> base + "/telegram");
     registry.add("PANNE_URL", () -> base + "/panne");
     registry.add("NOTIFICATION_WEBHOOK_SECRET", () -> SIGNING_SECRET);
     registry.add("notification.webhook.allow-insecure", () -> "true");
@@ -244,6 +245,24 @@ class NotificationChannelTests {
     assertThat(RECEIVED).hasSize(1);
     assertThat(RECEIVED.get(0).path()).isEqualTo("/slack");
     assertThat(RECEIVED.get(0).body()).startsWith("{\"text\":\"*[CRITIQUE] Alerte résolue");
+  }
+
+  @Test
+  void telegramEnvoieUnTexteSimpleSansMiseEnForme() {
+    prefer(NotificationChannel.TELEGRAM, "env:TELEGRAM_URL");
+
+    queue.queueFor(UUID.randomUUID(), alert.getId(), AlertEventType.OPENED);
+    dispatch.dispatchPending();
+
+    assertThat(RECEIVED).hasSize(1);
+    assertThat(RECEIVED.get(0).path()).isEqualTo("/telegram");
+    // Texte brut : un nom d'équipement avec un tiret bas ou une étoile ne doit pas faire
+    // échouer l'envoi à cause d'une syntaxe Markdown.
+    assertThat(RECEIVED.get(0).body())
+        .startsWith("{\"text\":\"[CRITIQUE] ")
+        .contains("Routeur des canaux")
+        .contains("disable_web_page_preview")
+        .doesNotContain("*");
   }
 
   @Test

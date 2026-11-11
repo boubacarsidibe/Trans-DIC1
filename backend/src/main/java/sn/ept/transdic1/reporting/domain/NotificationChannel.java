@@ -4,5 +4,6 @@ public enum NotificationChannel {
   EMAIL,
   WEBHOOK,
   TEAMS,
-  SLACK
+  SLACK,
+  TELEGRAM
 }

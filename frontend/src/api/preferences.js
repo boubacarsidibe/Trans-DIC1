@@ -10,6 +10,7 @@ export const CHANNEL_CHOICES = [
   { value: "EMAIL", label: "E-mail" },
   { value: "TEAMS", label: "Microsoft Teams" },
   { value: "SLACK", label: "Slack" },
+  { value: "TELEGRAM", label: "Telegram" },
   { value: "WEBHOOK", label: "Webhook signé" },
 ];
 
