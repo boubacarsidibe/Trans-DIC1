@@ -132,6 +132,23 @@ comme attaque, le chiffre à côté est sa confiance en pour cent, et c'est un s
 le journal du serveur avant de conclure. Une seule ne déclenche rien : il en faut cinq de la même
 adresse en cinq minutes pour ouvrir un **avertissement** — jamais une alerte critique.
 
+**Changements d'habitude.** Deux alertes ne viennent ni d'une règle ni du modèle, mais de ce qui
+est habituel :
+
+- **Connexion depuis une adresse jamais vue** : un compte qui se connecte d'ordinaire depuis les
+  mêmes machines réussit soudain depuis ailleurs. C'est le seul signe que laisse un mot de passe
+  volé, puisqu'il n'y a aucun échec. Un enseignant en déplacement le déclenche aussi : appelez la
+  personne avant d'en conclure quoi que ce soit. Rien ne se déclenche tant que le compte n'a pas
+  cinq connexions connues.
+- **Activité inhabituelle** : les échecs de connexion ou les requêtes en erreur d'une heure,
+  comparés au même créneau les jours précédents. C'est ce qui attrape l'attaque patiente — trois
+  mots de passe par minute toute la nuit ne franchissent jamais le seuil des dix en cinq minutes,
+  et font pourtant mille essais. Il faut au moins trois jours d'historique comparable ; les
+  premiers jours après l'installation, rien ne se déclenche.
+
+Les deux sont des **avertissements**, jamais des alertes critiques, et se retrouvent dans
+**Supervision > Alertes** comme les autres.
+
 Les attaques et les balayages ouvrent aussi des alertes de type **Sécurité**, traitées comme les
 autres : une seule par adresse, équipement et nature, dont le message se met à jour tant que cela
 continue.

@@ -148,14 +148,16 @@ Récepteur syslog et traps SNMP, règles d'événements vers alertes, agent sur 
 | S2 ✅ | Scénarios de force brute et de balayage | Seau percé par adresse source : échecs SSH, échecs de connexion web, rafale de 404, balayage de ports vu par syslog | S1 |
 | S3 ✅ | Attaques dans les requêtes web, par règles | Signatures reprises des familles de l'OWASP CRS (injection SQL, XSS, traversée de répertoire, exécution de commande), score cumulé par requête | S1 |
 | S4 ✅ | Attaques dans les requêtes web, par modèle appris | Classifieur sur n-grammes de caractères de l'URL et des paramètres, entraîné par nous et jugé sur le jeu public CSIC 2010 ; complète S3 pour les formes inconnues | S1, licence du jeu à vérifier |
-| S5 | Comportement inhabituel d'une adresse ou d'un compte | Normale par heure (M1) sur le nombre de requêtes, d'erreurs et de connexions ; première connexion d'un compte depuis une adresse jamais vue | S1 |
+| S5 ✅ | Comportement inhabituel d'une adresse ou d'un compte | Normale par heure (M1) sur le nombre de requêtes, d'erreurs et de connexions ; première connexion d'un compte depuis une adresse jamais vue | S1 |
 | S6 | Balayage et inondation sur le réseau | Entropie des adresses et des ports (M7) | NetFlow, lot 4 |
 | S7 ✅ | Tableau de bord sécurité | Attaques en cours, adresses sources les plus actives, serveurs visés, repère MITRE ATT&CK par scénario | S2, S3 |
 | S8 | Passerelle vers un vrai SIEM | Envoi des alertes en syslog ou webhook vers Wazuh ; réception de ses alertes par le récepteur existant | — |
 
+**Fait (ADR 0030)** : S5 est livré — connexion d'un compte depuis une adresse jamais vue, et volume horaire comparé à l'habitude du même créneau (statistique robuste de l'ADR 0015, plancher d'écart-type adapté à un comptage). Avertissements seulement. La normale par adresse source a été écartée : une adresse d'attaquant est nouvelle par définition.
+
 **Fait (ADR 0029)** : S4 est livré — régression logistique sur les suites de trois caractères de l'URL, apprise sur un corpus versionné (listes MIT pour les attaques, contrat d'API et requêtes d'école pour le légitime), faute de licence connue pour CSIC 2010. Mesuré : 97,0 % des attaques connues repérées et 0,0 % de fausses alertes sur les exemples mis de côté, 72,4 % des familles jamais apprises contre 22,9 % pour les signatures. Employé prudemment : avertissement seulement, après cinq requêtes d'une même adresse.
 
-**Fait (ADR 0028)** : S1, S2, S3 et S7 sont livrés — l'agent suit les journaux d'authentification et d'accès, le serveur reconnaît les attaques web par signatures à score cumulé, compte les forces brutes et les balayages, et l'écran « Sécurité » montre les attaques, les adresses actives et les équipements visés. Le repère MITRE ATT&CK de S7 n'est pas fait. **Reste** : S5, S6 (après NetFlow) et S8.
+**Fait (ADR 0028)** : S1, S2, S3 et S7 sont livrés — l'agent suit les journaux d'authentification et d'accès, le serveur reconnaît les attaques web par signatures à score cumulé, compte les forces brutes et les balayages, et l'écran « Sécurité » montre les attaques, les adresses actives et les équipements visés. Le repère MITRE ATT&CK de S7 n'est pas fait. **Reste** : S6 (après NetFlow) et S8.
 
 **Modèle déjà entraîné et gratuit** : la recherche n'en a pas trouvé un avec une licence claire. Les articles publient des résultats sur CSIC 2010 (réseaux à caractères, CNN-LSTM annoncé à 99,77 %), pas des modèles téléchargeables ; le seul résultat sur Hugging Face est entraîné sur 440 exemples synthétiques et ne convient pas. Télécharger des poids depuis un dépôt public est par ailleurs un risque en soi (du code peut s'exécuter au chargement). La voie proposée est donc un petit modèle entraîné par nous, en Java, mesuré sur un jeu public.
 

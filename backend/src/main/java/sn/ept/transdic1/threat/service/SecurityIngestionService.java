@@ -6,28 +6,16 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import sn.ept.transdic1.alerting.domain.Alert;
-import sn.ept.transdic1.alerting.domain.AlertActivityEvent;
-import sn.ept.transdic1.alerting.domain.AlertChangedEvent;
-import sn.ept.transdic1.alerting.domain.AlertEvent;
-import sn.ept.transdic1.alerting.domain.AlertEventType;
-import sn.ept.transdic1.alerting.domain.AlertState;
-import sn.ept.transdic1.alerting.domain.AlertType;
 import sn.ept.transdic1.alerting.domain.Severity;
-import sn.ept.transdic1.alerting.repository.AlertEventRepository;
-import sn.ept.transdic1.alerting.repository.AlertRepository;
 import sn.ept.transdic1.inventory.domain.Equipment;
 import sn.ept.transdic1.inventory.repository.EquipmentRepository;
 import sn.ept.transdic1.threat.domain.SecurityEvent;
@@ -61,24 +49,15 @@ import sn.ept.transdic1.threat.repository.SecurityEventRepository;
 @Service
 public class SecurityIngestionService {
   private static final Logger LOG = LoggerFactory.getLogger(SecurityIngestionService.class);
-  private static final Set<AlertState> ACTIVE = Set.of(AlertState.OPEN, AlertState.IN_PROGRESS);
-
-  /** Une adresse n'ouvre qu'une alerte à la fois par équipement et par nature. */
-  private static final String AUTH_KEY = "security:auth:";
-
-  private static final String SCAN_KEY = "security:scan:";
-  private static final String ATTACK_KEY = "security:attack:";
-  private static final String SUSPECT_KEY = "security:suspect:";
 
   /** Ce que l'écran et l'alerte affichent pour une requête retenue par le seul modèle. */
   static final String SUSPECT_LABEL = "Forme inhabituelle (modèle appris)";
 
   private final EquipmentRepository equipments;
   private final SecurityEventRepository events;
-  private final AlertRepository alerts;
-  private final AlertEventRepository alertEvents;
+  private final SecurityAlerts alerts;
+  private final SecurityBehaviourService behaviour;
   private final JdbcTemplate jdbc;
-  private final ApplicationEventPublisher publisher;
   private final Clock clock;
   private final UrlModel model;
   private final Duration window;
@@ -90,10 +69,9 @@ public class SecurityIngestionService {
   public SecurityIngestionService(
       EquipmentRepository equipments,
       SecurityEventRepository events,
-      AlertRepository alerts,
-      AlertEventRepository alertEvents,
+      SecurityAlerts alerts,
+      SecurityBehaviourService behaviour,
       JdbcTemplate jdbc,
-      ApplicationEventPublisher publisher,
       Clock clock,
       UrlModel model,
       @Value("${threat.window-minutes:5}") long windowMinutes,
@@ -104,9 +82,8 @@ public class SecurityIngestionService {
     this.equipments = equipments;
     this.events = events;
     this.alerts = alerts;
-    this.alertEvents = alertEvents;
+    this.behaviour = behaviour;
     this.jdbc = jdbc;
-    this.publisher = publisher;
     this.clock = clock;
     this.model = model;
     this.window = Duration.ofMinutes(Math.max(1, windowMinutes));
@@ -133,6 +110,9 @@ public class SecurityIngestionService {
                         HttpStatus.NOT_FOUND, "Équipement inconnu ou non supervisé"));
     Instant now = clock.instant();
     Instant limit = now.plus(Duration.ofMinutes(5));
+    // Les connexions sont jugées ici, avant le moindre enregistrement : la question « ce compte
+    // s'est-il déjà connecté depuis cette adresse ? » n'a de sens que sur l'état d'avant le lot.
+    int opened = behaviour.checkLogins(equipment, batch, now);
     int stored = 0;
     int attacks = 0;
     for (LogBatch.LogEntry entry : batch.entries()) {
@@ -148,7 +128,7 @@ public class SecurityIngestionService {
         }
       }
     }
-    int opened = raiseAlerts(equipment, batch, now);
+    opened += raiseAlerts(equipment, batch, now);
     if (attacks > 0) {
       LOG.info("{} requête(s) d'attaque reçue(s) de {}", attacks, equipment.getName());
     }
@@ -257,7 +237,8 @@ public class SecurityIngestionService {
             + attacks
             + (attacks > 1 ? " requêtes reconnues" : " requête reconnue")
             + (families.isBlank() ? "" : " (" + families + ")");
-    return open(equipment, ATTACK_KEY, address, Severity.CRITICAL, message, now);
+    return alerts.open(
+        equipment, SecurityAlerts.Subject.ATTACK, address, Severity.CRITICAL, message, now);
   }
 
   /**
@@ -288,7 +269,8 @@ public class SecurityIngestionService {
             + window.toMinutes()
             + " min, reconnues par le modèle appris et par aucune signature. À regarder dans le"
             + " journal du serveur avant de conclure.";
-    return open(equipment, SUSPECT_KEY, address, Severity.WARNING, message, now);
+    return alerts.open(
+        equipment, SecurityAlerts.Subject.SUSPECT, address, Severity.WARNING, message, now);
   }
 
   private int authAlert(Equipment equipment, String address, Instant now) {
@@ -308,7 +290,8 @@ public class SecurityIngestionService {
     String message =
         BruteForce.explainAuth(
             address, failures, counts[1], (int) window.toMinutes(), equipment.getName());
-    return open(equipment, AUTH_KEY, address, Severity.CRITICAL, message, now);
+    return alerts.open(
+        equipment, SecurityAlerts.Subject.AUTH, address, Severity.CRITICAL, message, now);
   }
 
   private int scanAlert(Equipment equipment, String address, Instant now) {
@@ -325,42 +308,8 @@ public class SecurityIngestionService {
     }
     String message =
         BruteForce.explainScan(address, errors, (int) window.toMinutes(), equipment.getName());
-    return open(equipment, SCAN_KEY, address, Severity.WARNING, message, now);
-  }
-
-  /** Ouvre l'alerte si elle n'est pas déjà ouverte pour cette adresse et cette nature. */
-  private int open(
-      Equipment equipment,
-      String prefix,
-      String address,
-      Severity severity,
-      String message,
-      Instant now) {
-    String occurrence = prefix + equipment.getId() + ":" + address + ":";
-    Optional<Alert> active =
-        alerts.findFirstByOccurrenceKeyStartingWithAndStateIn(occurrence, ACTIVE);
-    if (active.isPresent()) {
-      // L'attaque continue : on met le message à jour plutôt que d'empiler les alertes.
-      active.get().setMessage(message);
-      alerts.save(active.get());
-      return 0;
-    }
-    var alert =
-        new Alert(
-            equipment,
-            occurrence + now.toEpochMilli(),
-            AlertType.SECURITY,
-            AlertState.OPEN,
-            severity,
-            message,
-            now);
-    var event = new AlertEvent(alert, AlertEventType.OPENED, now);
-    event.setNewState(AlertState.OPEN);
-    alerts.save(alert);
-    alertEvents.save(event);
-    publisher.publishEvent(new AlertChangedEvent(alert.getId(), AlertEventType.OPENED));
-    publisher.publishEvent(new AlertActivityEvent(alert.getId(), AlertEventType.OPENED));
-    return 1;
+    return alerts.open(
+        equipment, SecurityAlerts.Subject.SCAN, address, Severity.WARNING, message, now);
   }
 
   private static String truncate(String value) {

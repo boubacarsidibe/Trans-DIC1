@@ -37,6 +37,7 @@ enfle sur une machine de production.
 | --- | --- | --- |
 | Attaque dans une requête web | signatures à score cumulé, principe de l'OWASP CRS | alerte critique, dès une requête |
 | Force brute d'authentification | 10 échecs d'une même adresse en 5 minutes | alerte critique |
+| Attaque patiente, compte volé | habitude du compte et du créneau ([ADR 0030](0030-comportement-inhabituel.md)) | avertissement |
 | Balayage web | 40 requêtes en erreur d'une même adresse en 5 minutes | alerte d'avertissement |
 
 Les signatures couvrent six familles : injection SQL, script injecté (XSS), traversée de
