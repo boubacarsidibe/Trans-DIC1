@@ -262,17 +262,23 @@ class ProbeServiceTests {
 
   @Test
   void ignoresNonProbeTypes() {
-    var dnsService = service(ServiceType.DNS, now.minusSeconds(1));
+    // DNS est désormais une sonde à part entière (ADR 0027) : seul OTHER reste ignoré.
     var otherService = service(ServiceType.OTHER, now.minusSeconds(1));
 
     assertThat(probeService.runDue()).isEqualTo(0);
 
-    assertThat(dns.calls).doesNotContain(ip(dnsService));
     assertThat(other.calls).doesNotContain(ip(otherService));
-    assertThat(stored(dnsService, "probe.up")).isEmpty();
     assertThat(stored(otherService, "probe.up")).isEmpty();
-    assertThat(reload(dnsService).getLastCheckedAt()).isNull();
     assertThat(reload(otherService).getLastCheckedAt()).isNull();
+  }
+
+  @Test
+  void uneSondeDnsEstExecutee() {
+    var dnsService = service(ServiceType.DNS, now.minusSeconds(1));
+
+    assertThat(probeService.runDue()).isEqualTo(1);
+
+    assertThat(reload(dnsService).getLastCheckedAt()).isNotNull();
   }
 
   @Test

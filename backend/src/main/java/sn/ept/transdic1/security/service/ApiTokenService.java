@@ -16,7 +16,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import sn.ept.transdic1.audit.service.AuditService;
 import sn.ept.transdic1.security.domain.ApiToken;
 import sn.ept.transdic1.security.domain.AppUser;
 import sn.ept.transdic1.security.domain.Role;
@@ -52,11 +51,11 @@ public class ApiTokenService {
 
   private final ApiTokenRepository tokens;
   private final UserRepository users;
-  private final AuditService audit;
+  private final SecurityAuditLog audit;
   private final Clock clock;
 
   public ApiTokenService(
-      ApiTokenRepository tokens, UserRepository users, AuditService audit, Clock clock) {
+      ApiTokenRepository tokens, UserRepository users, SecurityAuditLog audit, Clock clock) {
     this.tokens = tokens;
     this.users = users;
     this.audit = audit;
@@ -126,8 +125,8 @@ public class ApiTokenService {
             now,
             days == null ? null : now.plus(Duration.ofDays(days)));
     tokens.save(token);
-    // Le secret n'entre ni dans l'audit ni dans les journaux : seuls le nom et l'identifiant.
-    audit.record("API_TOKEN_CREATED", "API_TOKEN", token.getId(), "nom=" + cleaned);
+    // Ni le secret ni le nom du jeton n'entrent dans l'audit : seul le compte concerné.
+    audit.record("API_TOKEN_CREATED", user.getUsername(), user.getUsername());
     return new CreatedToken(view(token), secret);
   }
 
@@ -144,7 +143,7 @@ public class ApiTokenService {
     if (token.getRevokedAt() == null) {
       token.setRevokedAt(clock.instant());
       tokens.save(token);
-      audit.record("API_TOKEN_REVOKED", "API_TOKEN", token.getId(), "nom=" + token.getName());
+      audit.record("API_TOKEN_REVOKED", user.getUsername(), user.getUsername());
     }
   }
 

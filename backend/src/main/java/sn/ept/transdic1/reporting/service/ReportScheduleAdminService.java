@@ -4,11 +4,12 @@ import java.time.Clock;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import sn.ept.transdic1.audit.service.AuditService;
+import sn.ept.transdic1.common.audit.AuditRequested;
 import sn.ept.transdic1.inventory.repository.SiteRepository;
 import sn.ept.transdic1.reporting.domain.ReportFrequency;
 import sn.ept.transdic1.reporting.domain.ReportSchedule;
@@ -35,7 +36,7 @@ public class ReportScheduleAdminService {
   private final UserRepository users;
   private final SiteRepository sites;
   private final ScheduledReportService sender;
-  private final AuditService audit;
+  private final ApplicationEventPublisher publisher;
   private final Clock clock;
 
   public ReportScheduleAdminService(
@@ -45,7 +46,7 @@ public class ReportScheduleAdminService {
       UserRepository users,
       SiteRepository sites,
       ScheduledReportService sender,
-      AuditService audit,
+      ApplicationEventPublisher publisher,
       Clock clock) {
     this.schedules = schedules;
     this.recipients = recipients;
@@ -53,7 +54,7 @@ public class ReportScheduleAdminService {
     this.users = users;
     this.sites = sites;
     this.sender = sender;
-    this.audit = audit;
+    this.publisher = publisher;
     this.clock = clock;
   }
 
@@ -104,11 +105,7 @@ public class ReportScheduleAdminService {
     schedule.setNextRunAt(sender.nextRun(schedule, clock.instant()));
     schedules.saveAndFlush(schedule);
     replaceLinks(schedule, request);
-    audit.record(
-        "REPORT_SCHEDULE_CREATED",
-        "REPORT_SCHEDULE",
-        schedule.getId(),
-        "nom=" + schedule.getName());
+    audit(schedule, "REPORT_SCHEDULE_CREATED");
     return view(schedule);
   }
 
@@ -123,11 +120,7 @@ public class ReportScheduleAdminService {
     schedule.setNextRunAt(sender.nextRun(schedule, clock.instant()));
     schedules.saveAndFlush(schedule);
     replaceLinks(schedule, request);
-    audit.record(
-        "REPORT_SCHEDULE_UPDATED",
-        "REPORT_SCHEDULE",
-        schedule.getId(),
-        "nom=" + schedule.getName());
+    audit(schedule, "REPORT_SCHEDULE_UPDATED");
     return view(schedule);
   }
 
@@ -137,7 +130,7 @@ public class ReportScheduleAdminService {
     recipients.deleteAll(recipients.findByScheduleId(id));
     siteScopes.deleteAll(siteScopes.findByScheduleId(id));
     schedules.delete(schedule);
-    audit.record("REPORT_SCHEDULE_DELETED", "REPORT_SCHEDULE", id, "nom=" + schedule.getName());
+    audit(schedule, "REPORT_SCHEDULE_DELETED");
   }
 
   /** Envoi immédiat, pour vérifier la liste des destinataires sans attendre l'heure dite. */
@@ -146,8 +139,18 @@ public class ReportScheduleAdminService {
     ReportSchedule schedule = find(id);
     schedule.setNextRunAt(clock.instant().minusSeconds(1));
     schedules.saveAndFlush(schedule);
-    audit.record("REPORT_SCHEDULE_TESTED", "REPORT_SCHEDULE", id, "nom=" + schedule.getName());
+    audit(schedule, "REPORT_SCHEDULE_TESTED");
     return sender.sendDue() > 0;
+  }
+
+  /**
+   * Le module des rapports n'a pas le droit de dépendre de celui de l'audit : il publie la demande,
+   * l'audit l'écoute et écrit l'entrée dans la même transaction.
+   */
+  private void audit(ReportSchedule schedule, String action) {
+    publisher.publishEvent(
+        new AuditRequested(
+            action, "REPORT_SCHEDULE", schedule.getId(), "nom=" + schedule.getName()));
   }
 
   private void replaceLinks(ReportSchedule schedule, ScheduleRequest request) {
