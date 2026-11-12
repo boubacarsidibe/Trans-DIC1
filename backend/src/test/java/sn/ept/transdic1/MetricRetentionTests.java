@@ -136,6 +136,11 @@ class MetricRetentionTests {
 
   @Test
   void aggregationCanBeRerunWithoutDuplicatingOrLosingData() {
+    // L'agrégation repart du dernier agrégat connu, toutes équipements confondus. Sur la base
+    // partagée entre classes de test, un agrégat laissé par une autre classe à une heure plus
+    // récente ferait sauter l'heure de 2019 que ce test emploie, et le recalcul n'aurait pas
+    // lieu. On part donc d'une table vide ; la transaction du test est annulée ensuite.
+    jdbc.update("DELETE FROM metric_hourly");
     jdbc.queryForObject("SELECT ensure_metric_partition('2019-04-01')", String.class);
     measure("20", "2019-04-02T08:10:00Z");
     retention.aggregateCompletedHours();
