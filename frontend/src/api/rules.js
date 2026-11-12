@@ -47,6 +47,14 @@ export async function testRule(payload, days) {
   return data;
 }
 
+/** Seuils proposés d'après l'historique (M14) : centiles et simulation de chaque proposition. */
+export async function adviseThresholds(request) {
+  const { data } = await apiClient.post("/regles-alertes/seuils-proposes", request, {
+    timeout: 30_000,
+  });
+  return data;
+}
+
 // Le seuil de retour doit être du côté normal du seuil d'ouverture : même règle que l'API.
 export function validateRule(values) {
   const errors = {};

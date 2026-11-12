@@ -109,7 +109,7 @@ Principes : tout reste dans le backend Java (pas de service Python, pas de Docke
 | M11 | Métriques liées à une alerte | Montrer dans le diagnostic ce qui a bougé en même temps | Corrélation de rang (Spearman) entre la mesure en alerte et celles de l'équipement et de ses voisins | Datadog |
 | M12 | Poids du diagnostic appris | Remplacer les poids fixés à la main | L'opérateur confirme la vraie cause ; régression logistique sur ces confirmations, à partir d'un nombre suffisant de cas | — |
 | M13 | Prévision saisonnière | Débit et mémoire, pas seulement le disque | Holt-Winters sur les agrégats horaires | Zabbix, Datadog |
-| M14 | Seuils proposés | Régler une règle sans tâtonner | Centiles de l'historique, simulés avec le test de règle existant | OpManager |
+| M14 ✅ | Seuils proposés | Régler une règle sans tâtonner | Centiles de l'historique, simulés avec le test de règle existant | OpManager |
 
 M9 et M12 ont besoin de plusieurs semaines d'alertes réelles : sans données de l'EPT, ils ne peuvent être démontrés que sur des cas simulés.
 
@@ -118,7 +118,7 @@ M9 et M12 ont besoin de plusieurs semaines d'alertes réelles : sans données de
 1. **Lot 1, mesures réseau et socle ML** : découverte des interfaces par SNMP avec débit, erreurs, rejets et occupation ; gigue et perte dans la sonde ICMP ; M1, M3, M6, M8.
 2. **Lot 2, corrélation** : M10, M11, M9 (suggestions), M4, détection du clignotement.
 3. **Lot 3, manques simples et visibles** : double authentification, jetons d'API, absence de donnée, conditions composées, rapports planifiés, sonde DNS, Telegram.
-4. **Lot 4, gros morceaux** : M2, M5, M13, M14, voisins LLDP, NetFlow puis M7, LDAP, proxys de collecte. *Faits : NetFlow (ADR 0032), M7 et S6 (ADR 0033), voisins LLDP (ADR 0034). Restent M2, M5, M13, M14, LDAP et les proxys de collecte.*
+4. **Lot 4, gros morceaux** : M2, M5, M13, M14, voisins LLDP, NetFlow puis M7, LDAP, proxys de collecte. *Faits : NetFlow (ADR 0032), M7 et S6 (ADR 0033), voisins LLDP (ADR 0034), M14 (ADR 0035). Restent M2, M5, M13, LDAP et les proxys de collecte.*
 5. **Lot 5, sécurité** (section 5) : S1 à S3 et S7 d'abord, puis S4 et S5 ; S6 après NetFlow.
 
 Hors périmètre proposé : facturation du trafic, sauvegarde des configurations, haute disponibilité, remédiation par script (risque de sécurité à décider avec le CRI).

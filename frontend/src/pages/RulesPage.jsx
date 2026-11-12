@@ -14,6 +14,7 @@ import { useAuth } from "../auth/AuthContext.jsx";
 import { canAdministerAlerts } from "../auth/permissions.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import RuleTestPanel from "./RuleTestPanel.jsx";
+import ThresholdAdvicePanel from "./ThresholdAdvicePanel.jsx";
 import { Badge } from "../ui/Badges.jsx";
 
 const EMPTY = {
@@ -91,6 +92,40 @@ function RuleForm({ initial, sites, equipments, submitting, onSubmit, onCancel }
     const found = validateRule(values);
     setErrors(found);
     return Object.keys(found).length === 0 ? toPayload(values) : null;
+  }
+
+  /**
+   * Pour proposer un seuil, il suffit de l'indicateur, de la condition et de la portée : le seuil
+   * est justement ce qu'on cherche, on ne va pas l'exiger d'avance.
+   */
+  function adviceRequest() {
+    if (!values.metricType.trim()) {
+      setErrors({ ...errors, metricType: "Indiquez l'indicateur." });
+      return null;
+    }
+    if (!values.allEquipment && values.siteIds.length === 0 && values.equipmentIds.length === 0) {
+      setErrors({ ...errors, metricType: "Choisissez d'abord un site ou un équipement." });
+      return null;
+    }
+    setErrors({});
+    return {
+      metricType: values.metricType.trim(),
+      operator: values.operator,
+      unit: values.unit?.trim() || null,
+      confirmationSeconds: Number(values.confirmationSeconds) || 0,
+      siteIds: values.siteIds,
+      equipmentIds: values.equipmentIds,
+      allEquipment: values.allEquipment,
+    };
+  }
+
+  function useProposal(proposal) {
+    setValues({
+      ...values,
+      threshold: String(proposal.threshold),
+      recoveryThreshold:
+        proposal.recoveryThreshold === null ? "" : String(proposal.recoveryThreshold),
+    });
   }
 
   const field = (id, label, props = {}) => (
@@ -205,6 +240,8 @@ function RuleForm({ initial, sites, equipments, submitting, onSubmit, onCancel }
         </p>
       </fieldset>
       )}
+
+      <ThresholdAdvicePanel buildAdviceRequest={adviceRequest} onChoose={useProposal} />
 
       <RuleTestPanel buildPayload={testPayload} />
 

@@ -2046,6 +2046,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/regles-alertes/seuils-proposes:
+    post:
+      tags:
+      - Règles d'alerte
+      summary: Proposer des seuils d'après l'historique
+      description: "Centiles de ce que les équipements choisis ont vraiment mesuré\
+        , trois seuils possibles et, pour chacun, le nombre d'alertes qu'il aurait\
+        \ ouvertes sur la même période. Rien n'est enregistré."
+      operationId: advise
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ThresholdAdviceRequest"
+        required: true
+      responses:
+        "400":
+          description: Portée vide ou trop large (50 équipements au plus)
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/rapports/planifications:
     get:
       tags:
@@ -6683,6 +6713,52 @@ components:
       required:
       - days
       - rule
+    ThresholdAdviceRequest:
+      type: object
+      properties:
+        metricType:
+          type: string
+          maxLength: 64
+          minLength: 0
+        operator:
+          type: string
+          enum:
+          - GREATER_THAN
+          - GREATER_OR_EQUAL
+          - LESS_THAN
+          - LESS_OR_EQUAL
+          - EQUAL
+        unit:
+          type: string
+          maxLength: 24
+          minLength: 0
+        days:
+          type: integer
+          format: int32
+          maximum: 14
+          minimum: 1
+        confirmationSeconds:
+          type: integer
+          format: int64
+          maximum: 86400
+          minimum: 0
+        siteIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        equipmentIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        allEquipment:
+          type: boolean
+      required:
+      - confirmationSeconds
+      - days
+      - metricType
+      - operator
     ScheduleView:
       type: object
       properties:

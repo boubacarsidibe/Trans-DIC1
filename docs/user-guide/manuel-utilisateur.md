@@ -339,6 +339,10 @@ Changer le rôle, désactiver un compte ou réinitialiser son mot de passe ferme
 
 **Réglages > Règles** : indicateur (par exemple `cpu.usage`), comparaison et seuil, seuil de retour à la normale (hystérésis), délai de confirmation, sévérité, et équipements ou sites concernés. Un seuil se modifie sans redéploiement.
 
+**Proposer un seuil** évite de régler à tâtons. Indiquez l'indicateur, la comparaison et les équipements concernés, puis demandez une proposition : la plateforme regarde ce que ces machines ont vraiment mesuré (1 à 14 jours) et en tire trois seuils — **prudent**, **équilibré**, **sensible** —, arrondis comme on les écrirait à la main. Pour chacun, elle dit combien d'alertes il aurait ouvertes sur cette même période et sur combien d'équipements, en tenant compte du délai de confirmation saisi. **Employer** remplit le seuil d'ouverture et le seuil de retour ; rien n'est enregistré tant que vous n'enregistrez pas la règle.
+
+À lire avec une réserve : ces seuils décrivent le passé, **incidents compris**. Si la machine était déjà saturée toute la semaine, la proposition sera permissive. S'il y a moins de cent mesures sur la période, la plateforme le dit plutôt que d'inventer un chiffre.
+
 Avant d'enregistrer ou d'activer une règle, **Tester sur l'historique** la rejoue sur les mesures des dernières 24 heures ou des 7 derniers jours. On voit combien d'alertes elle aurait ouvertes, sur quels équipements, quand elles se seraient ouvertes et refermées, et la valeur la plus forte atteinte. Rien n'est enregistré et personne n'est prévenu. Cela permet d'ajuster le seuil, le délai de confirmation ou le seuil de retour avant de mettre la règle en service. Le test porte sur 50 équipements au plus.
 
 Une règle qui a déjà ouvert des alertes ne peut pas être supprimée : il faut la désactiver.

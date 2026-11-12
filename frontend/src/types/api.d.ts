@@ -619,6 +619,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/regles-alertes/seuils-proposes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Proposer des seuils d'après l'historique
+         * @description Centiles de ce que les équipements choisis ont vraiment mesuré, trois seuils possibles et, pour chacun, le nombre d'alertes qu'il aurait ouvertes sur la même période. Rien n'est enregistré.
+         */
+        post: operations["advise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rapports/planifications": {
         parameters: {
             query?: never;
@@ -2729,6 +2749,19 @@ export interface components {
             rule: components["schemas"]["AlertRuleRequest"];
             /** Format: int32 */
             days: number;
+        };
+        ThresholdAdviceRequest: {
+            metricType: string;
+            /** @enum {string} */
+            operator: "GREATER_THAN" | "GREATER_OR_EQUAL" | "LESS_THAN" | "LESS_OR_EQUAL" | "EQUAL";
+            unit?: string;
+            /** Format: int32 */
+            days: number;
+            /** Format: int64 */
+            confirmationSeconds: number;
+            siteIds?: string[];
+            equipmentIds?: string[];
+            allEquipment?: boolean;
         };
         ScheduleView: {
             /** Format: uuid */
@@ -6373,6 +6406,46 @@ export interface operations {
         };
         responses: {
             /** @description Règle invalide, portée vide ou trop large (50 équipements au plus) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    advise: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ThresholdAdviceRequest"];
+            };
+        };
+        responses: {
+            /** @description Portée vide ou trop large (50 équipements au plus) */
             400: {
                 headers: {
                     [name: string]: unknown;
