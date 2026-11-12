@@ -11,11 +11,13 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.ept.transdic1.common.scheduling.JobGuard;
+import sn.ept.transdic1.common.threat.NetworkScanDetected;
 
 /**
  * Écriture des flux comptés et purge des anciens (ADR 0032).
@@ -39,25 +41,47 @@ public class FlowCollectionService {
   static final int PURGE_BATCH = 20_000;
 
   private final FlowAccumulator accumulator;
+  private final FlowObservations observations;
   private final JdbcTemplate jdbc;
   private final JobGuard guard;
+  private final ApplicationEventPublisher publisher;
   private final Clock clock;
   private final int topConversations;
   private final Duration retention;
+  private final boolean scanDetection;
+  private final ScanDetector.Thresholds thresholds;
 
   public FlowCollectionService(
       FlowAccumulator accumulator,
+      FlowObservations observations,
       JdbcTemplate jdbc,
       JobGuard guard,
+      ApplicationEventPublisher publisher,
       Clock clock,
       @Value("${flow.top-conversations:300}") int topConversations,
-      @Value("${flow.retention-days:7}") long retentionDays) {
+      @Value("${flow.retention-days:7}") long retentionDays,
+      @Value("${flow.scan-detection.enabled:true}") boolean scanDetection,
+      @Value("${flow.scan-targets:200}") int scanTargets,
+      @Value("${flow.scan-ports:100}") int scanPorts,
+      @Value("${flow.flood-sources:200}") int floodSources,
+      @Value("${flow.scan-entropy:0.9}") double minimumEntropy,
+      @Value("${flow.scan-max-bytes-per-flow:1000}") long maximumBytesPerFlow) {
     this.accumulator = accumulator;
+    this.observations = observations;
     this.jdbc = jdbc;
     this.guard = guard;
+    this.publisher = publisher;
     this.clock = clock;
     this.topConversations = Math.max(10, topConversations);
     this.retention = Duration.ofDays(Math.max(1, retentionDays));
+    this.scanDetection = scanDetection;
+    this.thresholds =
+        new ScanDetector.Thresholds(
+            Math.max(20, scanTargets),
+            Math.max(10, scanPorts),
+            Math.max(20, floodSources),
+            Math.min(1, Math.max(0.5, minimumEntropy)),
+            Math.max(100, maximumBytesPerFlow));
   }
 
   @Scheduled(
@@ -79,6 +103,7 @@ public class FlowCollectionService {
    */
   @Transactional
   public int flush() {
+    detectScans();
     FlowAccumulator.Snapshot snapshot = accumulator.drain();
     if (snapshot.totals().isEmpty()) {
       return 0;
@@ -154,6 +179,36 @@ public class FlowCollectionService {
             + " flows = flow_aggregate.flows + EXCLUDED.flows",
         rows);
     return rows.size();
+  }
+
+  /**
+   * Examine la minute écoulée à la recherche de balayages et d'inondations (S6), et publie ce
+   * qu'elle trouve. C'est {@code threat} qui ouvre les alertes : {@code flow} observe, il ne juge
+   * pas de la gravité.
+   *
+   * @return le nombre de faits signalés
+   */
+  public int detectScans() {
+    var views = observations.drain();
+    if (!scanDetection || views.isEmpty()) {
+      return 0;
+    }
+    int found = 0;
+    for (var entry : views.entrySet()) {
+      for (NetworkScanDetected finding :
+          ScanDetector.examine(
+              entry.getKey(),
+              entry.getValue().sources(),
+              entry.getValue().destinations(),
+              thresholds)) {
+        publisher.publishEvent(finding);
+        found++;
+      }
+    }
+    if (found > 0) {
+      LOG.info("Balayages ou inondations repérés dans les flux : {}", found);
+    }
+    return found;
   }
 
   @Scheduled(cron = "${flow.retention-cron:0 45 4 * * *}", zone = "UTC")

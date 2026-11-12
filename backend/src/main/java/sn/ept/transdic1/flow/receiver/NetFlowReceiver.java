@@ -19,6 +19,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 import sn.ept.transdic1.flow.service.FlowAccumulator;
+import sn.ept.transdic1.flow.service.FlowObservations;
 import sn.ept.transdic1.flow.service.FlowSources;
 
 /**
@@ -44,6 +45,7 @@ public class NetFlowReceiver implements SmartLifecycle {
 
   private final FlowSources sources;
   private final FlowAccumulator accumulator;
+  private final FlowObservations observations;
   private final FlowTemplates templates;
   private final FlowRateLimiter limiter;
   private final String bindAddress;
@@ -57,6 +59,7 @@ public class NetFlowReceiver implements SmartLifecycle {
   public NetFlowReceiver(
       FlowSources sources,
       FlowAccumulator accumulator,
+      FlowObservations observations,
       Clock clock,
       @Value("${flow.bind-address:0.0.0.0}") String bindAddress,
       @Value("${flow.port:2055}") int port,
@@ -65,6 +68,7 @@ public class NetFlowReceiver implements SmartLifecycle {
       @Value("${flow.template-ttl-minutes:60}") long templateTtlMinutes) {
     this.sources = sources;
     this.accumulator = accumulator;
+    this.observations = observations;
     this.templates = new FlowTemplates(clock, Duration.ofMinutes(Math.max(1, templateTtlMinutes)));
     this.limiter = new FlowRateLimiter(clock, Math.max(10, packetsPerSecond));
     this.bindAddress = bindAddress;
@@ -125,6 +129,7 @@ public class NetFlowReceiver implements SmartLifecycle {
         NetFlowDecoder.decode(packet.getData(), packet.getLength(), exporter, templates);
     for (FlowRecord flow : flows) {
       accumulator.add(equipmentId, flow);
+      observations.add(equipmentId, flow);
     }
   }
 

@@ -73,6 +73,28 @@ et écrits une fois par minute.
 | `flow.retention-days` | 7 | conservation ; les adresses sont des données personnelles |
 | `flow.overview-hours` | 3 | période par défaut de l'écran |
 
+## Balayages et inondations
+
+La réception NetFlow alimente aussi la détection de balayages
+([ADR 0033](../adr/0033-balayages-et-inondations.md)), active par défaut dès que les flux
+arrivent. Les alertes ouvertes sont des alertes de **sécurité** ordinaires, visibles dans
+**Supervision > Alertes** et dans l'écran Sécurité.
+
+| Propriété | Défaut | Rôle |
+| --- | --- | --- |
+| `flow.scan-detection.enabled` | `true` | coupe les trois détections d'un coup |
+| `flow.scan-targets` | 200 | destinations d'une même source dans la minute |
+| `flow.scan-ports` | 100 | ports frappés sur une même machine |
+| `flow.flood-sources` | 200 | sources différentes vers une même destination |
+| `flow.scan-entropy` | 0,9 | à quel point la répartition doit être plate (0 à 1) |
+| `flow.scan-max-bytes-per-flow` | 1000 | au-delà, c'est du trafic, pas du sondage |
+| `flow.scan-tracked`, `flow.scan-per-address` | 300, 1024 | bornes de mémoire par équipement et par minute |
+
+Trop d'alertes ? Montez `flow.scan-targets` plutôt que de baisser l'entropie : c'est elle qui
+distingue un serveur de sauvegarde d'un scanner. Si une machine légitime déclenche la détection
+tous les soirs, regardez d'abord ce qu'elle fait — un déploiement qui pousse un fichier de
+quelques centaines d'octets à tout le parc ressemble vraiment à un balayage.
+
 ## Ce que cela ne dit pas
 
 - **Les volumes sont ceux que l'équipement rapporte.** Échantillonnage, expiration des flux
@@ -85,6 +107,9 @@ et écrits une fois par minute.
 - **IPFIX (version 10) et sFlow ne sont pas lus.** Seules les versions 5 et 9 de NetFlow le sont.
 - Une minute peut manquer si le serveur redémarre entre deux écritures : ce qui était compté en
   mémoire est perdu. Acceptable pour un agrégat de trafic ; à ne pas employer pour facturer.
+- **Un balayage lent passe** : cinquante machines par minute pendant quatre heures ne franchissent
+  aucun seuil. Et rien n'est vu là où aucun équipement n'exporte : deux machines du même
+  sous-réseau qui se parlent par un commutateur sans export restent invisibles.
 
 ## En cas de problème
 

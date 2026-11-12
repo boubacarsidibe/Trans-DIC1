@@ -149,6 +149,24 @@ est habituel :
 Les deux sont des **avertissements**, jamais des alertes critiques, et se retrouvent dans
 **Supervision > Alertes** comme les autres.
 
+**Ce que voient les flux réseau.** Si la réception NetFlow est en place (voir
+[Trafic](#trafic)), trois autres alertes de sécurité peuvent s'ouvrir, qui ne viennent pas des
+journaux des serveurs mais de ce qui traverse le routeur :
+
+- **Balayage d'adresses** : une machine contacte des centaines d'autres en une minute, toutes de
+  la même façon et en échanges minuscules. Quelqu'un cherche ce qui existe sur le réseau.
+- **Balayage de ports** : une machine frappe des dizaines de ports d'un même serveur. Quelqu'un
+  cherche quels services tournent.
+- **Inondation** : un serveur reçoit de centaines de sources à la fois. Déni de service probable ;
+  c'est la seule des trois qui est **critique**, parce qu'il faut vérifier tout de suite que le
+  service répond encore.
+
+Le message donne toujours l'adresse en cause et la « répartition » observée, un nombre entre 0 et
+1 : plus il est proche de 1, plus le trafic est également réparti, ce qui est la marque d'une
+machine et non d'un usage humain. C'est ce qui évite de prendre un serveur de sauvegarde pour un
+attaquant. Un balayage lent, lui, passe sous les seuils : aucune méthode de ce genre ne les
+attrape tous.
+
 Les attaques et les balayages ouvrent aussi des alertes de type **Sécurité**, traitées comme les
 autres : une seule par adresse, équipement et nature, dont le message se met à jour tant que cela
 continue.

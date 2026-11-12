@@ -102,7 +102,7 @@ Principes : tout reste dans le backend Java (pas de service Python, pas de Docke
 | M4 | Valeur aberrante parmi les semblables | Le commutateur qui ne se comporte pas comme les autres du même modèle | Écart à la médiane du groupe en MAD (type et site identiques) | Datadog, Grafana ML |
 | M5 | Rupture de niveau | Changement durable : lien qui passe de 1 Gb/s à 100 Mb/s, fuite mémoire | CUSUM sur les moyennes horaires | — |
 | M6 | Réseau : débit, erreurs, gigue, perte | Saturation, lien dégradé, tempête de diffusion | Lissage exponentiel (EWMA) avec bande de tolérance sur les taux par port | Travaux publiés sur SNMP et NetFlow |
-| M7 | Réseau : balayage et inondation | Détecter un scan ou un déni de service | Entropie des adresses et ports dans les flux ; demande NetFlow (lot 4) | Travaux publiés |
+| M7 ✅ | Réseau : balayage et inondation | Détecter un scan ou un déni de service | Entropie des adresses et ports dans les flux ; demande NetFlow (lot 4) | Travaux publiés |
 | M8 | Services : latence anormale et budget d'erreur | Service lent avant d'être en panne | M1 appliqué à `probe.latency` ; taux de consommation du budget de SLA | Datadog (SLO) |
 | M9 | Corrélation apprise | Proposer des liens que la topologie ne connaît pas | Co-occurrence des alertes dans le temps (support et confiance, règles d'association) ; l'opérateur valide la suggestion avant qu'elle serve | BigPanda |
 | M10 | Regroupement d'alertes en incident | Une notification par incident, tous types d'alertes | Fenêtre de temps + distance dans la topologie + ressemblance du message | Moogsoft, Dynatrace |
@@ -149,9 +149,11 @@ Récepteur syslog et traps SNMP, règles d'événements vers alertes, agent sur 
 | S3 ✅ | Attaques dans les requêtes web, par règles | Signatures reprises des familles de l'OWASP CRS (injection SQL, XSS, traversée de répertoire, exécution de commande), score cumulé par requête | S1 |
 | S4 ✅ | Attaques dans les requêtes web, par modèle appris | Classifieur sur n-grammes de caractères de l'URL et des paramètres, entraîné par nous et jugé sur le jeu public CSIC 2010 ; complète S3 pour les formes inconnues | S1, licence du jeu à vérifier |
 | S5 ✅ | Comportement inhabituel d'une adresse ou d'un compte | Normale par heure (M1) sur le nombre de requêtes, d'erreurs et de connexions ; première connexion d'un compte depuis une adresse jamais vue | S1 |
-| S6 | Balayage et inondation sur le réseau | Entropie des adresses et des ports (M7) | NetFlow, lot 4 |
+| S6 ✅ | Balayage et inondation sur le réseau | Entropie des adresses et des ports (M7) | NetFlow, lot 4 |
 | S7 ✅ | Tableau de bord sécurité | Attaques en cours, adresses sources les plus actives, serveurs visés, repère MITRE ATT&CK par scénario | S2, S3 |
 | S8 ✅ | Passerelle vers un vrai SIEM | Envoi des alertes en syslog ou webhook vers Wazuh ; réception de ses alertes par le récepteur existant | — |
+
+**Fait (ADR 0033)** : S6 et M7 sont livrés — balayage d'adresses, balayage de ports et inondation reconnus sur les flux d'une minute, chacun par un compte et l'entropie normalisée de la répartition, calculés à la réception (les tables ne gardent que les plus grosses conversations, où un balayage est invisible). Le module des flux publie, celui de la sécurité alerte.
 
 **Fait (ADR 0031)** : S8 est livré — canal de notification syslog RFC 5424 vers le collecteur d'un SIEM, et règle d'événement livrée inactive pour les alertes qui en reviennent par le récepteur existant. Un connecteur Wazuh dédié a été écarté : le syslog marche avec tous les SIEM, sans dépendre d'un produit ni d'une version.
 
@@ -159,7 +161,7 @@ Récepteur syslog et traps SNMP, règles d'événements vers alertes, agent sur 
 
 **Fait (ADR 0029)** : S4 est livré — régression logistique sur les suites de trois caractères de l'URL, apprise sur un corpus versionné (listes MIT pour les attaques, contrat d'API et requêtes d'école pour le légitime), faute de licence connue pour CSIC 2010. Mesuré : 97,0 % des attaques connues repérées et 0,0 % de fausses alertes sur les exemples mis de côté, 72,4 % des familles jamais apprises contre 22,9 % pour les signatures. Employé prudemment : avertissement seulement, après cinq requêtes d'une même adresse.
 
-**Fait (ADR 0028)** : S1, S2, S3 et S7 sont livrés — l'agent suit les journaux d'authentification et d'accès, le serveur reconnaît les attaques web par signatures à score cumulé, compte les forces brutes et les balayages, et l'écran « Sécurité » montre les attaques, les adresses actives et les équipements visés. Le repère MITRE ATT&CK de S7 n'est pas fait. **Reste** : S6 seulement, dont la dépendance — le NetFlow du lot 4 — est maintenant levée (ADR 0032).
+**Fait (ADR 0028)** : S1, S2, S3 et S7 sont livrés — l'agent suit les journaux d'authentification et d'accès, le serveur reconnaît les attaques web par signatures à score cumulé, compte les forces brutes et les balayages, et l'écran « Sécurité » montre les attaques, les adresses actives et les équipements visés. Le repère MITRE ATT&CK de S7 n'est pas fait. **La section 5 est terminée** : S1 à S8 sont livrés.
 
 **Modèle déjà entraîné et gratuit** : la recherche n'en a pas trouvé un avec une licence claire. Les articles publient des résultats sur CSIC 2010 (réseaux à caractères, CNN-LSTM annoncé à 99,77 %), pas des modèles téléchargeables ; le seul résultat sur Hugging Face est entraîné sur 440 exemples synthétiques et ne convient pas. Télécharger des poids depuis un dépôt public est par ailleurs un risque en soi (du code peut s'exécuter au chargement). La voie proposée est donc un petit modèle entraîné par nous, en Java, mesuré sur un jeu public.
 

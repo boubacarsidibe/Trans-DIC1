@@ -44,7 +44,11 @@ public class SecurityAlerts {
     /** Connexion réussie d'un compte depuis une adresse d'où il ne s'est jamais connecté. */
     LOGIN("security:login:"),
     /** Volume d'événements d'une heure très éloigné de l'habitude du même créneau. */
-    VOLUME("security:volume:");
+    VOLUME("security:volume:"),
+    /** Balayage d'adresses ou de ports repéré dans les flux réseau. */
+    NETWORK_SCAN("security:scan-reseau:"),
+    /** Inondation d'une destination par de nombreuses sources. */
+    FLOOD("security:inondation:");
 
     private final String prefix;
 

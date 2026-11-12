@@ -16,4 +16,11 @@ public class FlowConfiguration {
       @Value("${flow.max-conversations:20000}") int maxConversations) {
     return new FlowAccumulator(maxConversations);
   }
+
+  @Bean
+  public FlowObservations flowObservations(
+      @Value("${flow.scan-tracked:300}") int tracked,
+      @Value("${flow.scan-per-address:1024}") int perAddress) {
+    return new FlowObservations(tracked, perAddress);
+  }
 }
