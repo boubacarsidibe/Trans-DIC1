@@ -14,6 +14,28 @@ export async function removeLink(id) {
   await apiClient.delete(`/topologie/liens/${id}`);
 }
 
+/** Voisins annoncés par LLDP, et liens proposés. */
+export async function getNeighbours() {
+  const { data } = await apiClient.get("/topologie/voisins");
+  return data;
+}
+
+/** Crée le lien correspondant à un voisin. `remoteUpstream` : le voisin est-il l'amont ? */
+export async function acceptNeighbour(id, remoteUpstream) {
+  await apiClient.post(`/topologie/voisins/${id}/accepter`, { remoteUpstream });
+}
+
+export async function ignoreNeighbour(id) {
+  await apiClient.post(`/topologie/voisins/${id}/ignorer`);
+}
+
+/** Comment le voisin a été reconnu, en français. */
+export function matchLabel(reason) {
+  if (reason === "ADRESSE") return "reconnu par son adresse de gestion";
+  if (reason === "NOM") return "reconnu par son nom";
+  return "pas dans l’inventaire";
+}
+
 /** Équipements en aval de {@code id} (tous ceux que sa panne rend injoignables). */
 export function downstream(id, links) {
   const children = new Map();

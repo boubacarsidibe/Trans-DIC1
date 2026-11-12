@@ -303,8 +303,10 @@ class PersistenceModelTests {
             // Jetons d'API personnels.
             "ApiToken",
             // Journaux de sécurité (lot 5).
-            "SecurityEvent")
-        .hasSize(44);
+            "SecurityEvent",
+            // Voisins annoncés par LLDP (ADR 0034).
+            "LldpNeighbour")
+        .hasSize(45);
   }
 
   @Test

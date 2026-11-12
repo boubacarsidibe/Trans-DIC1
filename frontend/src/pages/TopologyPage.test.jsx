@@ -38,7 +38,10 @@ function renderPage(role = "ADMIN") {
 beforeEach(() => {
   clearSession();
   vi.resetAllMocks();
-  apiClient.get.mockResolvedValue({ data: graph });
+  // La page charge le graphe et les voisins LLDP : deux points d'API distincts.
+  apiClient.get.mockImplementation((url) =>
+    Promise.resolve({ data: url === "/topologie/voisins" ? [] : graph }),
+  );
 });
 
 describe("calculs de topologie", () => {

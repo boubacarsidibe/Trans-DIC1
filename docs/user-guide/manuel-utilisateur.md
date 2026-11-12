@@ -205,6 +205,22 @@ classements ne montrent que les plus grosses. Les adresses sont effacées au bou
 
 **Parc > Topologie** dessine les liens entre équipements, niveau par niveau depuis le cœur du réseau. En choisissant un équipement, on voit tout ce qui en dépend : c'est l'**impact d'une panne**.
 
+**Voisins découverts (LLDP).** Les commutateurs savent qui est branché au bout de chacun de leurs
+ports et le disent en LLDP. La plateforme le lit une fois par heure et montre ces voisins sous le
+graphe, avec le port local, ce que le voisin annonce (nom, port, adresse) et l'équipement de
+l'inventaire reconnu — par son adresse de gestion, ou à défaut par son nom.
+
+**Rien n'est ajouté à la topologie sans votre accord**, et pour une raison précise : LLDP dit que
+deux machines sont voisines, il ne dit pas laquelle dépend de l'autre. Deux boutons proposent donc
+le sens, celui qui découle du type étant mis en premier (un commutateur dépend d'un routeur) ;
+vérifiez-le avant d'accepter, car un lien à l'envers fausserait l'impact d'une panne. **Écarter**
+fait taire la proposition sans effacer le voisin.
+
+Un voisin que la plateforme ne reconnaît pas est affiché quand même : c'est souvent un équipement
+à ajouter à l'inventaire. Un câble débranché fait disparaître la proposition à la lecture
+suivante. Si rien n'apparaît : l'équipement n'est pas supervisé en SNMP, ou LLDP n'est pas activé
+dessus — c'est souvent le cas par défaut.
+
 ### Rapports
 
 ![Rapports](images/07-rapports.png)

@@ -1681,6 +1681,72 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/topologie/voisins/{id}/ignorer:
+    post:
+      tags:
+      - Topologie
+      summary: Écarter un voisin découvert
+      description: "Il ne sera plus proposé, même s'il reste visible en LLDP."
+      operationId: ignoreNeighbour
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/topologie/voisins/{id}/accepter:
+    post:
+      tags:
+      - Topologie
+      summary: Accepter un voisin découvert
+      description: "Crée le lien correspondant, dans le sens indiqué."
+      operationId: acceptNeighbour
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NeighbourAcceptance"
+        required: true
+      responses:
+        "409":
+          description: "Voisin non reconnu, ou boucle"
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/topologie/liens:
     post:
       tags:
@@ -3801,6 +3867,36 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/Graph"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/topologie/voisins:
+    get:
+      tags:
+      - Topologie
+      summary: Voisins découverts par LLDP
+      description: "Ce que les équipements disent voir au bout de leurs ports, et\
+        \ l'équipement de l'inventaire reconnu quand il l'a été. Rien n'est ajouté\
+        \ à la topologie sans qu'un administrateur l'accepte."
+      operationId: neighbours
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Neighbour"
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -6376,6 +6472,11 @@ components:
           type: boolean
       required:
       - active
+    NeighbourAcceptance:
+      type: object
+      properties:
+        remoteUpstream:
+          type: boolean
     LinkRequest:
       type: object
       properties:
@@ -7647,6 +7748,41 @@ components:
           format: uuid
         siteName:
           type: string
+    Neighbour:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        equipmentId:
+          type: string
+          format: uuid
+        equipmentName:
+          type: string
+        localPort:
+          type: string
+        remoteSystemName:
+          type: string
+        remotePort:
+          type: string
+        remoteManagementAddress:
+          type: string
+        remoteChassisId:
+          type: string
+        matchedEquipmentId:
+          type: string
+          format: uuid
+        matchedEquipmentName:
+          type: string
+        matchReason:
+          type: string
+        suggestRemoteUpstream:
+          type: boolean
+        alreadyLinked:
+          type: boolean
+        lastSeenAt:
+          type: string
+          format: date-time
     Impact:
       type: object
       properties:

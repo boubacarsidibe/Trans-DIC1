@@ -118,6 +118,21 @@ public class TopologyService {
     audit.record("TOPOLOGY_LINK_REMOVED", "EQUIPMENT", link[0], "amont=" + link[1]);
   }
 
+  /** Vrai si un lien existe déjà entre ces deux équipements, dans un sens ou dans l'autre. */
+  @Transactional(readOnly = true)
+  public boolean hasLink(UUID first, UUID second) {
+    Integer found =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM equipment_link WHERE (equipment_id = ? AND upstream_id = ?)"
+                + " OR (equipment_id = ? AND upstream_id = ?)",
+            Integer.class,
+            first,
+            second,
+            second,
+            first);
+    return found != null && found > 0;
+  }
+
   @Transactional(readOnly = true)
   public Impact impact(UUID equipmentId) {
     requireEquipment(equipmentId);

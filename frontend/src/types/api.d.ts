@@ -459,6 +459,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/topologie/voisins/{id}/ignorer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Écarter un voisin découvert
+         * @description Il ne sera plus proposé, même s'il reste visible en LLDP.
+         */
+        post: operations["ignoreNeighbour"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/topologie/voisins/{id}/accepter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accepter un voisin découvert
+         * @description Crée le lien correspondant, dans le sens indiqué.
+         */
+        post: operations["acceptNeighbour"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/topologie/liens": {
         parameters: {
             query?: never;
@@ -1398,6 +1438,26 @@ export interface paths {
         };
         /** Graphe complet : équipements et liens vers l'amont */
         get: operations["graph"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/topologie/voisins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Voisins découverts par LLDP
+         * @description Ce que les équipements disent voir au bout de leurs ports, et l'équipement de l'inventaire reconnu quand il l'a été. Rien n'est ajouté à la topologie sans qu'un administrateur l'accepte.
+         */
+        get: operations["neighbours"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2579,6 +2639,9 @@ export interface components {
         ActivationRequest: {
             active: boolean;
         };
+        NeighbourAcceptance: {
+            remoteUpstream?: boolean;
+        };
         LinkRequest: {
             /** Format: uuid */
             equipmentId: string;
@@ -3189,6 +3252,26 @@ export interface components {
             /** Format: uuid */
             siteId?: string;
             siteName?: string;
+        };
+        Neighbour: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            equipmentId?: string;
+            equipmentName?: string;
+            localPort?: string;
+            remoteSystemName?: string;
+            remotePort?: string;
+            remoteManagementAddress?: string;
+            remoteChassisId?: string;
+            /** Format: uuid */
+            matchedEquipmentId?: string;
+            matchedEquipmentName?: string;
+            matchReason?: string;
+            suggestRemoteUpstream?: boolean;
+            alreadyLinked?: boolean;
+            /** Format: date-time */
+            lastSeenAt?: string;
         };
         Impact: {
             /** Format: uuid */
@@ -5803,6 +5886,93 @@ export interface operations {
                 content?: never;
             };
             /** @description Garde-fou : soi-même ou dernier administrateur */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ignoreNeighbour: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    acceptNeighbour: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NeighbourAcceptance"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Voisin non reconnu, ou boucle */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -8562,6 +8732,44 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["Graph"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    neighbours: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Neighbour"][];
                 };
             };
             /** @description Authentification requise ou jeton expiré */

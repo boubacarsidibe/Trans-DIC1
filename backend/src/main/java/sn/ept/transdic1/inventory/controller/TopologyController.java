@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,6 +21,9 @@ import sn.ept.transdic1.inventory.dto.TopologyDtos.Graph;
 import sn.ept.transdic1.inventory.dto.TopologyDtos.Impact;
 import sn.ept.transdic1.inventory.dto.TopologyDtos.Link;
 import sn.ept.transdic1.inventory.dto.TopologyDtos.LinkRequest;
+import sn.ept.transdic1.inventory.dto.TopologyDtos.Neighbour;
+import sn.ept.transdic1.inventory.dto.TopologyDtos.NeighbourAcceptance;
+import sn.ept.transdic1.inventory.service.NeighbourService;
 import sn.ept.transdic1.inventory.service.TopologyService;
 
 @Tag(
@@ -31,9 +35,11 @@ import sn.ept.transdic1.inventory.service.TopologyService;
 @RequestMapping("/api/v1/topologie")
 public class TopologyController {
   private final TopologyService service;
+  private final NeighbourService neighbours;
 
-  public TopologyController(TopologyService service) {
+  public TopologyController(TopologyService service, NeighbourService neighbours) {
     this.service = service;
+    this.neighbours = neighbours;
   }
 
   @Operation(summary = "Graphe complet : équipements et liens vers l'amont")
@@ -58,6 +64,42 @@ public class TopologyController {
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void removeLink(@PathVariable UUID id) {
     service.removeLink(id);
+  }
+
+  @Operation(
+      summary = "Voisins découverts par LLDP",
+      description =
+          "Ce que les équipements disent voir au bout de leurs ports, et l'équipement de"
+              + " l'inventaire reconnu quand il l'a été. Rien n'est ajouté à la topologie sans"
+              + " qu'un administrateur l'accepte.")
+  @GetMapping("/voisins")
+  public List<Neighbour> neighbours() {
+    return neighbours.discovered();
+  }
+
+  @Operation(
+      summary = "Accepter un voisin découvert",
+      description = "Crée le lien correspondant, dans le sens indiqué.")
+  @ApiResponse(
+      responseCode = "409",
+      description = "Voisin non reconnu, ou boucle",
+      content = @Content)
+  @PostMapping("/voisins/{id}/accepter")
+  @PreAuthorize("hasRole('ADMIN')")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void acceptNeighbour(
+      @PathVariable UUID id, @Valid @RequestBody NeighbourAcceptance acceptance) {
+    neighbours.accept(id, acceptance.remoteUpstream());
+  }
+
+  @Operation(
+      summary = "Écarter un voisin découvert",
+      description = "Il ne sera plus proposé, même s'il reste visible en LLDP.")
+  @PostMapping("/voisins/{id}/ignorer")
+  @PreAuthorize("hasRole('ADMIN')")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void ignoreNeighbour(@PathVariable UUID id) {
+    neighbours.ignore(id);
   }
 
   @Operation(

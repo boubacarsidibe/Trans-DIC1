@@ -1,7 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link2, Unlink } from "lucide-react";
 import { useAuth } from "../auth/AuthContext.jsx";
-import { addLink, downstream, getTopology, levels, removeLink } from "../api/topology.js";
+import {
+  acceptNeighbour,
+  addLink,
+  downstream,
+  getNeighbours,
+  getTopology,
+  ignoreNeighbour,
+  levels,
+  matchLabel,
+  removeLink,
+} from "../api/topology.js";
 import { StatusBadge } from "../ui/Badges.jsx";
 import PageHeader from "../ui/PageHeader.jsx";
 import { EQUIPMENT_STATUS, EQUIPMENT_TYPE, label } from "../ui/labels.js";
@@ -87,10 +97,13 @@ function TopologyPage() {
   const [form, setForm] = useState({ equipmentId: "", upstreamId: "" });
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [neighbours, setNeighbours] = useState([]);
 
   const load = useCallback(async () => {
     try {
-      setGraph(await getTopology());
+      const [topology, discovered] = await Promise.all([getTopology(), getNeighbours()]);
+      setGraph(topology);
+      setNeighbours(Array.isArray(discovered) ? discovered : []);
     } catch {
       setError("Impossible de charger la topologie.");
     }
@@ -143,6 +156,35 @@ function TopologyPage() {
     }
   }
 
+  async function accept(neighbour, remoteUpstream) {
+    setError("");
+    setNotice("");
+    try {
+      await acceptNeighbour(neighbour.id, remoteUpstream);
+      setNotice("Lien ajouté depuis le voisinage LLDP.");
+      await load();
+    } catch (e) {
+      setError(
+        e?.response?.status === 409
+          ? "Lien refusé : il existe déjà, ou il créerait une boucle."
+          : "L’ajout du lien a échoué.",
+      );
+    }
+  }
+
+  async function ignore(neighbour) {
+    setError("");
+    setNotice("");
+    try {
+      await ignoreNeighbour(neighbour.id);
+      setNotice("Voisin écarté : il ne sera plus proposé.");
+      await load();
+    } catch {
+      setError("L’opération a échoué.");
+    }
+  }
+
+  const proposals = neighbours.filter((n) => n.matchedEquipmentId && !n.alreadyLinked);
   const upstreamOf = (id) => graph.links.filter((l) => l.equipmentId === id);
   const selectedNode = selected ? byId.get(selected) : null;
 
@@ -241,6 +283,98 @@ function TopologyPage() {
               Ajouter le lien
             </button>
           </form>
+        )}
+
+        {neighbours.length > 0 && (
+          <section
+            aria-labelledby="voisins-title"
+            className="panel panel-flush mt-4 overflow-x-auto"
+          >
+            <div className="panel-head">
+              <h2 id="voisins-title">Voisins découverts (LLDP)</h2>
+              <span className="badge-muted">
+                {proposals.length} lien{proposals.length > 1 ? "s" : ""} à confirmer
+              </span>
+            </div>
+            <p className="diag-note">
+              Ce que les équipements disent voir au bout de leurs ports. Rien n’est ajouté à la
+              topologie sans votre accord : LLDP dit que deux machines sont voisines, pas laquelle
+              dépend de l’autre. Le sens proposé vient de leur type — vérifiez-le avant
+              d’accepter.
+            </p>
+            <table className="data-table">
+              <caption className="sr-only">Voisins annoncés par LLDP</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Équipement</th>
+                  <th scope="col">Port</th>
+                  <th scope="col">Voisin annoncé</th>
+                  <th scope="col">Reconnu</th>
+                  {isAdmin && <th scope="col">Action</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {neighbours.map((n) => (
+                  <tr key={n.id}>
+                    <td>
+                      <span className="cell-strong">{n.equipmentName}</span>
+                    </td>
+                    <td>{n.localPort}</td>
+                    <td>
+                      <span className="cell-strong">{n.remoteSystemName ?? n.remoteChassisId}</span>
+                      <span className="cell-sub">
+                        {n.remotePort}
+                        {n.remoteManagementAddress ? ` · ${n.remoteManagementAddress}` : ""}
+                      </span>
+                    </td>
+                    <td>
+                      {n.matchedEquipmentName ? (
+                        <>
+                          <span className="cell-strong">{n.matchedEquipmentName}</span>
+                          <span className="cell-sub">{matchLabel(n.matchReason)}</span>
+                        </>
+                      ) : (
+                        <span className="cell-sub">{matchLabel(n.matchReason)}</span>
+                      )}
+                    </td>
+                    {isAdmin && (
+                      <td>
+                        {n.alreadyLinked && <span className="cell-sub">déjà dans la topologie</span>}
+                        {!n.alreadyLinked && !n.matchedEquipmentId && (
+                          <span className="cell-sub">à inventorier d’abord</span>
+                        )}
+                        {!n.alreadyLinked && n.matchedEquipmentId && (
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() => accept(n, true)}
+                            >
+                              {n.equipmentName} dépend de {n.matchedEquipmentName}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() => accept(n, false)}
+                            >
+                              L’inverse
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() => ignore(n)}
+                            >
+                              Écarter
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
         )}
 
         <section aria-labelledby="text-title" className="panel panel-flush mt-4 overflow-x-auto">
