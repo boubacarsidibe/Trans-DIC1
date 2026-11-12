@@ -3539,6 +3539,26 @@ export interface components {
             firstPointAt?: string;
             /** Format: date-time */
             lastPointAt?: string;
+            /**
+             * @description Méthode retenue : droite ou cycle journalier
+             * @enum {string}
+             */
+            method?: "LINEAR" | "SEASONAL";
+            /**
+             * Format: int32
+             * @description Heure locale du sommet du cycle, pour la méthode saisonnière
+             */
+            seasonalPeakHour?: number;
+            /**
+             * Format: double
+             * @description Erreur moyenne de la droite sur les dernières 24 heures
+             */
+            linearError?: number;
+            /**
+             * Format: double
+             * @description Erreur moyenne du cycle journalier sur les dernières 24 heures
+             */
+            seasonalError?: number;
         };
         MetricHistoryResponse: {
             /** Format: uuid */

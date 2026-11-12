@@ -108,6 +108,28 @@ class CapacityForecastServiceTests {
     }
   }
 
+  /**
+   * Agrégats horaires sur une droite, brouillés par une variation <b>irrégulière</b> : tirée d'un
+   * générateur à graine fixe, donc reproductible, mais sans période — c'est ce qui la distingue du
+   * créneau horaire de {@link #hourly}, qui est un cycle et que la prévision saisonnière explique à
+   * bon droit (ADR 0036).
+   */
+  private void hourlyIrregular(String key, double valueNow, double perDay, double amplitude) {
+    jdbc.update(
+        "DELETE FROM metric_hourly WHERE equipment_id = ? AND metric_key = ?", server.getId(), key);
+    var random = new java.util.Random(20_261_112L);
+    Instant lastHour = now.truncatedTo(ChronoUnit.HOURS).minus(Duration.ofHours(1));
+    for (int h = 0; h <= 14 * 24; h++) {
+      Instant at = lastHour.minus(Duration.ofHours(h));
+      double days = Duration.between(now, at).toMillis() / 86_400_000.0;
+      double value = valueNow + perDay * days + (random.nextDouble() * 2 - 1) * amplitude;
+      jdbc.update(
+          "INSERT INTO metric_hourly(equipment_id, metric_key, hour_start, unit, sample_count,"
+              + " min_value, max_value, avg_value) VALUES (?, ?, ?, '%', 12, ?, ?, ?)",
+          server.getId(), key, Timestamp.from(at), value, value, value);
+    }
+  }
+
   private int active(String key) {
     em.flush();
     return jdbc.queryForObject(
@@ -352,8 +374,9 @@ class CapacityForecastServiceTests {
 
   @Test
   void uneTendanceTropBruiteeNOuvreRienMemeDansLHorizon() {
-    // +2 points par jour noyés dans ± 15 points : r² bien sous 0,6, saturation dans ~10 jours.
-    hourly("disk.usage", 80, 2, 14 * 24, 1, 15);
+    // +2 points par jour noyés dans ± 15 points tirés au hasard : aucune des deux méthodes ne
+    // sait prévoir cela, r² bien sous 0,6, saturation dans ~10 jours.
+    hourlyIrregular("disk.usage", 80, 2, 15);
     var forecast = forecasts.forecasts(server.getId()).get(0);
     assertThat(forecast.status()).isEqualTo(ForecastStatus.OK);
     assertThat(forecast.daysToLimit()).isLessThanOrEqualTo(14.0);
@@ -375,7 +398,7 @@ class CapacityForecastServiceTests {
             + " WHERE alert_id = (SELECT id FROM alert WHERE equipment_id = ? AND type = 'FORECAST')",
         server.getId());
 
-    hourly("disk.usage", 80, 2, 14 * 24, 1, 15); // même horizon, mais r² faible
+    hourlyIrregular("disk.usage", 80, 2, 15); // même horizon, mais r² faible
     forecasts.scan();
 
     assertThat(active("disk.usage")).isEqualTo(1);

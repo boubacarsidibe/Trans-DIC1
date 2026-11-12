@@ -8260,6 +8260,25 @@ components:
         lastPointAt:
           type: string
           format: date-time
+        method:
+          type: string
+          description: "Méthode retenue : droite ou cycle journalier"
+          enum:
+          - LINEAR
+          - SEASONAL
+        seasonalPeakHour:
+          type: integer
+          format: int32
+          description: "Heure locale du sommet du cycle, pour la méthode saisonniè\
+            re"
+        linearError:
+          type: number
+          format: double
+          description: Erreur moyenne de la droite sur les dernières 24 heures
+        seasonalError:
+          type: number
+          format: double
+          description: Erreur moyenne du cycle journalier sur les dernières 24 heures
     MetricHistoryResponse:
       type: object
       properties:

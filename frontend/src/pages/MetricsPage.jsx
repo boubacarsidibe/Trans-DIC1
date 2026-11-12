@@ -204,6 +204,7 @@ function ForecastCard({ forecast }) {
         {text.trend && <>Tendance : {text.trend}</>}
       </p>
       <p className="mt-2 text-white">{text.outlook}</p>
+      {text.method && <p className="mt-1 text-xs text-slate-400">{text.method}</p>}
       {text.confidence && <p className="mt-1 text-xs text-slate-400">{text.confidence}</p>}
     </section>
   );

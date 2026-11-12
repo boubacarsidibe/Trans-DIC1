@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import sn.ept.transdic1.alerting.domain.ForecastMethod;
 import sn.ept.transdic1.alerting.domain.ForecastStatus;
 
 /**
@@ -52,7 +53,39 @@ public final class CapacityForecast {
       double limit,
       int points,
       Instant firstAt,
-      Instant lastAt) {}
+      Instant lastAt,
+      ForecastMethod method,
+      Integer peakHour) {
+
+    /** Résultat d'une prévision linéaire : la méthode par défaut, sans heure de pointe. */
+    public Result(
+        ForecastStatus status,
+        Double current,
+        Double slopePerDay,
+        Double intercept,
+        Double r2,
+        Double daysToLimit,
+        Instant projectedAt,
+        double limit,
+        int points,
+        Instant firstAt,
+        Instant lastAt) {
+      this(
+          status,
+          current,
+          slopePerDay,
+          intercept,
+          r2,
+          daysToLimit,
+          projectedAt,
+          limit,
+          points,
+          firstAt,
+          lastAt,
+          ForecastMethod.LINEAR,
+          null);
+    }
+  }
 
   public static Result compute(List<Point> input, Instant now, Settings settings) {
     List<Point> points = input.stream().sorted(Comparator.comparing(Point::at)).toList();

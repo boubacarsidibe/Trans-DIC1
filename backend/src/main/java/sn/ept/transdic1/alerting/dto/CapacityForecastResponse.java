@@ -25,4 +25,12 @@ public record CapacityForecastResponse(
         int minSpanDays,
     @Schema(description = "Nombre de points (moyennes horaires) utilisés") int points,
     Instant firstPointAt,
-    Instant lastPointAt) {}
+    Instant lastPointAt,
+    @Schema(description = "Méthode retenue : droite ou cycle journalier")
+        sn.ept.transdic1.alerting.domain.ForecastMethod method,
+    @Schema(description = "Heure locale du sommet du cycle, pour la méthode saisonnière")
+        Integer seasonalPeakHour,
+    @Schema(description = "Erreur moyenne de la droite sur les dernières 24 heures")
+        Double linearError,
+    @Schema(description = "Erreur moyenne du cycle journalier sur les dernières 24 heures")
+        Double seasonalError) {}

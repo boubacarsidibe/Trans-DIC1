@@ -152,6 +152,8 @@ describe("page d'historique des mesures", () => {
           limit: 100,
           windowDays: 14,
           points: 335,
+          method: "SEASONAL",
+          seasonalPeakHour: 14,
         },
         { key: "memory.usage", unit: "%", current: 40, slopePerDay: -0.2, r2: 0.1, daysToLimit: null, status: "NO_GROWTH", limit: 100, windowDays: 14, points: 335 },
         { key: "disk.usage.var", unit: "%", current: 12, slopePerDay: null, r2: null, daysToLimit: null, status: "NOT_ENOUGH_DATA", limit: 100, windowDays: 14, minSpanDays: 3, points: 20 },
@@ -163,6 +165,8 @@ describe("page d'historique des mesures", () => {
     expect(disk).toHaveTextContent("Actuel : 78,4 %");
     expect(disk).toHaveTextContent("Tendance : +2 % par jour");
     expect(disk).toHaveTextContent("Plein dans ~11 jours le 16/11/2026");
+    // Cycle journalier : la limite se touche au pic, et l'heure est dite.
+    expect(disk).toHaveTextContent("Cycle journalier reconnu, pic vers 14 h");
     expect(disk).toHaveTextContent("Confiance haute");
     expect(apiClient.get).toHaveBeenCalledWith("/equipements/e1/previsions");
 

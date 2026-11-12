@@ -57,7 +57,9 @@ Les chiffres clés en haut : équipements, alertes actives, alertes critiques. E
 - « Pas de tendance à la hausse » : la valeur est stable ou baisse ;
 - « Pas assez de données (il faut 3 jours de mesures) » : l'équipement est suivi depuis trop peu de temps.
 
-La prévision suit une droite : elle ne connaît ni les cycles (sauvegardes de nuit) ni les purges à venir. C'est un ordre de grandeur pour planifier un nettoyage ou un agrandissement, pas une date exacte.
+**Cycle journalier.** Certains indicateurs montent le matin et redescendent la nuit : une droite passerait entre les pics et annoncerait la saturation trop tard. Quand les mesures montrent un tel cycle, la plateforme emploie un second modèle et la carte l'indique — « Cycle journalier reconnu, pic vers 14 h ». C'est au pic que la limite se touche : savoir l'heure évite de chercher à minuit pourquoi « rien ne dépasse ». Le choix entre les deux méthodes n'est pas deviné : chacune est mise à l'épreuve sur les dernières 24 heures, et la plus juste est retenue.
+
+La prévision reste un ordre de grandeur pour planifier un nettoyage ou un agrandissement, pas une date exacte : elle ne connaît ni les purges à venir, ni les cycles de la semaine (un lundi matin chargé passe pour du bruit).
 
 ### Alertes
 

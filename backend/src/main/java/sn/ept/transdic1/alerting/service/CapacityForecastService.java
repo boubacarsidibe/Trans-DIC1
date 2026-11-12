@@ -163,12 +163,23 @@ public class CapacityForecastService {
             .filter(this::tracked)
             .sorted()
             .toList();
-    return keys.stream().map(key -> response(key, compute(equipmentId, key, now))).toList();
+    return keys.stream()
+        .map(key -> response(key, compute(equipmentId, key, now), compare(equipmentId, key, now)))
+        .toList();
   }
 
-  /** Calcul de la prévision d'un indicateur, sans effet sur les alertes. */
+  /**
+   * Calcul de la prévision d'un indicateur, sans effet sur les alertes. La droite et le cycle
+   * journalier sont mis à l'épreuve sur les dernières heures, et le plus juste l'emporte ({@link
+   * ForecastModels}).
+   */
   Result compute(UUID equipmentId, String key, Instant now) {
-    return CapacityForecast.compute(points(equipmentId, key, now), now, settings);
+    return ForecastModels.choose(points(equipmentId, key, now), now, settings);
+  }
+
+  /** Les deux méthodes et leur erreur sur les dernières heures, pour l'écran. */
+  ForecastModels.Comparison compare(UUID equipmentId, String key, Instant now) {
+    return ForecastModels.compare(points(equipmentId, key, now), now, settings);
   }
 
   /**
@@ -415,6 +426,12 @@ public class CapacityForecastService {
             result.slopePerDay())
         + " %/jour, confiance "
         + CapacityForecast.confidence(result.r2())
+        + (result.method() == sn.ept.transdic1.alerting.domain.ForecastMethod.SEASONAL
+                && result.peakHour() != null
+            // Avec un cycle journalier, c'est au pic que la limite se touche : le dire évite de
+            // chercher à minuit pourquoi « rien ne dépasse ».
+            ? ", cycle journalier, pic vers " + result.peakHour() + " h"
+            : "")
         + ")";
   }
 
@@ -441,7 +458,8 @@ public class CapacityForecastService {
     return families.stream().anyMatch(family -> inFamily(key, family));
   }
 
-  private CapacityForecastResponse response(String key, Result r) {
+  private CapacityForecastResponse response(
+      String key, Result r, ForecastModels.Comparison comparison) {
     return new CapacityForecastResponse(
         key,
         "%",
@@ -457,7 +475,11 @@ public class CapacityForecastService {
         minSpanDays,
         r.points(),
         r.firstAt(),
-        r.lastAt());
+        r.lastAt(),
+        r.method(),
+        r.peakHour(),
+        round(comparison.linearError(), 2),
+        round(comparison.seasonalError(), 2));
   }
 
   private static Double round(Double value, int scale) {

@@ -98,6 +98,16 @@ export function describeForecast(forecast) {
   if (forecast.status === "OK" && forecast.confidence) {
     confidence = indicative ? "Confiance faible : estimation indicative" : `Confiance ${forecast.confidence}`;
   }
+  // Méthode retenue : la dire quand c'est le cycle journalier, parce qu'elle change la lecture —
+  // la limite se touche au pic, pas en moyenne, et savoir à quelle heure évite de chercher à
+  // minuit pourquoi « rien ne dépasse ».
+  let method = null;
+  if (forecast.method === "SEASONAL") {
+    method =
+      forecast.seasonalPeakHour === null || forecast.seasonalPeakHour === undefined
+        ? "Cycle journalier reconnu"
+        : `Cycle journalier reconnu, pic vers ${forecast.seasonalPeakHour} h`;
+  }
   return {
     title: `Prévision : ${label}`,
     current: forecast.current === null || forecast.current === undefined ? null : formatValue(forecast.current, unit),
@@ -105,6 +115,7 @@ export function describeForecast(forecast) {
     outlook,
     confidence,
     indicative,
+    method,
   };
 }
 
