@@ -23,6 +23,14 @@ public class AppUser {
   @Column(nullable = false)
   private Role role;
 
+  /**
+   * Vrai si le compte est authentifié par l'annuaire LDAP (ADR 0046) ; son mot de passe local est
+   * alors une valeur aléatoire que personne ne peut présenter. Un compte est local ou délégué,
+   * jamais les deux : garder un second secret annulerait l'intérêt de déléguer.
+   */
+  @Column(name = "directory", nullable = false)
+  private boolean directory;
+
   @Column(nullable = false)
   private boolean active;
 
@@ -94,6 +102,20 @@ public class AppUser {
   public void disableTotp() {
     this.totpSecret = null;
     this.totpEnabled = false;
+  }
+
+  public boolean isDirectory() {
+    return directory;
+  }
+
+  public void setDirectory(boolean directory) {
+    this.directory = directory;
+  }
+
+  /** Rôle relu de l'annuaire à chaque connexion (ADR 0046) ; sinon fixé par un administrateur. */
+  public void setRole(Role role) {
+    this.role = role;
+    touch();
   }
 
   public Role getRole() {

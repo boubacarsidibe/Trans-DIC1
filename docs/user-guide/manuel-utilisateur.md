@@ -98,6 +98,14 @@ En échange, **cette plage s'adapte** : un port dont le trafic grandit durableme
 
 Enfin, un port éteint puis rallumé aura appris une plage autour de zéro : ses premières mesures de trafic ouvriront une alerte, qui se refermera seule en quelques dizaines de mesures.
 
+### Se connecter avec son compte de l'école
+
+Si le CRI a relié la plateforme à l'annuaire de l'école, vous vous connectez avec **votre identifiant et votre mot de passe habituels** : il n'y a pas de second mot de passe à retenir, et aucun compte à demander au préalable. Le vôtre est créé à votre première connexion.
+
+Votre **rôle** dépend de vos groupes dans l'annuaire — administrateur, opérateur NOC ou lecteur. Il est relu à chaque connexion : si vos groupes changent, vos droits suivent dès la connexion suivante. Si vous figurez dans l'annuaire mais dans aucun des groupes retenus par le CRI, la connexion est refusée : c'est voulu, l'annuaire contient toute l'école.
+
+Deux choses à savoir. Changer votre mot de passe se fait **dans l'annuaire de l'école**, pas ici : la plateforme n'en garde aucune copie. Et une série de mots de passe erronés verrouille temporairement l'accès, comme pour un compte local — attendez quelques minutes ou demandez au CRI.
+
 ### Dire quelle était la vraie cause
 
 Dans le diagnostic, chaque cause probable porte un bouton **« C'était la vraie cause »**, et la rubrique propose aussi **« Aucune de ces causes »**. Votre réponse ne change rien à l'alerte en cours : elle corrige le **classement des prochaines**.

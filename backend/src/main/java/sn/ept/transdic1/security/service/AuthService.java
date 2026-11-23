@@ -40,6 +40,7 @@ public class AuthService {
   private final UserSessionRepository sessions;
   private final Duration refreshLifetime;
   private final PasswordEncoder passwords;
+  private final DirectoryAuthenticationService annuaire;
   private final JwtService jwt;
   private final Clock clock;
   private final SecurityAuditLog audit;
@@ -54,6 +55,7 @@ public class AuthService {
       JwtService j,
       Clock clock,
       SecurityAuditLog audit,
+      DirectoryAuthenticationService annuaire,
       @Value("${security.login.lock-threshold:5}") int lockThreshold,
       @Value("${security.login.lock-base-seconds:60}") long baseSeconds,
       @Value("${security.login.lock-max-seconds:1800}") long maxSeconds,
@@ -62,6 +64,7 @@ public class AuthService {
     this.sessions = sessions;
     this.refreshLifetime = Duration.ofSeconds(refreshSeconds);
     passwords = p;
+    this.annuaire = annuaire;
     dummyHash = p.encode(java.util.UUID.randomUUID().toString());
     jwt = j;
     this.clock = clock;
@@ -75,15 +78,41 @@ public class AuthService {
    * Toutes les causes d'échec (inconnu, désactivé, verrouillé, mauvais mot de passe) renvoient la
    * même réponse 401. L'échec doit être enregistré malgré l'exception, d'où noRollbackFor.
    */
+  /**
+   * Compte créé depuis l'annuaire, ou null si l'annuaire n'est pas configuré, ne connaît pas cette
+   * personne, ou ne lui reconnaît aucun groupe donnant accès à la plateforme.
+   */
+  private AppUser fromDirectory(LoginRequest r) {
+    if (!annuaire.enabled()) {
+      return null;
+    }
+    var attempt = annuaire.authenticate(r.username(), r.password());
+    if (attempt.succeeded()) {
+      return attempt.user();
+    }
+    if (attempt.refusal() == DirectoryAuthenticationService.Refusal.NO_ROLE) {
+      // Mot de passe bon, mais aucun groupe reconnu : le distinguer dans le journal évite de
+      // chercher une panne d'annuaire là où il n'y a qu'une configuration de groupes à écrire.
+      audit.record("LOGIN_FAILED_NO_DIRECTORY_ROLE", null, r.username());
+    }
+    return null;
+  }
+
   @Transactional(noRollbackFor = ResponseStatusException.class)
   public AuthSession login(LoginRequest r, String ip) {
     var now = clock.instant();
     var found = users.findByUsername(r.username());
 
     if (found.isEmpty()) {
-      passwords.matches(r.password(), dummyHash);
-      audit.record("LOGIN_FAILED_UNKNOWN", null, r.username());
-      throw unauthorized();
+      // Première connexion de quelqu'un que l'annuaire connaît : le compte local est créé à cette
+      // occasion (ADR 0046). Sans annuaire configuré, rien ne change.
+      AppUser provisioned = fromDirectory(r);
+      if (provisioned == null) {
+        passwords.matches(r.password(), dummyHash);
+        audit.record("LOGIN_FAILED_UNKNOWN", null, r.username());
+        throw unauthorized();
+      }
+      found = java.util.Optional.of(provisioned);
     }
 
     AppUser u = found.get();
@@ -96,7 +125,14 @@ public class AuthService {
       throw unauthorized();
     }
 
-    if (!passwords.matches(r.password(), u.getPasswordHash())) {
+    // Un compte d'annuaire n'a pas de secret local : c'est l'annuaire qui dit oui ou non. Le
+    // verrouillage après échecs répétés s'applique dans les deux cas — il protège l'annuaire
+    // autant que nous.
+    boolean accepted =
+        u.isDirectory()
+            ? annuaire.authenticate(r.username(), r.password()).succeeded()
+            : passwords.matches(r.password(), u.getPasswordHash());
+    if (!accepted) {
       u.registerFailedLogin(now, lockThreshold, baseLock, maxLock);
       users.save(u);
       audit.record(
