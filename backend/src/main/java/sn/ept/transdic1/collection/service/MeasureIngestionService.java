@@ -73,6 +73,30 @@ public class MeasureIngestionService {
 
   @Transactional
   public IngestionResult ingest(UUID equipmentId, List<MeasureInput> measures) {
+    // Source directe : tout ce qui arrive est récent, donc tout est évalué.
+    return receive(equipmentId, measures, Instant.MIN, false);
+  }
+
+  /**
+   * Reçoit un lot tamponné par un proxy de collecte (ADR 0047).
+   *
+   * <p>Deux différences avec un envoi direct, et elles comptent. Les mesures antérieures à {@code
+   * evaluateFrom} sont <b>stockées sans être évaluées</b> : rejouer six heures de tampon ouvrirait
+   * et refermerait six heures d'alertes comme si elles arrivaient maintenant, et réveillerait
+   * l'astreinte pour une panne terminée. Elles remplissent l'historique, les rapports et
+   * l'apprentissage, pas la liste des alertes. Et le simple fait de recevoir quelque chose
+   * <b>rétablit l'équipement</b>, même si rien n'est évaluable : un tampon qui se vide prouve que
+   * la liaison est revenue, ce qu'une mesure vieille de six heures ne prouve pas de l'instant
+   * présent.
+   */
+  @Transactional
+  public IngestionResult ingestBuffered(
+      UUID equipmentId, List<MeasureInput> measures, Instant evaluateFrom) {
+    return receive(equipmentId, measures, evaluateFrom, true);
+  }
+
+  private IngestionResult receive(
+      UUID equipmentId, List<MeasureInput> measures, Instant evaluateFrom, boolean recoverOnStore) {
     if (measures == null || measures.isEmpty() || measures.size() > MAX_BATCH) {
       throw new ResponseStatusException(
           HttpStatus.BAD_REQUEST, "Entre 1 et " + MAX_BATCH + " mesures par envoi");
@@ -98,6 +122,8 @@ public class MeasureIngestionService {
     var ordered =
         measures.stream().sorted(Comparator.comparing(MeasureInput::collectedAt)).toList();
     for (MeasureInput measure : ordered) {
+      // Une mesure ancienne n'est pas de mauvaise qualité : elle est seulement hors sujet pour les
+      // alertes. On la stocke telle qu'elle est, et on s'abstient de l'évaluer.
       store(
           equipment,
           null,
@@ -106,11 +132,13 @@ public class MeasureIngestionService {
           measure.unit(),
           parseQuality(measure.quality()),
           measure.collectedAt(),
+          !measure.collectedAt().isBefore(evaluateFrom),
           tally);
     }
     // Une mesure exploitable prouve que la source répond : l'équipement repasse en service et
-    // l'alerte de collecte éventuelle se résout.
-    if (tally.evaluated > 0) {
+    // l'alerte de collecte éventuelle se résout. Pour un proxy, c'est la réception elle-même qui
+    // le prouve, pas la fraîcheur de ce qu'il rejoue.
+    if (tally.evaluated > 0 || (recoverOnStore && tally.stored > 0)) {
       equipment.markReachable();
       if (collectionAlerts.reportRecovery(equipment, clock.instant()).isPresent()) {
         tally.resolved++;
@@ -235,10 +263,15 @@ public class MeasureIngestionService {
       String unit,
       Instant at,
       Tally tally) {
-    store(equipment, service, key, value, unit, MeasurementQuality.GOOD, at, tally);
+    store(equipment, service, key, value, unit, MeasurementQuality.GOOD, at, true, tally);
   }
 
-  /** Stocke une mesure puis, si elle est exploitable, la fait évaluer par les règles. */
+  /**
+   * Stocke une mesure puis, si elle est exploitable, la fait évaluer par les règles.
+   *
+   * @param evaluate faux pour une mesure rejouée d'un tampon : elle entre dans l'historique sans
+   *     ouvrir ni fermer d'alerte (ADR 0047)
+   */
   private void store(
       Equipment equipment,
       MonitoredService service,
@@ -247,12 +280,13 @@ public class MeasureIngestionService {
       String unit,
       MeasurementQuality quality,
       Instant at,
+      boolean evaluate,
       Tally tally) {
     var metric = new Metric(equipment, key, value, unit, quality, at);
     metric.setService(service);
     metrics.save(metric);
     tally.stored++;
-    if (quality == MeasurementQuality.BAD) {
+    if (quality == MeasurementQuality.BAD || !evaluate) {
       return;
     }
     metrics.flush();

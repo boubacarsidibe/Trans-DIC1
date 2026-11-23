@@ -462,6 +462,16 @@ Depuis la liste des équipements, **Collecte** ouvre la configuration de la coll
 
 À savoir : les débits n'apparaissent qu'au deuxième passage (un compteur seul ne dit rien, il faut deux relevés) et après le redémarrage d'un équipement. Le bouclage et les ports désactivés par l'administrateur sont inventoriés mais pas suivis. Un port ajouté met jusqu'à une heure à apparaître. L'occupation du lien dépend de la vitesse annoncée par l'équipement : si elle est mal renseignée, le pourcentage l'est aussi.
 
+### Relais de collecte d'un bâtiment
+
+Quand un bâtiment est relié par une liaison qui tombe de temps en temps, installez-y un **relais de collecte** plutôt qu'un agent par machine. Sur la page **Sites**, le bouton « Proxy » ouvre le panneau du site : « Enregistrer un proxy » donne un jeton, **affiché une seule fois** — copiez-le tout de suite, personne ne pourra le relire.
+
+Ce que le relais change pour vous : pendant une coupure, il garde les mesures et les envoie au retour de la liaison. Le trou dans les courbes **se remplit après coup**, et les taux de disponibilité de la journée se stabilisent donc un peu plus tard. En revanche, ces mesures rattrapées **n'ouvrent pas d'alerte** : une panne terminée depuis six heures n'a pas à réveiller qui est d'astreinte. L'état du moment, lui, est bien évalué.
+
+Si le relais lui-même se taît, c'est tout le bâtiment qui est sans collecte : le panneau le dit en rouge, et une alerte s'ouvre sur les équipements relayés — regroupées, elles ne font **qu'un seul incident** à traiter. Tout rentre dans l'ordre à la première mesure reçue.
+
+Un site peut mélanger relais et agents : un équipement qui a son propre agent reste suivi par lui, sans double alerte.
+
 ### Sondes (supervision sans agent)
 
 Pour un équipement qui n'a ni agent ni SNMP (imprimante, borne Wi-Fi, ENT, messagerie, site web), **Parc > Équipements**, bouton **Sondes** sur la ligne de l'équipement. Tous les rôles voient la page (dans leur périmètre de sites) ; seuls les administrateurs ajoutent, modifient, testent, réactivent ou suppriment.

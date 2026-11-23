@@ -165,3 +165,69 @@ describe("page des sites", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Impossible de charger les sites.");
   });
 });
+
+describe("proxy de collecte d'un site", () => {
+  const proxy = (overrides = {}) => ({
+    proxyId: "p1",
+    identifier: "proxy-ab12cd34",
+    status: "ACTIVE",
+    registeredAt: "2026-11-23T08:00:00Z",
+    lastCommunicationAt: "2026-11-23T08:05:00Z",
+    ipAddress: "10.244.1.9",
+    silencieux: false,
+    ...overrides,
+  });
+
+  async function openPanel(answer) {
+    apiClient.get.mockImplementation((url) =>
+      url.includes("/proxy") ? Promise.resolve({ data: answer }) : Promise.resolve(pageOf([site()])),
+    );
+    renderPage();
+    await userEvent.click(await screen.findByRole("button", { name: /Proxy de collecte de/ }));
+  }
+
+  it("montre l'état du proxy du site, sans jamais son jeton", async () => {
+    await openPanel(proxy());
+
+    expect(await screen.findByText("proxy-ab12cd34")).toBeInTheDocument();
+    expect(screen.getByText("10.244.1.9")).toBeInTheDocument();
+  });
+
+  it("dit qu'un site n'a pas encore de proxy", async () => {
+    apiClient.get.mockImplementation((url) =>
+      url.includes("/proxy")
+        ? Promise.reject({ response: { status: 404 } })
+        : Promise.resolve(pageOf([site()])),
+    );
+    renderPage();
+    await userEvent.click(await screen.findByRole("button", { name: /Proxy de collecte de/ }));
+
+    expect(await screen.findByText("Aucun proxy actif pour ce site.")).toBeInTheDocument();
+  });
+
+  it("montre le jeton une seule fois, à l'enregistrement", async () => {
+    await openPanel(proxy());
+    apiClient.post.mockResolvedValue({ data: { proxyId: "p2", identifier: "proxy-ef56", token: "tdic1_secret" } });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Remplacer le jeton" }));
+
+    expect(await screen.findByText("tdic1_secret")).toBeInTheDocument();
+    expect(apiClient.post).toHaveBeenCalledWith("/sites/s1/proxy");
+  });
+
+  it("avertit quand le proxy est muet : c'est tout le site qui est sans collecte", async () => {
+    await openPanel(proxy({ silencieux: true }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("tout le site est sans collecte");
+  });
+
+  it("demande confirmation avant de révoquer", async () => {
+    await openPanel(proxy());
+
+    await userEvent.click(await screen.findByRole("button", { name: "Révoquer le proxy" }));
+    expect(apiClient.delete).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Confirmer la révocation" }));
+    expect(apiClient.delete).toHaveBeenCalledWith("/sites/s1/proxy");
+  });
+});

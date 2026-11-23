@@ -11,6 +11,7 @@ import {
 import { useAuth } from "../auth/AuthContext.jsx";
 import { canManageEquipment } from "../auth/permissions.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import SiteProxyPanel from "./SiteProxyPanel.jsx";
 import { Badge } from "../ui/Badges.jsx";
 
 const EMPTY = { code: "", name: "", description: "", address: "", status: "ACTIVE", slaTarget: "99.5" };
@@ -94,6 +95,7 @@ function SiteForm({ initial, creating, submitting, onSubmit, onCancel }) {
 function SitesPage() {
   const { role } = useAuth();
   const canManage = canManageEquipment(role);
+  const [proxySite, setProxySite] = useState(null);
   const [page, setPage] = useState(0);
   const [data, setData] = useState({ content: [], page: { totalPages: 0 } });
   const [loading, setLoading] = useState(true);
@@ -282,6 +284,17 @@ function SitesPage() {
                         </button>
                         <button
                           type="button"
+                          onClick={() => {
+                            setNotice("");
+                            setProxySite(site);
+                          }}
+                          aria-label={`Proxy de collecte de ${site.name}`}
+                          className="btn btn-secondary btn-sm"
+                        >
+                          Proxy
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => setPendingDelete(site)}
                           aria-label={`Supprimer ${site.name}`}
                           className="btn btn-danger btn-sm"
@@ -296,6 +309,14 @@ function SitesPage() {
             </tbody>
           </table>
         </div>
+
+        {proxySite && (
+          <SiteProxyPanel
+            site={proxySite}
+            canManage={canManage}
+            onClose={() => setProxySite(null)}
+          />
+        )}
 
         {totalPages > 1 && (
           <div className="mt-6 flex items-center gap-4 text-sm text-slate-300">

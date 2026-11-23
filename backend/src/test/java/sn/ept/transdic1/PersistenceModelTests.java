@@ -313,7 +313,7 @@ class PersistenceModelTests {
             "LearnedCorrelation",
             // Cause confirmée par l'opérateur (ADR 0045).
             "CauseFeedback")
-        .hasSize(49);
+        .hasSize(51);
   }
 
   @Test

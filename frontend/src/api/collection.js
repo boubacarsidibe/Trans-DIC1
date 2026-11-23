@@ -158,3 +158,22 @@ export function toSnmpPayload(values) {
     })),
   };
 }
+
+// Proxy de collecte d'un site (ADR 0047) : un seul jeton pour tous ses équipements.
+export async function getProxy(siteId) {
+  try {
+    const { data } = await apiClient.get(`/sites/${siteId}/proxy`);
+    return data;
+  } catch (error) {
+    return notFoundAsNull(error);
+  }
+}
+
+export async function registerProxy(siteId) {
+  const { data } = await apiClient.post(`/sites/${siteId}/proxy`);
+  return data;
+}
+
+export async function revokeProxy(siteId) {
+  await apiClient.delete(`/sites/${siteId}/proxy`);
+}

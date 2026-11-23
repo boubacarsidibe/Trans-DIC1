@@ -537,6 +537,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sites/{siteId}/proxy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Consulter le proxy actif d'un site
+         * @description État et dernière communication ; le jeton n'est jamais renvoyé.
+         */
+        get: operations["current"];
+        put?: never;
+        /**
+         * Enregistrer le proxy de collecte d'un site
+         * @description Crée un proxy actif et retourne son jeton, affiché une seule fois. Un proxy déjà actif sur le site est révoqué.
+         */
+        post: operations["register"];
+        /** Révoquer le proxy d'un site */
+        delete: operations["revoke"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/regles-evenements": {
         parameters: {
             query?: never;
@@ -674,6 +699,26 @@ export interface paths {
          * @description Envoie le rapport sans attendre l'heure dite, pour vérifier les destinataires.
          */
         post: operations["sendNow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proxy/measures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Envoyer un lot de mesures (proxy)
+         * @description Authentifié par le jeton du proxy dans l'en-tête Authorization: Bearer. Le lot porte un numéro : le renvoyer après un accusé de réception perdu rend le premier bilan sans rien restocker. Les mesures plus anciennes que la fenêtre de fraîcheur entrent dans l'historique sans ouvrir d'alerte, pour qu'un tampon de six heures ne réveille pas l'astreinte pour une panne terminée ; celles qui sortent de la fenêtre de rattrapage sont comptées et écartées, sans faire échouer le lot.
+         */
+        post: operations["receive"];
         delete?: never;
         options?: never;
         head?: never;
@@ -930,15 +975,15 @@ export interface paths {
          * Consulter l'agent actif d'un équipement
          * @description État et dernière communication ; le jeton n'est jamais renvoyé.
          */
-        get: operations["current"];
+        get: operations["current_1"];
         put?: never;
         /**
          * Enregistrer l'agent d'un équipement
          * @description Crée un agent actif et retourne son jeton, affiché une seule fois. Un agent déjà actif sur l'équipement est révoqué.
          */
-        post: operations["register"];
+        post: operations["register_1"];
         /** Révoquer l'agent d'un équipement */
-        delete: operations["revoke"];
+        delete: operations["revoke_1"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1422,7 +1467,7 @@ export interface paths {
          * Envoyer des mesures (agent)
          * @description Authentifié par le jeton de l'agent dans l'en-tête Authorization: Bearer. Les mesures sont stockées puis évaluées contre les règles d'alerte.
          */
-        post: operations["receive"];
+        post: operations["receive_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1442,7 +1487,7 @@ export interface paths {
          * Envoyer des lignes de journal (agent)
          * @description Authentifié par le jeton de l'agent. Le serveur juge les lignes : seules les tentatives d'authentification, les attaques reconnues et les erreurs web sont conservées ; une requête ordinaire ne laisse aucune trace.
          */
-        post: operations["receive_1"];
+        post: operations["receive_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2344,7 +2389,7 @@ export interface paths {
          * Révoquer un jeton
          * @description Le jeton cesse d'être accepté tout de suite ; la ligne reste pour l'audit.
          */
-        delete: operations["revoke_1"];
+        delete: operations["revoke_2"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2814,6 +2859,12 @@ export interface components {
             equipmentCount?: number;
             slaTarget?: number;
         };
+        ProxyRegistrationResponse: {
+            /** Format: uuid */
+            proxyId?: string;
+            identifier?: string;
+            token?: string;
+        };
         EventRuleResponse: {
             /** Format: uuid */
             id?: string;
@@ -2903,6 +2954,24 @@ export interface components {
         };
         SendResult: {
             sent?: boolean;
+        };
+        EquipmentMeasures: {
+            /** Format: uuid */
+            equipementId: string;
+            mesures: components["schemas"]["MeasureInput"][];
+        };
+        MeasureInput: {
+            key: string;
+            value: number;
+            unit: string;
+            quality?: string;
+            /** Format: date-time */
+            collectedAt: string;
+        };
+        ProxyMeasuresRequest: {
+            /** Format: uuid */
+            lotId: string;
+            equipements: components["schemas"]["EquipmentMeasures"][];
         };
         IncidentUpdateRequest: {
             /** @enum {string} */
@@ -3223,14 +3292,6 @@ export interface components {
         };
         AgentMeasuresRequest: {
             measures: components["schemas"]["MeasureInput"][];
-        };
-        MeasureInput: {
-            key: string;
-            value: number;
-            unit: string;
-            quality?: string;
-            /** Format: date-time */
-            collectedAt: string;
         };
         LogBatch: {
             entries: components["schemas"]["LogEntry"][];
@@ -6461,6 +6522,136 @@ export interface operations {
             };
         };
     };
+    current: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                siteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Aucun proxy actif */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    register: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                siteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProxyRegistrationResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Site introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                siteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Aucun proxy actif */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     list_3: {
         parameters: {
             query: {
@@ -6879,6 +7070,46 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["SendResult"];
                 };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    receive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProxyMeasuresRequest"];
+            };
+        };
+        responses: {
+            /** @description Lot vide ou trop gros */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Authentification requise ou jeton expiré */
             401: {
@@ -7723,7 +7954,7 @@ export interface operations {
             };
         };
     };
-    current: {
+    current_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -7761,7 +7992,7 @@ export interface operations {
             };
         };
     };
-    register: {
+    register_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -7808,7 +8039,7 @@ export interface operations {
             };
         };
     };
-    revoke: {
+    revoke_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -9053,7 +9284,7 @@ export interface operations {
             };
         };
     };
-    receive: {
+    receive_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -9093,7 +9324,7 @@ export interface operations {
             };
         };
     };
-    receive_1: {
+    receive_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -10980,7 +11211,7 @@ export interface operations {
             };
         };
     };
-    revoke_1: {
+    revoke_2: {
         parameters: {
             query?: never;
             header?: never;
