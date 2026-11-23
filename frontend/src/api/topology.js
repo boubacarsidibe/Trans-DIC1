@@ -77,3 +77,34 @@ export function levels(nodes, links) {
   for (const node of nodes) result.set(node.id, depth(node.id));
   return result;
 }
+
+/**
+ * Liens entre équipements appris de l'historique des alertes (M9, ADR 0042). Ce ne sont que des
+ * propositions : rien ne sert avant qu'un administrateur accepte.
+ */
+export async function getLearnedCorrelations() {
+  const { data } = await apiClient.get("/correlations-apprises");
+  return data;
+}
+
+export async function acceptLearnedCorrelation(id) {
+  await apiClient.post(`/correlations-apprises/${id}/acceptation`);
+}
+
+export async function rejectLearnedCorrelation(id) {
+  await apiClient.post(`/correlations-apprises/${id}/rejet`);
+}
+
+/** « 6 fois sur 6 » : la confiance dite en nombres plutôt qu'en pourcentage abstrait. */
+export function formatConfidence(correlation) {
+  const together = Number(correlation?.ensemble) || 0;
+  const windows = Math.min(
+    Number(correlation?.fenetresPremier) || 0,
+    Number(correlation?.fenetresSecond) || 0,
+  );
+  if (windows === 0) {
+    return "—";
+  }
+  const percent = Math.round((Number(correlation?.confiance) || 0) * 100);
+  return `${together} fois sur ${windows} (${percent} %)`;
+}

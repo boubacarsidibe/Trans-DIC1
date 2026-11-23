@@ -308,8 +308,10 @@ class PersistenceModelTests {
             "LldpNeighbour",
             // Regroupement des alertes en incidents (ADR 0039).
             "Incident",
-            "IncidentAlert")
-        .hasSize(47);
+            "IncidentAlert",
+            // Corrélation apprise entre équipements (ADR 0042).
+            "LearnedCorrelation")
+        .hasSize(48);
   }
 
   @Test

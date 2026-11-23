@@ -2,12 +2,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link2, Unlink } from "lucide-react";
 import { useAuth } from "../auth/AuthContext.jsx";
 import {
+  acceptLearnedCorrelation,
   acceptNeighbour,
   addLink,
   downstream,
+  formatConfidence,
+  getLearnedCorrelations,
   getNeighbours,
   getTopology,
   ignoreNeighbour,
+  rejectLearnedCorrelation,
   levels,
   matchLabel,
   removeLink,
@@ -22,6 +26,10 @@ const GAP_X = 22;
 const GAP_Y = 64;
 const STATUS_COLORS = { UP: "#1f8a5b", DEGRADED: "#c27b00", MAINTENANCE: "#1160a8", DOWN: "#c4302b", UNKNOWN: "#8a8f97" };
 const short = (text, max = 22) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);
+
+/** Date courte : « 13 nov. », qui suffit pour dire « vu depuis ». */
+const day = (value) =>
+  value ? new Date(value).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "—";
 
 /** Graphe en niveaux : l'amont en haut, l'aval en dessous. Décoratif pour un lecteur d'écran (tableau plus bas). */
 function Graph({ nodes, links, selected, impacted, onSelect }) {
@@ -98,12 +106,18 @@ function TopologyPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [neighbours, setNeighbours] = useState([]);
+  const [learned, setLearned] = useState([]);
 
   const load = useCallback(async () => {
     try {
-      const [topology, discovered] = await Promise.all([getTopology(), getNeighbours()]);
+      const [topology, discovered, correlations] = await Promise.all([
+        getTopology(),
+        getNeighbours(),
+        getLearnedCorrelations(),
+      ]);
       setGraph(topology);
       setNeighbours(Array.isArray(discovered) ? discovered : []);
+      setLearned(Array.isArray(correlations) ? correlations : []);
     } catch {
       setError("Impossible de charger la topologie.");
     }
@@ -153,6 +167,27 @@ function TopologyPage() {
       await load();
     } catch {
       setError("Le retrait du lien a échoué.");
+    }
+  }
+
+  async function decideLearned(correlation, keep) {
+    setError("");
+    setNotice("");
+    try {
+      if (keep) {
+        await acceptLearnedCorrelation(correlation.id);
+        setNotice("Lien appris accepté : leurs alertes seront regroupées en un seul incident.");
+      } else {
+        await rejectLearnedCorrelation(correlation.id);
+        setNotice("Lien appris écarté : il ne sera plus proposé.");
+      }
+      await load();
+    } catch (e) {
+      setError(
+        e?.response?.status === 409
+          ? "Cette proposition a déjà été tranchée."
+          : "L’enregistrement de votre décision a échoué.",
+      );
     }
   }
 
@@ -283,6 +318,79 @@ function TopologyPage() {
               Ajouter le lien
             </button>
           </form>
+        )}
+
+        {learned.length > 0 && (
+          <section
+            aria-labelledby="appris-title"
+            className="panel panel-flush mt-4 overflow-x-auto"
+          >
+            <div className="panel-head">
+              <h2 id="appris-title">Liens appris des alertes</h2>
+              <span className="badge-muted">
+                {learned.length} proposition{learned.length > 1 ? "s" : ""}
+              </span>
+            </div>
+            <p className="diag-note">
+              Ces équipements tombent ensemble, encore et encore, alors que la topologie ne les
+              relie pas : un serveur et le stockage qu’il monte, une baie et son onduleur, deux
+              machines derrière le même cordon mal déclaré. La statistique voit qu’ils arrivent
+              ensemble, pas pourquoi — à vous de dire s’il y a un lien. Accepté, il regroupe leurs
+              alertes en un seul incident ; écarté, il ne reviendra plus.
+            </p>
+            <table className="data-table">
+              <caption className="sr-only">Liens entre équipements appris des alertes</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Premier équipement</th>
+                  <th scope="col">Second équipement</th>
+                  <th scope="col">Tombent ensemble</th>
+                  <th scope="col">Vu depuis</th>
+                  {isAdmin && <th scope="col">Action</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {learned.map((correlation) => (
+                  <tr key={correlation.id}>
+                    <td>
+                      <span className="cell-strong">{correlation.premierEquipement}</span>
+                    </td>
+                    <td>
+                      <span className="cell-strong">{correlation.secondEquipement}</span>
+                    </td>
+                    <td>
+                      {formatConfidence(correlation)}
+                      <span className="cell-sub">
+                        sur {correlation.fenetresTotales} fenêtres de dix minutes où une alerte
+                        s’est ouverte
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap">{day(correlation.vuDepuis)}</td>
+                    {isAdmin && (
+                      <td>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => decideLearned(correlation, true)}
+                          >
+                            Accepter le lien
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-ghost"
+                            onClick={() => decideLearned(correlation, false)}
+                          >
+                            Écarter
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
         )}
 
         {neighbours.length > 0 && (

@@ -50,7 +50,11 @@ import sn.ept.transdic1.common.alerting.IncidentGrouping;
  *       alertes sur le même serveur en dix minutes, c'est un fait, pas trois.
  *   <li><b>Topologie</b> : l'équipement est à {@code maxDistance} liens ou moins d'un équipement de
  *       l'incident, dans un sens ou dans l'autre. C'est le signal le plus fort après le précédent,
- *       parce qu'il dit <i>par quoi</i> les deux alertes peuvent être liées.
+ *       parce qu'il dit <i>par quoi</i> les deux alertes peuvent être liées. Les liens <b>appris
+ *       des alertes et acceptés par un administrateur</b> (M9, ADR 0042) comptent comme des liens
+ *       directs : c'est précisément à cela qu'ils servent, et le message dit de quelle sorte de
+ *       lien il s'agit — l'opérateur doit pouvoir distinguer un câble d'une statistique qu'il a
+ *       validée.
  *   <li><b>Même site et même nature</b> : même site, et soit la même règle d'alerte, soit des
  *       messages de gabarit quasi identique ({@link MessageSimilarity}). Sans la condition de
  *       nature, tout ce qui arrive en même temps sur un site finirait dans le même sac. La
@@ -82,6 +86,7 @@ public class IncidentGroupingService implements IncidentGrouping {
   private final EntityManager em;
   private final IncidentRepository incidents;
   private final IncidentAlertRepository links;
+  private final LearnedCorrelationService learned;
   private final MeterRegistry meters;
   private final Clock clock;
   private final boolean enabled;
@@ -94,6 +99,7 @@ public class IncidentGroupingService implements IncidentGrouping {
       EntityManager em,
       IncidentRepository incidents,
       IncidentAlertRepository links,
+      LearnedCorrelationService learned,
       MeterRegistry meters,
       Clock clock,
       @Value("${alerting.incident.enabled:true}") boolean enabled,
@@ -104,6 +110,7 @@ public class IncidentGroupingService implements IncidentGrouping {
     this.em = em;
     this.incidents = incidents;
     this.links = links;
+    this.learned = learned;
     this.meters = meters;
     this.clock = clock;
     this.enabled = enabled;
@@ -265,7 +272,7 @@ public class IncidentGroupingService implements IncidentGrouping {
     if (candidates.isEmpty()) {
       return Optional.empty();
     }
-    Map<UUID, Integer> near = depths(facts.equipmentId());
+    Map<UUID, Nearness> near = depths(facts.equipmentId());
     var matches = new ArrayList<Match>();
     for (Incident candidate : candidates) {
       members(candidate.getId()).stream()
@@ -293,18 +300,28 @@ public class IncidentGroupingService implements IncidentGrouping {
   /** Le rang de la règle qui a joué, et sa raison en clair. Rang 1 = règle la plus forte. */
   private record Verdict(int rank, String reason) {}
 
+  /** Proximité d'un équipement : à combien de liens, et par quelle sorte de lien. */
+  private record Nearness(int distance, boolean learned) {
+
+    /** Comment le dire à l'opérateur, pour qu'il sache ce qu'il regarde. */
+    String describe(String name) {
+      if (learned) {
+        return "Lien appris des alertes, accepté : " + name;
+      }
+      return "Voisin dans la topologie : "
+          + name
+          + (distance == 1 ? " (lien direct)" : " (" + distance + " liens)");
+    }
+  }
+
   /** La règle qui rapproche l'alerte d'une alerte déjà rangée, ou null si aucune ne le fait. */
-  private Verdict judge(Facts facts, Member member, Map<UUID, Integer> near) {
+  private Verdict judge(Facts facts, Member member, Map<UUID, Nearness> near) {
     if (member.equipmentId().equals(facts.equipmentId())) {
       return new Verdict(1, "Même équipement : " + facts.equipmentName());
     }
-    Integer distance = near.get(member.equipmentId());
-    if (distance != null) {
-      return new Verdict(
-          2,
-          "Voisin dans la topologie : "
-              + member.equipmentName()
-              + (distance == 1 ? " (lien direct)" : " (" + distance + " liens)"));
+    Nearness nearness = near.get(member.equipmentId());
+    if (nearness != null) {
+      return new Verdict(2, nearness.describe(member.equipmentName()));
     }
     if (facts.siteId() == null || !facts.siteId().equals(member.siteId())) {
       return null;
@@ -339,8 +356,8 @@ public class IncidentGroupingService implements IncidentGrouping {
    * : un amont en panne explique son aval, mais un aval en panne peut tout aussi bien révéler le
    * lien lui-même, et la topologie de l'EPT n'est pas un arbre parfait.
    */
-  private Map<UUID, Integer> depths(UUID equipmentId) {
-    var depths = new HashMap<UUID, Integer>();
+  private Map<UUID, Nearness> depths(UUID equipmentId) {
+    var depths = new HashMap<UUID, Nearness>();
     jdbc.query(
         "WITH RECURSIVE voisinage(id, depth) AS ("
             + " SELECT CAST(? AS uuid), 0"
@@ -349,11 +366,15 @@ public class IncidentGroupingService implements IncidentGrouping {
             + " v.depth + 1 FROM equipment_link l JOIN voisinage v"
             + " ON l.equipment_id = v.id OR l.upstream_id = v.id WHERE v.depth < ?)"
             + " SELECT id, min(depth) FROM voisinage WHERE depth > 0 GROUP BY id",
-        rs -> {
-          depths.put(rs.getObject(1, UUID.class), rs.getInt(2));
-        },
+        (org.springframework.jdbc.core.RowCallbackHandler)
+            rs -> depths.put(rs.getObject(1, UUID.class), new Nearness(rs.getInt(2), false)),
         equipmentId,
         maxDistance);
+    // Les liens appris et acceptés valent un lien direct. Ils sont ajoutés après la topologie et
+    // ne l'écrasent pas : quand un câble existe aussi, autant le nommer, lui.
+    for (UUID neighbour : learned.acceptedNeighbours(equipmentId)) {
+      depths.putIfAbsent(neighbour, new Nearness(1, true));
+    }
     return depths;
   }
 

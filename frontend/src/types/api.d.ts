@@ -1005,6 +1005,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/correlations-apprises/{id}/rejet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Écarter un lien proposé
+         * @description Il ne sera plus reproposé, même si la statistique persiste.
+         */
+        post: operations["reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/correlations-apprises/{id}/acceptation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accepter un lien proposé
+         * @description Le lien rapproche désormais les alertes des deux équipements en incidents.
+         */
+        post: operations["accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/canaux/test": {
         parameters: {
             query?: never;
@@ -1934,6 +1974,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/correlations-apprises": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lister les liens proposés
+         * @description Les plus confiants d'abord. Un lien n'est listé que si les deux équipements sont visibles : une proposition porte sur leur couple, en montrer la moitié n'aurait aucun sens.
+         */
+        get: operations["list_13"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/canaux/modeles": {
         parameters: {
             query?: never;
@@ -2043,7 +2103,7 @@ export interface paths {
          * Consulter le journal
          * @description Liste paginée (50 par page, plus récentes d'abord), filtrable par période (from inclus, to exclu), compte, action et cible.
          */
-        get: operations["list_13"];
+        get: operations["list_14"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2183,7 +2243,7 @@ export interface paths {
          * Lister les alertes
          * @description Liste paginée (20 par page, plus récentes d'abord), filtrable par état, équipement, sévérité ou alertes actives. Les alertes supprimées sont masquées.
          */
-        get: operations["list_14"];
+        get: operations["list_15"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3669,6 +3729,49 @@ export interface components {
             maxHosts?: number;
             /** Format: int32 */
             maxDurationSeconds?: number;
+        };
+        /** @description Lien proposé entre deux équipements, appris de leurs alertes. Ce n'est pas un fait : il ne sert qu'une fois accepté par un administrateur. */
+        LearnedCorrelationResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            premierEquipementId?: string;
+            premierEquipement?: string;
+            /** Format: uuid */
+            secondEquipementId?: string;
+            secondEquipement?: string;
+            /**
+             * Format: int32
+             * @description Fenêtres de temps où les deux ont eu une alerte
+             */
+            ensemble?: number;
+            /**
+             * Format: int32
+             * @description Fenêtres où le premier a eu une alerte
+             */
+            fenetresPremier?: number;
+            /**
+             * Format: int32
+             * @description Fenêtres où le second a eu une alerte
+             */
+            fenetresSecond?: number;
+            /**
+             * Format: int32
+             * @description Fenêtres contenant au moins une alerte, tous équipements confondus
+             */
+            fenetresTotales?: number;
+            /**
+             * Format: double
+             * @description Part des fenêtres où les deux apparaissent ensemble
+             */
+            support?: number;
+            /**
+             * Format: double
+             * @description Part des fenêtres de l'un où l'autre apparaît aussi, dans la direction la plus forte
+             */
+            confiance?: number;
+            /** Format: date-time */
+            vuDepuis?: string;
         };
         TemplateResponse: {
             kind?: string;
@@ -7844,6 +7947,110 @@ export interface operations {
             };
         };
     };
+    reject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Proposition introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Déjà tranchée */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    accept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Proposition introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Déjà tranchée */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     test_2: {
         parameters: {
             query?: never;
@@ -9889,6 +10096,44 @@ export interface operations {
             };
         };
     };
+    list_13: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LearnedCorrelationResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     templates: {
         parameters: {
             query?: never;
@@ -10110,7 +10355,7 @@ export interface operations {
             };
         };
     };
-    list_13: {
+    list_14: {
         parameters: {
             query: {
                 from?: string;
@@ -10376,7 +10621,7 @@ export interface operations {
             };
         };
     };
-    list_14: {
+    list_15: {
         parameters: {
             query: {
                 state?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ARCHIVED" | "DELETED";

@@ -45,6 +45,15 @@ import sn.ept.transdic1.inventory.repository.EquipmentRepository;
  * membres : en dessous, « se démarquer » ne veut rien dire. Seuls les indicateurs en pourcentage
  * sont comparés : comparer des octets par seconde entre des machines de tailles différentes
  * n'apprend rien.
+ *
+ * <p><b>Par modèle quand c'est possible</b> (M4, ADR 0041). Un routeur de cœur et huit commutateurs
+ * d'accès sont du même type sur le même site, et pourtant le premier tourne légitimement plus chaud
+ * : il se « démarque » en permanence, ou bien il tire la médiane et masque les autres. Quand au
+ * moins quatre équipements d'un site partagent le même modèle, ils forment donc leur propre groupe
+ * ; les autres — modèle inconnu, ou modèle trop peu répandu pour faire un groupe — retombent sur la
+ * comparaison par type, qui vaut mieux que pas de comparaison. Le message dit toujours à quoi
+ * l'équipement a été comparé, parce que « se démarque de ses semblables » n'a de sens que si l'on
+ * sait qui sont les semblables.
  */
 @Service
 public class PeerComparisonService {
@@ -102,40 +111,90 @@ public class PeerComparisonService {
     // de sonde sont exclues : plusieurs sondes d'un équipement partagent la même clé.
     List<Reading> readings =
         jdbc.query(
-            "SELECT e.id, e.site_id, e.equipment_type, m.metric_key, avg(m.metric_value)"
-                + " FROM metric m JOIN equipment e ON e.id = m.equipment_id"
+            "SELECT e.id, e.site_id, e.equipment_type, e.model, m.metric_key,"
+                + " avg(m.metric_value) FROM metric m JOIN equipment e ON e.id = m.equipment_id"
                 + " AND e.monitoring_enabled AND e.site_id IS NOT NULL"
                 + " WHERE m.collected_at >= ? AND m.quality <> 'BAD' AND m.service_id IS NULL"
                 + " AND m.unit = '%'"
-                + " GROUP BY e.id, e.site_id, e.equipment_type, m.metric_key",
+                + " GROUP BY e.id, e.site_id, e.equipment_type, e.model, m.metric_key",
             (rs, i) ->
                 new Reading(
                     rs.getObject(1, UUID.class),
                     rs.getObject(2, UUID.class),
                     rs.getString(3),
-                    rs.getString(4),
-                    rs.getBigDecimal(5).doubleValue()),
+                    model(rs.getString(4)),
+                    rs.getString(5),
+                    rs.getBigDecimal(6).doubleValue()),
             Timestamp.from(now.minus(Duration.ofMinutes(15))));
 
-    Map<GroupKey, List<Reading>> groups = new LinkedHashMap<>();
-    for (Reading reading : readings) {
-      groups
-          .computeIfAbsent(
-              new GroupKey(reading.siteId(), reading.equipmentType(), reading.key()),
-              key -> new ArrayList<>())
-          .add(reading);
-    }
     int opened = 0;
-    for (var entry : groups.entrySet()) {
+    for (var entry : groups(readings).entrySet()) {
       opened += evaluateGroup(entry.getKey(), entry.getValue(), now);
     }
     return opened;
   }
 
-  private record GroupKey(UUID siteId, String equipmentType, String key) {}
+  /**
+   * Répartit les relevés en groupes comparables : d'abord par modèle là où un modèle réunit assez
+   * d'équipements, puis par type pour tout le reste.
+   *
+   * <p>Deux passes et non une seule clé : un équipement au modèle isolé doit rejoindre le groupe
+   * par type, sinon il ne serait jamais comparé à personne. Et les équipements d'un modèle qui fait
+   * groupe sont retirés du groupe par type, sinon la même valeur serait jugée deux fois et
+   * ouvrirait deux alertes pour un seul fait.
+   */
+  static Map<GroupKey, List<Reading>> groups(List<Reading> readings) {
+    var byModel = new LinkedHashMap<GroupKey, List<Reading>>();
+    for (Reading reading : readings) {
+      if (reading.model() != null) {
+        byModel
+            .computeIfAbsent(
+                new GroupKey(
+                    reading.siteId(), reading.equipmentType(), reading.model(), reading.key()),
+                key -> new ArrayList<>())
+            .add(reading);
+      }
+    }
+    var groups = new LinkedHashMap<GroupKey, List<Reading>>();
+    var placed = new java.util.HashSet<Reading>();
+    for (var entry : byModel.entrySet()) {
+      if (entry.getValue().size() >= PeerOutlier.MIN_PEERS) {
+        groups.put(entry.getKey(), entry.getValue());
+        placed.addAll(entry.getValue());
+      }
+    }
+    for (Reading reading : readings) {
+      if (!placed.contains(reading)) {
+        groups
+            .computeIfAbsent(
+                new GroupKey(reading.siteId(), reading.equipmentType(), null, reading.key()),
+                key -> new ArrayList<>())
+            .add(reading);
+      }
+    }
+    return groups;
+  }
 
-  private record Reading(
-      UUID equipmentId, UUID siteId, String equipmentType, String key, double value) {}
+  /** Un modèle vide ou blanc ne fait pas un groupe : il vaut « inconnu ». */
+  static String model(String value) {
+    return value == null || value.isBlank() ? null : value.trim();
+  }
+
+  record GroupKey(UUID siteId, String equipmentType, String model, String key) {
+
+    /** Ce à quoi l'équipement a été comparé, tel que le message le dira. */
+    String peers() {
+      return model == null ? "du même type sur ce site" : "du modèle " + model + " sur ce site";
+    }
+  }
+
+  record Reading(
+      UUID equipmentId,
+      UUID siteId,
+      String equipmentType,
+      String model,
+      String key,
+      double value) {}
 
   private int evaluateGroup(GroupKey key, List<Reading> members, Instant now) {
     Optional<PeerOutlier.Group> reference =
@@ -177,7 +236,9 @@ public class PeerComparisonService {
             + round(member.value())
             + " % alors que les "
             + (group.size() - 1)
-            + " autres équipements du même type sur ce site sont autour de "
+            + " autres équipements "
+            + key.peers()
+            + " sont autour de "
             + round(group.median())
             + " %";
     var alert =

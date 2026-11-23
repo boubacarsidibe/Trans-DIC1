@@ -88,6 +88,16 @@ Ce n'est **pas une cause démontrée**, et la plateforme ne s'en sert pas pour c
 
 Une alerte qui ne porte sur aucun indicateur — une perte de collecte, un événement envoyé par l'équipement — n'a rien à corréler : la rubrique garde alors son ancien contenu.
 
+### Liens appris des alertes
+
+Sur l'écran **Topologie**, sous les voisins LLDP, la plateforme propose des liens qu'elle a **déduits de l'historique des alertes** : deux équipements qui tombent ensemble, encore et encore, alors que rien ne les relie dans la topologie. C'est souvent un lien réel que personne n'a saisi — un serveur et le stockage qu'il monte, une baie et son onduleur, deux machines derrière le même cordon mal déclaré.
+
+Le tableau dit combien de fois ils sont tombés ensemble et sur combien d'occasions, par exemple « 6 fois sur 6 » : à vous de juger. **La statistique voit qu'ils arrivent ensemble, pas pourquoi.** Deux machines peuvent tomber de concert simplement parce qu'une coupure de courant les touche toutes les deux.
+
+Un administrateur **accepte** ou **écarte** chaque proposition. Accepté, le lien regroupe leurs alertes en un seul incident, avec une seule notification, et le détail de l'incident précise « Lien appris des alertes, accepté » — pour qu'on ne confonde jamais un câble avec une statistique validée. Écarté, il ne sera plus proposé. Tant que personne n'a tranché, la proposition ne change rien.
+
+La fouille tourne une fois par nuit sur le dernier mois d'alertes. Sur un parc neuf, ou tranquille, elle ne proposera rien, et c'est normal : il lui faut des semaines d'alertes réelles pour voir quoi que ce soit.
+
 ## Incidents : un fait plutôt que ses morceaux
 
 Une panne en amont fait tomber cinq machines : cinq alertes, un seul fait. L'écran **Incidents** montre le fait entier. Les alertes qui arrivent dans la même dizaine de minutes y sont regroupées quand elles portent sur la même machine, sur un voisin direct dans la topologie, ou sur le même site avec la même règle ou le même message.
@@ -98,7 +108,7 @@ Un incident est **en cours** ou **terminé**, et rien d'autre : il se referme se
 
 Ce qu'il ne fait pas : un fait qui s'étale, avec plus de dix minutes entre deux symptômes, donnera deux incidents ; et un incident qui franchit un lien entre deux sites reste rattaché au site où il a commencé, donc un compte limité à l'autre site ne le verra pas dans cette liste.
 
-Une alerte de type **Écart aux semblables** signale un équipement qui se comporte autrement que les autres du même type sur le même site, même si aucun seuil n'est franchi et même si c'est son habitude.
+Une alerte de type **Écart aux semblables** signale un équipement qui se comporte autrement que ses semblables, même si aucun seuil n'est franchi et même si c'est son habitude. Les semblables sont les autres équipements **du même modèle** sur le même site dès qu'ils sont au moins quatre ; à défaut, les autres du même type. Le message dit toujours à quoi l'équipement a été comparé. Conséquence utile à connaître : mieux l'inventaire renseigne les modèles, plus la comparaison est juste — mais les groupes rétrécissent, et un équipement dont le modèle est unique sur son site n'est plus comparé à personne, ce qui est préférable à le comparer à des machines qui ne lui ressemblent pas.
 
 Une alerte de type **Anomalie** signale une mesure inhabituelle pour l'heure et le jour (par exemple un processeur très chargé un dimanche à 3 h), même si aucun seuil n'est dépassé. La normale est calculée sur les quatre dernières semaines au même créneau, en écartant les relevés qui étaient eux-mêmes inhabituels : un incident passé ne masque pas le suivant. Le message de l'alerte dit combien de relevés ont été écartés. Le temps de réponse d'une sonde est surveillé de la même façon.
 

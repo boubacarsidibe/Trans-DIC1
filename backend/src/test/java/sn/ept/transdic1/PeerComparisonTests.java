@@ -160,4 +160,48 @@ class PeerComparisonTests {
 
     assertThat(activeAlerts(switches.get(0))).isEmpty();
   }
+
+  @Test
+  void leCoeurDeReseauNEstPlusCompareAuxCommutateursDAcces() {
+    // Quatre commutateurs d'accès d'un modèle, peu chargés, et un routeur de cœur d'un autre
+    // modèle, chargé : même type, même site. Avant M4, le cœur se démarquait de ses « semblables ».
+    switches.forEach(
+        s ->
+            jdbc.update("UPDATE equipment SET model = ? WHERE id = ?", "Catalyst 2960", s.getId()));
+    jdbc.update(
+        "UPDATE equipment SET model = ? WHERE id = ?", "Catalyst 9500", switches.get(4).getId());
+    em.flush();
+    measure(switches.get(0), 10);
+    measure(switches.get(1), 11);
+    measure(switches.get(2), 9);
+    measure(switches.get(3), 12);
+    measure(switches.get(4), 85);
+
+    peers.scan();
+
+    // Seul de son modèle, il retombe sur le groupe par type où il est désormais seul : personne ne
+    // le juge, et c'est mieux que de le comparer à des machines qui ne lui ressemblent pas.
+    assertThat(activeAlerts(switches.get(4))).isEmpty();
+  }
+
+  @Test
+  void uneAlerteParModeleDitAQuoiLEquipementAEteCompare() {
+    // Cinq commutateurs du même modèle : le groupe est formé par modèle, et le message le dit.
+    switches.forEach(
+        s ->
+            jdbc.update("UPDATE equipment SET model = ? WHERE id = ?", "Catalyst 2960", s.getId()));
+    em.flush();
+    measure(switches.get(0), 10);
+    measure(switches.get(1), 11);
+    measure(switches.get(2), 9);
+    measure(switches.get(3), 12);
+    measure(switches.get(4), 85);
+
+    peers.scan();
+
+    assertThat(activeAlerts(switches.get(4)))
+        .hasSize(1)
+        .first(org.assertj.core.api.InstanceOfAssertFactories.STRING)
+        .contains("4 autres équipements du modèle Catalyst 2960 sur ce site sont autour de");
+  }
 }

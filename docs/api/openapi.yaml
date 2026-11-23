@@ -56,6 +56,11 @@ tags:
   description: Jetons personnels pour appeler l'API depuis un autre outil.
 - name: Sécurité
   description: Journaux de sécurité et attaques repérées.
+- name: Corrélations apprises
+  description: "Liens entre équipements déduits de l'historique des alertes (M9, ADR\
+    \ 0042). Consultation pour tous les rôles dans la limite du périmètre d'accès\
+    \ ; acceptation et rejet réservés aux administrateurs et audités. Une proposition\
+    \ ne sert à rien avant d'être acceptée."
 - name: Incidents
   description: "Alertes regroupées en incidents (M10, ADR 0039) : un fait, une notification.\
     \ Consultation pour tous les rôles, dans la limite du périmètre d'accès. La prise\
@@ -3067,6 +3072,73 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/correlations-apprises/{id}/rejet:
+    post:
+      tags:
+      - Corrélations apprises
+      summary: Écarter un lien proposé
+      description: "Il ne sera plus reproposé, même si la statistique persiste."
+      operationId: reject
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Proposition introuvable
+        "409":
+          description: Déjà tranchée
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/correlations-apprises/{id}/acceptation:
+    post:
+      tags:
+      - Corrélations apprises
+      summary: Accepter un lien proposé
+      description: Le lien rapproche désormais les alertes des deux équipements en
+        incidents.
+      operationId: accept
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Proposition introuvable
+        "409":
+          description: Déjà tranchée
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/canaux/test:
     post:
       tags:
@@ -4832,6 +4904,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/correlations-apprises:
+    get:
+      tags:
+      - Corrélations apprises
+      summary: Lister les liens proposés
+      description: "Les plus confiants d'abord. Un lien n'est listé que si les deux\
+        \ équipements sont visibles : une proposition porte sur leur couple, en montrer\
+        \ la moitié n'aurait aucun sens."
+      operationId: list_13
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LearnedCorrelationResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/canaux/modeles:
     get:
       tags:
@@ -4997,7 +5099,7 @@ paths:
       summary: Consulter le journal
       description: "Liste paginée (50 par page, plus récentes d'abord), filtrable\
         \ par période (from inclus, to exclu), compte, action et cible."
-      operationId: list_13
+      operationId: list_14
       parameters:
       - name: from
         in: query
@@ -5270,7 +5372,7 @@ paths:
       description: "Liste paginée (20 par page, plus récentes d'abord), filtrable\
         \ par état, équipement, sévérité ou alertes actives. Les alertes supprimé\
         es sont masquées."
-      operationId: list_14
+      operationId: list_15
       parameters:
       - name: state
         in: query
@@ -8469,6 +8571,52 @@ components:
         maxDurationSeconds:
           type: integer
           format: int32
+    LearnedCorrelationResponse:
+      type: object
+      description: "Lien proposé entre deux équipements, appris de leurs alertes.\
+        \ Ce n'est pas un fait : il ne sert qu'une fois accepté par un administrateur."
+      properties:
+        id:
+          type: string
+          format: uuid
+        premierEquipementId:
+          type: string
+          format: uuid
+        premierEquipement:
+          type: string
+        secondEquipementId:
+          type: string
+          format: uuid
+        secondEquipement:
+          type: string
+        ensemble:
+          type: integer
+          format: int32
+          description: Fenêtres de temps où les deux ont eu une alerte
+        fenetresPremier:
+          type: integer
+          format: int32
+          description: Fenêtres où le premier a eu une alerte
+        fenetresSecond:
+          type: integer
+          format: int32
+          description: Fenêtres où le second a eu une alerte
+        fenetresTotales:
+          type: integer
+          format: int32
+          description: "Fenêtres contenant au moins une alerte, tous équipements confondus"
+        support:
+          type: number
+          format: double
+          description: Part des fenêtres où les deux apparaissent ensemble
+        confiance:
+          type: number
+          format: double
+          description: "Part des fenêtres de l'un où l'autre apparaît aussi, dans\
+            \ la direction la plus forte"
+        vuDepuis:
+          type: string
+          format: date-time
     TemplateResponse:
       type: object
       properties:

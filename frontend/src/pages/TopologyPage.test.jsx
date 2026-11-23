@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App.jsx";
 import apiClient from "../api/client.js";
-import { downstream, levels } from "../api/topology.js";
+import { downstream, formatConfidence, levels } from "../api/topology.js";
 import { AuthProvider } from "../auth/AuthContext.jsx";
 import { clearSession, saveSession } from "../auth/session.js";
 
@@ -38,10 +38,12 @@ function renderPage(role = "ADMIN") {
 beforeEach(() => {
   clearSession();
   vi.resetAllMocks();
-  // La page charge le graphe et les voisins LLDP : deux points d'API distincts.
-  apiClient.get.mockImplementation((url) =>
-    Promise.resolve({ data: url === "/topologie/voisins" ? [] : graph }),
-  );
+  // La page charge le graphe, les voisins LLDP et les liens appris : trois points distincts.
+  apiClient.get.mockImplementation((url) => {
+    if (url === "/topologie/voisins") return Promise.resolve({ data: [] });
+    if (url === "/correlations-apprises") return Promise.resolve({ data: [] });
+    return Promise.resolve({ data: graph });
+  });
 });
 
 describe("calculs de topologie", () => {
@@ -92,5 +94,103 @@ describe("page topologie", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("créerait une boucle");
     await waitFor(() => expect(apiClient.post).toHaveBeenCalledWith("/topologie/liens", { equipmentId: "core", upstreamId: "vm" }));
+  });
+});
+
+describe("liens appris des alertes (M9)", () => {
+  const correlation = (overrides = {}) => ({
+    id: "c1",
+    premierEquipementId: "srv",
+    premierEquipement: "Serveur web",
+    secondEquipementId: "sw",
+    secondEquipement: "Baie de stockage",
+    ensemble: 6,
+    fenetresPremier: 6,
+    fenetresSecond: 8,
+    fenetresTotales: 240,
+    support: 0.025,
+    confiance: 1,
+    vuDepuis: "2026-11-13T08:00:00Z",
+    ...overrides,
+  });
+
+  const mockWith = (correlations) => {
+    apiClient.get.mockImplementation((url) => {
+      if (url === "/topologie/voisins") return Promise.resolve({ data: [] });
+      if (url === "/correlations-apprises") return Promise.resolve({ data: correlations });
+      return Promise.resolve({ data: graph });
+    });
+  };
+
+  it("montre la paire, la fréquence et depuis quand elle est vue", async () => {
+    mockWith([correlation()]);
+    renderPage("ADMIN");
+
+    expect(await screen.findByText("Liens appris des alertes")).toBeInTheDocument();
+    expect(screen.getByText("Baie de stockage")).toBeInTheDocument();
+    expect(screen.getByText(/6 fois sur 6/)).toBeInTheDocument();
+    expect(screen.getByText(/240 fenêtres de dix minutes/)).toBeInTheDocument();
+  });
+
+  it("dit que la statistique ne sait pas pourquoi, et que rien ne sert sans accord", async () => {
+    mockWith([correlation()]);
+    renderPage("ADMIN");
+    await screen.findByText("Liens appris des alertes");
+
+    expect(screen.getByText(/pas pourquoi/)).toBeInTheDocument();
+    expect(screen.getByText(/il ne reviendra plus/)).toBeInTheDocument();
+  });
+
+  it("un administrateur accepte ou écarte, un lecteur ne décide pas", async () => {
+    mockWith([correlation()]);
+    renderPage("VIEWER");
+    await screen.findByText("Liens appris des alertes");
+
+    expect(screen.queryByRole("button", { name: "Accepter le lien" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Écarter" })).not.toBeInTheDocument();
+  });
+
+  it("accepter appelle le bon point d'API et le dit", async () => {
+    mockWith([correlation()]);
+    apiClient.post.mockResolvedValue({});
+    renderPage("ADMIN");
+    await screen.findByText("Liens appris des alertes");
+
+    await userEvent.click(screen.getByRole("button", { name: "Accepter le lien" }));
+
+    await waitFor(() =>
+      expect(apiClient.post).toHaveBeenCalledWith("/correlations-apprises/c1/acceptation"),
+    );
+    expect(await screen.findByText(/regroupées en un seul incident/)).toBeInTheDocument();
+  });
+
+  it("écarter appelle le rejet et le dit", async () => {
+    mockWith([correlation()]);
+    apiClient.post.mockResolvedValue({});
+    renderPage("ADMIN");
+    await screen.findByText("Liens appris des alertes");
+
+    await userEvent.click(screen.getByRole("button", { name: "Écarter" }));
+
+    await waitFor(() =>
+      expect(apiClient.post).toHaveBeenCalledWith("/correlations-apprises/c1/rejet"),
+    );
+    expect(await screen.findByText(/ne sera plus proposé/)).toBeInTheDocument();
+  });
+
+  it("sans proposition, le panneau ne s'affiche pas", async () => {
+    mockWith([]);
+    renderPage("ADMIN");
+    await screen.findByRole("heading", { name: "Topologie" });
+
+    expect(screen.queryByText("Liens appris des alertes")).not.toBeInTheDocument();
+  });
+
+  it("la fréquence est dite en nombres, pas en pourcentage seul", () => {
+    expect(formatConfidence(correlation())).toBe("6 fois sur 6 (100 %)");
+    expect(formatConfidence(correlation({ ensemble: 4, fenetresPremier: 5, fenetresSecond: 20, confiance: 0.8 })))
+      .toBe("4 fois sur 5 (80 %)");
+    expect(formatConfidence({})).toBe("—");
+    expect(formatConfidence(null)).toBe("—");
   });
 });
