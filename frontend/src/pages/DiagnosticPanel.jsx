@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, ChevronRight, RefreshCw, Stethoscope } from "lucide-react";
-import { getAlertDiagnostic } from "../api/alerts.js";
+import { Check, ChevronDown, ChevronRight, RefreshCw, Stethoscope } from "lucide-react";
+import { confirmAlertCause, getAlertDiagnostic } from "../api/alerts.js";
 import {
   ALERT_STATE,
   ALERT_TYPE,
@@ -64,11 +64,11 @@ function Empty({ children }) {
   return <p className="diag-empty">{children}</p>;
 }
 
-function Cause({ cause, index }) {
+function Cause({ cause, index, confirmed, onConfirm }) {
   const [open, setOpen] = useState(false);
   const reasonsId = `diag-cause-${index}`;
   return (
-    <li className="diag-cause">
+    <li className={confirmed ? "diag-cause diag-cause-confirmed" : "diag-cause"}>
       <div className="diag-cause-head">
         <span className="diag-rank" aria-hidden="true">
           {index + 1}
@@ -94,6 +94,21 @@ function Cause({ cause, index }) {
         {open ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />}
         Pourquoi ?
       </button>
+      {confirmed && (
+        <span className="badge badge-muted">
+          <Check size={13} aria-hidden="true" /> Reconnue comme la vraie cause
+        </span>
+      )}
+      {!confirmed && onConfirm && (
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          aria-label={`C'était la vraie cause : ${cause.libelle}`}
+          onClick={onConfirm}
+        >
+          C’était la vraie cause
+        </button>
+      )}
       {open && (
         <ul id={reasonsId} className="diag-reasons">
           {(cause.raisons ?? []).map((reason, i) => (
@@ -299,9 +314,11 @@ function Steps({ steps }) {
   );
 }
 
-function DiagnosticPanel({ alertId, onOpenAlert }) {
+function DiagnosticPanel({ alertId, onOpenAlert, canConfirm = false }) {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [confirming, setConfirming] = useState(false);
+  const [confirmNotice, setConfirmNotice] = useState("");
   const [error, setError] = useState("");
   // Chaque demande a un numéro : une réponse qui arrive après une demande plus récente est ignorée.
   const latest = useRef(0);
@@ -322,6 +339,32 @@ function DiagnosticPanel({ alertId, onOpenAlert }) {
       if (request === latest.current) setLoading(false);
     }
   }, [alertId]);
+
+  /**
+   * Enregistre le verdict de l'opérateur, puis recalcule : il doit voir l'effet de son geste, pas
+   * l'attendre. `null` veut dire « aucune de ces causes », ce qui est une réponse à part entière.
+   */
+  const confirm = async (source) => {
+    setConfirming(true);
+    setConfirmNotice("");
+    try {
+      const outcome = await confirmAlertCause(alertId, source);
+      setConfirmNotice(
+        source
+          ? `Merci : le classement tiendra compte de votre réponse (${outcome.causesConfirmees} causes confirmées à ce jour).`
+          : `Noté : aucune des causes proposées ne convenait (${outcome.causesConfirmees} causes confirmées à ce jour).`,
+      );
+      await load();
+    } catch (e) {
+      setConfirmNotice(
+        e?.response?.status === 409
+          ? "Cette cause n’est plus proposée pour cette alerte : recalculez le diagnostic."
+          : "L’enregistrement de votre réponse a échoué.",
+      );
+    } finally {
+      setConfirming(false);
+    }
+  };
 
   // Le résultat d'une autre alerte n'est jamais affiché, même le temps du nouveau calcul.
   const diagnostic = result?.alertId === alertId ? result.data : null;
@@ -385,11 +428,49 @@ function DiagnosticPanel({ alertId, onOpenAlert }) {
         {causes.length === 0 ? (
           <Empty>Aucune cause probable identifiée dans les données disponibles.</Empty>
         ) : (
-          <ol className="diag-causes" aria-label="Causes probables">
-            {causes.map((cause, index) => (
-              <Cause key={`${cause.source}-${index}`} cause={cause} index={index} />
-            ))}
-          </ol>
+          <>
+            <ol className="diag-causes" aria-label="Causes probables">
+              {causes.map((cause, index) => (
+                <Cause
+                  key={`${cause.source}-${index}`}
+                  cause={cause}
+                  index={index}
+                  confirmed={diagnostic.causeConfirmee === cause.source}
+                  onConfirm={canConfirm ? () => confirm(cause.source) : null}
+                />
+              ))}
+            </ol>
+            {canConfirm && (
+              <p className="diag-note">
+                Laquelle était la vraie cause ? Votre réponse corrige le classement des prochaines
+                alertes : au-delà de vingt réponses, les poids viennent de vous et non de valeurs
+                fixées à l’avance.{" "}
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => confirm(null)}
+                  disabled={confirming}
+                >
+                  Aucune de ces causes
+                </button>
+              </p>
+            )}
+            {confirmNotice && <p className="notice">{confirmNotice}</p>}
+            {diagnostic.poidsAppris ? (
+              <p className="diag-muted">
+                Classement établi avec des poids appris de {diagnostic.causesConfirmees} causes
+                confirmées.
+              </p>
+            ) : (
+              <p className="diag-muted">
+                Classement établi avec les poids fixés à l’avance
+                {diagnostic.causesConfirmees > 0
+                  ? `, légèrement corrigés par ${diagnostic.causesConfirmees} cause${diagnostic.causesConfirmees > 1 ? "s" : ""} confirmée${diagnostic.causesConfirmees > 1 ? "s" : ""}`
+                  : ""}
+                .
+              </p>
+            )}
+          </>
         )}
       </Section>
 

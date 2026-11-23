@@ -133,23 +133,49 @@ public final class CauseScoring {
 
   /** Décroissance (0..1) d'une preuve selon sa distance à l'ouverture de l'alerte. */
   public static double decay(CauseSource source, Instant at, Instant reference) {
+    return decay(source, at, reference, WEIGHTS);
+  }
+
+  /**
+   * La même décroissance, avec un jeu de poids donné : seul le plancher y est lu, et il reste
+   * toujours celui fixé à la main — il décrit la durabilité d'une preuve, que les confirmations de
+   * l'opérateur ne mesurent pas (M12, ADR 0045).
+   */
+  public static double decay(
+      CauseSource source, Instant at, Instant reference, Map<CauseSource, Weight> weights) {
     if (at == null || reference == null) {
       return 1.0;
     }
     double minutes = Math.abs(Duration.between(reference, at).toMillis()) / 60_000.0;
-    double floor = WEIGHTS.get(source).floor();
+    double floor = weight(weights, source).floor();
     return floor + (1.0 - floor) * Math.pow(2.0, -minutes / HALF_LIFE_MINUTES);
   }
 
-  /** Score (0..1, arrondi au millième) d'une preuve. */
+  /** Score (0..1, arrondi au millième) d'une preuve, avec les poids fixés à la main. */
   public static double score(CauseSource source, double strength, Instant at, Instant reference) {
+    return score(source, strength, at, reference, WEIGHTS);
+  }
+
+  /** Le même score, avec un jeu de poids donné (appris des confirmations, le cas échéant). */
+  public static double score(
+      CauseSource source,
+      double strength,
+      Instant at,
+      Instant reference,
+      Map<CauseSource, Weight> weights) {
     double bounded = Double.isNaN(strength) ? 0.0 : Math.max(0.0, Math.min(1.0, strength));
-    double raw = WEIGHTS.get(source).weight() * bounded * decay(source, at, reference);
+    double raw = weight(weights, source).weight() * bounded * decay(source, at, reference, weights);
     return Math.round(Math.max(0.0, Math.min(1.0, raw)) * 1000.0) / 1000.0;
   }
 
   /** Classe les candidates (ordre total et stable) et garde les {@value #MAX_CAUSES} premières. */
   public static List<Scored> rank(List<CauseCandidate> candidates, Instant reference) {
+    return rank(candidates, reference, WEIGHTS);
+  }
+
+  /** Le même classement, avec un jeu de poids donné. */
+  public static List<Scored> rank(
+      List<CauseCandidate> candidates, Instant reference, Map<CauseSource, Weight> weights) {
     Comparator<Scored> order =
         Comparator.comparingDouble(Scored::score)
             .reversed()
@@ -157,11 +183,17 @@ public final class CauseScoring {
             .thenComparingLong(s -> distance(s.candidate().at(), reference))
             .thenComparing(s -> s.candidate().libelle() == null ? "" : s.candidate().libelle());
     return candidates.stream()
-        .map(c -> new Scored(c, score(c.source(), c.strength(), c.at(), reference)))
+        .map(c -> new Scored(c, score(c.source(), c.strength(), c.at(), reference, weights)))
         .filter(s -> s.score() > 0.0)
         .sorted(order)
         .limit(MAX_CAUSES)
         .toList();
+  }
+
+  /** Poids d'une source, en retombant sur celui fixé à la main si le jeu fourni l'ignore. */
+  private static Weight weight(Map<CauseSource, Weight> weights, CauseSource source) {
+    Weight given = weights == null ? null : weights.get(source);
+    return given == null ? WEIGHTS.get(source) : given;
   }
 
   private static long distance(Instant at, Instant reference) {

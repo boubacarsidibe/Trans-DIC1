@@ -29,6 +29,7 @@ import sn.ept.transdic1.alerting.domain.Severity;
 import sn.ept.transdic1.alerting.dto.CapacityForecastResponse;
 import sn.ept.transdic1.alerting.service.CapacityForecastService;
 import sn.ept.transdic1.common.scope.SiteScope;
+import sn.ept.transdic1.diagnostic.domain.CauseSource;
 import sn.ept.transdic1.diagnostic.domain.MetricLink;
 import sn.ept.transdic1.diagnostic.domain.Relation;
 import sn.ept.transdic1.diagnostic.dto.DiagnosticResponse;
@@ -115,6 +116,8 @@ public class DiagnosticService {
           "EQUAL", "=");
 
   private final DiagnosticRepository repository;
+  private final CauseWeightService causeWeights;
+  private final sn.ept.transdic1.diagnostic.repository.CauseFeedbackRepository causeFeedback;
   private final CapacityForecastService forecasts;
   private final SiteScope scope;
   private final Clock clock;
@@ -127,6 +130,8 @@ public class DiagnosticService {
 
   public DiagnosticService(
       DiagnosticRepository repository,
+      CauseWeightService causeWeights,
+      sn.ept.transdic1.diagnostic.repository.CauseFeedbackRepository causeFeedback,
       CapacityForecastService forecasts,
       SiteScope scope,
       Clock clock,
@@ -140,6 +145,8 @@ public class DiagnosticService {
       @Value("${diagnostic.correlation.max-neighbours:6}") int maxNeighbours,
       @Value("${diagnostic.correlation.max-gap-minutes:5}") long maxGapMinutes) {
     this.repository = repository;
+    this.causeWeights = causeWeights;
+    this.causeFeedback = causeFeedback;
     this.forecasts = forecasts;
     this.scope = scope;
     this.clock = clock;
@@ -215,8 +222,12 @@ public class DiagnosticService {
             changes,
             metricKey,
             forecast);
+    // Poids du classement des causes : ceux fixés à la main, corrigés par les confirmations de
+    // l'opérateur quand il y en a assez (M12, ADR 0045).
+    CauseWeightService.Snapshot weights = causeWeights.current();
     List<Scored> ranked =
-        CauseScoring.rank(new CauseFinder(alert, texts, window).find(evidence), opened);
+        CauseScoring.rank(
+            new CauseFinder(alert, texts, window).find(evidence), opened, weights.weights());
     IncidentsSimilaires similar = similar(alert, now);
     LinkedSection linked = linkedMetrics(alert, metricKey);
 
@@ -234,12 +245,27 @@ public class DiagnosticService {
         context,
         linked.metrics(),
         linked.tested(),
+        weights.learned(),
+        weights.confirmations(),
+        confirmedCause(alertId),
         similar,
         nextSteps(alert, metricKey, ranked));
   }
 
   /** La rubrique des indicateurs lies, et le nombre de series eprouvees pour l'obtenir. */
   private record LinkedSection(List<MetriqueLiee> metrics, int tested) {}
+
+  /**
+   * Cause que l'opérateur a reconnue pour cette alerte, ou null. Null aussi quand il a répondu
+   * qu'aucune ne convenait : l'écran montre alors qu'un avis existe sans désigner de cause.
+   */
+  private CauseSource confirmedCause(UUID alertId) {
+    return causeFeedback.findByAlertId(alertId).stream()
+        .filter(sn.ept.transdic1.diagnostic.domain.CauseFeedback::isChosen)
+        .map(sn.ept.transdic1.diagnostic.domain.CauseFeedback::getSource)
+        .findFirst()
+        .orElse(null);
+  }
 
   /** Un indicateur et son changement, le temps du classement. */
   private record Moved(DiagnosticRepository.MovedMetric row, double change) {}

@@ -139,6 +139,74 @@ class DiagnosticApiTests {
             prefix + suffix, prefix + suffix + "@example.test", encoder.encode(PASSWORD), role));
   }
 
+  @Test
+  void unOperateurConfirmeLaVraieCauseEtLeDiagnosticSEnSouvient() throws Exception {
+    String token = login("dp-noc-" + suffix);
+
+    mockMvc
+        .perform(
+            post("/api/v1/alertes/" + alertA + "/cause-confirmee")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"source\":\"SILENCE_COLLECTE\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.causeRetenue").value("SILENCE_COLLECTE"))
+        .andExpect(jsonPath("$.propositionsEnregistrees", Matchers.greaterThanOrEqualTo(1)))
+        .andExpect(jsonPath("$.causesConfirmees", Matchers.greaterThanOrEqualTo(1)));
+
+    mockMvc
+        .perform(
+            get("/api/v1/alertes/" + alertA + "/diagnostic")
+                .header("Authorization", "Bearer " + token))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.causeConfirmee").value("SILENCE_COLLECTE"));
+  }
+
+  @Test
+  void aucuneDeCesCausesEstUneReponseAcceptee() throws Exception {
+    String token = login("dp-noc-" + suffix);
+
+    mockMvc
+        .perform(
+            post("/api/v1/alertes/" + alertA + "/cause-confirmee")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.causeRetenue").doesNotExist())
+        .andExpect(jsonPath("$.propositionsEnregistrees", Matchers.greaterThanOrEqualTo(1)));
+  }
+
+  @Test
+  void unLecteurNeConfirmeRienEtUneCauseNonProposeeEstRefusee() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/v1/alertes/" + alertA + "/cause-confirmee")
+                .header("Authorization", "Bearer " + login("dp-view-" + suffix))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"source\":\"SILENCE_COLLECTE\"}"))
+        .andExpect(status().isForbidden());
+
+    mockMvc
+        .perform(
+            post("/api/v1/alertes/" + alertA + "/cause-confirmee")
+                .header("Authorization", "Bearer " + login("dp-noc-" + suffix))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"source\":\"TENDANCE_SATURATION\"}"))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
+  void confirmerHorsDeSonPerimetreDonneUn404() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/v1/alertes/" + alertB + "/cause-confirmee")
+                .header("Authorization", "Bearer " + login("dp-noc-" + suffix))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isNotFound());
+  }
+
   private String login(String username) throws Exception {
     var body =
         mockMvc

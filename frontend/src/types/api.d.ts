@@ -1315,6 +1315,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/alertes/{id}/cause-confirmee": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirmer la vraie cause d'une alerte
+         * @description L'opérateur dit laquelle des causes proposées était la bonne, ou qu'aucune ne convenait (M12, ADR 0045). Toutes les propositions sont enregistrées avec leur verdict, parce que ce sont les refus qui disent si une source a vraiment raison. Au-delà de vingt confirmations, les poids du classement des causes viennent de ces réponses plutôt que de valeurs fixées à la main ; en dessous, ils sont seulement tirés vers elles. Reconfirmer remplace l'avis précédent. Opérateurs NOC et administrateurs.
+         */
+        post: operations["confirmCause"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/alertes/{id}/assignes": {
         parameters: {
             query?: never;
@@ -3146,6 +3166,31 @@ export interface components {
         CommentRequest: {
             comment?: string;
         };
+        /** @description Cause reconnue par l'opérateur, ou aucune */
+        CauseConfirmationRequest: {
+            /**
+             * @description Source de la cause retenue parmi celles proposées ; laisser vide si aucune ne convient
+             * @enum {string|null}
+             */
+            source?: "AMONT_EN_ALERTE" | "EVENEMENT_RECENT" | "CHANGEMENT_RECENT" | "SILENCE_COLLECTE" | "TENDANCE_SATURATION" | "ANOMALIE" | null;
+        };
+        CauseConfirmationResponse: {
+            /**
+             * Format: int32
+             * @description Nombre de causes proposées dont le verdict a été enregistré
+             */
+            propositionsEnregistrees?: number;
+            /**
+             * @description Cause retenue, absente si aucune ne convenait
+             * @enum {string|null}
+             */
+            causeRetenue?: "AMONT_EN_ALERTE" | "EVENEMENT_RECENT" | "CHANGEMENT_RECENT" | "SILENCE_COLLECTE" | "TENDANCE_SATURATION" | "ANOMALIE" | null;
+            /**
+             * Format: int32
+             * @description Nombre total d'alertes dont la cause a été confirmée ; les poids du diagnostic sont employés au-delà de vingt
+             */
+            causesConfirmees?: number;
+        };
         AssignmentRequest: {
             /** Format: uuid */
             userId: string;
@@ -4001,6 +4046,18 @@ export interface components {
              * @description Nombre de séries éprouvées pour trouver les corrélations ; 0 si l'alerte ne porte sur aucun indicateur. Le seuil de hasard a été divisé par ce nombre.
              */
             seriesEprouvees?: number;
+            /** @description Vrai si les poids du classement des causes viennent des confirmations de l'opérateur, faux s'ils sont ceux fixés à la main */
+            poidsAppris?: boolean;
+            /**
+             * Format: int32
+             * @description Nombre d'alertes dont la cause a été confirmée à ce jour
+             */
+            causesConfirmees?: number;
+            /**
+             * @description Cause que l'opérateur a reconnue pour cette alerte, si elle a été confirmée ; absente sinon, et absente aussi quand il a répondu qu'aucune ne convenait
+             * @enum {string|null}
+             */
+            causeConfirmee?: "AMONT_EN_ALERTE" | "EVENEMENT_RECENT" | "CHANGEMENT_RECENT" | "SILENCE_COLLECTE" | "TENDANCE_SATURATION" | "ANOMALIE" | null;
             incidentsSimilaires?: components["schemas"]["IncidentsSimilaires"];
             /** @description Pistes de vérification (2 à 5), choisies dans un catalogue fixe */
             pistes?: string[];
@@ -8754,6 +8811,64 @@ export interface operations {
                 };
             };
             /** @description Transition impossible depuis l'état actuel de l'alerte */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    confirmCause: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CauseConfirmationRequest"];
+            };
+        };
+        responses: {
+            /** @description Verdict enregistré */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CauseConfirmationResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Alerte introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Aucune cause proposée, ou cause absente des propositions */
             409: {
                 headers: {
                     [name: string]: unknown;

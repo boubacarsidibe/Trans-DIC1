@@ -87,3 +87,12 @@ export async function removeAssignee(id, userId) {
   const { data } = await apiClient.delete(`/alertes/${id}/assignes/${userId}`);
   return data;
 }
+
+/**
+ * Dit laquelle des causes proposées était la vraie, ou qu'aucune ne convenait (M12, ADR 0045).
+ * Passer `null` enregistre « aucune de ces causes », ce qui est une réponse à part entière.
+ */
+export async function confirmAlertCause(id, source) {
+  const { data } = await apiClient.post(`/alertes/${id}/cause-confirmee`, { source: source ?? null });
+  return data;
+}

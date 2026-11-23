@@ -35,6 +35,9 @@ const emptyDiagnostic = (overrides = {}) => ({
   pistes: ["Consulter l'historique des mesures.", "Noter la résolution en commentaire."],
   metriquesLiees: [],
   seriesEprouvees: 0,
+  poidsAppris: false,
+  causesConfirmees: 0,
+  causeConfirmee: null,
   ...overrides,
 });
 
@@ -388,5 +391,93 @@ describe("indicateurs liés à l'alerte (M11)", () => {
     );
 
     expect(screen.getByText(/pas une cause démontrée/)).toBeInTheDocument();
+  });
+});
+
+describe("confirmer la vraie cause (M12)", () => {
+  const withCause = (overrides = {}) =>
+    emptyDiagnostic({
+      causesProbables: [
+        {
+          source: "AMONT_EN_ALERTE",
+          score: 0.97,
+          libelle: "R1 (en amont) est injoignable",
+          raisons: ["R1 est en amont de SW1 dans la topologie (distance 1)."],
+          equipementId: "e1",
+          alerteId: "root-1",
+          survenueLe: "2026-11-05T14:01:00Z",
+        },
+      ],
+      ...overrides,
+    });
+
+  const show = async (diagnostic, canConfirm = true) => {
+    apiClient.get.mockResolvedValue({ data: diagnostic });
+    render(
+      <MemoryRouter>
+        <DiagnosticPanel alertId="a1" canConfirm={canConfirm} />
+      </MemoryRouter>,
+    );
+    await screen.findByText("Causes probables");
+  };
+
+  it("propose de désigner la vraie cause, et de dire qu'aucune ne convient", async () => {
+    await show(withCause());
+
+    expect(screen.getByRole("button", { name: /C'était la vraie cause/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Aucune de ces causes" })).toBeInTheDocument();
+    expect(screen.getByText(/les poids viennent de vous/)).toBeInTheDocument();
+  });
+
+  it("un lecteur ne confirme rien", async () => {
+    await show(withCause(), false);
+
+    expect(screen.queryByRole("button", { name: /C'était la vraie cause/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Aucune de ces causes" })).not.toBeInTheDocument();
+  });
+
+  it("désigner une cause appelle l'API et le dit", async () => {
+    await show(withCause());
+    apiClient.post.mockResolvedValue({ data: { causesConfirmees: 7, causeRetenue: "AMONT_EN_ALERTE" } });
+
+    await userEvent.click(screen.getByRole("button", { name: /C'était la vraie cause/ }));
+
+    await waitFor(() =>
+      expect(apiClient.post).toHaveBeenCalledWith("/alertes/a1/cause-confirmee", {
+        source: "AMONT_EN_ALERTE",
+      }),
+    );
+    expect(await screen.findByText(/7 causes confirmées à ce jour/)).toBeInTheDocument();
+  });
+
+  it("« aucune de ces causes » envoie bien l'absence de cause", async () => {
+    await show(withCause());
+    apiClient.post.mockResolvedValue({ data: { causesConfirmees: 3, causeRetenue: null } });
+
+    await userEvent.click(screen.getByRole("button", { name: "Aucune de ces causes" }));
+
+    await waitFor(() =>
+      expect(apiClient.post).toHaveBeenCalledWith("/alertes/a1/cause-confirmee", { source: null }),
+    );
+    expect(await screen.findByText(/aucune des causes proposées ne convenait/)).toBeInTheDocument();
+  });
+
+  it("une cause déjà reconnue est marquée, et ne se redésigne pas", async () => {
+    await show(withCause({ causeConfirmee: "AMONT_EN_ALERTE", causesConfirmees: 4 }));
+
+    expect(screen.getByText(/Reconnue comme la vraie cause/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /C'était la vraie cause/ })).not.toBeInTheDocument();
+  });
+
+  it("l'écran dit si le classement vient des réponses ou de valeurs fixées à l'avance", async () => {
+    await show(withCause({ poidsAppris: true, causesConfirmees: 42 }));
+
+    expect(screen.getByText(/poids appris de 42 causes confirmées/)).toBeInTheDocument();
+  });
+
+  it("sous le seuil, il dit que les poids sont seulement corrigés", async () => {
+    await show(withCause({ poidsAppris: false, causesConfirmees: 3 }));
+
+    expect(screen.getByText(/corrigés par 3 causes confirmées/)).toBeInTheDocument();
   });
 });

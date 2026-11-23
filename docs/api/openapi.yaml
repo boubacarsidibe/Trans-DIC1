@@ -3674,6 +3674,54 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/alertes/{id}/cause-confirmee:
+    post:
+      tags:
+      - Alertes
+      summary: Confirmer la vraie cause d'une alerte
+      description: "L'opérateur dit laquelle des causes proposées était la bonne,\
+        \ ou qu'aucune ne convenait (M12, ADR 0045). Toutes les propositions sont\
+        \ enregistrées avec leur verdict, parce que ce sont les refus qui disent si\
+        \ une source a vraiment raison. Au-delà de vingt confirmations, les poids\
+        \ du classement des causes viennent de ces réponses plutôt que de valeurs\
+        \ fixées à la main ; en dessous, ils sont seulement tirés vers elles. Reconfirmer\
+        \ remplace l'avis précédent. Opérateurs NOC et administrateurs."
+      operationId: confirmCause
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CauseConfirmationRequest"
+      responses:
+        "200":
+          description: Verdict enregistré
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CauseConfirmationResponse"
+        "404":
+          description: Alerte introuvable
+        "409":
+          description: "Aucune cause proposée, ou cause absente des propositions"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/alertes/{id}/assignes:
     post:
       tags:
@@ -7511,6 +7559,47 @@ components:
           type: string
           maxLength: 1000
           minLength: 0
+    CauseConfirmationRequest:
+      type: object
+      description: "Cause reconnue par l'opérateur, ou aucune"
+      properties:
+        source:
+          type:
+          - string
+          - "null"
+          description: Source de la cause retenue parmi celles proposées ; laisser
+            vide si aucune ne convient
+          enum:
+          - AMONT_EN_ALERTE
+          - EVENEMENT_RECENT
+          - CHANGEMENT_RECENT
+          - SILENCE_COLLECTE
+          - TENDANCE_SATURATION
+          - ANOMALIE
+    CauseConfirmationResponse:
+      type: object
+      properties:
+        propositionsEnregistrees:
+          type: integer
+          format: int32
+          description: Nombre de causes proposées dont le verdict a été enregistré
+        causeRetenue:
+          type:
+          - string
+          - "null"
+          description: "Cause retenue, absente si aucune ne convenait"
+          enum:
+          - AMONT_EN_ALERTE
+          - EVENEMENT_RECENT
+          - CHANGEMENT_RECENT
+          - SILENCE_COLLECTE
+          - TENDANCE_SATURATION
+          - ANOMALIE
+        causesConfirmees:
+          type: integer
+          format: int32
+          description: Nombre total d'alertes dont la cause a été confirmée ; les
+            poids du diagnostic sont employés au-delà de vingt
     AssignmentRequest:
       type: object
       properties:
@@ -9067,6 +9156,28 @@ components:
           description: Nombre de séries éprouvées pour trouver les corrélations ;
             0 si l'alerte ne porte sur aucun indicateur. Le seuil de hasard a été
             divisé par ce nombre.
+        poidsAppris:
+          type: boolean
+          description: "Vrai si les poids du classement des causes viennent des confirmations\
+            \ de l'opérateur, faux s'ils sont ceux fixés à la main"
+        causesConfirmees:
+          type: integer
+          format: int32
+          description: Nombre d'alertes dont la cause a été confirmée à ce jour
+        causeConfirmee:
+          type:
+          - string
+          - "null"
+          description: "Cause que l'opérateur a reconnue pour cette alerte, si elle\
+            \ a été confirmée ; absente sinon, et absente aussi quand il a répondu\
+            \ qu'aucune ne convenait"
+          enum:
+          - AMONT_EN_ALERTE
+          - EVENEMENT_RECENT
+          - CHANGEMENT_RECENT
+          - SILENCE_COLLECTE
+          - TENDANCE_SATURATION
+          - ANOMALIE
         incidentsSimilaires:
           $ref: "#/components/schemas/IncidentsSimilaires"
         pistes:

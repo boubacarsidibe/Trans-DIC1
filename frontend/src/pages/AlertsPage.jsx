@@ -338,7 +338,12 @@ function AlertsPage() {
                 Fermer
               </button>
             </div>
-            <DiagnosticPanel key={detail.alert.id} alertId={detail.alert.id} onOpenAlert={openAlert} />
+            <DiagnosticPanel
+              key={detail.alert.id}
+              alertId={detail.alert.id}
+              onOpenAlert={openAlert}
+              canConfirm={canHandle}
+            />
             {canAdminister && (
               <AssigneesEditor
                 alert={detail.alert}

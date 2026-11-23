@@ -144,6 +144,11 @@ class MetricRetentionTests {
     jdbc.queryForObject("SELECT ensure_metric_partition('2019-04-01')", String.class);
     measure("20", "2019-04-02T08:10:00Z");
     retention.aggregateCompletedHours();
+    // Ce premier passage a pu agréger des mesures validées par d'autres classes, à des heures
+    // récentes : le repère repartirait alors de celles-ci, et l'heure de 2019 tomberait hors de la
+    // fenêtre de rattrapage de deux heures. On ne garde que les agrégats de cet équipement, pour
+    // que le test mesure le recalcul et non la propreté de la base partagée.
+    jdbc.update("DELETE FROM metric_hourly WHERE equipment_id <> ?", equipment.getId());
     // Une mesure arrive en retard dans une heure déjà agrégée : l'agrégat est recalculé.
     measure("40", "2019-04-02T08:50:00Z");
     retention.aggregateCompletedHours();

@@ -310,8 +310,10 @@ class PersistenceModelTests {
             "Incident",
             "IncidentAlert",
             // Corrélation apprise entre équipements (ADR 0042).
-            "LearnedCorrelation")
-        .hasSize(48);
+            "LearnedCorrelation",
+            // Cause confirmée par l'opérateur (ADR 0045).
+            "CauseFeedback")
+        .hasSize(49);
   }
 
   @Test

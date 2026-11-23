@@ -98,6 +98,14 @@ En échange, **cette plage s'adapte** : un port dont le trafic grandit durableme
 
 Enfin, un port éteint puis rallumé aura appris une plage autour de zéro : ses premières mesures de trafic ouvriront une alerte, qui se refermera seule en quelques dizaines de mesures.
 
+### Dire quelle était la vraie cause
+
+Dans le diagnostic, chaque cause probable porte un bouton **« C'était la vraie cause »**, et la rubrique propose aussi **« Aucune de ces causes »**. Votre réponse ne change rien à l'alerte en cours : elle corrige le **classement des prochaines**.
+
+Le classement s'appuyait jusqu'ici sur des poids choisis par raisonnement — un équipement en amont en panne explique mieux qu'une anomalie. C'est défendable, mais c'est une opinion. Vos confirmations la remplacent progressivement par un fait : la part des fois où chaque sorte de cause avait réellement raison. Il n'y a **pas de bascule** : sans réponse, les poids d'origine s'appliquent ; avec dix réponses, ils sont à moitié chemin ; avec deux cents, votre expérience décide seule. L'écran dit toujours lequel des deux régimes s'applique.
+
+Deux détails utiles. **Répondre « aucune » est une vraie réponse**, pas un abandon : elle dit que le diagnostic s'est trompé sur toute la ligne, et c'est la plus instructive. Et vous pouvez **revenir sur votre réponse** : reconfirmer remplace la précédente.
+
 ### Ce qui a bougé en même temps
 
 Dans le diagnostic d'une alerte, cette rubrique réunit deux choses. Les indicateurs qui ont **changé de niveau** à l'ouverture, comme avant. Et, depuis peu, ceux qui **varient comme la mesure en alerte** — ou à son inverse —, sur la machine en alerte comme sur ses voisins directs dans la topologie. C'est souvent le plus parlant : la latence qui suit la charge, le trafic qui s'effondre à chaque pic d'erreurs. Un indicateur peut suivre la mesure en alerte sans que sa moyenne bouge d'un pouce, et la comparaison avant/après ne le voyait pas.

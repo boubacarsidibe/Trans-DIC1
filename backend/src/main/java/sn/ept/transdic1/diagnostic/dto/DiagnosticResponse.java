@@ -45,6 +45,19 @@ public record DiagnosticResponse(
                 "Nombre de séries éprouvées pour trouver les corrélations ; 0 si l'alerte ne porte"
                     + " sur aucun indicateur. Le seuil de hasard a été divisé par ce nombre.")
         int seriesEprouvees,
+    @Schema(
+            description =
+                "Vrai si les poids du classement des causes viennent des confirmations de"
+                    + " l'opérateur, faux s'ils sont ceux fixés à la main")
+        boolean poidsAppris,
+    @Schema(description = "Nombre d'alertes dont la cause a été confirmée à ce jour")
+        int causesConfirmees,
+    @Schema(
+            description =
+                "Cause que l'opérateur a reconnue pour cette alerte, si elle a été confirmée ;"
+                    + " absente sinon, et absente aussi quand il a répondu qu'aucune ne convenait",
+            nullable = true)
+        CauseSource causeConfirmee,
     IncidentsSimilaires incidentsSimilaires,
     @Schema(description = "Pistes de vérification (2 à 5), choisies dans un catalogue fixe")
         List<String> pistes) {
