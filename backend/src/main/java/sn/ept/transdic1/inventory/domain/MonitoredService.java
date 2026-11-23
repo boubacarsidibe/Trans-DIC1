@@ -51,6 +51,14 @@ public class MonitoredService {
   @Column(name = "expected_status", length = 16)
   private String expectedStatus;
 
+  /**
+   * Objectif de disponibilité sur trente jours, entre 0,5 et 1 ; nul quand le service n'en a pas
+   * (M8, ADR 0044). Sans objectif il n'y a pas de budget d'erreur, et la plateforme ne reproche
+   * rien : c'est une décision d'exploitation, pas une valeur qu'un outil peut deviner.
+   */
+  @Column(name = "sla_target", precision = 6, scale = 5)
+  private java.math.BigDecimal slaTarget;
+
   @Column(name = "expected_text", length = 200)
   private String expectedText;
 
@@ -156,6 +164,14 @@ public class MonitoredService {
 
   public String getExpectedStatus() {
     return expectedStatus;
+  }
+
+  public java.math.BigDecimal getSlaTarget() {
+    return slaTarget;
+  }
+
+  public void setSlaTarget(java.math.BigDecimal slaTarget) {
+    this.slaTarget = slaTarget;
   }
 
   public void setExpectedStatus(String expectedStatus) {

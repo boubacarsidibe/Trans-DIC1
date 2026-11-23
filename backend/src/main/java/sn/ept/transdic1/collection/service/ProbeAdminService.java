@@ -55,6 +55,7 @@ public class ProbeAdminService {
   private final SiteScope scope;
   private final TransactionTemplate transaction;
   private final AlertEvaluationService alerting;
+  private final sn.ept.transdic1.alerting.service.ErrorBudgetService budgets;
   private final IcmpReachabilityService icmp;
   private final Clock clock;
 
@@ -69,6 +70,7 @@ public class ProbeAdminService {
       SiteScope scope,
       TransactionTemplate transaction,
       AlertEvaluationService alerting,
+      sn.ept.transdic1.alerting.service.ErrorBudgetService budgets,
       IcmpReachabilityService icmp,
       Clock clock) {
     this.equipments = equipments;
@@ -81,6 +83,7 @@ public class ProbeAdminService {
     this.scope = scope;
     this.transaction = transaction;
     this.alerting = alerting;
+    this.budgets = budgets;
     this.icmp = icmp;
     this.clock = clock;
   }
@@ -90,7 +93,7 @@ public class ProbeAdminService {
     equipment(equipmentId);
     return services.findByEquipmentIdOrderByName(equipmentId).stream()
         .filter(s -> ProbeService.PROBE_TYPES.contains(s.getType()))
-        .map(ProbeAdminService::toResponse)
+        .map(this::toResponse)
         .toList();
   }
 
@@ -257,6 +260,12 @@ public class ProbeAdminService {
     service.setTimeoutMs(request.timeoutMs() == null ? 5000 : request.timeoutMs());
     service.setExpectedStatus(trimToNull(request.expectedStatus()));
     service.setExpectedText(isBlank(request.expectedText()) ? null : request.expectedText());
+    // Objectif de disponibilité : nul quand il n'y en a pas, et c'est le cas par défaut (M8).
+    service.setSlaTarget(
+        request.slaTarget() == null
+            ? null
+            : java.math.BigDecimal.valueOf(request.slaTarget())
+                .setScale(5, java.math.RoundingMode.HALF_UP));
     service.setActive(active);
   }
 
@@ -386,7 +395,26 @@ public class ProbeAdminService {
         + service.isActive();
   }
 
-  private static ProbeResponse toResponse(MonitoredService s) {
+  /**
+   * Réponse d'une sonde, avec son budget d'erreur quand elle a un objectif (M8, ADR 0044). Le
+   * budget est calculé à la demande par {@code alerting} : il n'est pas stocké, parce qu'il dépend
+   * de la fenêtre glissante et serait périmé à la seconde.
+   */
+  private ProbeResponse toResponse(MonitoredService s) {
+    Double target = s.getSlaTarget() == null ? null : s.getSlaTarget().doubleValue();
+    Double consumed = null;
+    Long remaining = null;
+    Double burn = null;
+    if (target != null) {
+      var verdict = budgets.budget(s.getId()).orElse(null);
+      if (verdict != null) {
+        burn = round(verdict.burnRate());
+        if (verdict.status().measurable()) {
+          consumed = round(verdict.status().consumed() * 100);
+          remaining = verdict.status().remainingMinutes();
+        }
+      }
+    }
     return new ProbeResponse(
         s.getId(),
         s.getName(),
@@ -402,7 +430,17 @@ public class ProbeAdminService {
         s.getLastUp(),
         s.getLastLatencyMs(),
         s.getLastError(),
-        s.getConsecutiveFailures());
+        s.getConsecutiveFailures(),
+        target,
+        consumed,
+        remaining,
+        burn);
+  }
+
+  private static Double round(double value) {
+    return java.math.BigDecimal.valueOf(value)
+        .setScale(1, java.math.RoundingMode.HALF_UP)
+        .doubleValue();
   }
 
   private static boolean isBlank(String value) {

@@ -59,6 +59,7 @@ export const EMPTY_PROBE = {
   timeoutMs: "5000",
   expectedStatus: "",
   expectedText: "",
+  slaTarget: "",
 };
 
 export function fromProbe(probe) {
@@ -71,7 +72,14 @@ export function fromProbe(probe) {
     timeoutMs: String(probe.timeoutMs),
     expectedStatus: probe.expectedStatus ?? "",
     expectedText: probe.expectedText ?? "",
+    // L'objectif est saisi en pourcentage : « 99,5 » se lit, « 0,995 » se tape de travers.
+    slaTarget: probe.slaTarget == null ? "" : String(round(probe.slaTarget * 100, 3)),
   };
+}
+
+/** Arrondi sans traîne de virgule flottante : 0,995 × 100 ne doit pas donner 99,50000000000001. */
+function round(value, digits) {
+  return Number(Number(value).toFixed(digits));
 }
 
 // Règles alignées sur ProbeRequestDto et ProbeAdminService côté backend.
@@ -107,6 +115,13 @@ export function validateProbe(values) {
     errors.accessPoint = "Indiquez le nom à résoudre, par exemple ent.ept.sn.";
   }
   if (values.accessPoint.length > 255) errors.accessPoint = "255 caractères au plus.";
+  const slaTarget = (values.slaTarget ?? "").trim();
+  if (slaTarget) {
+    const target = Number(slaTarget.replace(",", "."));
+    if (!Number.isFinite(target) || target < 50 || target > 100) {
+      errors.slaTarget = "Entre 50 et 100 %, ou vide pour aucun objectif.";
+    }
+  }
   return errors;
 }
 
@@ -123,6 +138,12 @@ export function toProbePayload(values, active) {
     expectedStatus: http ? values.expectedStatus.trim() || null : null,
     // Pour une sonde DNS, le texte attendu est l'adresse que le nom doit rendre.
     expectedText: http || isDns(values.type) ? values.expectedText || null : null,
+    // Un appelant qui ne renseigne pas le champ ne fixe pas d'objectif : la fonction accepte un
+    // objet partiel plutôt que d'échouer.
+    slaTarget:
+      (values.slaTarget ?? "").trim() === ""
+        ? null
+        : round(Number(values.slaTarget.replace(",", ".")) / 100, 5),
   };
   if (active !== undefined) payload.active = active;
   return payload;
@@ -137,4 +158,27 @@ export function serverMessage(error, fallback) {
   const data = error?.response?.data;
   const fields = data?.fields ? Object.values(data.fields).join(" ") : "";
   return fields || data?.error || data?.message || fallback;
+}
+
+/**
+ * Budget d'erreur en une phrase : ce qui reste et à quelle vitesse cela part (M8, ADR 0044).
+ * Rend null quand la sonde n'a pas d'objectif ou pas encore assez de relevés — mieux vaut ne rien
+ * dire qu'un chiffre bâti sur trois pings.
+ */
+export function formatBudget(probe) {
+  if (probe?.slaTarget == null) {
+    return null;
+  }
+  if (probe.budgetConsomme == null) {
+    return "objectif fixé, pas encore assez de relevés pour en juger";
+  }
+  const consumed = Math.round(probe.budgetConsomme);
+  const remaining = probe.budgetRestantMinutes ?? 0;
+  const parts = [`budget dépensé à ${consumed} %`];
+  parts.push(remaining > 0 ? `${remaining} min encore permises` : "objectif manqué");
+  const burn = Number(probe.tauxConsommation) || 0;
+  if (burn >= 1) {
+    parts.push(`part ${burn.toFixed(1).replace(".", ",")} fois trop vite en ce moment`);
+  }
+  return parts.join(" · ");
 }

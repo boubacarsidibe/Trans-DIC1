@@ -2614,6 +2614,11 @@ export interface components {
             expectedStatus?: string;
             /** @description Texte cherché dans la réponse ; HTTP et HTTPS seulement */
             expectedText?: string;
+            /**
+             * Format: double
+             * @description Objectif de disponibilité sur 30 jours (0,995 pour 99,5 %) ; laisser vide pour aucun objectif, auquel cas aucun budget d'erreur n'est calculé
+             */
+            slaTarget?: number | null;
             /** @description Vrai par défaut */
             active?: boolean;
         };
@@ -2967,6 +2972,26 @@ export interface components {
             lastError?: string;
             /** Format: int32 */
             consecutiveFailures?: number;
+            /**
+             * Format: double
+             * @description Objectif de disponibilité sur 30 jours, entre 0,5 et 1 ; absent sans objectif
+             */
+            slaTarget?: number | null;
+            /**
+             * Format: double
+             * @description Part du budget d'indisponibilité dépensée sur 30 jours, en pourcentage ; au-delà de 100 l'objectif est manqué. Absent sans objectif ou sans assez de relevés.
+             */
+            budgetConsomme?: number | null;
+            /**
+             * Format: int64
+             * @description Minutes d'indisponibilité encore permises sur la fenêtre
+             */
+            budgetRestantMinutes?: number | null;
+            /**
+             * Format: double
+             * @description Vitesse de consommation sur la dernière heure, rapportée à la vitesse qui ferait durer le budget un mois : 1 = soutenable, 14,4 = épuisé en deux jours
+             */
+            tauxConsommation?: number | null;
         };
         Options: {
             /** @enum {string} */

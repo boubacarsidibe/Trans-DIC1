@@ -1,6 +1,8 @@
 package sn.ept.transdic1.collection.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -32,4 +34,12 @@ public record ProbeRequestDto(
     @Schema(description = "Texte cherché dans la réponse ; HTTP et HTTPS seulement")
         @Size(max = 200)
         String expectedText,
+    @Schema(
+            description =
+                "Objectif de disponibilité sur 30 jours (0,995 pour 99,5 %) ; laisser vide pour"
+                    + " aucun objectif, auquel cas aucun budget d'erreur n'est calculé",
+            nullable = true)
+        @DecimalMin("0.5")
+        @DecimalMax("1.0")
+        Double slaTarget,
     @Schema(description = "Vrai par défaut") Boolean active) {}

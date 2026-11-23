@@ -78,6 +78,16 @@ Quand un équipement de cœur (un routeur, un commutateur de distribution) tombe
 
 Une alerte de type **Absence de donnée** signale un indicateur qui arrivait régulièrement et ne remonte plus depuis une demi-heure, alors que l'équipement répond par ailleurs : un disque démonté, un service disparu de l'agent, un OID devenu muet. Si l'équipement est entièrement muet, c'est une alerte de collecte qui s'ouvre à la place. Elle se résout seule au retour des mesures.
 
+### Objectif de disponibilité et budget d'erreur
+
+Chaque sonde peut recevoir un **objectif de disponibilité** sur trente jours — 99,5 %, par exemple. Le champ est vide par défaut, et c'est voulu : choisir 99,5 % plutôt que 99,9 % engage des arbitrages que seule l'exploitation peut faire. Sans objectif, la plateforme ne reproche rien.
+
+Un objectif de 99,5 % autorise 0,5 % d'indisponibilité sur trente jours, soit **216 minutes** — c'est le budget d'erreur. L'écran des sondes affiche ce qui en est dépensé, ce qu'il reste, et, quand une coupure est en cours, **à quelle vitesse il part** : « budget dépensé à 42 % · 125 min encore permises · part 3,5 fois trop vite en ce moment ».
+
+Deux alertes en découlent, et elles ne disent pas la même chose. **Budget épuisé** est critique : le mois est perdu, ce qui reste à décider est quoi faire pour le suivant. **Consommation trop rapide** est un avertissement : à cette vitesse le mois sera perdu, mais ce n'est qu'une prévision — si la coupure s'arrête, le budget tient. Une coupure de trois minutes ne déclenche rien.
+
+Ce qu'il faut savoir : sur un service jeune, l'écran dit « pas encore assez de relevés pour en juger » au lieu d'afficher 100 %. Et si la plateforme elle-même est arrêtée pendant une panne du service, les relevés manquants ne comptent pas comme des échecs : le budget sous-estime alors l'indisponibilité. C'est le choix le moins mauvais — vous reprocher nos propres pannes serait pire — et c'est l'alerte « plus de données » qui couvre ce trou.
+
 ### Alertes de plage apprise sur les ports
 
 Pour les débits, erreurs, rejets, la gigue et la perte, la plateforme apprend la **plage habituelle de chaque port** au fil des mesures, sans que vous réglez quoi que ce soit. Trois mesures de suite en dehors de cette plage ouvrent un avertissement qui la donne : « net.in[Gi0/2] au-dessus de sa plage habituelle : 500 Mb/s depuis 3 mesures, alors que ce port tient d'ordinaire entre 18 et 24 Mb/s ». Le message précise que la plage est apprise, pour que vous ne cherchiez pas le seuil correspondant dans les règles : il n'y en a pas.

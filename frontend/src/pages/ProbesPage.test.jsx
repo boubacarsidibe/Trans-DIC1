@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App.jsx";
 import apiClient from "../api/client.js";
-import { validateProbe } from "../api/probes.js";
+import { formatBudget, validateProbe } from "../api/probes.js";
 import { AuthProvider } from "../auth/AuthContext.jsx";
 import { clearSession, saveSession } from "../auth/session.js";
 
@@ -219,6 +219,7 @@ describe("page des sondes d'un équipement", () => {
           timeoutMs: 5000,
           expectedStatus: null,
           expectedText: null,
+          slaTarget: null,
         },
       ),
     );
@@ -298,6 +299,8 @@ describe("page des sondes d'un équipement", () => {
       timeoutMs: 5000,
       expectedStatus: null,
       expectedText: null,
+      // Pas d'objectif de disponibilité saisi : aucun budget d'erreur n'est calculé (M8).
+      slaTarget: null,
     });
   });
 
@@ -343,5 +346,44 @@ describe("page des sondes d'un équipement", () => {
     for (const name of [/^Ajouter/, /^Tester/, /^Modifier/, /^Supprimer/, /^Réactiver/]) {
       expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
     }
+  });
+});
+
+describe("budget d'erreur d'une sonde (M8)", () => {
+  const probe = (overrides = {}) => ({
+    slaTarget: 0.995,
+    budgetConsomme: 42.0,
+    budgetRestantMinutes: 125,
+    tauxConsommation: 0.4,
+    ...overrides,
+  });
+
+  it("dit ce qui est dépensé et ce qui reste", () => {
+    expect(formatBudget(probe())).toBe("budget dépensé à 42 % · 125 min encore permises");
+  });
+
+  it("ajoute la vitesse seulement quand elle est au-dessus du soutenable", () => {
+    expect(formatBudget(probe({ tauxConsommation: 3.5 }))).toContain(
+      "part 3,5 fois trop vite en ce moment",
+    );
+    expect(formatBudget(probe({ tauxConsommation: 0.9 }))).not.toContain("trop vite");
+  });
+
+  it("dit « objectif manqué » quand il ne reste rien", () => {
+    expect(formatBudget(probe({ budgetConsomme: 160, budgetRestantMinutes: 0 }))).toBe(
+      "budget dépensé à 160 % · objectif manqué",
+    );
+  });
+
+  it("sans objectif, ne dit rien plutôt qu'un chiffre vide", () => {
+    expect(formatBudget(probe({ slaTarget: null }))).toBeNull();
+    expect(formatBudget({})).toBeNull();
+    expect(formatBudget(null)).toBeNull();
+  });
+
+  it("avec un objectif mais trop peu de relevés, le dit au lieu d'inventer", () => {
+    expect(formatBudget(probe({ budgetConsomme: null }))).toBe(
+      "objectif fixé, pas encore assez de relevés pour en juger",
+    );
   });
 });

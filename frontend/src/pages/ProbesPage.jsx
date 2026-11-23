@@ -16,6 +16,7 @@ import {
   toProbePayload,
   updateProbe,
   validateProbe,
+  formatBudget,
 } from "../api/probes.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { Badge } from "../ui/Badges.jsx";
@@ -104,6 +105,7 @@ function ProbeForm({ initial, submitting, onSubmit, onCancel }) {
           })}
       {field("intervalSeconds", "Intervalle (secondes)", { inputMode: "numeric" })}
       {field("timeoutMs", "Délai de réponse (ms)", { inputMode: "numeric" })}
+      {field("slaTarget", "Objectif de disponibilité (%, vide = aucun)", { inputMode: "decimal" })}
       {isHttp(values.type) && (
         <>
           {field("expectedStatus", "Statut attendu", { placeholder: "200 ou 200-399" })}
@@ -351,7 +353,12 @@ function ProbesView({ id }) {
                 const state = stateOf(probe);
                 return (
                   <tr key={probe.id} className={probe.active ? undefined : "opacity-60"}>
-                    <td className="p-3 text-white">{probe.name}</td>
+                    <td className="p-3 text-white">
+                      {probe.name}
+                      {formatBudget(probe) && (
+                        <span className="cell-sub">{formatBudget(probe)}</span>
+                      )}
+                    </td>
                     <td className="p-3">{typeLabel(probe.type)}</td>
                     <td className="p-3 cell-mono">{targetOf(probe)}</td>
                     <td className="p-3">

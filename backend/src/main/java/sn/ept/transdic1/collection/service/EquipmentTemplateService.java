@@ -203,6 +203,9 @@ public class EquipmentTemplateService {
                 null,
                 null,
                 null,
+                // Pas d'objectif de disponibilité par défaut : c'est une décision d'exploitation,
+                // service par service, et un modèle d'équipement ne peut pas la prendre (M8).
+                null,
                 true));
       }
     }

@@ -6316,6 +6316,16 @@ components:
           description: Texte cherché dans la réponse ; HTTP et HTTPS seulement
           maxLength: 200
           minLength: 0
+        slaTarget:
+          type:
+          - number
+          - "null"
+          format: double
+          description: "Objectif de disponibilité sur 30 jours (0,995 pour 99,5 %)\
+            \ ; laisser vide pour aucun objectif, auquel cas aucun budget d'erreur\
+            \ n'est calculé"
+          maximum: 1.0
+          minimum: 0.5
         active:
           type: boolean
           description: Vrai par défaut
@@ -7145,6 +7155,35 @@ components:
         consecutiveFailures:
           type: integer
           format: int32
+        slaTarget:
+          type:
+          - number
+          - "null"
+          format: double
+          description: "Objectif de disponibilité sur 30 jours, entre 0,5 et 1 ; absent\
+            \ sans objectif"
+        budgetConsomme:
+          type:
+          - number
+          - "null"
+          format: double
+          description: "Part du budget d'indisponibilité dépensée sur 30 jours, en\
+            \ pourcentage ; au-delà de 100 l'objectif est manqué. Absent sans objectif\
+            \ ou sans assez de relevés."
+        budgetRestantMinutes:
+          type:
+          - integer
+          - "null"
+          format: int64
+          description: Minutes d'indisponibilité encore permises sur la fenêtre
+        tauxConsommation:
+          type:
+          - number
+          - "null"
+          format: double
+          description: "Vitesse de consommation sur la dernière heure, rapportée à\
+            \ la vitesse qui ferait durer le budget un mois : 1 = soutenable, 14,4\
+            \ = épuisé en deux jours"
     Options:
       type: object
       properties:
