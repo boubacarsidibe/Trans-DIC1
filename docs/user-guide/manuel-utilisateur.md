@@ -78,6 +78,16 @@ Quand un équipement de cœur (un routeur, un commutateur de distribution) tombe
 
 Une alerte de type **Absence de donnée** signale un indicateur qui arrivait régulièrement et ne remonte plus depuis une demi-heure, alors que l'équipement répond par ailleurs : un disque démonté, un service disparu de l'agent, un OID devenu muet. Si l'équipement est entièrement muet, c'est une alerte de collecte qui s'ouvre à la place. Elle se résout seule au retour des mesures.
 
+### Alertes de plage apprise sur les ports
+
+Pour les débits, erreurs, rejets, la gigue et la perte, la plateforme apprend la **plage habituelle de chaque port** au fil des mesures, sans que vous réglez quoi que ce soit. Trois mesures de suite en dehors de cette plage ouvrent un avertissement qui la donne : « net.in[Gi0/2] au-dessus de sa plage habituelle : 500 Mb/s depuis 3 mesures, alors que ce port tient d'ordinaire entre 18 et 24 Mb/s ». Le message précise que la plage est apprise, pour que vous ne cherchiez pas le seuil correspondant dans les règles : il n'y en a pas.
+
+L'intérêt est la rapidité : la plage est utilisable après une vingtaine de mesures, soit quelques minutes, là où l'alerte **Anomalie** a besoin de plusieurs semaines d'historique au même créneau. Un port tout juste découvert est donc surveillé tout de suite.
+
+En échange, **cette plage s'adapte** : un port dont le trafic grandit durablement verra sa plage suivre, et l'alerte se refermer. Ce n'est pas un oubli — un port qui sert davantage chaque mois ne doit pas crier tous les jours — et c'est l'alerte **Rupture de niveau** qui voit les changements durables. Les deux se complètent.
+
+Enfin, un port éteint puis rallumé aura appris une plage autour de zéro : ses premières mesures de trafic ouvriront une alerte, qui se refermera seule en quelques dizaines de mesures.
+
 ### Ce qui a bougé en même temps
 
 Dans le diagnostic d'une alerte, cette rubrique réunit deux choses. Les indicateurs qui ont **changé de niveau** à l'ouverture, comme avant. Et, depuis peu, ceux qui **varient comme la mesure en alerte** — ou à son inverse —, sur la machine en alerte comme sur ses voisins directs dans la topologie. C'est souvent le plus parlant : la latence qui suit la charge, le trafic qui s'effondre à chaque pic d'erreurs. Un indicateur peut suivre la mesure en alerte sans que sa moyenne bouge d'un pouce, et la comparaison avant/après ne le voyait pas.
