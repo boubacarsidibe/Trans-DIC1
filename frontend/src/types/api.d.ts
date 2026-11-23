@@ -1720,6 +1720,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/incidents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lister les incidents
+         * @description Liste paginée (20 par page, plus récents d'abord), filtrable par état. Chaque incident indique le nombre d'alertes et les équipements touchés.
+         */
+        get: operations["list_11"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Consulter un incident et ses alertes
+         * @description Chaque alerte porte la règle qui l'a rapprochée des autres, en clair, et un repère sur celle qui a notifié au nom de l'incident.
+         */
+        get: operations["get_6"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/flux": {
         parameters: {
             query?: never;
@@ -1751,7 +1791,7 @@ export interface paths {
          * Lister les événements réseau
          * @description Liste paginée (50 par page, plus récents d'abord), filtrable par équipement, source, sévérité minimale (EMERGENCY la plus grave), période [from, to[ et texte (titre, détails, OID). 200 événements par page au plus.
          */
-        get: operations["list_11"];
+        get: operations["list_12"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1868,7 +1908,7 @@ export interface paths {
             cookie?: never;
         };
         /** Consulter une recherche et les équipements trouvés */
-        get: operations["get_6"];
+        get: operations["get_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2003,7 +2043,7 @@ export interface paths {
          * Consulter le journal
          * @description Liste paginée (50 par page, plus récentes d'abord), filtrable par période (from inclus, to exclu), compte, action et cible.
          */
-        get: operations["list_12"];
+        get: operations["list_13"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2143,7 +2183,7 @@ export interface paths {
          * Lister les alertes
          * @description Liste paginée (20 par page, plus récentes d'abord), filtrable par état, équipement, sévérité ou alertes actives. Les alertes supprimées sont masquées.
          */
-        get: operations["list_13"];
+        get: operations["list_14"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2160,7 +2200,7 @@ export interface paths {
             cookie?: never;
         };
         /** Consulter une alerte et son historique */
-        get: operations["get_7"];
+        get: operations["get_8"];
         put?: never;
         post?: never;
         /**
@@ -3450,6 +3490,45 @@ export interface components {
         };
         PagedModelMaintenanceResponse: {
             content?: components["schemas"]["MaintenanceResponse"][];
+            page?: components["schemas"]["PageMetadata"];
+        };
+        /** @description Un fait, décrit par plusieurs alertes regroupées */
+        IncidentResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** @description Message de l'alerte qui a commencé l'incident */
+            title?: string;
+            /**
+             * @description La plus haute sévérité de ses alertes
+             * @enum {string}
+             */
+            severity?: "INFO" | "WARNING" | "CRITICAL";
+            /** @enum {string} */
+            state?: "OPEN" | "RESOLVED";
+            /**
+             * Format: uuid
+             * @description Site où l'incident a commencé ; il ne change plus ensuite
+             */
+            siteId?: string;
+            siteName?: string;
+            /** Format: date-time */
+            openedAt?: string;
+            /**
+             * Format: date-time
+             * @description Dernière alerte entrée dans l'incident
+             */
+            lastAlertAt?: string;
+            /** Format: date-time */
+            resolvedAt?: string;
+            /** Format: int32 */
+            alertCount?: number;
+            /** Format: int32 */
+            equipmentCount?: number;
+            /** @description Noms des équipements touchés, au plus cinq, par ordre alphabétique */
+            equipmentNames?: string[];
+        };
+        PagedModelIncidentResponse: {
+            content?: components["schemas"]["IncidentResponse"][];
             page?: components["schemas"]["PageMetadata"];
         };
         NetworkEventResponse: {
@@ -9353,6 +9432,85 @@ export interface operations {
             };
         };
     };
+    list_11: {
+        parameters: {
+            query: {
+                state?: "OPEN" | "RESOLVED";
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelIncidentResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    get_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Incident introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     stream: {
         parameters: {
             query?: never;
@@ -9389,7 +9547,7 @@ export interface operations {
             };
         };
     };
-    list_11: {
+    list_12: {
         parameters: {
             query: {
                 equipmentId?: string;
@@ -9638,7 +9796,7 @@ export interface operations {
             };
         };
     };
-    get_6: {
+    get_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -9935,7 +10093,7 @@ export interface operations {
             };
         };
     };
-    list_12: {
+    list_13: {
         parameters: {
             query: {
                 from?: string;
@@ -10201,7 +10359,7 @@ export interface operations {
             };
         };
     };
-    list_13: {
+    list_14: {
         parameters: {
             query: {
                 state?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ARCHIVED" | "DELETED";
@@ -10245,7 +10403,7 @@ export interface operations {
             };
         };
     };
-    get_7: {
+    get_8: {
         parameters: {
             query?: never;
             header?: never;

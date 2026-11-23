@@ -305,8 +305,11 @@ class PersistenceModelTests {
             // Journaux de sécurité (lot 5).
             "SecurityEvent",
             // Voisins annoncés par LLDP (ADR 0034).
-            "LldpNeighbour")
-        .hasSize(45);
+            "LldpNeighbour",
+            // Regroupement des alertes en incidents (ADR 0039).
+            "Incident",
+            "IncidentAlert")
+        .hasSize(47);
   }
 
   @Test

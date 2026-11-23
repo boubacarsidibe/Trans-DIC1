@@ -25,6 +25,7 @@ import MetricsPage from "./pages/MetricsPage.jsx";
 import SitesPage from "./pages/SitesPage.jsx";
 import UsersPage from "./pages/UsersPage.jsx";
 import AlertsPage from "./pages/AlertsPage.jsx";
+import IncidentsPage from "./pages/IncidentsPage.jsx";
 import CollectionPage from "./pages/CollectionPage.jsx";
 import ProbesPage from "./pages/ProbesPage.jsx";
 import EquipmentPage from "./pages/EquipmentPage.jsx";
@@ -53,6 +54,7 @@ function App() {
           <Route path="/sites" element={<SitesPage />} />
           <Route path="/topologie" element={<TopologyPage />} />
           <Route path="/alertes" element={<AlertsPage />} />
+          <Route path="/incidents" element={<IncidentsPage />} />
           <Route path="/maintenances" element={<MaintenancesPage />} />
           <Route path="/astreinte" element={<OnCallPage />} />
           <Route path="/pages-statut" element={<StatusPagesPage />} />

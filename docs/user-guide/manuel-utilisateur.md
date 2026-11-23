@@ -78,6 +78,16 @@ Quand un équipement de cœur (un routeur, un commutateur de distribution) tombe
 
 Une alerte de type **Absence de donnée** signale un indicateur qui arrivait régulièrement et ne remonte plus depuis une demi-heure, alors que l'équipement répond par ailleurs : un disque démonté, un service disparu de l'agent, un OID devenu muet. Si l'équipement est entièrement muet, c'est une alerte de collecte qui s'ouvre à la place. Elle se résout seule au retour des mesures.
 
+## Incidents : un fait plutôt que ses morceaux
+
+Une panne en amont fait tomber cinq machines : cinq alertes, un seul fait. L'écran **Incidents** montre le fait entier. Les alertes qui arrivent dans la même dizaine de minutes y sont regroupées quand elles portent sur la même machine, sur un voisin direct dans la topologie, ou sur le même site avec la même règle ou le même message.
+
+**Une seule de ces alertes prévient l'équipe.** Les autres restent visibles, dans l'incident et sur l'écran des alertes, mais ne réveillent personne. Si l'incident s'aggrave — une alerte critique rejoint un incident qui n'était qu'un avertissement —, un second message part : c'est une nouvelle information. Dans le détail de l'incident, l'alerte qui a prévenu est signalée, et **chaque autre dit pourquoi elle est là** : « Voisin dans la topologie : Routeur de cœur (lien direct) », « Même équipement : Serveur applicatif ». Un regroupement que vous ne pouvez pas vérifier ne mérite pas votre confiance : lisez la raison, et si elle vous paraît fausse, les alertes sont toujours là, une par une, sur l'écran des alertes.
+
+Un incident est **en cours** ou **terminé**, et rien d'autre : il se referme seul quand toutes ses alertes sont retombées. La prise en charge, l'assignation et la résolution se font sur les alertes, comme avant — un incident ne crée pas un second carnet de bord.
+
+Ce qu'il ne fait pas : un fait qui s'étale, avec plus de dix minutes entre deux symptômes, donnera deux incidents ; et un incident qui franchit un lien entre deux sites reste rattaché au site où il a commencé, donc un compte limité à l'autre site ne le verra pas dans cette liste.
+
 Une alerte de type **Écart aux semblables** signale un équipement qui se comporte autrement que les autres du même type sur le même site, même si aucun seuil n'est franchi et même si c'est son habitude.
 
 Une alerte de type **Anomalie** signale une mesure inhabituelle pour l'heure et le jour (par exemple un processeur très chargé un dimanche à 3 h), même si aucun seuil n'est dépassé. La normale est calculée sur les quatre dernières semaines au même créneau, en écartant les relevés qui étaient eux-mêmes inhabituels : un incident passé ne masque pas le suivant. Le message de l'alerte dit combien de relevés ont été écartés. Le temps de réponse d'une sonde est surveillé de la même façon.

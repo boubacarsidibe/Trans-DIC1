@@ -26,6 +26,7 @@ import sn.ept.transdic1.alerting.repository.AlertEventRepository;
 import sn.ept.transdic1.alerting.repository.AlertRepository;
 import sn.ept.transdic1.alerting.repository.MaintenanceRepository;
 import sn.ept.transdic1.audit.service.AuditService;
+import sn.ept.transdic1.common.alerting.IncidentGrouping;
 import sn.ept.transdic1.common.scheduling.JobGuard;
 import sn.ept.transdic1.oncall.domain.OnCallAlertStep;
 import sn.ept.transdic1.oncall.domain.OnCallLevel;
@@ -62,6 +63,7 @@ public class OnCallEscalationService {
   private final OnCallResolver resolver;
   private final OnCallAlertStepRepository steps;
   private final NotificationQueueService queue;
+  private final IncidentGrouping incidents;
   private final ApplicationEventPublisher publisher;
   private final AuditService audit;
   private final JobGuard guard;
@@ -77,6 +79,7 @@ public class OnCallEscalationService {
       OnCallResolver resolver,
       OnCallAlertStepRepository steps,
       NotificationQueueService queue,
+      IncidentGrouping incidents,
       ApplicationEventPublisher publisher,
       AuditService audit,
       JobGuard guard,
@@ -90,6 +93,7 @@ public class OnCallEscalationService {
     this.resolver = resolver;
     this.steps = steps;
     this.queue = queue;
+    this.incidents = incidents;
     this.publisher = publisher;
     this.audit = audit;
     this.guard = guard;
@@ -117,6 +121,12 @@ public class OnCallEscalationService {
         || alert.getSeverity().ordinal() < minimumSeverity.ordinal()
         || steps.existsByAlertIdAndLevel(alertId, OnCallLevel.PRIMARY)
         || underMaintenance(alert, now)) {
+      return false;
+    }
+    // Un fait, une astreinte réveillée (M10, ADR 0039) : les alertes rangées dans un incident déjà
+    // notifié ne relancent pas la chaîne. L'incident redonne la parole si la gravité monte, et une
+    // alerte qu'aucun incident n'a rangée démarre toujours sa chaîne.
+    if (!incidents.announces(alertId)) {
       return false;
     }
     var resolution = resolver.resolve(siteOf(alert), now);

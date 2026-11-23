@@ -42,6 +42,8 @@ collection       → inventory (domain, repository), monitoring (domain, reposit
 
 `collection` orchestre la réception des mesures : aucun autre module ne la connaît. Le moteur d'alertes lit l'historique des mesures par le port `MetricHistory`, implémenté par `collection`, ce qui évite tout cycle avec `monitoring`.
 
+`reporting` et `oncall` apprennent d'`alerting` qu'une alerte est rangée dans un incident déjà notifié par le port `common.alerting.IncidentGrouping` (M10, ADR 0039), implémenté par `IncidentGroupingService` : la décision se prend dans `alerting`, où elle appartient, sans que ces deux modules dépendent de ses services — même idiome que `common.scope.SiteScope`.
+
 Les modules de base (`inventory`, `monitoring`, `security`, `audit`) ne dépendent jamais de `alerting`, `reporting` ni `access`. Le périmètre d'accès par site leur parvient par le port `common.scope.SiteScope`, implémenté par `access` (ADR 0018). Le détail du modèle est dans [persistence-mapping.md](persistence-mapping.md).
 
 ## Si une règle échoue

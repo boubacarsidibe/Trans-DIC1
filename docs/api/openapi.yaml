@@ -56,6 +56,10 @@ tags:
   description: Jetons personnels pour appeler l'API depuis un autre outil.
 - name: Sécurité
   description: Journaux de sécurité et attaques repérées.
+- name: Incidents
+  description: "Alertes regroupées en incidents (M10, ADR 0039) : un fait, une notification.\
+    \ Consultation pour tous les rôles, dans la limite du périmètre d'accès. La prise\
+    \ en charge et la résolution se font sur les alertes."
 - name: Notifications
   description: Préférences de notification de l'utilisateur connecté.
 - name: Sondes
@@ -4398,6 +4402,78 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/incidents:
+    get:
+      tags:
+      - Incidents
+      summary: Lister les incidents
+      description: "Liste paginée (20 par page, plus récents d'abord), filtrable par\
+        \ état. Chaque incident indique le nombre d'alertes et les équipements touché\
+        s."
+      operationId: list_11
+      parameters:
+      - name: state
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - OPEN
+          - RESOLVED
+      - name: pageable
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/Pageable"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PagedModelIncidentResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/incidents/{id}:
+    get:
+      tags:
+      - Incidents
+      summary: Consulter un incident et ses alertes
+      description: "Chaque alerte porte la règle qui l'a rapprochée des autres, en\
+        \ clair, et un repère sur celle qui a notifié au nom de l'incident."
+      operationId: get_6
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Incident introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/flux:
     get:
       tags:
@@ -4430,7 +4506,7 @@ paths:
       description: "Liste paginée (50 par page, plus récents d'abord), filtrable par\
         \ équipement, source, sévérité minimale (EMERGENCY la plus grave), période\
         \ [from, to[ et texte (titre, détails, OID). 200 événements par page au plus."
-      operationId: list_11
+      operationId: list_12
       parameters:
       - name: equipmentId
         in: query
@@ -4708,7 +4784,7 @@ paths:
       tags:
       - Découverte
       summary: Consulter une recherche et les équipements trouvés
-      operationId: get_6
+      operationId: get_7
       parameters:
       - name: id
         in: path
@@ -4921,7 +4997,7 @@ paths:
       summary: Consulter le journal
       description: "Liste paginée (50 par page, plus récentes d'abord), filtrable\
         \ par période (from inclus, to exclu), compte, action et cible."
-      operationId: list_12
+      operationId: list_13
       parameters:
       - name: from
         in: query
@@ -5194,7 +5270,7 @@ paths:
       description: "Liste paginée (20 par page, plus récentes d'abord), filtrable\
         \ par état, équipement, sévérité ou alertes actives. Les alertes supprimé\
         es sont masquées."
-      operationId: list_13
+      operationId: list_14
       parameters:
       - name: state
         in: query
@@ -5257,7 +5333,7 @@ paths:
       tags:
       - Alertes
       summary: Consulter une alerte et son historique
-      operationId: get_7
+      operationId: get_8
       parameters:
       - name: id
         in: path
@@ -8133,6 +8209,65 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/MaintenanceResponse"
+        page:
+          $ref: "#/components/schemas/PageMetadata"
+    IncidentResponse:
+      type: object
+      description: "Un fait, décrit par plusieurs alertes regroupées"
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          description: Message de l'alerte qui a commencé l'incident
+        severity:
+          type: string
+          description: La plus haute sévérité de ses alertes
+          enum:
+          - INFO
+          - WARNING
+          - CRITICAL
+        state:
+          type: string
+          enum:
+          - OPEN
+          - RESOLVED
+        siteId:
+          type: string
+          format: uuid
+          description: Site où l'incident a commencé ; il ne change plus ensuite
+        siteName:
+          type: string
+        openedAt:
+          type: string
+          format: date-time
+        lastAlertAt:
+          type: string
+          format: date-time
+          description: Dernière alerte entrée dans l'incident
+        resolvedAt:
+          type: string
+          format: date-time
+        alertCount:
+          type: integer
+          format: int32
+        equipmentCount:
+          type: integer
+          format: int32
+        equipmentNames:
+          type: array
+          description: "Noms des équipements touchés, au plus cinq, par ordre alphabé\
+            tique"
+          items:
+            type: string
+    PagedModelIncidentResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/IncidentResponse"
         page:
           $ref: "#/components/schemas/PageMetadata"
     NetworkEventResponse:

@@ -188,8 +188,40 @@ class AlertCorrelationTests {
     Alert root = fail(core, T0);
     Alert child = fail(sw, T0.plusSeconds(10));
 
+    // Ce que ce réglage coupe, c'est le lien parent/enfant de l'ADR 0012, et lui seul.
     assertThat(child.getParentAlertId()).isNull();
     assertThat(notifications(root)).isEqualTo(1);
-    assertThat(notifications(child)).isEqualTo(1);
+    // Mais le regroupement en incidents (M10, ADR 0039) est un second mécanisme, avec son propre
+    // interrupteur : il voit deux alertes à un lien l'une de l'autre dans la même fenêtre, les
+    // range dans un incident et n'en laisse parler qu'une. Couper ALERT_CORRELATION_ENABLED ne
+    // rend donc pas une notification par alerte ; il faut aussi ALERT_INCIDENT_ENABLED=false.
+    assertThat(notifications(child)).isZero();
+  }
+
+  @Test
+  void lesDeuxAlertesSontDansLeMemeIncidentMemeSansLienParentEnfant() {
+    correlation.setEnabled(false);
+    Equipment core = equipment("Routeur cœur", site);
+    Equipment sw = equipment("Commutateur", site);
+    link(sw, core);
+
+    Alert root = fail(core, T0);
+    Alert child = fail(sw, T0.plusSeconds(10));
+    em.flush();
+
+    // L'alerte silencieuse n'est pas perdue : elle est rangée, et la raison est lisible.
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(DISTINCT incident_id) FROM incident_alert WHERE alert_id IN (?, ?)",
+                Integer.class,
+                root.getId(),
+                child.getId()))
+        .isEqualTo(1);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT reason FROM incident_alert WHERE alert_id = ?",
+                String.class,
+                child.getId()))
+        .isEqualTo("Voisin dans la topologie : Routeur cœur (lien direct)");
   }
 }

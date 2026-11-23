@@ -13,6 +13,7 @@ import sn.ept.transdic1.alerting.domain.AlertChangedEvent;
 import sn.ept.transdic1.alerting.domain.AlertEventType;
 import sn.ept.transdic1.alerting.domain.Severity;
 import sn.ept.transdic1.alerting.repository.AlertRepository;
+import sn.ept.transdic1.common.alerting.IncidentGrouping;
 import sn.ept.transdic1.common.scope.SiteScope;
 import sn.ept.transdic1.reporting.domain.Notification;
 import sn.ept.transdic1.reporting.domain.NotificationChannel;
@@ -46,6 +47,7 @@ public class NotificationQueueService {
   private final UserRepository users;
   private final MessageTemplateService renderer;
   private final SiteScope scope;
+  private final IncidentGrouping incidents;
 
   public NotificationQueueService(
       AlertRepository alerts,
@@ -53,8 +55,10 @@ public class NotificationQueueService {
       NotificationRepository notifications,
       UserRepository users,
       MessageTemplateService renderer,
-      SiteScope scope) {
+      SiteScope scope,
+      IncidentGrouping incidents) {
     this.scope = scope;
+    this.incidents = incidents;
     this.alerts = alerts;
     this.preferences = preferences;
     this.notifications = notifications;
@@ -74,6 +78,13 @@ public class NotificationQueueService {
   public int queueFor(UUID eventId, UUID alertId, AlertEventType type) {
     Alert alert = alerts.findById(alertId).orElse(null);
     if (alert == null) {
+      return 0;
+    }
+    // Un fait, une notification (M10, ADR 0039) : quand une panne en amont fait tomber cinq
+    // machines, une seule des cinq alertes prend la parole. Les autres restent visibles à l'écran,
+    // dans le même incident. Une alerte qu'aucun incident n'a rangée notifie toujours.
+    if (type == AlertEventType.OPENED && !incidents.announces(alertId)) {
+      LOG.debug("Alerte {} rangée dans un incident déjà notifié : aucun message", alertId);
       return 0;
     }
     String kind = kind(type);
