@@ -151,6 +151,47 @@ function SecurityPage() {
                 )}
               </section>
 
+              <section aria-labelledby="mitre" className="panel dash-wide">
+                <div className="panel-head">
+                  <h2 id="mitre">Techniques MITRE ATT&amp;CK repérées</h2>
+                </div>
+                <p className="diag-note">
+                  Un repère pour parler le même langage que les équipes de sécurité, pas une
+                  classification : il dit à quelle technique ressemble ce qui a été vu, pas qui
+                  attaque. Un soupçon du modèle appris ou un volume inhabituel n’en reçoit aucune,
+                  faute de technique nette.
+                </p>
+                {(overview.techniques ?? []).length === 0 ? (
+                  <p className="dash-empty">Aucune technique reconnue sur la période.</p>
+                ) : (
+                  <table className="data-table mt-3">
+                    <thead>
+                      <tr>
+                        <th>Technique</th>
+                        <th>Tactique</th>
+                        <th>Lignes</th>
+                        <th>Vue</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {overview.techniques.map((technique) => (
+                        <tr key={technique.id}>
+                          <td>
+                            <a href={technique.url} target="_blank" rel="noreferrer noopener">
+                              {technique.id}
+                            </a>{" "}
+                            {technique.name}
+                          </td>
+                          <td>{technique.tactic}</td>
+                          <td>{technique.events}</td>
+                          <td>{formatDate(technique.lastSeen)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </section>
+
               <section aria-labelledby="journal" className="panel dash-wide">
                 <div className="panel-head">
                   <h2 id="journal">Dernières lignes retenues</h2>
@@ -197,6 +238,9 @@ function SecurityPage() {
                             )}
                             {event.families && (
                               <span className="cell-grouped">{event.families}</span>
+                            )}
+                            {event.techniques && (
+                              <span className="cell-grouped">MITRE {event.techniques}</span>
                             )}
                           </td>
                         </tr>

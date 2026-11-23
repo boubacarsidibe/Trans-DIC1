@@ -3589,6 +3589,7 @@ export interface components {
             families?: string;
             /** Format: int32 */
             score?: number;
+            techniques?: string;
         };
         SecurityOverview: {
             /** Format: date-time */
@@ -3598,12 +3599,23 @@ export interface components {
             counts?: components["schemas"]["Counts"];
             topAttackers?: components["schemas"]["Attacker"][];
             targets?: components["schemas"]["TargetedEquipment"][];
+            techniques?: components["schemas"]["TechniqueSeen"][];
             recent?: components["schemas"]["RecentEvent"][];
         };
         TargetedEquipment: {
             /** Format: uuid */
             equipmentId?: string;
             name?: string;
+            /** Format: int32 */
+            events?: number;
+            /** Format: date-time */
+            lastSeen?: string;
+        };
+        TechniqueSeen: {
+            id?: string;
+            name?: string;
+            tactic?: string;
+            url?: string;
             /** Format: int32 */
             events?: number;
             /** Format: date-time */

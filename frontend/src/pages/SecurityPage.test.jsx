@@ -35,6 +35,16 @@ const overview = {
       lastSeen: "2026-11-11T17:58:00Z",
     },
   ],
+  techniques: [
+    {
+      id: "T1190",
+      name: "Exploit Public-Facing Application",
+      tactic: "Initial Access",
+      url: "https://attack.mitre.org/techniques/T1190/",
+      events: 2,
+      lastSeen: "2026-11-11T17:58:00Z",
+    },
+  ],
   recent: [
     {
       id: "11111111-1111-4111-8111-111111111111",
@@ -49,6 +59,7 @@ const overview = {
       status: 200,
       families: "Forme inhabituelle (modèle appris)",
       score: 99,
+      techniques: "",
     },
   ],
 };
@@ -85,6 +96,30 @@ describe("Écran Sécurité", () => {
 
     await waitFor(() => expect(screen.getByText("Forme inhabituelle")).toBeInTheDocument());
     expect(screen.getByText(/soupçon à vérifier dans le journal du serveur/)).toBeInTheDocument();
+  });
+
+  it("rattache ce qui a été vu à une technique MITRE ATT&CK, avec un lien vers sa fiche", async () => {
+    show();
+
+    const link = await screen.findByRole("link", { name: "T1190" });
+    expect(link).toHaveAttribute("href", "https://attack.mitre.org/techniques/T1190/");
+    expect(screen.getByText("Initial Access")).toBeInTheDocument();
+    // Un repère, pas un verdict : l'écran le dit.
+    expect(screen.getByText(/pas une classification/)).toBeInTheDocument();
+  });
+
+  it("n'invente pas de technique pour un soupçon du modèle", async () => {
+    show();
+
+    await waitFor(() => expect(screen.getByText("Forme inhabituelle")).toBeInTheDocument());
+    expect(screen.queryByText(/^MITRE /)).not.toBeInTheDocument();
+  });
+
+  it("tolère une réponse d'un serveur plus ancien, sans techniques", async () => {
+    apiClient.get.mockResolvedValue({ data: { ...overview, techniques: undefined } });
+    show();
+
+    expect(await screen.findByText("Aucune technique reconnue sur la période.")).toBeInTheDocument();
   });
 
   it("nomme chaque nature en français", () => {

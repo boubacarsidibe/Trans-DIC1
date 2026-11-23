@@ -15,6 +15,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.ept.transdic1.common.scope.SiteScope;
+import sn.ept.transdic1.threat.domain.SecurityEventKind;
 
 /**
  * Lecture du journal de sécurité pour l'écran : ce qui s'est passé récemment, d'où cela vient et ce
@@ -49,7 +50,15 @@ public class SecurityQueryService {
       Counts counts,
       List<Attacker> topAttackers,
       List<TargetedEquipment> targets,
+      List<TechniqueSeen> techniques,
       List<RecentEvent> recent) {}
+
+  /**
+   * Une technique MITRE ATT&CK reconnue sur la période (ADR 0048), avec le nombre de lignes qui s'y
+   * rattachent. Un repère, pas un verdict : voir {@link MitreAttack}.
+   */
+  public record TechniqueSeen(
+      String id, String name, String tactic, String url, int events, Instant lastSeen) {}
 
   /** Chiffres clés de la période. */
   public record Counts(
@@ -80,7 +89,8 @@ public class SecurityQueryService {
       String request,
       Integer status,
       String families,
-      int score) {}
+      int score,
+      String techniques) {}
 
   @Transactional(readOnly = true)
   public SecurityOverview overview(Integer hours) {
@@ -99,6 +109,7 @@ public class SecurityQueryService {
             now,
             (int) window.toHours(),
             new Counts(0, 0, 0, 0, 0),
+            List.of(),
             List.of(),
             List.of(),
             List.of());
@@ -180,7 +191,12 @@ public class SecurityQueryService {
                     rs.getString(9),
                     (Integer) rs.getObject(10),
                     rs.getString(11),
-                    rs.getInt(12)));
+                    rs.getInt(12),
+                    MitreAttack.ids(
+                        MitreAttack.forEvent(
+                            SecurityEventKind.valueOf(rs.getString(5)), rs.getString(11)))));
+
+    List<TechniqueSeen> techniques = techniquesSeen(from, params);
 
     return new SecurityOverview(
         now,
@@ -188,6 +204,52 @@ public class SecurityQueryService {
         counts == null ? new Counts(0, 0, 0, 0, 0) : counts,
         attackers,
         targets,
+        techniques,
         new ArrayList<>(recent));
+  }
+
+  /**
+   * Regroupe par nature et par famille, puis rattache chaque groupe à ses techniques : la matrice
+   * se lit sur toute la période, pas seulement sur les dernières lignes affichées.
+   */
+  private List<TechniqueSeen> techniquesSeen(String from, MapSqlParameterSource params) {
+    var seen = new java.util.LinkedHashMap<String, TechniqueSeen>();
+    jdbc.query(
+        "SELECT s.kind, s.families, count(*), max(s.occurred_at)"
+            + from
+            + " GROUP BY s.kind, s.families",
+        params,
+        (org.springframework.jdbc.core.RowCallbackHandler)
+            rs -> {
+              int events = rs.getInt(3);
+              Instant last = rs.getTimestamp(4).toInstant();
+              for (var technique :
+                  MitreAttack.forEvent(
+                      SecurityEventKind.valueOf(rs.getString(1)), rs.getString(2))) {
+                seen.merge(
+                    technique.id(),
+                    new TechniqueSeen(
+                        technique.id(),
+                        technique.name(),
+                        technique.tactic(),
+                        technique.url(),
+                        events,
+                        last),
+                    (a, b) ->
+                        new TechniqueSeen(
+                            a.id(),
+                            a.name(),
+                            a.tactic(),
+                            a.url(),
+                            a.events() + b.events(),
+                            a.lastSeen().isAfter(b.lastSeen()) ? a.lastSeen() : b.lastSeen()));
+              }
+            });
+    return seen.values().stream()
+        .sorted(
+            java.util.Comparator.comparingInt(TechniqueSeen::events)
+                .reversed()
+                .thenComparing(TechniqueSeen::id))
+        .toList();
   }
 }

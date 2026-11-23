@@ -8424,6 +8424,8 @@ components:
         score:
           type: integer
           format: int32
+        techniques:
+          type: string
     SecurityOverview:
       type: object
       properties:
@@ -8443,6 +8445,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TargetedEquipment"
+        techniques:
+          type: array
+          items:
+            $ref: "#/components/schemas/TechniqueSeen"
         recent:
           type: array
           items:
@@ -8454,6 +8460,23 @@ components:
           type: string
           format: uuid
         name:
+          type: string
+        events:
+          type: integer
+          format: int32
+        lastSeen:
+          type: string
+          format: date-time
+    TechniqueSeen:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tactic:
+          type: string
+        url:
           type: string
         events:
           type: integer

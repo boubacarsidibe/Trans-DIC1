@@ -130,4 +130,43 @@ class SecurityOverviewTests {
     assertThat(retention.purgeExpired()).isEqualTo(1);
     assertThat(query.overview(24).recent()).isEmpty();
   }
+
+  @Test
+  void laVueRattacheLesLignesAuxTechniquesMitreSurToutelaPeriode() {
+    send(
+        List.of(
+            web("203.0.113.50", "/p?id=1 UNION SELECT 1", 200),
+            web("203.0.113.50", "/q?id=2 UNION SELECT 2", 200),
+            web("203.0.113.51", "/p?x=<script>alert(1)</script>", 200),
+            new LogEntry(
+                Instant.now().minusSeconds(20),
+                "AUTH_FAILURE",
+                "203.0.113.52",
+                "root",
+                null,
+                null,
+                null),
+            web("203.0.113.53", "/absent", 404)));
+
+    var overview = query.overview(24);
+
+    // Trois lignes d'attaque web relèvent de la même technique : elles se cumulent.
+    var exploit = overview.techniques().stream().filter(t -> t.id().equals("T1190")).findFirst();
+    assertThat(exploit).isPresent();
+    assertThat(exploit.get().events()).isEqualTo(3);
+    assertThat(exploit.get().url()).isEqualTo("https://attack.mitre.org/techniques/T1190/");
+
+    var bruteForce = overview.techniques().stream().filter(t -> t.id().equals("T1110")).findFirst();
+    assertThat(bruteForce).isPresent();
+    assertThat(bruteForce.get().events()).isEqualTo(1);
+
+    // Une erreur 404 isolée n'est pas un balayage : aucune technique ne lui est rattachée.
+    assertThat(overview.techniques()).extracting(t -> t.id()).doesNotContain("T1595.003");
+
+    // La plus fréquente d'abord.
+    assertThat(overview.techniques().get(0).id()).isEqualTo("T1190");
+    // Et la ligne affichée porte son repère.
+    assertThat(overview.recent())
+        .anyMatch(e -> "WEB_ATTACK".equals(e.kind()) && "T1190".equals(e.techniques()));
+  }
 }

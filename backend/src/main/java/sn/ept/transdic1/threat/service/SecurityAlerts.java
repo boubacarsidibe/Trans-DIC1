@@ -88,6 +88,9 @@ public class SecurityAlerts {
       String message,
       Instant now) {
     String occurrence = subject.prefix() + equipment.getId() + ":" + key + ":";
+    // Repère MITRE ATT&CK (ADR 0048) : le même langage que les équipes de sécurité, sans rien
+    // changer à ce qui ouvre l'alerte.
+    message = message + mitreSuffix(subject);
     Optional<Alert> active =
         alerts.findFirstByOccurrenceKeyStartingWithAndStateIn(occurrence, ACTIVE);
     if (active.isPresent()) {
@@ -111,5 +114,10 @@ public class SecurityAlerts {
     publisher.publishEvent(new AlertChangedEvent(alert.getId(), AlertEventType.OPENED));
     publisher.publishEvent(new AlertActivityEvent(alert.getId(), AlertEventType.OPENED));
     return 1;
+  }
+
+  private static String mitreSuffix(Subject subject) {
+    var techniques = MitreAttack.forAlert(subject);
+    return techniques.isEmpty() ? "" : " [MITRE ATT&CK " + MitreAttack.ids(techniques) + "]";
   }
 }

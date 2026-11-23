@@ -462,6 +462,12 @@ Depuis la liste des équipements, **Collecte** ouvre la configuration de la coll
 
 À savoir : les débits n'apparaissent qu'au deuxième passage (un compteur seul ne dit rien, il faut deux relevés) et après le redémarrage d'un équipement. Le bouclage et les ports désactivés par l'administrateur sont inventoriés mais pas suivis. Un port ajouté met jusqu'à une heure à apparaître. L'occupation du lien dépend de la vitesse annoncée par l'équipement : si elle est mal renseignée, le pourcentage l'est aussi.
 
+### Repères MITRE ATT&CK
+
+L'écran **Sécurité** a un panneau « Techniques MITRE ATT&CK repérées » : pour chaque type d'attaque vu sur la période, la technique correspondante de la matrice du MITRE, avec un lien vers sa fiche officielle. C'est un **repère** pour parler le même langage que les équipes de sécurité, pas une classification : il dit à quoi ressemble ce qui a été vu, pas qui attaque.
+
+Certaines lignes n'ont **aucune technique, et c'est voulu** : un soupçon du modèle appris, un écart de volume ou une simple page introuvable ne correspondent à aucune technique précise. Les alertes de sécurité portent aussi le repère à la fin de leur message, par exemple `[MITRE ATT&CK T1110]`.
+
 ### Relais de collecte d'un bâtiment
 
 Quand un bâtiment est relié par une liaison qui tombe de temps en temps, installez-y un **relais de collecte** plutôt qu'un agent par machine. Sur la page **Sites**, le bouton « Proxy » ouvre le panneau du site : « Enregistrer un proxy » donne un jeton, **affiché une seule fois** — copiez-le tout de suite, personne ne pourra le relire.
