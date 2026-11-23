@@ -505,6 +505,66 @@ public class DiagnosticRepository {
         excludedKey);
   }
 
+  /**
+   * Un point d'une série : l'équipement, l'indicateur, la minute et la valeur moyenne de la minute.
+   */
+  public record SeriesPoint(
+      UUID equipmentId,
+      String equipmentName,
+      String key,
+      String unit,
+      Instant minute,
+      double value) {}
+
+  /**
+   * Séries minute par minute de l'équipement <b>et de ses voisins directs</b>, sur la fenêtre qui
+   * entoure l'ouverture (M11, ADR 0040). Une minute par point : les mesures des différents
+   * indicateurs n'arrivent pas au même instant, et il faut un axe de temps commun pour les
+   * comparer.
+   *
+   * <p>Les voisins sont pris à un lien, dans un sens ou dans l'autre, et plafonnés : au-delà, le
+   * coût de la requête grandit sans que les corrélations gagnent en intérêt. Les mesures de sonde
+   * sont écartées pour la même raison que dans {@link #movedMetrics} — plusieurs sondes d'un
+   * équipement partagent une clé.
+   */
+  public List<SeriesPoint> series(
+      UUID equipmentId, Instant from, Instant to, int maxNeighbours, int maxPoints) {
+    return jdbc.query(
+        "WITH voisins AS ("
+            + " SELECT CAST(? AS uuid) AS id"
+            + " UNION"
+            + " SELECT id FROM ("
+            + "   SELECT CASE WHEN l.equipment_id = CAST(? AS uuid) THEN l.upstream_id"
+            + "               ELSE l.equipment_id END AS id"
+            + "   FROM equipment_link l"
+            + "   WHERE l.equipment_id = CAST(? AS uuid) OR l.upstream_id = CAST(? AS uuid)"
+            + "   LIMIT ?) proches)"
+            + " SELECT m.equipment_id, e.name, m.metric_key, max(m.unit) AS unit,"
+            + " date_trunc('minute', m.collected_at) AS minute, avg(m.metric_value) AS value"
+            + " FROM metric m JOIN voisins v ON v.id = m.equipment_id"
+            + " JOIN equipment e ON e.id = m.equipment_id"
+            + " WHERE m.service_id IS NULL AND m.quality <> 'BAD'"
+            + " AND m.collected_at >= ? AND m.collected_at <= ?"
+            + " GROUP BY m.equipment_id, e.name, m.metric_key, minute"
+            + " ORDER BY minute LIMIT ?",
+        (rs, i) ->
+            new SeriesPoint(
+                rs.getObject(1, UUID.class),
+                rs.getString(2),
+                rs.getString(3),
+                rs.getString(4),
+                rs.getTimestamp(5).toInstant(),
+                number(rs.getBigDecimal(6))),
+        equipmentId,
+        equipmentId,
+        equipmentId,
+        equipmentId,
+        maxNeighbours,
+        Timestamp.from(from),
+        Timestamp.from(to),
+        maxPoints);
+  }
+
   // ------------------------------------------------------------------ incidents similaires
 
   /**

@@ -9,6 +9,7 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ import sn.ept.transdic1.alerting.domain.Severity;
 import sn.ept.transdic1.alerting.dto.CapacityForecastResponse;
 import sn.ept.transdic1.alerting.service.CapacityForecastService;
 import sn.ept.transdic1.common.scope.SiteScope;
+import sn.ept.transdic1.diagnostic.domain.MetricLink;
 import sn.ept.transdic1.diagnostic.domain.Relation;
 import sn.ept.transdic1.diagnostic.dto.DiagnosticResponse;
 import sn.ept.transdic1.diagnostic.dto.DiagnosticResponse.AlerteVoisine;
@@ -72,6 +74,16 @@ public class DiagnosticService {
   /** Taille des listes affichées (équipements, services, voisins, événements, changements). */
   static final int DISPLAY_LIMIT = 10;
 
+  /**
+   * Plafond de points lus pour les corrélations : deux heures à la minute sur une poignée
+   * d'équipements et une vingtaine d'indicateurs tiennent largement dedans, et une collecte
+   * emballée ne peut pas faire exploser la requête.
+   */
+  static final int MAX_SERIES_POINTS = 20_000;
+
+  /** Avant/pendant de movedMetrics : le « pendant » commence un quart d'heure avant l'ouverture. */
+  private static final Duration MOVED_SPLIT = Duration.ofMinutes(15);
+
   /** Lignes lues pour la détection des causes (événements, changements, alertes liées). */
   static final int FETCH_LIMIT = 50;
 
@@ -109,6 +121,9 @@ public class DiagnosticService {
   private final List<NextStepProvider> steps;
   private final Duration window;
   private final ZoneId zone;
+  private final Duration correlationWindow;
+  private final LinkedMetrics.Settings correlationSettings;
+  private final int maxNeighbours;
 
   public DiagnosticService(
       DiagnosticRepository repository,
@@ -117,7 +132,13 @@ public class DiagnosticService {
       Clock clock,
       List<NextStepProvider> steps,
       @Value("${diagnostic.window-minutes:30}") long windowMinutes,
-      @Value("${diagnostic.time-zone:Africa/Dakar}") String zone) {
+      @Value("${diagnostic.time-zone:Africa/Dakar}") String zone,
+      @Value("${diagnostic.correlation.window-minutes:120}") long correlationWindowMinutes,
+      @Value("${diagnostic.correlation.min-points:10}") int minPoints,
+      @Value("${diagnostic.correlation.min-correlation:0.7}") double minCorrelation,
+      @Value("${diagnostic.correlation.alpha:0.05}") double alpha,
+      @Value("${diagnostic.correlation.max-neighbours:6}") int maxNeighbours,
+      @Value("${diagnostic.correlation.max-gap-minutes:5}") long maxGapMinutes) {
     this.repository = repository;
     this.forecasts = forecasts;
     this.scope = scope;
@@ -125,6 +146,19 @@ public class DiagnosticService {
     this.steps = List.copyOf(steps);
     this.window = Duration.ofMinutes(Math.max(1, Math.min(windowMinutes, 24 * 60)));
     this.zone = ZoneId.of(zone);
+    this.correlationWindow =
+        Duration.ofMinutes(Math.max(30, Math.min(correlationWindowMinutes, 24 * 60)));
+    this.correlationSettings =
+        new LinkedMetrics.Settings(
+            // En dessous de dix instants communs, une correlation est une coincidence.
+            Math.max(10, minPoints),
+            // Et en dessous de 0,5, elle est vraie mais illisible : l'operateur ne saurait
+            // qu'en faire.
+            Math.min(0.99, Math.max(0.5, minCorrelation)),
+            Math.min(0.1, Math.max(0.001, alpha)),
+            DISPLAY_LIMIT / 2,
+            Duration.ofMinutes(Math.max(1, maxGapMinutes)));
+    this.maxNeighbours = Math.min(20, Math.max(0, maxNeighbours));
   }
 
   @Transactional(readOnly = true)
@@ -184,6 +218,7 @@ public class DiagnosticService {
     List<Scored> ranked =
         CauseScoring.rank(new CauseFinder(alert, texts, window).find(evidence), opened);
     IncidentsSimilaires similar = similar(alert, now);
+    LinkedSection linked = linkedMetrics(alert, metricKey);
 
     return new DiagnosticResponse(
         alert.id(),
@@ -197,20 +232,47 @@ public class DiagnosticService {
         events.stream().limit(DISPLAY_LIMIT).map(DiagnosticService::event).toList(),
         changes.stream().limit(DISPLAY_LIMIT).map(DiagnosticService::change).toList(),
         context,
-        movedMetrics(alert, metricKey),
+        linked.metrics(),
+        linked.tested(),
         similar,
         nextSteps(alert, metricKey, ranked));
   }
+
+  /** La rubrique des indicateurs lies, et le nombre de series eprouvees pour l'obtenir. */
+  private record LinkedSection(List<MetriqueLiee> metrics, int tested) {}
 
   /** Un indicateur et son changement, le temps du classement. */
   private record Moved(DiagnosticRepository.MovedMetric row, double change) {}
 
   /**
-   * Indicateurs qui ont nettement changé au moment de l'ouverture, du plus grand changement au plus
-   * petit. Simple rapprochement dans le temps : le diagnostic ne s'en sert pas pour classer ses
-   * causes, et l'écran dit que ce n'est pas une preuve.
+   * Indicateurs liés à l'alerte, en deux familles réunies dans une seule liste.
+   *
+   * <p>D'abord ceux qui <b>varient comme</b> la mesure en alerte (M11, ADR 0040) : corrélation de
+   * rang sur l'équipement et ses voisins directs. Puis ceux qui ont seulement <b>changé de
+   * niveau</b> à l'ouverture, ce que la plateforme montrait déjà. Les premiers passent devant parce
+   * qu'ils en disent plus : une marche d'escalier au même moment peut être une coïncidence, tandis
+   * que suivre la même courbe pendant deux heures en est rarement une.
+   *
+   * <p>Ni l'un ni l'autre n'est une preuve de cause, et le diagnostic ne s'en sert pas pour classer
+   * ses causes probables : l'écran le dit.
    */
-  private List<MetriqueLiee> movedMetrics(AlertFacts alert, String metricKey) {
+  private LinkedSection linkedMetrics(AlertFacts alert, String metricKey) {
+    var byKey = new LinkedHashMap<String, MetriqueLiee>();
+    LinkedMetrics.Outcome correlated = correlated(alert, metricKey);
+    for (LinkedMetrics.Linked link : correlated.linked()) {
+      boolean own = link.equipmentId().equals(alert.equipmentId());
+      byKey.put(
+          (own ? "" : link.equipmentId() + ":") + link.key(),
+          new MetriqueLiee(
+              link.key(),
+              link.unit(),
+              link.before(),
+              link.during(),
+              orZero(MetricMovement.changePercent(link.before(), link.during())),
+              own ? null : link.equipmentName(),
+              link.correlation(),
+              MetricLink.CORRELATION));
+    }
     var moved = new ArrayList<Moved>();
     for (var row : repository.movedMetrics(alert.equipmentId(), alert.openedAt(), metricKey)) {
       Double change = MetricMovement.changePercent(row.before(), row.during());
@@ -219,17 +281,64 @@ public class DiagnosticService {
       }
     }
     moved.sort(Comparator.comparingDouble((Moved m) -> Math.abs(m.change())).reversed());
-    return moved.stream()
-        .limit(DISPLAY_LIMIT)
-        .map(
-            m ->
-                new MetriqueLiee(
-                    m.row().key(),
-                    m.row().unit(),
-                    MetricMovement.round(m.row().before()),
-                    MetricMovement.round(m.row().during()),
-                    m.change()))
-        .toList();
+    for (Moved m : moved) {
+      MetriqueLiee already = byKey.get(m.row().key());
+      if (already != null) {
+        // Déjà retenu pour sa corrélation : on le dit, plutôt que de l'afficher deux fois.
+        byKey.put(
+            m.row().key(),
+            new MetriqueLiee(
+                already.metrique(),
+                already.unite(),
+                already.avant(),
+                already.pendant(),
+                m.change(),
+                already.equipement(),
+                already.correlation(),
+                MetricLink.LES_DEUX));
+      } else if (byKey.size() < DISPLAY_LIMIT) {
+        byKey.put(
+            m.row().key(),
+            new MetriqueLiee(
+                m.row().key(),
+                m.row().unit(),
+                MetricMovement.round(m.row().before()),
+                MetricMovement.round(m.row().during()),
+                m.change(),
+                null,
+                null,
+                MetricLink.CHANGEMENT));
+      }
+    }
+    return new LinkedSection(List.copyOf(byKey.values()), correlated.tested());
+  }
+
+  /** Corrélations de rang avec la mesure en alerte ; vide si l'alerte ne porte aucun indicateur. */
+  private LinkedMetrics.Outcome correlated(AlertFacts alert, String metricKey) {
+    if (metricKey == null) {
+      // Perte de collecte, événement SNMP : il n'y a pas de série de référence à suivre.
+      return LinkedMetrics.Outcome.empty();
+    }
+    Instant opened = alert.openedAt();
+    var points =
+        repository.series(
+            alert.equipmentId(),
+            opened.minus(correlationWindow),
+            opened.plus(window),
+            maxNeighbours,
+            MAX_SERIES_POINTS);
+    return LinkedMetrics.correlate(
+        points,
+        alert.equipmentId(),
+        metricKey,
+        // Les mêmes bornes que movedMetrics, pour que les deux familles d'indicateurs soient
+        // comparables dans la liste commune.
+        new LinkedMetrics.Windows(opened.minus(MOVED_SPLIT), opened.plus(Duration.ofMinutes(5))),
+        correlationSettings);
+  }
+
+  private static double orZero(Double value) {
+    return value == null ? 0 : value;
   }
 
   // ------------------------------------------------------------------ impact

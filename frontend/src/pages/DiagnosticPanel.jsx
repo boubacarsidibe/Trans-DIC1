@@ -156,24 +156,41 @@ function Impact({ impact }) {
   );
 }
 
+/** Corrélation lisible : « varie comme » ou « varie à l'inverse », avec sa valeur. */
+function correlationText(value) {
+  const rho = Number(value);
+  const sense = rho >= 0 ? "varie comme la mesure en alerte" : "varie à l’inverse de la mesure en alerte";
+  return `${sense} (ρ = ${number(Math.abs(rho), 2)})`;
+}
+
 /**
- * Indicateurs qui ont changé au moment de l'ouverture. Rapprochement dans le temps seulement :
- * l'écran le dit, pour que personne ne le lise comme une cause démontrée.
+ * Indicateurs liés à l'alerte : ceux qui varient comme la mesure en alerte (M11), puis ceux qui ont
+ * seulement changé de niveau. Rapprochement, jamais preuve de cause : l'écran le dit.
  */
-function MovedMetrics({ metrics }) {
+function MovedMetrics({ metrics, tested }) {
   if (!metrics || metrics.length === 0) return null;
   const show = (value, unit) => `${number(value, 2)}${unit === "%" ? " %" : unit ? ` ${unit}` : ""}`;
+  const correlated = metrics.filter((metric) => metric.correlation != null).length;
   return (
     <Section title="Ce qui a bougé en même temps">
       <p className="diag-note">
-        Ces indicateurs ont changé au moment de l’ouverture. C’est un rapprochement dans le temps, pas une cause
-        démontrée.
+        Ces indicateurs ont changé, ou suivi la mesure en alerte, au moment de l’ouverture. C’est un rapprochement,
+        pas une cause démontrée.
+        {correlated > 0 && tested > 0 && (
+          <> {tested} séries ont été éprouvées pour en retenir {correlated} : le seuil de hasard a été resserré
+          d’autant.</>
+        )}
       </p>
       <ul className="diag-facts">
         {metrics.map((metric) => (
-          <li key={metric.metrique}>
-            {label(METRIC, metric.metrique)} : {show(metric.avant, metric.unite)} →{" "}
-            {show(metric.pendant, metric.unite)} ({signed(metric.variationPourcent)})
+          <li key={`${metric.equipement ?? ""}-${metric.metrique}`}>
+            {label(METRIC, metric.metrique)}
+            {metric.equipement && <span className="diag-muted"> · {metric.equipement}</span>} :{" "}
+            {show(metric.avant, metric.unite)} → {show(metric.pendant, metric.unite)} (
+            {signed(metric.variationPourcent)})
+            {metric.correlation != null && (
+              <span className="diag-muted"> — {correlationText(metric.correlation)}</span>
+            )}
           </li>
         ))}
       </ul>
@@ -443,7 +460,7 @@ function DiagnosticPanel({ alertId, onOpenAlert }) {
       </Section>
 
       <MetricContext context={diagnostic.contexteMetrique} />
-      <MovedMetrics metrics={diagnostic.metriquesLiees} />
+      <MovedMetrics metrics={diagnostic.metriquesLiees} tested={diagnostic.seriesEprouvees} />
       <Similar similar={diagnostic.incidentsSimilaires} />
       <Steps steps={diagnostic.pistes ?? []} />
     </section>

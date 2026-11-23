@@ -78,6 +78,16 @@ Quand un équipement de cœur (un routeur, un commutateur de distribution) tombe
 
 Une alerte de type **Absence de donnée** signale un indicateur qui arrivait régulièrement et ne remonte plus depuis une demi-heure, alors que l'équipement répond par ailleurs : un disque démonté, un service disparu de l'agent, un OID devenu muet. Si l'équipement est entièrement muet, c'est une alerte de collecte qui s'ouvre à la place. Elle se résout seule au retour des mesures.
 
+### Ce qui a bougé en même temps
+
+Dans le diagnostic d'une alerte, cette rubrique réunit deux choses. Les indicateurs qui ont **changé de niveau** à l'ouverture, comme avant. Et, depuis peu, ceux qui **varient comme la mesure en alerte** — ou à son inverse —, sur la machine en alerte comme sur ses voisins directs dans la topologie. C'est souvent le plus parlant : la latence qui suit la charge, le trafic qui s'effondre à chaque pic d'erreurs. Un indicateur peut suivre la mesure en alerte sans que sa moyenne bouge d'un pouce, et la comparaison avant/après ne le voyait pas.
+
+La ligne dit laquelle des deux raisons l'a fait retenir, le nom de l'équipement quand l'indicateur vient d'un voisin, et la force du lien (ρ, entre 0 et 1). La rubrique annonce aussi **combien de séries ont été éprouvées** pour en retenir ces quelques-unes : c'est à vous d'en juger, et un outil qui montre trois lignes sans dire qu'il en a examiné trente ne vous laisse pas ce choix.
+
+Ce n'est **pas une cause démontrée**, et la plateforme ne s'en sert pas pour classer ses causes probables : deux indicateurs peuvent suivre la même courbe parce qu'ils subissent tous deux un troisième phénomène. C'est une piste, qui fait gagner du temps, pas une explication.
+
+Une alerte qui ne porte sur aucun indicateur — une perte de collecte, un événement envoyé par l'équipement — n'a rien à corréler : la rubrique garde alors son ancien contenu.
+
 ## Incidents : un fait plutôt que ses morceaux
 
 Une panne en amont fait tomber cinq machines : cinq alertes, un seul fait. L'écran **Incidents** montre le fait entier. Les alertes qui arrivent dans la même dizaine de minutes y sont regroupées quand elles portent sur la même machine, sur un voisin direct dans la topologie, ou sur le même site avec la même règle ou le même message.

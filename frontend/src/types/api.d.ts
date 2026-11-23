@@ -3866,8 +3866,13 @@ export interface components {
             evenementsRecents?: components["schemas"]["EvenementRecent"][];
             changementsRecents?: components["schemas"]["ChangementRecent"][];
             contexteMetrique?: components["schemas"]["ContexteMetrique"];
-            /** @description Indicateurs qui ont nettement changé au moment de l'ouverture, du plus grand changement au plus petit. Ce n'est pas une preuve de cause. */
+            /** @description Indicateurs liés à l'alerte : ceux qui varient comme la mesure en alerte (corrélation de rang, équipement et voisins directs) d'abord, puis ceux qui ont nettement changé de niveau à l'ouverture. Ce n'est pas une preuve de cause. */
             metriquesLiees?: components["schemas"]["MetriqueLiee"][];
+            /**
+             * Format: int32
+             * @description Nombre de séries éprouvées pour trouver les corrélations ; 0 si l'alerte ne porte sur aucun indicateur. Le seuil de hasard a été divisé par ce nombre.
+             */
+            seriesEprouvees?: number;
             incidentsSimilaires?: components["schemas"]["IncidentsSimilaires"];
             /** @description Pistes de vérification (2 à 5), choisies dans un catalogue fixe */
             pistes?: string[];
@@ -3917,6 +3922,18 @@ export interface components {
              * @description Variation en pourcentage, négative si l'indicateur a baissé
              */
             variationPourcent?: number;
+            /** @description Équipement porteur ; absent quand c'est celui de l'alerte */
+            equipement?: string | null;
+            /**
+             * Format: double
+             * @description Corrélation de rang avec la mesure en alerte, entre -1 et 1 ; absente quand l'indicateur est retenu pour son seul changement de niveau
+             */
+            correlation?: number | null;
+            /**
+             * @description Ce qui a fait retenir cet indicateur
+             * @enum {string}
+             */
+            motif?: "CHANGEMENT" | "CORRELATION" | "LES_DEUX";
         };
         Resolution: {
             /** Format: uuid */

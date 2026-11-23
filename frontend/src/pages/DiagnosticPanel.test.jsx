@@ -33,6 +33,8 @@ const emptyDiagnostic = (overrides = {}) => ({
   contexteMetrique: null,
   incidentsSimilaires: { critere: "MEME_EQUIPEMENT", nombre: 0, resolus: 0, medianeMinutes: null, moyenneMinutes: null, dernieres: [] },
   pistes: ["Consulter l'historique des mesures.", "Noter la résolution en commentaire."],
+  metriquesLiees: [],
+  seriesEprouvees: 0,
   ...overrides,
 });
 
@@ -234,5 +236,157 @@ describe("panneau de diagnostic", () => {
 
     expect(await screen.findByText("<img src=x onerror=alert(1)> panne")).toBeInTheDocument();
     expect(container.querySelector("img")).toBeNull();
+  });
+});
+
+describe("indicateurs liés à l'alerte (M11)", () => {
+  const withLinked = (metriquesLiees, seriesEprouvees) =>
+    emptyDiagnostic({ metriquesLiees, seriesEprouvees });
+
+  const render_ = async (diagnostic) => {
+    apiClient.get.mockResolvedValue({ data: diagnostic });
+    render(
+      <MemoryRouter>
+        <DiagnosticPanel alertId="a1" />
+      </MemoryRouter>,
+    );
+    await screen.findByText("Ce qui a bougé en même temps");
+  };
+
+  it("dit qu'un indicateur varie comme la mesure en alerte, et de combien", async () => {
+    await render_(
+      withLinked(
+        [
+          {
+            metrique: "probe.latency",
+            unite: "ms",
+            avant: 12.5,
+            pendant: 13,
+            variationPourcent: 4,
+            equipement: null,
+            correlation: 0.93,
+            motif: "CORRELATION",
+          },
+        ],
+        4,
+      ),
+    );
+
+    expect(screen.getByText(/varie comme la mesure en alerte/)).toBeInTheDocument();
+    expect(screen.getByText(/ρ = 0,93/)).toBeInTheDocument();
+  });
+
+  it("dit qu'un indicateur varie à l'inverse quand la corrélation est négative", async () => {
+    await render_(
+      withLinked(
+        [
+          {
+            metrique: "net.in",
+            unite: null,
+            avant: 400,
+            pendant: 90,
+            variationPourcent: -77.5,
+            equipement: null,
+            correlation: -0.88,
+            motif: "LES_DEUX",
+          },
+        ],
+        3,
+      ),
+    );
+
+    expect(screen.getByText(/varie à l’inverse de la mesure en alerte/)).toBeInTheDocument();
+    // La valeur absolue est affichée : le sens est déjà dit en mots.
+    expect(screen.getByText(/ρ = 0,88/)).toBeInTheDocument();
+  });
+
+  it("nomme l'équipement quand l'indicateur vient d'un voisin", async () => {
+    await render_(
+      withLinked(
+        [
+          {
+            metrique: "net.out",
+            unite: null,
+            avant: 410,
+            pendant: 420,
+            variationPourcent: 2.4,
+            equipement: "Commutateur amont",
+            correlation: 0.99,
+            motif: "CORRELATION",
+          },
+        ],
+        2,
+      ),
+    );
+
+    expect(screen.getByText(/Commutateur amont/)).toBeInTheDocument();
+  });
+
+  it("dit combien de séries ont été éprouvées, pour que le lecteur juge", async () => {
+    await render_(
+      withLinked(
+        [
+          {
+            metrique: "probe.latency",
+            unite: "ms",
+            avant: 12,
+            pendant: 13,
+            variationPourcent: 8,
+            equipement: null,
+            correlation: 0.91,
+            motif: "CORRELATION",
+          },
+        ],
+        24,
+      ),
+    );
+
+    expect(screen.getByText(/24 séries ont été éprouvées pour en retenir 1/)).toBeInTheDocument();
+  });
+
+  it("un indicateur retenu pour son seul changement n'affiche aucune corrélation", async () => {
+    await render_(
+      withLinked(
+        [
+          {
+            metrique: "memory.usage",
+            unite: "%",
+            avant: 30,
+            pendant: 75,
+            variationPourcent: 150,
+            equipement: null,
+            correlation: null,
+            motif: "CHANGEMENT",
+          },
+        ],
+        0,
+      ),
+    );
+
+    expect(screen.queryByText(/ρ =/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/séries ont été éprouvées/)).not.toBeInTheDocument();
+    expect(screen.getByText(/\+150 %/)).toBeInTheDocument();
+  });
+
+  it("la rubrique dit que ce n'est pas une cause démontrée", async () => {
+    await render_(
+      withLinked(
+        [
+          {
+            metrique: "memory.usage",
+            unite: "%",
+            avant: 30,
+            pendant: 75,
+            variationPourcent: 150,
+            equipement: null,
+            correlation: null,
+            motif: "CHANGEMENT",
+          },
+        ],
+        0,
+      ),
+    );
+
+    expect(screen.getByText(/pas une cause démontrée/)).toBeInTheDocument();
   });
 });

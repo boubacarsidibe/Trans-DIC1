@@ -9,6 +9,7 @@ import sn.ept.transdic1.alerting.domain.AlertType;
 import sn.ept.transdic1.alerting.domain.Severity;
 import sn.ept.transdic1.alerting.dto.CapacityForecastResponse;
 import sn.ept.transdic1.diagnostic.domain.CauseSource;
+import sn.ept.transdic1.diagnostic.domain.MetricLink;
 import sn.ept.transdic1.diagnostic.domain.Relation;
 
 /**
@@ -34,9 +35,16 @@ public record DiagnosticResponse(
     @Schema(nullable = true) ContexteMetrique contexteMetrique,
     @Schema(
             description =
-                "Indicateurs qui ont nettement changé au moment de l'ouverture, du plus grand"
-                    + " changement au plus petit. Ce n'est pas une preuve de cause.")
+                "Indicateurs liés à l'alerte : ceux qui varient comme la mesure en alerte"
+                    + " (corrélation de rang, équipement et voisins directs) d'abord, puis ceux"
+                    + " qui ont nettement changé de niveau à l'ouverture. Ce n'est pas une preuve"
+                    + " de cause.")
         List<MetriqueLiee> metriquesLiees,
+    @Schema(
+            description =
+                "Nombre de séries éprouvées pour trouver les corrélations ; 0 si l'alerte ne porte"
+                    + " sur aucun indicateur. Le seuil de hasard a été divisé par ce nombre.")
+        int seriesEprouvees,
     IncidentsSimilaires incidentsSimilaires,
     @Schema(description = "Pistes de vérification (2 à 5), choisies dans un catalogue fixe")
         List<String> pistes) {
@@ -122,7 +130,18 @@ public record DiagnosticResponse(
       @Schema(description = "Moyenne sur les deux heures qui précèdent l'ouverture") double avant,
       @Schema(description = "Moyenne autour de l'ouverture") double pendant,
       @Schema(description = "Variation en pourcentage, négative si l'indicateur a baissé")
-          double variationPourcent) {}
+          double variationPourcent,
+      @Schema(
+              description = "Équipement porteur ; absent quand c'est celui de l'alerte",
+              nullable = true)
+          String equipement,
+      @Schema(
+              description =
+                  "Corrélation de rang avec la mesure en alerte, entre -1 et 1 ; absente quand"
+                      + " l'indicateur est retenu pour son seul changement de niveau",
+              nullable = true)
+          Double correlation,
+      @Schema(description = "Ce qui a fait retenir cet indicateur") MetricLink motif) {}
 
   public record IncidentsSimilaires(
       @Schema(description = "MEME_EQUIPEMENT, MEME_SITE ou AUCUN") String critere,

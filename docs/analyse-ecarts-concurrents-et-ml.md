@@ -106,7 +106,7 @@ Principes : tout reste dans le backend Java (pas de service Python, pas de Docke
 | M8 | Services : latence anormale et budget d'erreur | Service lent avant d'être en panne | M1 appliqué à `probe.latency` ; taux de consommation du budget de SLA | Datadog (SLO) |
 | M9 | Corrélation apprise | Proposer des liens que la topologie ne connaît pas | Co-occurrence des alertes dans le temps (support et confiance, règles d'association) ; l'opérateur valide la suggestion avant qu'elle serve | BigPanda |
 | M10 ✅ | Regroupement d'alertes en incident | Une notification par incident, tous types d'alertes | Fenêtre de temps + distance dans la topologie + ressemblance du message | Moogsoft, Dynatrace |
-| M11 | Métriques liées à une alerte | Montrer dans le diagnostic ce qui a bougé en même temps | Corrélation de rang (Spearman) entre la mesure en alerte et celles de l'équipement et de ses voisins | Datadog |
+| M11 ✅ | Métriques liées à une alerte | Montrer dans le diagnostic ce qui a bougé en même temps | Corrélation de rang (Spearman) entre la mesure en alerte et celles de l'équipement et de ses voisins | Datadog |
 | M12 | Poids du diagnostic appris | Remplacer les poids fixés à la main | L'opérateur confirme la vraie cause ; régression logistique sur ces confirmations, à partir d'un nombre suffisant de cas | — |
 | M13 ✅ | Prévision saisonnière | Débit et mémoire, pas seulement le disque | Holt-Winters sur les agrégats horaires | Zabbix, Datadog |
 | M14 ✅ | Seuils proposés | Régler une règle sans tâtonner | Centiles de l'historique, simulés avec le test de règle existant | OpManager |
@@ -116,7 +116,7 @@ M9 et M12 ont besoin de plusieurs semaines d'alertes réelles : sans données de
 ## 4. Ordre de réalisation proposé
 
 1. **Lot 1, mesures réseau et socle ML** : découverte des interfaces par SNMP avec débit, erreurs, rejets et occupation ; gigue et perte dans la sonde ICMP ; M1, M3, M6, M8.
-2. **Lot 2, corrélation** : M10, M11, M9 (suggestions), M4, détection du clignotement. *Fait : M10 (ADR 0039, trois règles ordonnées plutôt qu'un score à poids inventés ; la ressemblance des messages, mesurée, ne sépare pas « même fait » de « faits différents » et ne sert qu'au cas du gabarit identique).*
+2. **Lot 2, corrélation** : M10, M11, M9 (suggestions), M4, détection du clignotement. *Faits : M10 (ADR 0039, trois règles ordonnées plutôt qu'un score à poids inventés ; la ressemblance des messages, mesurée, ne sépare pas « même fait » de « faits différents » et ne sert qu'au cas du gabarit identique), M11 (ADR 0040, Spearman sur les **variations** et non les niveaux : corrélés en niveaux, des indicateurs indépendants de l'instance donnaient cinq faux liens sur quatorze, jusqu'à 0,95). Restent M9, M4 et le clignotement.*
 3. **Lot 3, manques simples et visibles** : double authentification, jetons d'API, absence de donnée, conditions composées, rapports planifiés, sonde DNS, Telegram.
 4. **Lot 4, gros morceaux** : M2, M5, M13, M14, voisins LLDP, NetFlow puis M7, LDAP, proxys de collecte. *Faits : NetFlow (ADR 0032), M7 et S6 (ADR 0033), voisins LLDP (ADR 0034), M14 (ADR 0035), M13 (ADR 0036), M2 (ADR 0037, forêt d'isolement **et** distance de Mahalanobis : la forêt seule ratait le cas d'usage principal). M5 (ADR 0038, CUSUM : trois conditions de durée et de franchise s'ajoutent au signal, faute de quoi la détection doublerait celle par point). Restent LDAP et les proxys de collecte.*
 5. **Lot 5, sécurité** (section 5) : S1 à S3 et S7 d'abord, puis S4 et S5 ; S6 après NetFlow.

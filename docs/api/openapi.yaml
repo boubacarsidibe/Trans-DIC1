@@ -8868,10 +8868,18 @@ components:
           $ref: "#/components/schemas/ContexteMetrique"
         metriquesLiees:
           type: array
-          description: "Indicateurs qui ont nettement changé au moment de l'ouverture,\
-            \ du plus grand changement au plus petit. Ce n'est pas une preuve de cause."
+          description: "Indicateurs liés à l'alerte : ceux qui varient comme la mesure\
+            \ en alerte (corrélation de rang, équipement et voisins directs) d'abord,\
+            \ puis ceux qui ont nettement changé de niveau à l'ouverture. Ce n'est\
+            \ pas une preuve de cause."
           items:
             $ref: "#/components/schemas/MetriqueLiee"
+        seriesEprouvees:
+          type: integer
+          format: int32
+          description: Nombre de séries éprouvées pour trouver les corrélations ;
+            0 si l'alerte ne porte sur aucun indicateur. Le seuil de hasard a été
+            divisé par ce nombre.
         incidentsSimilaires:
           $ref: "#/components/schemas/IncidentsSimilaires"
         pistes:
@@ -8954,6 +8962,26 @@ components:
           type: number
           format: double
           description: "Variation en pourcentage, négative si l'indicateur a baissé"
+        equipement:
+          type:
+          - string
+          - "null"
+          description: Équipement porteur ; absent quand c'est celui de l'alerte
+        correlation:
+          type:
+          - number
+          - "null"
+          format: double
+          description: "Corrélation de rang avec la mesure en alerte, entre -1 et\
+            \ 1 ; absente quand l'indicateur est retenu pour son seul changement de\
+            \ niveau"
+        motif:
+          type: string
+          description: Ce qui a fait retenir cet indicateur
+          enum:
+          - CHANGEMENT
+          - CORRELATION
+          - LES_DEUX
     Resolution:
       type: object
       properties:

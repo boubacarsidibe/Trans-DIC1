@@ -29,6 +29,7 @@ import sn.ept.transdic1.alerting.domain.ComparisonOperator;
 import sn.ept.transdic1.alerting.domain.Severity;
 import sn.ept.transdic1.alerting.repository.AlertRuleRepository;
 import sn.ept.transdic1.diagnostic.domain.CauseSource;
+import sn.ept.transdic1.diagnostic.domain.MetricLink;
 import sn.ept.transdic1.diagnostic.domain.Relation;
 import sn.ept.transdic1.diagnostic.dto.DiagnosticResponse;
 import sn.ept.transdic1.diagnostic.dto.DiagnosticResponse.CauseProbable;
@@ -705,5 +706,110 @@ class DiagnosticServiceTests {
     assertThat(d.metriquesLiees().get(1).variationPourcent()).isEqualTo(-80.0);
     // L'indicateur de l'alerte elle-même n'est pas répété, et le calme n'est pas listé.
     assertThat(d.metriquesLiees()).extracting(m -> m.metrique()).doesNotContain("cpu.usage");
+    // Ici le saut tombe pile dans le trou de collecte de huit minutes, dont la variation est
+    // écartée : il ne reste aucune variation à corréler, et les deux indicateurs sont retenus pour
+    // leur seul changement de niveau. C'est le bon verdict — un saut qui enjambe un trou ne prouve
+    // pas que les deux indicateurs bougent ensemble.
+    assertThat(d.metriquesLiees()).extracting(m -> m.motif()).containsOnly(MetricLink.CHANGEMENT);
+    assertThat(d.metriquesLiees()).allSatisfy(m -> assertThat(m.correlation()).isNull());
+  }
+
+  @Test
+  void unIndicateurQuiSuitLaMesureEnAlerteSansChangerDeNiveauEstQuandMemeMontre() {
+    Equipment server = equipment("Serveur applicatif", EquipmentType.SERVER, siteA);
+    // La latence suit la charge minute par minute, mais sa moyenne avant et pendant est la même :
+    // la comparaison avant/après ne voit rien, la corrélation voit tout.
+    var random = new java.util.Random(19L);
+    for (int minutes = 90; minutes >= 0; minutes--) {
+      double cpu = 50 + random.nextGaussian() * 10;
+      metric(server, "cpu.usage", cpu, t0.minus(Duration.ofMinutes(minutes)));
+      metric(server, "probe.latency", cpu / 4, t0.minus(Duration.ofMinutes(minutes)));
+      metric(
+          server, "disk.usage", 70 + random.nextGaussian(), t0.minus(Duration.ofMinutes(minutes)));
+    }
+    AlertRule cpu = rule("cpu.usage");
+    UUID threshold = alert(server, "THRESHOLD", cpu.getId(), t0, "Processeur haut");
+
+    DiagnosticResponse d = diagnostic.diagnose(threshold);
+
+    var latency =
+        d.metriquesLiees().stream()
+            .filter(m -> m.metrique().equals("probe.latency"))
+            .findFirst()
+            .orElseThrow();
+    assertThat(latency.correlation()).isEqualTo(1.0);
+    assertThat(latency.motif()).isEqualTo(MetricLink.CORRELATION);
+    // Il est sur l'équipement de l'alerte : aucun nom d'équipement à afficher.
+    assertThat(latency.equipement()).isNull();
+    // Le disque, lui, ne suit pas : deux indicateurs éprouvés, un seul retenu.
+    assertThat(d.seriesEprouvees()).isEqualTo(2);
+    assertThat(d.metriquesLiees()).extracting(m -> m.metrique()).doesNotContain("disk.usage");
+  }
+
+  @Test
+  void unIndicateurDUnVoisinDirectEstMontreAvecLeNomDeSonEquipement() {
+    Equipment server = equipment("Serveur applicatif", EquipmentType.SERVER, siteA);
+    Equipment upstream = equipment("Commutateur amont", EquipmentType.SWITCH, siteA);
+    link(server, upstream);
+    var random = new java.util.Random(23L);
+    for (int minutes = 90; minutes >= 0; minutes--) {
+      double traffic = 400 + random.nextGaussian() * 50;
+      metric(server, "net.in", traffic, t0.minus(Duration.ofMinutes(minutes)));
+      metric(upstream, "net.out", traffic * 1.01, t0.minus(Duration.ofMinutes(minutes)));
+    }
+    AlertRule net = rule("net.in");
+    UUID threshold = alert(server, "THRESHOLD", net.getId(), t0, "Trafic haut");
+
+    DiagnosticResponse d = diagnostic.diagnose(threshold);
+
+    assertThat(d.metriquesLiees()).hasSize(1);
+    var linked = d.metriquesLiees().get(0);
+    assertThat(linked.metrique()).isEqualTo("net.out");
+    assertThat(linked.equipement()).isEqualTo("Commutateur amont " + suffix);
+    assertThat(linked.correlation()).isEqualTo(1.0);
+  }
+
+  @Test
+  void duBruitSurVingtIndicateursNInventePasDePistes() {
+    Equipment server = equipment("Serveur applicatif", EquipmentType.SERVER, siteA);
+    // Vingt indicateurs de bruit pur : au seuil habituel de 5 %, un outil naïf en déclarerait un
+    // « lié » à chaque consultation. Celui-ci n'en montre aucun.
+    var random = new java.util.Random(41L);
+    for (int minutes = 90; minutes >= 0; minutes--) {
+      metric(
+          server,
+          "cpu.usage",
+          50 + random.nextGaussian() * 5,
+          t0.minus(Duration.ofMinutes(minutes)));
+      for (int k = 0; k < 20; k++) {
+        metric(
+            server,
+            "bruit." + k,
+            50 + random.nextGaussian() * 5,
+            t0.minus(Duration.ofMinutes(minutes)));
+      }
+    }
+    AlertRule cpu = rule("cpu.usage");
+    UUID threshold = alert(server, "THRESHOLD", cpu.getId(), t0, "Processeur haut");
+
+    DiagnosticResponse d = diagnostic.diagnose(threshold);
+
+    assertThat(d.seriesEprouvees()).isEqualTo(20);
+    assertThat(d.metriquesLiees()).extracting(m -> m.correlation()).doesNotContain(1.0);
+    assertThat(d.metriquesLiees()).allSatisfy(m -> assertThat(m.correlation()).isNull());
+  }
+
+  @Test
+  void uneAlerteSansIndicateurNEprouveAucuneSerie() {
+    Equipment server = equipment("Serveur applicatif", EquipmentType.SERVER, siteA);
+    for (int minutes = 90; minutes >= 0; minutes--) {
+      metric(server, "cpu.usage", 50, t0.minus(Duration.ofMinutes(minutes)));
+    }
+    // Une perte de collecte ne porte sur aucun indicateur : il n'y a pas de série de référence.
+    UUID collection = alert(server, "COLLECTION", null, t0, "Plus de réponse");
+
+    DiagnosticResponse d = diagnostic.diagnose(collection);
+
+    assertThat(d.seriesEprouvees()).isZero();
   }
 }
