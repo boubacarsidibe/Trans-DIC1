@@ -97,7 +97,7 @@ Principes : tout reste dans le backend Java (pas de service Python, pas de Docke
 | # | Modèle | Sert à | Méthode | Déjà chez |
 | --- | --- | --- | --- | --- |
 | M1 | Normale robuste et saisonnalité hebdomadaire | Moins de fausses alertes d'anomalie | Médiane et écart absolu médian (MAD) à la place de moyenne et écart-type ; créneau heure × jour de semaine quand l'historique suffit | Zabbix |
-| M2 | Anomalie à plusieurs mesures par équipement | Voir un état anormal qu'aucune mesure seule ne montre (trafic normal mais erreurs et latence en hausse) | Forêt d'isolement sur le vecteur des mesures de l'équipement (processeur, mémoire, débit, erreurs, latence) ; quelques centaines de lignes de Java, ou bibliothèque Smile | Netdata (principe) |
+| M2 ✅ | Anomalie à plusieurs mesures par équipement | Voir un état anormal qu'aucune mesure seule ne montre (trafic normal mais erreurs et latence en hausse) | Forêt d'isolement sur le vecteur des mesures de l'équipement (processeur, mémoire, débit, erreurs, latence) ; quelques centaines de lignes de Java, ou bibliothèque Smile | Netdata (principe) |
 | M3 | Taux d'anomalie et score de santé | Un chiffre par équipement et par site | Part des indicateurs anormaux au même instant, lissée | Netdata |
 | M4 | Valeur aberrante parmi les semblables | Le commutateur qui ne se comporte pas comme les autres du même modèle | Écart à la médiane du groupe en MAD (type et site identiques) | Datadog, Grafana ML |
 | M5 | Rupture de niveau | Changement durable : lien qui passe de 1 Gb/s à 100 Mb/s, fuite mémoire | CUSUM sur les moyennes horaires | — |
@@ -118,7 +118,7 @@ M9 et M12 ont besoin de plusieurs semaines d'alertes réelles : sans données de
 1. **Lot 1, mesures réseau et socle ML** : découverte des interfaces par SNMP avec débit, erreurs, rejets et occupation ; gigue et perte dans la sonde ICMP ; M1, M3, M6, M8.
 2. **Lot 2, corrélation** : M10, M11, M9 (suggestions), M4, détection du clignotement.
 3. **Lot 3, manques simples et visibles** : double authentification, jetons d'API, absence de donnée, conditions composées, rapports planifiés, sonde DNS, Telegram.
-4. **Lot 4, gros morceaux** : M2, M5, M13, M14, voisins LLDP, NetFlow puis M7, LDAP, proxys de collecte. *Faits : NetFlow (ADR 0032), M7 et S6 (ADR 0033), voisins LLDP (ADR 0034), M14 (ADR 0035), M13 (ADR 0036). Restent M2, M5, LDAP et les proxys de collecte.*
+4. **Lot 4, gros morceaux** : M2, M5, M13, M14, voisins LLDP, NetFlow puis M7, LDAP, proxys de collecte. *Faits : NetFlow (ADR 0032), M7 et S6 (ADR 0033), voisins LLDP (ADR 0034), M14 (ADR 0035), M13 (ADR 0036), M2 (ADR 0037, forêt d'isolement **et** distance de Mahalanobis : la forêt seule ratait le cas d'usage principal). Restent M5, LDAP et les proxys de collecte.*
 5. **Lot 5, sécurité** (section 5) : S1 à S3 et S7 d'abord, puis S4 et S5 ; S6 après NetFlow.
 
 Hors périmètre proposé : facturation du trafic, sauvegarde des configurations, haute disponibilité, remédiation par script (risque de sécurité à décider avec le CRI).
