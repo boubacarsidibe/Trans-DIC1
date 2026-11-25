@@ -7,6 +7,7 @@ import {
   savePreferences,
 } from "../api/preferences.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import TelegramLinkCard from "./TelegramLinkCard.jsx";
 
 function NotificationsPage() {
   const [preferences, setPreferences] = useState(null);
@@ -141,6 +142,7 @@ function NotificationsPage() {
             </button>
           </form>
         )}
+        <TelegramLinkCard />
       </div>
     </main>
   );

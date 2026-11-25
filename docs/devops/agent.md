@@ -194,6 +194,44 @@ journaux ne sont pas mis en file d'attente si la plateforme est injoignable : un
 mieux qu'une mémoire qui enfle sur une machine de production. Un serveur plus ancien qui ne connaît
 pas le point d'entrée (404) fait taire l'envoi sans erreur répétée.
 
+## Actions correctives (ADR 0050)
+
+La plateforme peut demander à l'agent d'exécuter une **action** quand une règle s'ouvre (redémarrer un
+service, vider un cache). Elle ne transmet qu'un **nom** : la commande correspondante est écrite ici,
+dans la configuration de l'agent, et nulle part ailleurs. Un nom absent de la liste est refusé (code
+de sortie 127), même si la plateforme le demande.
+
+```ini
+[agent]
+action_timeout = 60
+
+[actions]
+redemarrer-nginx = sudo -n /usr/bin/systemctl restart nginx
+
+[action_descriptions]
+redemarrer-nginx = Redémarre le serveur web nginx
+```
+
+- Nom : minuscules, chiffres, point, tiret, tiret bas (64 caractères au plus). Un nom invalide
+  empêche l'agent de démarrer, plutôt que d'ignorer l'action en silence.
+- La commande est lancée **sans interpréteur** : `;`, `|`, `$( )` ne sont pas interprétés. Entrée
+  fermée, durée bornée par `action_timeout`, sortie tronquée (la fin est gardée).
+- Les actions ne viennent que du fichier, jamais d'une variable d'environnement.
+- L'agent tourne sans privilèges. Pour une commande qui en demande, une règle sudo limitée à cette
+  commande exacte, par exemple dans `/etc/sudoers.d/trans-dic1-agent` :
+
+  ```text
+  trans-dic1-agent ALL=(root) NOPASSWD: /usr/bin/systemctl restart nginx
+  ```
+
+  Sous Windows, accorder au compte `LOCAL SERVICE` le droit de démarrer le service visé
+  (`sc sdset`), ou l'action échouera proprement avec son message d'erreur.
+- L'agent annonce ses actions à chaque passage et reçoit celles à exécuter sur la même connexion
+  HTTPS sortante que ses mesures : l'action part au plus un intervalle de collecte après la demande.
+- Dans la plateforme : écran **Règles** → « Action corrective » sur une règle (mode automatique ou
+  sur approbation, délai de grâce), et détail d'une alerte → « Actions correctives » (lancer,
+  approuver, refuser, lire le résultat).
+
 ## Comportement en cas de problème
 
 | Situation | Comportement de l'agent | Action |

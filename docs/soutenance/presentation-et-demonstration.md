@@ -44,6 +44,32 @@ Données : uniquement les équipements de démonstration (`DEMO-*`), comptes `ex
 | 6:15 | Écran mural | vue personnelle en plein écran | K |
 | 6:45 | Connexion en lecteur | aucun bouton d'action : droits côté serveur | B |
 
+### Variante « face à Zabbix » (fonctions du 25 novembre, 4 min de plus)
+
+À enchaîner après la résolution de la panne (étape 4:00), ou à garder pour les questions.
+
+| Temps | Action | Ce qu'on montre | Qui |
+|---|---|---|---|
+| +0:00 | Incidents → l'incident de la panne → « Post-mortem » | délai de prise en charge contre l'objectif, constats avec recommandations, chronologie minute par minute ; « Télécharger le PDF » | K |
+| +0:45 | Menu « Indicateurs » | MTTA et MTTR (médiane et moyenne), part dans l'objectif, MTBF du routeur | K |
+| +1:15 | Topologie → routeur de cœur → « Analyse d'impact complète » | aval perdu, second chemin repéré, page de statut publique touchée, maintenance planifiée en un geste | B |
+| +2:00 | Arrêter nginx sur le poste de démonstration (règle « service.up[nginx] inférieur à 1 » avec action corrective `redemarrer-nginx` en mode automatique) | l'alerte s'ouvre, l'action part, « Réussie, code 0 », l'alerte se ferme seule | B |
+| +3:00 | Téléphone : alerte Telegram, bouton « Je prends » | le message se met à jour, l'écran du NOC change en direct | K |
+| +3:30 | Tableau de bord → « Risque de panne (24 h) » → fiche du modèle | probabilité expliquée, poids appris et initiaux, AUC sur la dernière semaine | B |
+
+Préparation propre à cette variante :
+
+1. Agent du poste de démonstration avec, dans sa configuration :
+   `[actions]` → `redemarrer-nginx = sudo -n /usr/bin/systemctl restart nginx` (règle sudo limitée à
+   cette commande, voir `docs/devops/agent.md`), `services = nginx`, `interval = 15` pour que
+   l'action parte en moins de 15 s.
+2. Bot Telegram créé avec @BotFather ; `CHATOPS_TELEGRAM_ENABLED=true`,
+   `CHATOPS_TELEGRAM_BOT_TOKEN=env:TELEGRAM_BOT_TOKEN` ; compte du démonstrateur lié (`/lier CODE`)
+   et canal Telegram dans ses préférences. **Dépend d'Internet** : si le réseau de la salle tombe,
+   montrer la capture d'écran du téléphone.
+3. Risque de panne : l'instance de démonstration doit avoir quelques jours d'historique ;
+   réentraîner le modèle depuis la page « Risque de panne » (administrateur) avant la soutenance.
+
 ### Préparation de l'environnement
 
 1. Poste de démonstration : `docker compose up -d --build` (ou backend et frontend en local),

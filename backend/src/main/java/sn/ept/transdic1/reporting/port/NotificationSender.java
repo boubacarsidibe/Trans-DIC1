@@ -18,11 +18,17 @@ public interface NotificationSender {
    *
    * @param severity sévérité de l'alerte à l'origine du message, ou nulle (rapport, essai de canal)
    * @param messageId court identifiant du type de message, pour le tri côté collecteur
+   * @param alertId alerte à l'origine du message, ou nulle : Telegram s'en sert pour proposer les
+   *     boutons « Je prends » et « Résolu » (ADR 0051)
    */
-  record Context(Severity severity, String messageId) {
+  record Context(Severity severity, String messageId, java.util.UUID alertId) {
+    public Context(Severity severity, String messageId) {
+      this(severity, messageId, null);
+    }
+
     /** Contexte d'un message sans alerte : essai de canal, rapport planifié. */
     public static Context unknown() {
-      return new Context(null, "MESSAGE");
+      return new Context(null, "MESSAGE", null);
     }
   }
 

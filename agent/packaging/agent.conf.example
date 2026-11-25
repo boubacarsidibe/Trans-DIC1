@@ -40,3 +40,22 @@ buffer_limit = 2000
 # Journaux d'accès web au format courant (nginx, Apache), séparés par des virgules.
 # Rien par défaut : le chemin dépend du site servi. Un format personnalisé n'est pas lu.
 # access_logs = /var/log/nginx/access.log
+
+# --- Actions correctives (ADR 0050) ------------------------------------------
+# La plateforme ne transmet qu'un NOM d'action ; la commande correspondante est écrite ici, sur
+# cette machine, et nulle part ailleurs. Un nom absent de cette liste est refusé.
+# Commande lancée sans interpréteur de commandes (pas de « ; », « | », « $( ) »), entrée fermée,
+# durée bornée par action_timeout. L'agent tourne sans privilèges : pour une commande qui en a
+# besoin, ajouter une règle sudo limitée à cette commande exacte, par exemple dans
+# /etc/sudoers.d/trans-dic1-agent :
+#   trans-dic1-agent ALL=(root) NOPASSWD: /usr/bin/systemctl restart nginx
+#
+# action_timeout = 60   (dans la section [agent], en secondes, de 1 à 600)
+#
+# [actions]
+# redemarrer-nginx = sudo -n /usr/bin/systemctl restart nginx
+# vider-cache-php = /usr/local/sbin/vider-cache-php
+#
+# [action_descriptions]
+# redemarrer-nginx = Redémarre le serveur web nginx
+# vider-cache-php = Vide le cache d'opcodes PHP

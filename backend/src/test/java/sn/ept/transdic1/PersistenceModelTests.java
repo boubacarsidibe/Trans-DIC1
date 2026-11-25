@@ -312,8 +312,11 @@ class PersistenceModelTests {
             // Corrélation apprise entre équipements (ADR 0042).
             "LearnedCorrelation",
             // Cause confirmée par l'opérateur (ADR 0045).
-            "CauseFeedback")
-        .hasSize(51);
+            "CauseFeedback",
+            // Actions correctives : politique d'une règle et exécutions (ADR 0050).
+            "RemediationPolicy",
+            "RemediationJob")
+        .hasSize(53);
   }
 
   @Test

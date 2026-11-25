@@ -11,10 +11,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import sn.ept.transdic1.alerting.domain.AlertRule;
+import sn.ept.transdic1.alerting.domain.ComparisonOperator;
 import sn.ept.transdic1.alerting.domain.RuleEquipmentScope;
 import sn.ept.transdic1.alerting.domain.RuleSiteScope;
 import sn.ept.transdic1.alerting.dto.AlertRuleRequest;
 import sn.ept.transdic1.alerting.dto.AlertRuleResponse;
+import sn.ept.transdic1.alerting.dto.LearnedThresholdResponse;
 import sn.ept.transdic1.alerting.repository.AlertRepository;
 import sn.ept.transdic1.alerting.repository.AlertRuleRepository;
 import sn.ept.transdic1.alerting.repository.RuleEquipmentScopeRepository;
@@ -33,6 +35,7 @@ public class AlertRuleService {
   private final SiteRepository sites;
   private final EquipmentRepository equipments;
   private final AuditService audit;
+  private final AdaptiveThresholdService adaptive;
 
   public AlertRuleService(
       AlertRuleRepository rules,
@@ -41,7 +44,9 @@ public class AlertRuleService {
       AlertRepository alerts,
       SiteRepository sites,
       EquipmentRepository equipments,
-      AuditService audit) {
+      AuditService audit,
+      AdaptiveThresholdService adaptive) {
+    this.adaptive = adaptive;
     this.rules = rules;
     this.siteScopes = siteScopes;
     this.equipmentScopes = equipmentScopes;
@@ -59,6 +64,13 @@ public class AlertRuleService {
   @Transactional(readOnly = true)
   public AlertRuleResponse get(UUID id) {
     return toResponse(find(id));
+  }
+
+  /** Seuils appris par une règle adaptative, équipement par équipement. */
+  @Transactional(readOnly = true)
+  public List<LearnedThresholdResponse> learned(UUID id) {
+    find(id);
+    return adaptive.learned(id);
   }
 
   @Transactional
@@ -101,6 +113,8 @@ public class AlertRuleService {
     apply(rule, request);
     rules.saveAndFlush(rule);
     replaceScopes(rule, request);
+    // Opérateur, sensibilité ou seuil de départ ont pu changer : ce qui a été appris est à refaire.
+    adaptive.forget(id);
     // Ancienne et nouvelle valeur : le retour à un seuil précédent se lit dans le journal.
     audit.record(
         "RULE_UPDATED",
@@ -141,6 +155,14 @@ public class AlertRuleService {
         + rule.getConfirmationDuration().toSeconds()
         + " s, "
         + rule.getInitialSeverity()
+        + (rule.isAdaptive()
+            ? ", seuil adaptatif à "
+                + rule.getAdaptiveSensitivity().stripTrailingZeros().toPlainString()
+                + " écarts-types"
+                + (rule.getAdaptiveLimit() == null
+                    ? ""
+                    : ", limite " + rule.getAdaptiveLimit().stripTrailingZeros().toPlainString())
+            : "")
         + (rule.isActive() ? "" : ", inactive");
   }
 
@@ -149,7 +171,23 @@ public class AlertRuleService {
     rule.setActive(request.active() == null || request.active());
     rule.setAllEquipment(Boolean.TRUE.equals(request.allEquipment()));
     rule.setRecoveryThreshold(validRecovery(request));
+    boolean wantsAdaptive = Boolean.TRUE.equals(request.adaptive());
+    if (wantsAdaptive && request.operator() == ComparisonOperator.EQUAL) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
+          "Le seuil adaptatif s'applique aux comparaisons « supérieur à » ou « inférieur à »,"
+              + " pas à l'égalité");
+    }
+    rule.setAdaptive(wantsAdaptive);
+    rule.setAdaptiveSensitivity(
+        request.adaptiveSensitivity() == null
+            ? DEFAULT_SENSITIVITY
+            : request.adaptiveSensitivity().setScale(2, java.math.RoundingMode.HALF_UP));
+    rule.setAdaptiveLimit(wantsAdaptive ? request.adaptiveLimit() : null);
   }
+
+  /** Trois écarts-types au-delà des pointes habituelles : la valeur par défaut (ADR 0049). */
+  private static final java.math.BigDecimal DEFAULT_SENSITIVITY = new java.math.BigDecimal("3.00");
 
   /** Le seuil de retour doit être du bon côté du seuil d'ouverture (même contrainte qu'en base). */
   static java.math.BigDecimal validRecovery(AlertRuleRequest request) {

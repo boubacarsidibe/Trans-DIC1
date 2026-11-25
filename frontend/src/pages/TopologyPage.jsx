@@ -18,6 +18,7 @@ import {
 } from "../api/topology.js";
 import { StatusBadge } from "../ui/Badges.jsx";
 import PageHeader from "../ui/PageHeader.jsx";
+import ImpactPanel from "./ImpactPanel.jsx";
 import { EQUIPMENT_STATUS, EQUIPMENT_TYPE, label } from "../ui/labels.js";
 
 const NODE_W = 168;
@@ -54,7 +55,14 @@ function Graph({ nodes, links, selected, impacted, onSelect }) {
 
   return (
     <div className="topo-canvas">
-      <svg width={layout.width} height={layout.height} role="presentation" aria-hidden="true">
+      {/* Le plan se réduit pour tenir dans la largeur disponible, sans défilement horizontal. */}
+      <svg
+        viewBox={`0 0 ${layout.width} ${layout.height}`}
+        width="100%"
+        style={{ maxWidth: layout.width, height: "auto", display: "block" }}
+        role="presentation"
+        aria-hidden="true"
+      >
         {links.map((link) => {
           const from = layout.positions.get(link.equipmentId);
           const to = layout.positions.get(link.upstreamId);
@@ -102,6 +110,7 @@ function TopologyPage() {
   const isAdmin = role === "ADMIN";
   const [graph, setGraph] = useState({ nodes: [], links: [] });
   const [selected, setSelected] = useState(null);
+  const [analysed, setAnalysed] = useState(null);
   const [form, setForm] = useState({ equipmentId: "", upstreamId: "" });
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -278,8 +287,22 @@ function TopologyPage() {
           {selectedNode && (
             <p className="notice notice-warn" role="status">
               Si <strong>{selectedNode.name}</strong> tombe, {impacted.size} équipement(s) deviennent injoignables
-              {impacted.size > 0 && ` : ${[...impacted].map((id) => byId.get(id)?.name).join(", ")}`}.
+              {impacted.size > 0 && ` : ${[...impacted].map((id) => byId.get(id)?.name).join(", ")}`}.{" "}
+              <button
+                type="button"
+                onClick={() => setAnalysed(selectedNode.id)}
+                className="btn btn-secondary btn-sm"
+              >
+                Analyse d'impact complète
+              </button>
             </p>
+          )}
+          {analysed && (
+            <ImpactPanel
+              key={analysed}
+              equipmentId={analysed}
+              onClose={() => setAnalysed(null)}
+            />
           )}
           {graph.nodes.length === 0 ? (
             <p className="text-slate-400">Aucun équipement.</p>

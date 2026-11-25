@@ -56,6 +56,10 @@ tags:
   description: Jetons personnels pour appeler l'API depuis un autre outil.
 - name: Sécurité
   description: Journaux de sécurité et attaques repérées.
+- name: Actions correctives
+  description: "Remédiation automatique (ADR 0050) : une règle d'alerte peut demander\
+    \ à l'agent de l'équipement d'exécuter une action qu'il a lui-même déclarée (par\
+    \ son nom)."
 - name: Corrélations apprises
   description: "Liens entre équipements déduits de l'historique des alertes (M9, ADR\
     \ 0042). Consultation pour tous les rôles dans la limite du périmètre d'accès\
@@ -88,6 +92,9 @@ tags:
   description: "Historique d'envoi, modèles de messages et envoi de test. Réservé\
     \ aux administrateurs. Les URL des canaux (webhook, Teams, Slack) ne sont jamais\
     \ stockées ni renvoyées : on ne manipule que la référence du secret (env:NOM)."
+- name: Risque de panne
+  description: "Prédiction explicable du risque de panne à 24 heures (ADR 0052), apprise\
+    \ sur l'historique de la plateforme"
 - name: Règles d'alerte
   description: "Seuils, durée de confirmation, hystérésis et portée des règles."
 - name: Authentification
@@ -105,6 +112,8 @@ tags:
     \ Lecture pour tous les rôles dans leur périmètre de sites ; écriture des plannings\
     \ pour ADMIN ; passation d'une garde par son titulaire (ADMIN ou NOC_OPERATOR)\
     \ ou par ADMIN."
+- name: Notifications
+  description: Préférences de notification et liaison du compte Telegram
 - name: Règles d'événements
   description: "Règles qui transforment un trap ou un message syslog en alerte EVENT\
     \ (ADR 0021). Lecture pour tous les rôles, écriture et essai réservés aux administrateurs."
@@ -370,6 +379,110 @@ paths:
           description: Règle introuvable
         "409":
           description: La règle a ouvert des alertes
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/regles-alertes/{ruleId}/action-corrective:
+    get:
+      tags:
+      - Actions correctives
+      summary: Action corrective d'une règle
+      description: 204 si la règle n'en a pas. Opérateurs NOC et administrateurs.
+      operationId: policy
+      parameters:
+      - name: ruleId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Action configurée
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PolicyResponse"
+        "204":
+          description: Aucune action sur cette règle
+        "404":
+          description: Règle introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    put:
+      tags:
+      - Actions correctives
+      summary: Définir l'action corrective d'une règle
+      description: "mode=AUTO : l'action part dès l'ouverture de l'alerte ; APPROVAL\
+        \ : elle attend qu'un opérateur l'approuve. Le délai de grâce (cooldownMinutes,\
+        \ 30 par défaut) empêche de relancer l'action en boucle sur une alerte qui\
+        \ clignote. Administrateurs."
+      operationId: savePolicy
+      parameters:
+      - name: ruleId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PolicyRequest"
+        required: true
+      responses:
+        "404":
+          description: Règle introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      tags:
+      - Actions correctives
+      summary: Retirer l'action corrective d'une règle
+      description: Administrateurs.
+      operationId: deletePolicy
+      parameters:
+      - name: ruleId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Règle ou action introuvable
         "204":
           description: No Content
         "401":
@@ -1959,6 +2072,32 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/risques/entrainement:
+    post:
+      tags:
+      - Risque de panne
+      summary: Réentraîner le modèle maintenant
+      description: Sans attendre l'apprentissage de la nuit. Administrateurs.
+      operationId: train
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ModelCard"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/regles-evenements:
     get:
       tags:
@@ -2490,6 +2629,35 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ComponentDetail"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/moi/telegram/code:
+    post:
+      tags:
+      - Notifications
+      summary: Générer un code de liaison Telegram
+      description: "Code à usage unique, valable dix minutes, à envoyer au bot (/lier\
+        \ CODE). Une fois lié, les alertes reçues sur Telegram portent les boutons\
+        \ « Je prends » et « Résolu », exécutés au nom de ce compte, avec ses droits\
+        \ et son périmètre. Générer un nouveau code annule le précédent."
+      operationId: code
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LinkCode"
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -3954,6 +4122,81 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/alertes/{alertId}/actions-correctives:
+    get:
+      tags:
+      - Actions correctives
+      summary: Actions correctives d'une alerte
+      description: "Actions que l'agent de l'équipement sait exécuter, action pré\
+        vue par la règle, et exécutions déjà demandées avec leur résultat. Tous les\
+        \ rôles ; même périmètre que l'alerte."
+      operationId: forAlert
+      parameters:
+      - name: alertId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Alerte introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      tags:
+      - Actions correctives
+      summary: Lancer une action corrective
+      description: L'agent la prendra à son prochain passage (au plus un intervalle
+        de collecte). Opérateurs NOC et administrateurs.
+      operationId: launch
+      parameters:
+      - name: alertId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LaunchRequest"
+        required: true
+      responses:
+        "201":
+          description: Action mise en file
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/JobResponse"
+        "404":
+          description: Alerte introuvable
+        "409":
+          description: "Alerte fermée, pas d'agent, action inconnue de l'agent, ou\
+            \ déjà en cours"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/agent/snapshot:
     post:
       tags:
@@ -4029,6 +4272,134 @@ paths:
       responses:
         "400":
           description: Lot invalide
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/agent/actions:
+    post:
+      tags:
+      - Agents de collecte
+      summary: Passage de l'agent pour les actions correctives
+      description: "L'agent annonce les actions qu'il sait exécuter (noms et descriptions,\
+        \ jamais les commandes) et reçoit celles à exécuter maintenant, désignées\
+        \ par leur seul nom. Authentifié par le jeton de l'agent."
+      operationId: poll
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentPollRequest"
+        required: true
+      responses:
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/agent/actions/{jobId}/resultat:
+    post:
+      tags:
+      - Agents de collecte
+      summary: Compte rendu d'une action corrective
+      description: "Code de sortie (0 = réussite), extrait de la sortie (borné) et\
+        \ durée. Seul l'agent à qui l'exécution a été remise peut en rendre compte."
+      operationId: result
+      parameters:
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentResultRequest"
+        required: true
+      responses:
+        "404":
+          description: Exécution introuvable
+        "409":
+          description: Exécution déjà terminée
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/actions-correctives/{jobId}/refus:
+    post:
+      tags:
+      - Actions correctives
+      summary: Refuser une action corrective
+      description: Opérateurs NOC et administrateurs.
+      operationId: reject_1
+      parameters:
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Exécution introuvable
+        "409":
+          description: N'attend pas d'approbation
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/actions-correctives/{jobId}/approbation:
+    post:
+      tags:
+      - Actions correctives
+      summary: Approuver une action corrective
+      description: Opérateurs NOC et administrateurs.
+      operationId: approve
+      parameters:
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Exécution introuvable
+        "409":
+          description: N'attend pas d'approbation
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -4250,6 +4621,100 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/SecurityOverview"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/risques:
+    get:
+      tags:
+      - Risque de panne
+      summary: Équipements les plus à risque
+      description: "Probabilité de panne (perte de collecte ou alerte critique) dans\
+        \ les 24 heures, avec les trois faits qui la poussent le plus, et la fiche\
+        \ du modèle. Tous les rôles ; limité au périmètre par site."
+      operationId: overview_3
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 10
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RiskOverview"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/risques/modele:
+    get:
+      tags:
+      - Risque de panne
+      summary: Fiche du modèle de risque
+      description: "Poids de chaque variable (appris et initial), facteur de risque,\
+        \ volume d'apprentissage et scores d'évaluation sur la dernière semaine."
+      operationId: model
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ModelCard"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/regles-alertes/{id}/seuils-appris:
+    get:
+      tags:
+      - Règles d'alerte
+      summary: Seuils appris d'une règle adaptative
+      description: "Dernier seuil calculé pour chaque équipement et indicateur visé\
+        s, avec la normale du créneau qui l'explique. Vide pour une règle à seuil\
+        \ fixe."
+      operationId: learned
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Règle introuvable
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -4538,6 +5003,55 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/moi/telegram:
+    get:
+      tags:
+      - Notifications
+      summary: Liaison Telegram du compte connecté
+      description: "Le bot est-il actif, et ce compte est-il lié à un compte Telegram\
+        \ ?"
+      operationId: status
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TelegramStatus"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      tags:
+      - Notifications
+      summary: Délier le compte Telegram
+      operationId: unlink
+      responses:
+        "404":
+          description: Aucun compte lié
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/modeles:
     get:
       tags:
@@ -4652,6 +5166,59 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/indicateurs/service:
+    get:
+      tags:
+      - Incidents
+      summary: Indicateurs de service du NOC
+      description: "MTTA (délai moyen de prise en charge), MTTR (délai moyen de ré\
+        solution), part des alertes prises en charge dans l'objectif, par sévérité\
+        , par site, par opérateur et par semaine, et MTBF des équipements les plus\
+        \ touchés. Moyenne et médiane en minutes. Tous les rôles ; limité au périmè\
+        tre par site. Période d'un an au plus."
+      operationId: serviceKpis
+      parameters:
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Indicateurs calculés
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ServiceKpiResponse"
+        "400":
+          description: Période invalide
+        "404":
+          description: Site introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/incidents:
     get:
       tags:
@@ -4710,6 +5277,82 @@ paths:
           type: string
           format: uuid
       responses:
+        "404":
+          description: Incident introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/incidents/{id}/post-mortem:
+    get:
+      tags:
+      - Incidents
+      summary: Post-mortem d'un incident
+      description: "Reconstitué à la demande à partir de la base : chronologie complè\
+        te (alertes, notifications, astreinte, prises en charge, actions correctives,\
+        \ résolution), délais de prise en charge et de résolution, impact (équipements,\
+        \ composants de pages de statut, notifications évitées), cause confirmée et\
+        \ constats chiffrés avec recommandations. Tous les rôles ; même périmètre\
+        \ par site que l'incident."
+      operationId: postMortem
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Post-mortem calculé
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PostMortemResponse"
+        "404":
+          description: Incident introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/incidents/{id}/post-mortem/pdf:
+    get:
+      tags:
+      - Incidents
+      summary: Post-mortem d'un incident en PDF
+      description: "Le même post-mortem, en document imprimable (heure de Dakar)."
+      operationId: postMortemPdf
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Document PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
         "404":
           description: Incident introuvable
         "401":
@@ -4815,6 +5458,45 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/PagedModelNetworkEventResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/equipements/{id}/impact:
+    get:
+      tags:
+      - Topologie
+      summary: Analyse d'impact d'un équipement
+      description: "Ce que son arrêt entraînerait : équipements en aval (avec ceux\
+        \ qui gardent un second chemin), services surveillés interrompus, composants\
+        \ de pages de statut touchés, liens appris, alertes en cours, personnes d'astreinte,\
+        \ niveau d'impact et recommandations. Tous les rôles ; l'aval hors périmè\
+        tre est compté sans être nommé."
+      operationId: impact_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Analyse calculée
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ImpactResponse"
+        "404":
+          description: Équipement introuvable
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -5204,7 +5886,7 @@ paths:
       tags:
       - Authentification
       summary: État de la double authentification du compte connecté
-      operationId: status
+      operationId: status_1
       responses:
         "200":
           description: OK
@@ -5704,6 +6386,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/actions-correctives/disponibles:
+    get:
+      tags:
+      - Actions correctives
+      summary: Actions annoncées par les agents
+      description: "Noms et descriptions des actions que les agents actifs savent\
+        \ exécuter, avec le nombre d'équipements qui les offrent. Opérateurs NOC et\
+        \ administrateurs."
+      operationId: available
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AvailableAction"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/topologie/liens/{id}:
     delete:
       tags:
@@ -5986,6 +6698,29 @@ components:
       required:
       - alertSeverity
       - name
+    PolicyRequest:
+      type: object
+      description: Action corrective d'une règle d'alerte
+      properties:
+        actionName:
+          type: string
+          minLength: 1
+          pattern: "^[a-z0-9][a-z0-9._-]{0,63}$"
+        mode:
+          type: string
+          enum:
+          - AUTO
+          - APPROVAL
+        cooldownMinutes:
+          type: integer
+          format: int32
+          maximum: 1440
+          minimum: 0
+        enabled:
+          type: boolean
+      required:
+      - actionName
+      - mode
     AlertRuleRequest:
       type: object
       properties:
@@ -6039,6 +6774,14 @@ components:
             format: uuid
         allEquipment:
           type: boolean
+        adaptive:
+          type: boolean
+        adaptiveSensitivity:
+          type: number
+          maximum: 10
+          minimum: 1.5
+        adaptiveLimit:
+          type: number
       required:
       - confirmationSeconds
       - initialSeverity
@@ -6931,6 +7674,61 @@ components:
           type: string
         token:
           type: string
+    FeatureWeight:
+      type: object
+      description: "Poids d'une variable : appris, et initial (avant apprentissage)"
+      properties:
+        name:
+          type: string
+        label:
+          type: string
+        weight:
+          type: number
+          format: double
+        priorWeight:
+          type: number
+          format: double
+        oddsRatio:
+          type: number
+          format: double
+    ModelCard:
+      type: object
+      description: "Fiche du modèle. mode : POIDS_INITIAUX (aucune panne observée),\
+        \ MELANGE (poids appris tirés vers les poids initiaux), APPRIS (l'expérience\
+        \ domine)"
+      properties:
+        trainedAt:
+          type: string
+          format: date-time
+        mode:
+          type: string
+        samples:
+          type: integer
+          format: int32
+        positives:
+          type: integer
+          format: int32
+        baseRate:
+          type: number
+          format: double
+        auc:
+          type: number
+          format: double
+        brier:
+          type: number
+          format: double
+        evaluationSamples:
+          type: integer
+          format: int32
+        intercept:
+          type: number
+          format: double
+        features:
+          type: array
+          items:
+            $ref: "#/components/schemas/FeatureWeight"
+        method:
+          type: string
     EventRuleResponse:
       type: object
       properties:
@@ -7076,6 +7874,12 @@ components:
           format: date-time
         allEquipment:
           type: boolean
+        adaptive:
+          type: boolean
+        adaptiveSensitivity:
+          type: number
+        adaptiveLimit:
+          type: number
     RuleTestRequest:
       type: object
       properties:
@@ -7242,6 +8046,20 @@ components:
       required:
       - message
       - status
+    LinkCode:
+      type: object
+      description: "Code de liaison à usage unique, valable dix minutes : l'envoyer\
+        \ au bot par /lier CODE"
+      properties:
+        code:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        botUsername:
+          type: string
+        botActive:
+          type: boolean
     MaintenanceRequest:
       type: object
       properties:
@@ -7805,6 +8623,62 @@ components:
           minLength: 0
       required:
       - userId
+    LaunchRequest:
+      type: object
+      properties:
+        actionName:
+          type: string
+          minLength: 1
+          pattern: "^[a-z0-9][a-z0-9._-]{0,63}$"
+      required:
+      - actionName
+    JobResponse:
+      type: object
+      description: "Exécution d'une action corrective. state : PENDING_APPROVAL, QUEUED,\
+        \ RUNNING, SUCCEEDED, FAILED, REJECTED, EXPIRED ; trigger : AUTO ou MANUAL"
+      properties:
+        id:
+          type: string
+          format: uuid
+        alertId:
+          type: string
+          format: uuid
+        equipmentId:
+          type: string
+          format: uuid
+        actionName:
+          type: string
+        state:
+          type: string
+        trigger:
+          type: string
+        requestedBy:
+          type: string
+        decidedBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        decidedAt:
+          type: string
+          format: date-time
+        pickedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        exitCode:
+          type: integer
+          format: int32
+        output:
+          type: string
+        durationMs:
+          type: integer
+          format: int64
     AgentSnapshotDto:
       type: object
       properties:
@@ -7925,6 +8799,48 @@ components:
       required:
       - kind
       - occurredAt
+    AgentPollRequest:
+      type: object
+      description: "Passage de l'agent : actions qu'il sait exécuter"
+      properties:
+        available:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnnouncedAction"
+          maxItems: 50
+          minItems: 0
+    AnnouncedAction:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          pattern: "^[a-z0-9][a-z0-9._-]{0,63}$"
+        description:
+          type: string
+          maxLength: 200
+          minLength: 0
+      required:
+      - name
+    AgentResultRequest:
+      type: object
+      description: Compte rendu d'exécution d'une action par l'agent
+      properties:
+        exitCode:
+          type: integer
+          format: int32
+          maximum: 1000
+          minimum: -1000
+        output:
+          type: string
+          maxLength: 20000
+          minLength: 0
+        durationMs:
+          type: integer
+          format: int64
+          minimum: 0
+      required:
+      - exitCode
     AlertSummary:
       type: object
       properties:
@@ -8484,6 +9400,52 @@ components:
         lastSeen:
           type: string
           format: date-time
+    EquipmentRisk:
+      type: object
+      description: "Risque de panne d'un équipement dans les 24 heures. level : FAIBLE,\
+        \ MOYEN, ELEVE"
+      properties:
+        equipmentId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        siteName:
+          type: string
+        probability:
+          type: number
+          format: double
+        level:
+          type: string
+        reasons:
+          type: array
+          items:
+            $ref: "#/components/schemas/Reason"
+    Reason:
+      type: object
+      description: Ce qui pousse le risque d'un équipement vers le haut
+      properties:
+        feature:
+          type: string
+        label:
+          type: string
+        fact:
+          type: string
+        contribution:
+          type: number
+          format: double
+    RiskOverview:
+      type: object
+      properties:
+        model:
+          $ref: "#/components/schemas/ModelCard"
+        equipments:
+          type: array
+          items:
+            $ref: "#/components/schemas/EquipmentRisk"
+        computedAt:
+          type: string
+          format: date-time
     PagedModelEventRuleResponse:
       type: object
       properties:
@@ -8502,6 +9464,29 @@ components:
             $ref: "#/components/schemas/AlertRuleResponse"
         page:
           $ref: "#/components/schemas/PageMetadata"
+    PolicyResponse:
+      type: object
+      properties:
+        ruleId:
+          type: string
+          format: uuid
+        actionName:
+          type: string
+        mode:
+          type: string
+          enum:
+          - AUTO
+          - APPROVAL
+        cooldownMinutes:
+          type: integer
+          format: int32
+        enabled:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+        updatedBy:
+          type: string
     UserScope:
       type: object
       properties:
@@ -8563,6 +9548,21 @@ components:
           type: string
         detail:
           type: string
+    TelegramStatus:
+      type: object
+      description: État de la liaison Telegram du compte connecté
+      properties:
+        botActive:
+          type: boolean
+        botUsername:
+          type: string
+        linked:
+          type: boolean
+        telegramUsername:
+          type: string
+        linkedAt:
+          type: string
+          format: date-time
     TemplateSummaryResponse:
       type: object
       properties:
@@ -8634,6 +9634,144 @@ components:
             $ref: "#/components/schemas/MaintenanceResponse"
         page:
           $ref: "#/components/schemas/PageMetadata"
+    EquipmentReliability:
+      type: object
+      description: "Fiabilité d'un équipement : pannes = alertes de perte de collecte\
+        \ ; MTBF = temps en service divisé par le nombre de pannes (nul sans panne)"
+      properties:
+        equipmentId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        siteName:
+          type: string
+        alerts:
+          type: integer
+          format: int64
+        failures:
+          type: integer
+          format: int64
+        downtimeMinutes:
+          type: number
+          format: double
+        availabilityPercent:
+          type: number
+          format: double
+        mtbfHours:
+          type: number
+          format: double
+    Figures:
+      type: object
+      description: Chiffres d'un groupe d'alertes ; une moyenne est nulle sans donnée
+      properties:
+        alerts:
+          type: integer
+          format: int64
+        acknowledged:
+          type: integer
+          format: int64
+        resolved:
+          type: integer
+          format: int64
+        resolvedAutomatically:
+          type: integer
+          format: int64
+        mttaMinutes:
+          type: number
+          format: double
+        mttaMedianMinutes:
+          type: number
+          format: double
+        mttrMinutes:
+          type: number
+          format: double
+        mttrMedianMinutes:
+          type: number
+          format: double
+        acknowledgedWithinTargetPercent:
+          type: number
+          format: double
+        resolvedAutomaticallyPercent:
+          type: number
+          format: double
+    Group:
+      type: object
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        figures:
+          $ref: "#/components/schemas/Figures"
+    Operator:
+      type: object
+      properties:
+        username:
+          type: string
+        acknowledged:
+          type: integer
+          format: int64
+        mttaMedianMinutes:
+          type: number
+          format: double
+        withinTarget:
+          type: integer
+          format: int64
+    ServiceKpiResponse:
+      type: object
+      description: "Indicateurs de service (MTTA, MTTR, MTBF) sur une période"
+      properties:
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        acknowledgeTargetMinutes:
+          type: integer
+          format: int32
+        overall:
+          $ref: "#/components/schemas/Figures"
+        bySeverity:
+          type: array
+          items:
+            $ref: "#/components/schemas/Group"
+        bySite:
+          type: array
+          items:
+            $ref: "#/components/schemas/Group"
+        byOperator:
+          type: array
+          items:
+            $ref: "#/components/schemas/Operator"
+        weeks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Week"
+        equipments:
+          type: array
+          items:
+            $ref: "#/components/schemas/EquipmentReliability"
+        truncated:
+          type: boolean
+        method:
+          type: string
+    Week:
+      type: object
+      properties:
+        weekStart:
+          type: string
+          format: date
+        alerts:
+          type: integer
+          format: int64
+        mttaMedianMinutes:
+          type: number
+          format: double
+        mttrMedianMinutes:
+          type: number
+          format: double
     IncidentResponse:
       type: object
       description: "Un fait, décrit par plusieurs alertes regroupées"
@@ -8693,6 +9831,176 @@ components:
             $ref: "#/components/schemas/IncidentResponse"
         page:
           $ref: "#/components/schemas/PageMetadata"
+    AlertLine:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        equipmentName:
+          type: string
+        type:
+          type: string
+        severity:
+          type: string
+        state:
+          type: string
+        message:
+          type: string
+        triggeredAt:
+          type: string
+          format: date-time
+        takenAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+        resolutionType:
+          type: string
+        reason:
+          type: string
+        announces:
+          type: boolean
+    Cause:
+      type: object
+      description: "Cause confirmée par un opérateur, ou absente"
+      properties:
+        confirmed:
+          type: boolean
+        source:
+          type: string
+        label:
+          type: string
+        confirmedBy:
+          type: string
+        confirmedAt:
+          type: string
+          format: date-time
+    Component:
+      type: object
+      properties:
+        name:
+          type: string
+        page:
+          type: string
+        publicPage:
+          type: boolean
+    Durations:
+      type: object
+      description: Durées en minutes ; nulles tant que l'étape n'a pas eu lieu
+      properties:
+        minutesToAcknowledge:
+          type: number
+          format: double
+        minutesToResolve:
+          type: number
+          format: double
+        minutesFromAcknowledgeToResolve:
+          type: number
+          format: double
+        acknowledged:
+          type: boolean
+        resolved:
+          type: boolean
+        acknowledgeTargetMinutes:
+          type: integer
+          format: int32
+    Finding:
+      type: object
+      description: "Constat tiré des faits. level : POSITIVE, WARNING ou ACTION"
+      properties:
+        level:
+          type: string
+        text:
+          type: string
+        recommendation:
+          type: string
+    PostMortemResponse:
+      type: object
+      description: "Post-mortem d'un incident, reconstitué à partir de la base"
+      properties:
+        incident:
+          $ref: "#/components/schemas/Summary"
+        durations:
+          $ref: "#/components/schemas/Durations"
+        root:
+          $ref: "#/components/schemas/RootAlert"
+        alerts:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlertLine"
+        impact:
+          $ref: "#/components/schemas/Impact"
+        cause:
+          $ref: "#/components/schemas/Cause"
+        timeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimelineEntry"
+        findings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Finding"
+        responders:
+          type: array
+          items:
+            type: string
+        generatedAt:
+          type: string
+          format: date-time
+    RootAlert:
+      type: object
+      properties:
+        alertId:
+          type: string
+          format: uuid
+        equipmentName:
+          type: string
+        equipmentType:
+          type: string
+        message:
+          type: string
+        at:
+          type: string
+          format: date-time
+    Summary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        severity:
+          type: string
+        state:
+          type: string
+        siteName:
+          type: string
+        openedAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+    TimelineEntry:
+      type: object
+      description: "Étape de la chronologie. kind : INCIDENT_OPENED, ALERT_OPENED,\
+        \ NOTIFIED, ONCALL, ESCALATED, TAKEN, ASSIGNED, COMMENTED, CORRELATED, SEVERITY_CHANGED,\
+        \ REMEDIATION, CAUSE_CONFIRMED, MAINTENANCE, RESOLVED, INCIDENT_RESOLVED"
+      properties:
+        at:
+          type: string
+          format: date-time
+        kind:
+          type: string
+        title:
+          type: string
+        detail:
+          type: string
+        actor:
+          type: string
     NetworkEventResponse:
       type: object
       properties:
@@ -8756,6 +10064,130 @@ components:
             $ref: "#/components/schemas/EquipmentResponse"
         page:
           $ref: "#/components/schemas/PageMetadata"
+    Downstream:
+      type: object
+      description: "Équipement en aval ; redundant = il a un autre chemin vers le\
+        \ cœur du réseau, il restera sans doute joignable"
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        siteName:
+          type: string
+        depth:
+          type: integer
+          format: int32
+        via:
+          type: string
+        redundant:
+          type: boolean
+    ImpactResponse:
+      type: object
+      description: Ce que l'arrêt d'un équipement entraînerait
+      properties:
+        target:
+          $ref: "#/components/schemas/Target"
+        level:
+          type: string
+          description: "FAIBLE, MOYEN, ELEVE ou CRITIQUE"
+        summary:
+          type: string
+        downstream:
+          type: array
+          items:
+            $ref: "#/components/schemas/Downstream"
+        hiddenDownstream:
+          type: integer
+          format: int32
+          description: Équipements touchés mais hors du périmètre de l'utilisateur
+        services:
+          type: array
+          items:
+            $ref: "#/components/schemas/ServiceLine"
+        statusComponents:
+          type: array
+          items:
+            $ref: "#/components/schemas/Component"
+        learnedLinks:
+          type: array
+          items:
+            $ref: "#/components/schemas/LearnedLink"
+        activeAlerts:
+          type: integer
+          format: int32
+        onCallPrimary:
+          type: string
+        onCallSecondary:
+          type: string
+        plannedMaintenances:
+          type: array
+          items:
+            $ref: "#/components/schemas/Maintenance"
+        recommendations:
+          type: array
+          items:
+            type: string
+        maintenanceTargets:
+          type: array
+          description: "Équipements à couvrir par une maintenance : la cible et l'aval\
+            \ visible"
+          items:
+            type: string
+            format: uuid
+        computedAt:
+          type: string
+          format: date-time
+    LearnedLink:
+      type: object
+      properties:
+        equipmentId:
+          type: string
+          format: uuid
+        equipmentName:
+          type: string
+        confidence:
+          type: number
+          format: double
+    Maintenance:
+      type: object
+      properties:
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        reason:
+          type: string
+    ServiceLine:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        equipmentName:
+          type: string
+    Target:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        siteName:
+          type: string
     CapacityForecastResponse:
       type: object
       properties:
@@ -9509,6 +10941,17 @@ components:
         valeur:
           type: number
           format: double
+    AvailableAction:
+      type: object
+      description: Action annoncée par au moins un agent actif
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        equipmentCount:
+          type: integer
+          format: int32
     PasswordRequest:
       type: object
       properties:

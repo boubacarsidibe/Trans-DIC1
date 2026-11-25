@@ -15,6 +15,7 @@
 | Maintenance | Fenêtre planifiée pendant laquelle les alertes d'un équipement ou d'un site ne notifient pas |
 | Monolithe modulaire | Application unique, déployée d'un bloc, mais découpée en modules aux frontières contrôlées |
 | NetFlow | Format dans lequel un routeur exporte des statistiques sur les échanges qui le traversent |
+| MITRE ATT&CK | Matrice publique des techniques d'attaque, langage commun des équipes de sécurité |
 | NOC | *Network Operations Center* : l'équipe qui surveille et exploite le réseau |
 | OID | Identifiant d'un indicateur dans le protocole SNMP |
 | OpenID Connect | Standard de connexion unique : l'utilisateur se connecte auprès du fournisseur d'identité de l'école |
@@ -22,6 +23,7 @@
 | SIEM | Outil de l'équipe sécurité qui centralise et corrèle les événements de sécurité |
 | SLA | Objectif de disponibilité (par exemple 99,5 % sur le mois) |
 | SNMP | Protocole standard d'interrogation des équipements réseau ; la version 3 ajoute authentification et chiffrement |
+| Proxy de collecte | Relais installé dans un bâtiment qui envoie les mesures de tout un site avec un seul jeton et les garde quand la liaison tombe |
 | Sonde | Test lancé par la plateforme vers un service (ping, port, page web, certificat, DNS) |
 | SSE | *Server-Sent Events* : connexion HTTP par laquelle le serveur pousse des messages vers le navigateur |
 | Syslog | Format standard de messages de journal envoyés par le matériel et les systèmes |
@@ -71,6 +73,8 @@ Les réglages se font par variables d'environnement, sans modifier le code. Les 
 | `SMTP_*`, `NOTIFICATION_FROM` | Envoi des e-mails | Boîte de test en développement |
 | `PUBLIC_URL` | Adresse de la plateforme, utilisée dans les liens des notifications | Adresse locale |
 | `OIDC_ENABLED`, `OIDC_ISSUER_URI` | Connexion unique avec le fournisseur d'identité de l'école | Désactivée |
+| `LDAP_URL`, `LDAP_USER_DN_PATTERN`, `LDAP_GROUP_*` | Connexion par l'annuaire LDAP ou Active Directory et correspondance des groupes avec les rôles | Désactivée |
+| `COLLECTION_PROXY_*` | Fenêtres de fraîcheur (10 min), de rattrapage (24 h) et de silence des proxys de site | Valeurs raisonnées |
 | `DISCOVERY_ALLOWED_RANGES` | Plages d'adresses autorisées pour la découverte | Aucune |
 | `EVENTS_SNMP_TRAP_ENABLED`, `EVENTS_SYSLOG_ENABLED` | Réception des traps et du syslog | Désactivée |
 | `FLOW_ENABLED` | Réception NetFlow | Désactivée |
@@ -85,7 +89,7 @@ Les fonctions qui exposent la plateforme au réseau (découverte, réception des
 | Famille | Écrans |
 |---|---|
 | Supervision | Tableau de bord, Mes vues, Mur NOC, Alertes, **Incidents**, Événements, Sécurité, Trafic, Rapports |
-| Parc | Équipements (fiche, historique, sondes, collecte), Sites, Topologie, Modèles, Maintenances, Import CSV, Découverte |
+| Parc | Équipements (fiche, historique, sondes, collecte), Sites (et leur proxy de collecte), Topologie, Modèles, Maintenances, Import CSV, Découverte |
 | Exploitation | Astreinte, Pages de statut (et page publique), Règles d'alerte, Règles d'événements |
 | Compte | Mes notifications, Double authentification, Jetons d'API, Changer de mot de passe |
 | Administration | Utilisateurs et périmètres, Canaux de notification, Rapports planifiés, Journal d'audit |

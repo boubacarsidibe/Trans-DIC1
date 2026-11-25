@@ -35,15 +35,15 @@ Lancer la vérification complète une dernière fois sur la version présentée,
 
 ## Ce que le plan d'améliorations a donné
 
-La comparaison aux outils du marché avait produit un plan de quatorze modèles. Au 23 novembre :
+La comparaison aux outils du marché avait produit un plan de quatorze modèles. Au 24 novembre :
 
 | État | Modèles |
 |---|---|
-| Livrés | Normale robuste et saisonnalité (M1), état d'ensemble (M2), score de santé (M3), semblables par modèle (M4), rupture de niveau (M5), taux réseau par bande apprise (M6), balayages et inondations (M7), budget d'erreur (M8), liens appris (M9), incidents (M10), mesures liées (M11), prévision saisonnière (M13), seuils proposés (M14) |
-| Commencé | Poids du diagnostic appris des confirmations de l'opérateur (M12) |
-| Hors plan, restant | Annuaire LDAP, collecteurs déportés par site, étiquetage MITRE ATT&CK des alertes de sécurité |
+| Livrés, les quatorze | Normale robuste et saisonnalité (M1), état d'ensemble (M2), score de santé (M3), semblables par modèle (M4), rupture de niveau (M5), taux réseau par bande apprise (M6), balayages et inondations (M7), budget d'erreur (M8), liens appris (M9), incidents (M10), mesures liées (M11), poids du diagnostic appris des confirmations (M12), prévision saisonnière (M13), seuils proposés (M14) |
+| Hors plan, livrés | Annuaire LDAP ou Active Directory, proxys de collecte par site (côté serveur), repères MITRE ATT&CK des alertes de sécurité, seuil adaptatif par équipement sur une règle d'alerte (M15, ADR 0049) |
+| Restant | Logiciel du proxy à installer dans un bâtiment, connexion SAML |
 
-Les lots 1 et 2 du plan sont terminés. **Ce qui reste n'est plus de la détection, c'est de la
+Les lots 1 à 4 du plan sont terminés côté serveur. **Ce qui reste n'est plus de la détection, c'est de la
 validation** : aucun de ces modèles n'a vu une panne réelle de l'EPT.
 
 ## Priorité 2 — Combler les petits trous visibles
@@ -93,7 +93,8 @@ Garder la **vidéo de démonstration** déjà enregistrée comme plan de secours
 | Où sont les mots de passe SNMP ? | Jamais dans le code ni dans la base : uniquement dans l'environnement du serveur, la base ne garde qu'une référence |
 | Comment être sûr qu'une notification n'est pas perdue ? | Elle naît dans la même opération que l'alerte, attend dans une file en base, est retentée et reste visible en cas d'échec |
 | Pourquoi pas de microservices ? | Une petite équipe d'exploitation ; le monolithe modulaire garde une seule application à exploiter tout en ayant des frontières contrôlées automatiquement |
-| Pourquoi pas d'intelligence artificielle ? | Des détections statistiques explicables, testables, qui fonctionnent hors ligne ; chaque alerte dit pourquoi elle s'ouvre |
+| Y a-t-il de l'intelligence artificielle ? | Oui, de l'apprentissage explicable : prédiction du risque de panne (régression logistique apprise chaque nuit, évaluée sur la dernière semaine), seuil adaptatif, forêt d'isolement, règles d'association, poids du diagnostic appris ; pas de boîte noire, chaque score dit pourquoi |
+| Qu'avez-vous de plus que Zabbix ? | Post-mortem automatique, MTTA / MTTR / MTBF, actions correctives sûres (l'agent ne connaît que des noms d'actions qu'il a lui-même déclarées), prise en charge depuis Telegram, analyse d'impact avec second chemin, risque de panne expliqué |
 | Pourquoi SSE et pas WebSocket ? | Flux à sens unique serveur vers écran, HTTP ordinaire, reconnexion automatique |
 | Que faites-vous des données personnelles ? | Requêtes ordinaires non conservées, adresses des flux effacées après 7 jours, événements de sécurité après 30 jours, page publique sans aucune information interne |
 
@@ -106,6 +107,6 @@ Pour une mise en service réelle et les évolutions suivantes, dans l'ordre :
 3. **Ajouter un canal hors bande** pour l'astreinte (SMS par passerelle d'opérateur ou modem GSM).
 4. **Compléter les cas d'utilisation** restants : archivage d'un équipement, déploiement et mise à jour de l'agent à distance.
 5. **Enrichir les alertes** : conditions composées (ET / OU), procédures de résolution affichées dans l'alerte, rapport de capacité fondé sur la prévision.
-6. **Passer à l'échelle** si le besoin apparaît : collecteurs déportés par site, haute disponibilité, extension TimescaleDB si le volume de mesures le justifie.
+6. **Passer à l'échelle** si le besoin apparaît : logiciel du proxy de site à installer dans les bâtiments, haute disponibilité, extension TimescaleDB si le volume de mesures le justifie.
 7. **Élargir la collecte** : IPFIX et sFlow, CDP, syslog chiffré, plus d'indicateurs dans l'agent.
 8. **Pour les usagers** : abonnement aux pages de statut, application installable avec notifications.

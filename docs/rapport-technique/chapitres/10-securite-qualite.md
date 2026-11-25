@@ -18,7 +18,9 @@ Une plateforme de supervision connaît tout le réseau : ses équipements, ses a
 |---|---|
 | Deviner un mot de passe | Limitation des tentatives par adresse, verrouillage progressif du compte (1 min, 2 min, 4 min… jusqu'à 30 min), double authentification facultative |
 | Voler une session | Jeton d'accès de 15 minutes gardé en mémoire, renouvellement par cookie illisible par les scripts, détection de réutilisation qui révoque la session, durée maximale de 8 heures |
-| Garder l'accès après un départ | Désactivation d'un compte, changement de rôle ou réinitialisation du mot de passe coupent immédiatement toutes ses sessions ; jetons d'API révocables |
+| Garder l'accès après un départ | Désactivation d'un compte, changement de rôle ou réinitialisation du mot de passe coupent immédiatement toutes ses sessions ; jetons d'API révocables ; avec l'annuaire, le rôle est relu à chaque connexion et un compte sorti des groupes n'entre plus |
+| Écouter le mot de passe d'annuaire | Connexion à l'annuaire refusée en clair (`ldap://`) sauf réglage explicite, identifiants échappés contre l'injection LDAP, aucun rôle par défaut |
+| Écrire sur tout le campus avec un jeton volé | Jeton de proxy valable pour son seul site : une mesure visant un autre site est écartée et comptée ; chaîne de sécurité distincte de celle des agents |
 | Voir hors de son périmètre | Filtrage par site côté serveur sur les équipements, alertes, mesures, rapports, topologie et notifications ; un objet hors périmètre répond « introuvable » |
 | Lire les secrets | Secrets par référence uniquement ; empreintes seulement pour les jetons ; messages d'erreur et notifications nettoyés des adresses internes |
 | Détourner les sondes vers le réseau interne | Sondes réservées aux administrateurs, adresses locales et de métadonnées refusées, pas de redirection, lecture bornée, contenu jamais stocké |
@@ -43,9 +45,9 @@ La sécurité n'est jamais complète. Les principaux risques connus sont tenus d
 
 | Niveau | Nombre | Ce qu'ils vérifient |
 |---|---:|---|
-| Serveur | 1 281 | Règles métier, API (droits, erreurs, contrats), évolutions de la base, sécurité (connexion, jetons, périmètres), détections, notifications ; sur un vrai PostgreSQL |
+| Serveur | 1 359 | Règles métier, API (droits, erreurs, contrats), évolutions de la base, sécurité (connexion, jetons, périmètres), détections, notifications ; sur un vrai PostgreSQL |
 | Architecture | 1 ensemble de règles | Couches respectées, cœur métier indépendant, aucune dépendance circulaire entre modules |
-| Interface | 340 | Comportement des écrans et composants (chargement, erreurs, droits, interactions) |
+| Interface | 355 | Comportement des écrans et composants (chargement, erreurs, droits, interactions) |
 | Agent | 111 | Collecte Linux et Windows, configuration, envoi, journaux |
 | Parcours complets | 8 | Dans un vrai navigateur : connexion, inventaire, alerte, rapport, sondes, astreinte, page de statut, modèles |
 

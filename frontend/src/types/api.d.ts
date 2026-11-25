@@ -66,6 +66,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/regles-alertes/{ruleId}/action-corrective": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Action corrective d'une règle
+         * @description 204 si la règle n'en a pas. Opérateurs NOC et administrateurs.
+         */
+        get: operations["policy"];
+        /**
+         * Définir l'action corrective d'une règle
+         * @description mode=AUTO : l'action part dès l'ouverture de l'alerte ; APPROVAL : elle attend qu'un opérateur l'approuve. Le délai de grâce (cooldownMinutes, 30 par défaut) empêche de relancer l'action en boucle sur une alerte qui clignote. Administrateurs.
+         */
+        put: operations["savePolicy"];
+        post?: never;
+        /**
+         * Retirer l'action corrective d'une règle
+         * @description Administrateurs.
+         */
+        delete: operations["deletePolicy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/regles-alertes/{id}": {
         parameters: {
             query?: never;
@@ -562,6 +590,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/risques/entrainement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Réentraîner le modèle maintenant
+         * @description Sans attendre l'apprentissage de la nuit. Administrateurs.
+         */
+        post: operations["train"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/regles-evenements": {
         parameters: {
             query?: never;
@@ -791,6 +839,26 @@ export interface paths {
         put?: never;
         /** Ajouter un composant */
         post: operations["addComponent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moi/telegram/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Générer un code de liaison Telegram
+         * @description Code à usage unique, valable dix minutes, à envoyer au bot (/lier CODE). Une fois lié, les alertes reçues sur Telegram portent les boutons « Je prends » et « Résolu », exécutés au nom de ce compte, avec ses droits et son périmètre. Générer un nouveau code annule le précédent.
+         */
+        post: operations["code"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1434,6 +1502,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/alertes/{alertId}/actions-correctives": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Actions correctives d'une alerte
+         * @description Actions que l'agent de l'équipement sait exécuter, action prévue par la règle, et exécutions déjà demandées avec leur résultat. Tous les rôles ; même périmètre que l'alerte.
+         */
+        get: operations["forAlert"];
+        put?: never;
+        /**
+         * Lancer une action corrective
+         * @description L'agent la prendra à son prochain passage (au plus un intervalle de collecte). Opérateurs NOC et administrateurs.
+         */
+        post: operations["launch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/agent/snapshot": {
         parameters: {
             query?: never;
@@ -1488,6 +1580,86 @@ export interface paths {
          * @description Authentifié par le jeton de l'agent. Le serveur juge les lignes : seules les tentatives d'authentification, les attaques reconnues et les erreurs web sont conservées ; une requête ordinaire ne laisse aucune trace.
          */
         post: operations["receive_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Passage de l'agent pour les actions correctives
+         * @description L'agent annonce les actions qu'il sait exécuter (noms et descriptions, jamais les commandes) et reçoit celles à exécuter maintenant, désignées par leur seul nom. Authentifié par le jeton de l'agent.
+         */
+        post: operations["poll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/actions/{jobId}/resultat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Compte rendu d'une action corrective
+         * @description Code de sortie (0 = réussite), extrait de la sortie (borné) et durée. Seul l'agent à qui l'exécution a été remise peut en rendre compte.
+         */
+        post: operations["result"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/actions-correctives/{jobId}/refus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refuser une action corrective
+         * @description Opérateurs NOC et administrateurs.
+         */
+        post: operations["reject_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/actions-correctives/{jobId}/approbation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approuver une action corrective
+         * @description Opérateurs NOC et administrateurs.
+         */
+        post: operations["approve"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1623,6 +1795,66 @@ export interface paths {
          * @description Chiffres de la période, adresses les plus actives, équipements visés et dernières lignes retenues. Une requête web ordinaire n'y figure jamais.
          */
         get: operations["overview_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/risques": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Équipements les plus à risque
+         * @description Probabilité de panne (perte de collecte ou alerte critique) dans les 24 heures, avec les trois faits qui la poussent le plus, et la fiche du modèle. Tous les rôles ; limité au périmètre par site.
+         */
+        get: operations["overview_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/risques/modele": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fiche du modèle de risque
+         * @description Poids de chaque variable (appris et initial), facteur de risque, volume d'apprentissage et scores d'évaluation sur la dernière semaine.
+         */
+        get: operations["model"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/regles-alertes/{id}/seuils-appris": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Seuils appris d'une règle adaptative
+         * @description Dernier seuil calculé pour chaque équipement et indicateur visés, avec la normale du créneau qui l'explique. Vide pour une règle à seuil fixe.
+         */
+        get: operations["learned"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1768,6 +2000,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/moi/telegram": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Liaison Telegram du compte connecté
+         * @description Le bot est-il actif, et ce compte est-il lié à un compte Telegram ?
+         */
+        get: operations["status"];
+        put?: never;
+        post?: never;
+        /** Délier le compte Telegram */
+        delete: operations["unlink"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/modeles": {
         parameters: {
             query?: never;
@@ -1825,6 +2078,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/indicateurs/service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Indicateurs de service du NOC
+         * @description MTTA (délai moyen de prise en charge), MTTR (délai moyen de résolution), part des alertes prises en charge dans l'objectif, par sévérité, par site, par opérateur et par semaine, et MTBF des équipements les plus touchés. Moyenne et médiane en minutes. Tous les rôles ; limité au périmètre par site. Période d'un an au plus.
+         */
+        get: operations["serviceKpis"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/incidents": {
         parameters: {
             query?: never;
@@ -1865,6 +2138,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/incidents/{id}/post-mortem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Post-mortem d'un incident
+         * @description Reconstitué à la demande à partir de la base : chronologie complète (alertes, notifications, astreinte, prises en charge, actions correctives, résolution), délais de prise en charge et de résolution, impact (équipements, composants de pages de statut, notifications évitées), cause confirmée et constats chiffrés avec recommandations. Tous les rôles ; même périmètre par site que l'incident.
+         */
+        get: operations["postMortem"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/{id}/post-mortem/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Post-mortem d'un incident en PDF
+         * @description Le même post-mortem, en document imprimable (heure de Dakar).
+         */
+        get: operations["postMortemPdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/flux": {
         parameters: {
             query?: never;
@@ -1897,6 +2210,26 @@ export interface paths {
          * @description Liste paginée (50 par page, plus récents d'abord), filtrable par équipement, source, sévérité minimale (EMERGENCY la plus grave), période [from, to[ et texte (titre, détails, OID). 200 événements par page au plus.
          */
         get: operations["list_12"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipements/{id}/impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Analyse d'impact d'un équipement
+         * @description Ce que son arrêt entraînerait : équipements en aval (avec ceux qui gardent un second chemin), services surveillés interrompus, composants de pages de statut touchés, liens appris, alertes en cours, personnes d'astreinte, niveau d'impact et recommandations. Tous les rôles ; l'aval hors périmètre est compté sans être nommé.
+         */
+        get: operations["impact_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2124,7 +2457,7 @@ export interface paths {
             cookie?: never;
         };
         /** État de la double authentification du compte connecté */
-        get: operations["status"];
+        get: operations["status_1"];
         put?: never;
         post?: never;
         /**
@@ -2358,6 +2691,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/actions-correctives/disponibles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Actions annoncées par les agents
+         * @description Noms et descriptions des actions que les agents actifs savent exécuter, avec le nombre d'équipements qui les offrent. Opérateurs NOC et administrateurs.
+         */
+        get: operations["available"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/topologie/liens/{id}": {
         parameters: {
             query?: never;
@@ -2484,6 +2837,15 @@ export interface components {
             siteIds?: string[];
             equipmentIds?: string[];
         };
+        /** @description Action corrective d'une règle d'alerte */
+        PolicyRequest: {
+            actionName: string;
+            /** @enum {string} */
+            mode: "AUTO" | "APPROVAL";
+            /** Format: int32 */
+            cooldownMinutes?: number;
+            enabled?: boolean;
+        };
         AlertRuleRequest: {
             name: string;
             metricType: string;
@@ -2500,6 +2862,9 @@ export interface components {
             siteIds?: string[];
             equipmentIds?: string[];
             allEquipment?: boolean;
+            adaptive?: boolean;
+            adaptiveSensitivity?: number;
+            adaptiveLimit?: number;
         };
         ScheduleRequest: {
             name?: string;
@@ -2865,6 +3230,39 @@ export interface components {
             identifier?: string;
             token?: string;
         };
+        /** @description Poids d'une variable : appris, et initial (avant apprentissage) */
+        FeatureWeight: {
+            name?: string;
+            label?: string;
+            /** Format: double */
+            weight?: number;
+            /** Format: double */
+            priorWeight?: number;
+            /** Format: double */
+            oddsRatio?: number;
+        };
+        /** @description Fiche du modèle. mode : POIDS_INITIAUX (aucune panne observée), MELANGE (poids appris tirés vers les poids initiaux), APPRIS (l'expérience domine) */
+        ModelCard: {
+            /** Format: date-time */
+            trainedAt?: string;
+            mode?: string;
+            /** Format: int32 */
+            samples?: number;
+            /** Format: int32 */
+            positives?: number;
+            /** Format: double */
+            baseRate?: number;
+            /** Format: double */
+            auc?: number;
+            /** Format: double */
+            brier?: number;
+            /** Format: int32 */
+            evaluationSamples?: number;
+            /** Format: double */
+            intercept?: number;
+            features?: components["schemas"]["FeatureWeight"][];
+            method?: string;
+        };
         EventRuleResponse: {
             /** Format: uuid */
             id?: string;
@@ -2920,6 +3318,9 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
             allEquipment?: boolean;
+            adaptive?: boolean;
+            adaptiveSensitivity?: number;
+            adaptiveLimit?: number;
         };
         RuleTestRequest: {
             rule: components["schemas"]["AlertRuleRequest"];
@@ -2977,6 +3378,14 @@ export interface components {
             /** @enum {string} */
             status: "INVESTIGATING" | "IDENTIFIED" | "MONITORING" | "RESOLVED";
             message: string;
+        };
+        /** @description Code de liaison à usage unique, valable dix minutes : l'envoyer au bot par /lier CODE */
+        LinkCode: {
+            code?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            botUsername?: string;
+            botActive?: boolean;
         };
         MaintenanceRequest: {
             /** Format: uuid */
@@ -3265,6 +3674,38 @@ export interface components {
             userId: string;
             comment?: string;
         };
+        LaunchRequest: {
+            actionName: string;
+        };
+        /** @description Exécution d'une action corrective. state : PENDING_APPROVAL, QUEUED, RUNNING, SUCCEEDED, FAILED, REJECTED, EXPIRED ; trigger : AUTO ou MANUAL */
+        JobResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            alertId?: string;
+            /** Format: uuid */
+            equipmentId?: string;
+            actionName?: string;
+            state?: string;
+            trigger?: string;
+            requestedBy?: string;
+            decidedBy?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            /** Format: date-time */
+            pickedAt?: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: int32 */
+            exitCode?: number;
+            output?: string;
+            /** Format: int64 */
+            durationMs?: number;
+        };
         AgentSnapshotDto: {
             hostname: string;
             os: string;
@@ -3307,6 +3748,22 @@ export interface components {
             request?: string;
             /** Format: int32 */
             status?: number;
+        };
+        /** @description Passage de l'agent : actions qu'il sait exécuter */
+        AgentPollRequest: {
+            available?: components["schemas"]["AnnouncedAction"][];
+        };
+        AnnouncedAction: {
+            name: string;
+            description?: string;
+        };
+        /** @description Compte rendu d'exécution d'une action par l'agent */
+        AgentResultRequest: {
+            /** Format: int32 */
+            exitCode: number;
+            output?: string;
+            /** Format: int64 */
+            durationMs?: number;
         };
         AlertSummary: {
             /** Format: int64 */
@@ -3621,6 +4078,31 @@ export interface components {
             /** Format: date-time */
             lastSeen?: string;
         };
+        /** @description Risque de panne d'un équipement dans les 24 heures. level : FAIBLE, MOYEN, ELEVE */
+        EquipmentRisk: {
+            /** Format: uuid */
+            equipmentId?: string;
+            name?: string;
+            siteName?: string;
+            /** Format: double */
+            probability?: number;
+            level?: string;
+            reasons?: components["schemas"]["Reason"][];
+        };
+        /** @description Ce qui pousse le risque d'un équipement vers le haut */
+        Reason: {
+            feature?: string;
+            label?: string;
+            fact?: string;
+            /** Format: double */
+            contribution?: number;
+        };
+        RiskOverview: {
+            model?: components["schemas"]["ModelCard"];
+            equipments?: components["schemas"]["EquipmentRisk"][];
+            /** Format: date-time */
+            computedAt?: string;
+        };
         PagedModelEventRuleResponse: {
             content?: components["schemas"]["EventRuleResponse"][];
             page?: components["schemas"]["PageMetadata"];
@@ -3628,6 +4110,19 @@ export interface components {
         PagedModelAlertRuleResponse: {
             content?: components["schemas"]["AlertRuleResponse"][];
             page?: components["schemas"]["PageMetadata"];
+        };
+        PolicyResponse: {
+            /** Format: uuid */
+            ruleId?: string;
+            actionName?: string;
+            /** @enum {string} */
+            mode?: "AUTO" | "APPROVAL";
+            /** Format: int32 */
+            cooldownMinutes?: number;
+            enabled?: boolean;
+            /** Format: date-time */
+            updatedAt?: string;
+            updatedBy?: string;
         };
         UserScope: {
             /** Format: uuid */
@@ -3657,6 +4152,15 @@ export interface components {
             id?: string;
             label?: string;
             detail?: string;
+        };
+        /** @description État de la liaison Telegram du compte connecté */
+        TelegramStatus: {
+            botActive?: boolean;
+            botUsername?: string;
+            linked?: boolean;
+            telegramUsername?: string;
+            /** Format: date-time */
+            linkedAt?: string;
         };
         TemplateSummaryResponse: {
             id?: string;
@@ -3694,6 +4198,87 @@ export interface components {
         PagedModelMaintenanceResponse: {
             content?: components["schemas"]["MaintenanceResponse"][];
             page?: components["schemas"]["PageMetadata"];
+        };
+        /** @description Fiabilité d'un équipement : pannes = alertes de perte de collecte ; MTBF = temps en service divisé par le nombre de pannes (nul sans panne) */
+        EquipmentReliability: {
+            /** Format: uuid */
+            equipmentId?: string;
+            name?: string;
+            siteName?: string;
+            /** Format: int64 */
+            alerts?: number;
+            /** Format: int64 */
+            failures?: number;
+            /** Format: double */
+            downtimeMinutes?: number;
+            /** Format: double */
+            availabilityPercent?: number;
+            /** Format: double */
+            mtbfHours?: number;
+        };
+        /** @description Chiffres d'un groupe d'alertes ; une moyenne est nulle sans donnée */
+        Figures: {
+            /** Format: int64 */
+            alerts?: number;
+            /** Format: int64 */
+            acknowledged?: number;
+            /** Format: int64 */
+            resolved?: number;
+            /** Format: int64 */
+            resolvedAutomatically?: number;
+            /** Format: double */
+            mttaMinutes?: number;
+            /** Format: double */
+            mttaMedianMinutes?: number;
+            /** Format: double */
+            mttrMinutes?: number;
+            /** Format: double */
+            mttrMedianMinutes?: number;
+            /** Format: double */
+            acknowledgedWithinTargetPercent?: number;
+            /** Format: double */
+            resolvedAutomaticallyPercent?: number;
+        };
+        Group: {
+            key?: string;
+            label?: string;
+            figures?: components["schemas"]["Figures"];
+        };
+        Operator: {
+            username?: string;
+            /** Format: int64 */
+            acknowledged?: number;
+            /** Format: double */
+            mttaMedianMinutes?: number;
+            /** Format: int64 */
+            withinTarget?: number;
+        };
+        /** @description Indicateurs de service (MTTA, MTTR, MTBF) sur une période */
+        ServiceKpiResponse: {
+            /** Format: date-time */
+            from?: string;
+            /** Format: date-time */
+            to?: string;
+            /** Format: int32 */
+            acknowledgeTargetMinutes?: number;
+            overall?: components["schemas"]["Figures"];
+            bySeverity?: components["schemas"]["Group"][];
+            bySite?: components["schemas"]["Group"][];
+            byOperator?: components["schemas"]["Operator"][];
+            weeks?: components["schemas"]["Week"][];
+            equipments?: components["schemas"]["EquipmentReliability"][];
+            truncated?: boolean;
+            method?: string;
+        };
+        Week: {
+            /** Format: date */
+            weekStart?: string;
+            /** Format: int64 */
+            alerts?: number;
+            /** Format: double */
+            mttaMedianMinutes?: number;
+            /** Format: double */
+            mttrMedianMinutes?: number;
         };
         /** @description Un fait, décrit par plusieurs alertes regroupées */
         IncidentResponse: {
@@ -3734,6 +4319,101 @@ export interface components {
             content?: components["schemas"]["IncidentResponse"][];
             page?: components["schemas"]["PageMetadata"];
         };
+        AlertLine: {
+            /** Format: uuid */
+            id?: string;
+            equipmentName?: string;
+            type?: string;
+            severity?: string;
+            state?: string;
+            message?: string;
+            /** Format: date-time */
+            triggeredAt?: string;
+            /** Format: date-time */
+            takenAt?: string;
+            /** Format: date-time */
+            resolvedAt?: string;
+            resolutionType?: string;
+            reason?: string;
+            announces?: boolean;
+        };
+        /** @description Cause confirmée par un opérateur, ou absente */
+        Cause: {
+            confirmed?: boolean;
+            source?: string;
+            label?: string;
+            confirmedBy?: string;
+            /** Format: date-time */
+            confirmedAt?: string;
+        };
+        Component: {
+            name?: string;
+            page?: string;
+            publicPage?: boolean;
+        };
+        /** @description Durées en minutes ; nulles tant que l'étape n'a pas eu lieu */
+        Durations: {
+            /** Format: double */
+            minutesToAcknowledge?: number;
+            /** Format: double */
+            minutesToResolve?: number;
+            /** Format: double */
+            minutesFromAcknowledgeToResolve?: number;
+            acknowledged?: boolean;
+            resolved?: boolean;
+            /** Format: int32 */
+            acknowledgeTargetMinutes?: number;
+        };
+        /** @description Constat tiré des faits. level : POSITIVE, WARNING ou ACTION */
+        Finding: {
+            level?: string;
+            text?: string;
+            recommendation?: string;
+        };
+        /** @description Post-mortem d'un incident, reconstitué à partir de la base */
+        PostMortemResponse: {
+            incident?: components["schemas"]["Summary"];
+            durations?: components["schemas"]["Durations"];
+            root?: components["schemas"]["RootAlert"];
+            alerts?: components["schemas"]["AlertLine"][];
+            impact?: components["schemas"]["Impact"];
+            cause?: components["schemas"]["Cause"];
+            timeline?: components["schemas"]["TimelineEntry"][];
+            findings?: components["schemas"]["Finding"][];
+            responders?: string[];
+            /** Format: date-time */
+            generatedAt?: string;
+        };
+        RootAlert: {
+            /** Format: uuid */
+            alertId?: string;
+            equipmentName?: string;
+            equipmentType?: string;
+            message?: string;
+            /** Format: date-time */
+            at?: string;
+        };
+        Summary: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            severity?: string;
+            state?: string;
+            siteName?: string;
+            /** Format: date-time */
+            openedAt?: string;
+            /** Format: date-time */
+            resolvedAt?: string;
+        };
+        /** @description Étape de la chronologie. kind : INCIDENT_OPENED, ALERT_OPENED, NOTIFIED, ONCALL, ESCALATED, TAKEN, ASSIGNED, COMMENTED, CORRELATED, SEVERITY_CHANGED, REMEDIATION, CAUSE_CONFIRMED, MAINTENANCE, RESOLVED, INCIDENT_RESOLVED */
+        TimelineEntry: {
+            /** Format: date-time */
+            at?: string;
+            kind?: string;
+            title?: string;
+            detail?: string;
+            actor?: string;
+        };
         NetworkEventResponse: {
             /** Format: uuid */
             id?: string;
@@ -3762,6 +4442,72 @@ export interface components {
         PagedModelEquipmentResponse: {
             content?: components["schemas"]["EquipmentResponse"][];
             page?: components["schemas"]["PageMetadata"];
+        };
+        /** @description Équipement en aval ; redundant = il a un autre chemin vers le cœur du réseau, il restera sans doute joignable */
+        Downstream: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            type?: string;
+            status?: string;
+            siteName?: string;
+            /** Format: int32 */
+            depth?: number;
+            via?: string;
+            redundant?: boolean;
+        };
+        /** @description Ce que l'arrêt d'un équipement entraînerait */
+        ImpactResponse: {
+            target?: components["schemas"]["Target"];
+            /** @description FAIBLE, MOYEN, ELEVE ou CRITIQUE */
+            level?: string;
+            summary?: string;
+            downstream?: components["schemas"]["Downstream"][];
+            /**
+             * Format: int32
+             * @description Équipements touchés mais hors du périmètre de l'utilisateur
+             */
+            hiddenDownstream?: number;
+            services?: components["schemas"]["ServiceLine"][];
+            statusComponents?: components["schemas"]["Component"][];
+            learnedLinks?: components["schemas"]["LearnedLink"][];
+            /** Format: int32 */
+            activeAlerts?: number;
+            onCallPrimary?: string;
+            onCallSecondary?: string;
+            plannedMaintenances?: components["schemas"]["Maintenance"][];
+            recommendations?: string[];
+            /** @description Équipements à couvrir par une maintenance : la cible et l'aval visible */
+            maintenanceTargets?: string[];
+            /** Format: date-time */
+            computedAt?: string;
+        };
+        LearnedLink: {
+            /** Format: uuid */
+            equipmentId?: string;
+            equipmentName?: string;
+            /** Format: double */
+            confidence?: number;
+        };
+        Maintenance: {
+            /** Format: date-time */
+            startAt?: string;
+            /** Format: date-time */
+            endAt?: string;
+            reason?: string;
+        };
+        ServiceLine: {
+            name?: string;
+            type?: string;
+            equipmentName?: string;
+        };
+        Target: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            type?: string;
+            status?: string;
+            siteName?: string;
         };
         CapacityForecastResponse: {
             /** @description Indicateur, par exemple disk.usage */
@@ -4212,6 +4958,13 @@ export interface components {
             /** Format: double */
             valeur?: number;
         };
+        /** @description Action annoncée par au moins un agent actif */
+        AvailableAction: {
+            name?: string;
+            description?: string;
+            /** Format: int32 */
+            equipmentCount?: number;
+        };
         PasswordRequest: {
             password: string;
         };
@@ -4597,6 +5350,147 @@ export interface operations {
             };
             /** @description La règle a ouvert des alertes */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    policy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ruleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Action configurée */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PolicyResponse"];
+                };
+            };
+            /** @description Aucune action sur cette règle */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Règle introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    savePolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ruleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Règle introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deletePolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ruleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Règle ou action introuvable */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6664,6 +7558,44 @@ export interface operations {
             };
         };
     };
+    train: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ModelCard"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     list_3: {
         parameters: {
             query: {
@@ -7395,6 +8327,44 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    code: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LinkCode"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
             };
         };
     };
@@ -9256,6 +10226,102 @@ export interface operations {
             };
         };
     };
+    forAlert: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alertId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Alerte introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    launch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alertId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LaunchRequest"];
+            };
+        };
+        responses: {
+            /** @description Action mise en file */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["JobResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Alerte introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Alerte fermée, pas d'agent, action inconnue de l'agent, ou déjà en cours */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     snapshot: {
         parameters: {
             query?: never;
@@ -9373,6 +10439,178 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ApiError"];
                 };
+            };
+        };
+    };
+    poll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentPollRequest"];
+            };
+        };
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    result: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentResultRequest"];
+            };
+        };
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Exécution introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Exécution déjà terminée */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reject_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Exécution introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description N'attend pas d'approbation */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Exécution introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description N'attend pas d'approbation */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -9652,6 +10890,122 @@ export interface operations {
             };
         };
     };
+    overview_3: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RiskOverview"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    model: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ModelCard"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    learned: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Règle introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     sla: {
         parameters: {
             query: {
@@ -9920,6 +11274,87 @@ export interface operations {
             };
         };
     };
+    status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TelegramStatus"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    unlink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Aucun compte lié */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     listTemplates: {
         parameters: {
             query?: {
@@ -10039,6 +11474,62 @@ export interface operations {
             };
         };
     };
+    serviceKpis: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                siteId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Indicateurs calculés */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceKpiResponse"];
+                };
+            };
+            /** @description Période invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Site introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     list_11: {
         parameters: {
             query: {
@@ -10091,6 +11582,100 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Incident introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    postMortem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Post-mortem calculé */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PostMortemResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Incident introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    postMortemPdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Document PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
             /** @description Authentification requise ou jeton expiré */
             401: {
                 headers: {
@@ -10197,6 +11782,53 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ApiError"];
                 };
+            };
+        };
+    };
+    impact_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Analyse calculée */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ImpactResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Équipement introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -10633,7 +12265,7 @@ export interface operations {
             };
         };
     };
-    status: {
+    status_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -11175,6 +12807,44 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    available: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AvailableAction"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
             };
         };
     };

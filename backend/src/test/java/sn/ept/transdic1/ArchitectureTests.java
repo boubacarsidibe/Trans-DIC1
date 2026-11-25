@@ -486,6 +486,189 @@ class ArchitectureTests {
               ROOT + ".access..")
           .because("collection lit les entités et dépose les mesures, sans passer par leurs API");
 
+  // --- Modules de novembre 2026 : post-mortem, remédiation, impact, Telegram, risque ---------
+  // Tous en bout de chaîne : ils lisent les autres modules, personne ne dépend d'eux (sauf le
+  // point d'entrée de l'agent, dans collection, qui appelle la remédiation, comme pour threat).
+
+  @ArchTest
+  static final ArchRule noModuleDependsOnPostmortem =
+      noClasses()
+          .that()
+          .resideOutsideOfPackage(ROOT + ".postmortem..")
+          .and()
+          .resideInAPackage(ROOT + "..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage(ROOT + ".postmortem..")
+          .because("le post-mortem (ADR 0053) ne fait que relire l'historique, après coup");
+
+  @ArchTest
+  static final ArchRule postmortemOnlyReadsTheDatabaseAndTheScope =
+      noClasses()
+          .that()
+          .resideInAPackage(ROOT + ".postmortem..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              ROOT + ".inventory..",
+              ROOT + ".monitoring..",
+              ROOT + ".alerting..",
+              ROOT + ".reporting..",
+              ROOT + ".access..",
+              ROOT + ".collection..",
+              ROOT + ".events..",
+              ROOT + ".diagnostic..",
+              ROOT + ".oncall..",
+              ROOT + ".overview..",
+              ROOT + ".statuspage..",
+              ROOT + ".remediation..",
+              ROOT + ".security..",
+              ROOT + ".audit..")
+          .because(
+              "le post-mortem lit la base par ses propres requêtes bornées et le périmètre par le"
+                  + " port SiteScope : aucune entité d'un autre module ne passe par lui");
+
+  @ArchTest
+  static final ArchRule onlyTheAgentEntryPointDependsOnRemediation =
+      noClasses()
+          .that()
+          .resideOutsideOfPackage(ROOT + ".remediation..")
+          .and()
+          .resideOutsideOfPackage(ROOT + ".collection.controller..")
+          .and()
+          .resideInAPackage(ROOT + "..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage(ROOT + ".remediation..")
+          .because(
+              "la remédiation (ADR 0050) écoute les alertes ; seul le point d'entrée de l'agent,"
+                  + " qui l'authentifie par son jeton, l'appelle");
+
+  @ArchTest
+  static final ArchRule remediationOnlyUsesDomainsRepositoriesAndAudit =
+      noClasses()
+          .that()
+          .resideInAPackage(ROOT + ".remediation..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              ROOT + ".inventory.controller..",
+              ROOT + ".inventory.service..",
+              ROOT + ".inventory.dto..",
+              ROOT + ".monitoring..",
+              ROOT + ".collection..",
+              ROOT + ".events..",
+              ROOT + ".diagnostic..",
+              ROOT + ".oncall..",
+              ROOT + ".overview..",
+              ROOT + ".statuspage..",
+              ROOT + ".reporting..",
+              ROOT + ".access..",
+              ROOT + ".alerting.controller..",
+              ROOT + ".alerting.service..",
+              ROOT + ".alerting.dto..",
+              ROOT + ".security..")
+          .because(
+              "la remédiation lit les entités, ne passe par aucune API d'un autre module, et ne"
+                  + " connaît de l'agent que son identifiant");
+
+  @ArchTest
+  static final ArchRule noModuleDependsOnImpact =
+      noClasses()
+          .that()
+          .resideOutsideOfPackage(ROOT + ".impact..")
+          .and()
+          .resideInAPackage(ROOT + "..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage(ROOT + ".impact..")
+          .because("l'analyse d'impact ne fait que lire la topologie et ce qui en dépend");
+
+  @ArchTest
+  static final ArchRule impactOnlyReadsTheDatabaseAndTheScope =
+      noClasses()
+          .that()
+          .resideInAPackage(ROOT + ".impact..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              ROOT + ".inventory..",
+              ROOT + ".monitoring..",
+              ROOT + ".alerting..",
+              ROOT + ".reporting..",
+              ROOT + ".access..",
+              ROOT + ".collection..",
+              ROOT + ".statuspage..",
+              ROOT + ".oncall..",
+              ROOT + ".security..",
+              ROOT + ".audit..")
+          .because("l'analyse d'impact lit la base par ses propres requêtes bornées");
+
+  @ArchTest
+  static final ArchRule noModuleDependsOnChatops =
+      noClasses()
+          .that()
+          .resideOutsideOfPackage(ROOT + ".chatops..")
+          .and()
+          .resideInAPackage(ROOT + "..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage(ROOT + ".chatops..")
+          .because(
+              "la prise en charge Telegram (ADR 0051) agit par le service des alertes ; les"
+                  + " notifications n'ont besoin que d'un réglage pour ajouter les boutons");
+
+  @ArchTest
+  static final ArchRule chatopsActsThroughTheAlertWorkflowOnly =
+      noClasses()
+          .that()
+          .resideInAPackage(ROOT + ".chatops..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              ROOT + ".inventory..",
+              ROOT + ".monitoring..",
+              ROOT + ".alerting.repository..",
+              ROOT + ".alerting.controller..",
+              ROOT + ".reporting..",
+              ROOT + ".access..",
+              ROOT + ".collection..",
+              ROOT + ".oncall..",
+              ROOT + ".security.service..",
+              ROOT + ".security.repository..")
+          .because(
+              "un clic Telegram passe par AlertWorkflowService, avec les règles, l'historique et"
+                  + " l'audit d'une action faite à l'écran");
+
+  @ArchTest
+  static final ArchRule noModuleDependsOnRisk =
+      noClasses()
+          .that()
+          .resideOutsideOfPackage(ROOT + ".risk..")
+          .and()
+          .resideInAPackage(ROOT + "..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage(ROOT + ".risk..")
+          .because("le risque de panne (ADR 0052) ne fait que lire l'historique");
+
+  @ArchTest
+  static final ArchRule riskOnlyReadsTheDatabaseAndTheScope =
+      noClasses()
+          .that()
+          .resideInAPackage(ROOT + ".risk..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              ROOT + ".inventory..",
+              ROOT + ".monitoring..",
+              ROOT + ".alerting..",
+              ROOT + ".reporting..",
+              ROOT + ".access..",
+              ROOT + ".collection..",
+              ROOT + ".security..")
+          .because("le modèle de risque lit la base par ses propres requêtes agrégées");
+
   // --- Modèle : les types d'équipement sont des valeurs, pas des sous-classes ---------------
 
   @ArchTest

@@ -13,7 +13,7 @@ flowchart TB
   subgraph Plateforme["Plateforme Trans-DIC1 (serveur de l'EPT)"]
     PX[Serveur web frontal<br/>Nginx, HTTPS]
     FE[Interface web<br/>React]
-    API[Serveur applicatif<br/>Spring Boot, 16 modules]
+    API[Serveur applicatif<br/>Spring Boot, 21 modules]
     OBS[Prometheus, Grafana,<br/>Alertmanager]
     DB[(Base de données<br/>PostgreSQL)]
     BK[Sauvegarde<br/>chiffrée]
@@ -58,7 +58,7 @@ Le monolithe modulaire garde la simplicité d'exploitation d'une seule applicati
 
 ### Les modules
 
-Les seize modules se regroupent en six familles :
+Les seize modules historiques se regroupent en six familles ; les cinq modules de novembre (post-mortem, actions correctives, analyse d'impact, Telegram, risque de panne) sont décrits au chapitre 7 et suivent la même règle : ils lisent les autres modules, personne ne dépend d'eux.
 
 ```mermaid
 flowchart TB
@@ -209,7 +209,7 @@ Quelques règles importantes sont garanties **par la base elle-même**, et pas s
 
 ### Faire évoluer la base sans la casser
 
-La structure de la base a évolué 54 fois au cours du projet. Chaque évolution est un script numéroté, appliqué automatiquement au démarrage, de la même façon en développement, en test et en production. On peut ainsi reconstruire la base de n'importe quelle version à l'identique, et une base de production est mise à jour sans intervention manuelle.
+La structure de la base a évolué 56 fois au cours du projet. Chaque évolution est un script numéroté, appliqué automatiquement au démarrage, de la même façon en développement, en test et en production. On peut ainsi reconstruire la base de n'importe quelle version à l'identique, et une base de production est mise à jour sans intervention manuelle.
 
 ### Tenir le volume des mesures
 

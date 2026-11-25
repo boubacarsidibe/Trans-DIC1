@@ -11,6 +11,7 @@ import stat
 import sys
 
 from . import winacl
+from .actions import DEFAULT_TIMEOUT, ActionError, parse_actions
 
 
 def _windows():
@@ -62,6 +63,8 @@ class Config:
         services=(),
         auth_logs=None,
         access_logs=(),
+        actions=None,
+        action_timeout=DEFAULT_TIMEOUT,
     ):
         self.server_url = server_url.rstrip("/")
         self.token = token
@@ -81,6 +84,9 @@ class Config:
         self.auth_logs = tuple(auth_logs) if auth_logs is not None else None
         # Journaux d'accès web : rien par défaut, car leur chemin dépend du site servi.
         self.access_logs = tuple(access_logs)
+        # Actions correctives autorisées sur cette machine (nom -> commande), vide par défaut.
+        self.actions = dict(actions or {})
+        self.action_timeout = action_timeout
         self.validate()
 
     @property
@@ -94,6 +100,10 @@ class Config:
     @property
     def logs_url(self):
         return self.server_url + "/api/v1/agent/journaux"
+
+    @property
+    def actions_url(self):
+        return self.server_url + "/api/v1/agent/actions"
 
     def validate(self):
         if not self.server_url.startswith(("https://", "http://")):
@@ -118,6 +128,8 @@ class Config:
                 raise ConfigError("nom de service invalide : %s" % name)
         if self.ca_file and not os.path.isfile(self.ca_file):
             raise ConfigError("ca_file introuvable : %s" % self.ca_file)
+        if not 1 <= self.action_timeout <= 600:
+            raise ConfigError("action_timeout doit être compris entre 1 et 600 secondes")
 
     def __repr__(self):
         # Jamais le jeton, même dans une trace de débogage.
@@ -177,6 +189,18 @@ def load(path=None, environ=None):
     server_url = get("server_url")
     if not server_url:
         raise ConfigError("server_url absent")
+    # Les actions ne viennent que du fichier, jamais de l'environnement : une variable héritée ne
+    # doit pas pouvoir ajouter une commande exécutable.
+    try:
+        actions = parse_actions(
+            parser.items("actions", raw=True) if parser.has_section("actions") else (),
+            dict(parser.items("action_descriptions", raw=True))
+            if parser.has_section("action_descriptions")
+            else {},
+            windows=_windows(),
+        )
+    except ActionError as error:
+        raise ConfigError(str(error))
     try:
         return Config(
             server_url=server_url,
@@ -197,6 +221,8 @@ def load(path=None, environ=None):
             # système sont suivis. « access_logs » attend des chemins séparés par des virgules.
             auth_logs=_paths(get("auth_logs")) if get("auth_logs") is not None else None,
             access_logs=_paths(get("access_logs", "")),
+            actions=actions,
+            action_timeout=int(get("action_timeout", DEFAULT_TIMEOUT)),
         )
     except ValueError as error:
         raise ConfigError("valeur numérique invalide : %s" % error)

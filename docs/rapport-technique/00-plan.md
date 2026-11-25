@@ -1,7 +1,7 @@
 # Rapport technique Trans-DIC1 — plan et fabrication
 
 Rapport orienté fonctionnalités, choix justifiés, architecture, utilisation et traitement des incidents
-(sans détail de code). Référence : branche `develop`, commit `0902d3b` (23 novembre 2026).
+(sans détail de code). Référence : branche `develop`, état du 24 novembre 2026 (après le commit `c76388f` : annuaire LDAP, proxys de collecte, repères MITRE, poids du diagnostic appris).
 
 ## Résultat
 

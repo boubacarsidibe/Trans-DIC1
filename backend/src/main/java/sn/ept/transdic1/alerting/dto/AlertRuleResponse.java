@@ -24,7 +24,10 @@ public record AlertRuleResponse(
     List<UUID> equipmentIds,
     Instant createdAt,
     Instant updatedAt,
-    boolean allEquipment) {
+    boolean allEquipment,
+    boolean adaptive,
+    BigDecimal adaptiveSensitivity,
+    BigDecimal adaptiveLimit) {
 
   public static AlertRuleResponse from(
       AlertRule rule, List<UUID> siteIds, List<UUID> equipmentIds) {
@@ -43,6 +46,9 @@ public record AlertRuleResponse(
         equipmentIds,
         rule.getCreatedAt(),
         rule.getUpdatedAt(),
-        rule.isAllEquipment());
+        rule.isAllEquipment(),
+        rule.isAdaptive(),
+        rule.getAdaptiveSensitivity(),
+        rule.getAdaptiveLimit());
   }
 }

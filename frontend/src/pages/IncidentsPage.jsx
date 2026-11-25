@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { Layers, Megaphone, PartyPopper } from "lucide-react";
+import { FileText, Layers, Megaphone, PartyPopper } from "lucide-react";
 import {
   INCIDENT_STATES,
   INCIDENT_STATE_LABELS,
@@ -13,6 +13,7 @@ import { ALERT_TYPE, SEVERITY, label } from "../ui/labels.js";
 import { humanMessage } from "../ui/metricCatalog.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Pagination from "../ui/Pagination.jsx";
+import PostMortemPanel from "./PostMortemPanel.jsx";
 
 const formatDate = (value) =>
   value
@@ -21,6 +22,7 @@ const formatDate = (value) =>
 
 /** Les alertes d'un incident, et la règle qui a rapproché chacune des autres. */
 function IncidentAlerts({ detail }) {
+  const [postMortem, setPostMortem] = useState(false);
   if (!detail) {
     return (
       <tr>
@@ -34,7 +36,18 @@ function IncidentAlerts({ detail }) {
     <tr>
       <td colSpan={7}>
         <section aria-label="Alertes de l'incident" className="alert-context">
-          <h3 className="insight-title">Alertes regroupées</h3>
+          <div className="panel-head">
+            <h3 className="insight-title">Alertes regroupées</h3>
+            <button
+              type="button"
+              onClick={() => setPostMortem(!postMortem)}
+              aria-expanded={postMortem}
+              className="btn btn-secondary btn-sm"
+            >
+              <FileText size={15} aria-hidden="true" />
+              {postMortem ? "Masquer le post-mortem" : "Post-mortem"}
+            </button>
+          </div>
           <table className="data-table">
             <caption className="sr-only">Alertes de l’incident</caption>
             <thead>
@@ -75,6 +88,7 @@ function IncidentAlerts({ detail }) {
               ))}
             </tbody>
           </table>
+          {postMortem && <PostMortemPanel incidentId={detail.incident.id} />}
         </section>
       </td>
     </tr>

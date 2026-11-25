@@ -14,6 +14,14 @@ export const SEVERITIES = [
   { value: "CRITICAL", label: "Critique" },
 ];
 
+// Marge du seuil adaptatif au-delà des pointes habituelles, en écarts-types (ADR 0049).
+export const SENSITIVITIES = [
+  { value: "2", label: "Sensible : prévient tôt, plus d'alertes" },
+  { value: "3", label: "Normale (conseillée)" },
+  { value: "4", label: "Prudente : moins d'alertes" },
+  { value: "6", label: "Très prudente : seulement les gros écarts" },
+];
+
 export const RULE_PAGE_SIZE = 10;
 
 export async function listRules({ page = 0 } = {}) {
@@ -35,6 +43,12 @@ export async function updateRule(id, payload) {
 
 export async function deleteRule(id) {
   await apiClient.delete(`/regles-alertes/${id}`);
+}
+
+/** Seuils appris par une règle adaptative, équipement par équipement. */
+export async function learnedThresholds(id) {
+  const { data } = await apiClient.get(`/regles-alertes/${id}/seuils-appris`);
+  return data;
 }
 
 // Rejoue la règle (enregistrée ou non) sur l'historique : rien n'est créé côté serveur.
@@ -81,6 +95,16 @@ export function validateRule(values) {
       }
     }
   }
+  if (values.adaptive) {
+    if (values.operator === "EQUAL") {
+      errors.adaptive = "Le seuil adaptatif ne s'applique pas à « égal à ».";
+    }
+    if (values.adaptiveLimit !== "" && values.adaptiveLimit != null) {
+      if (Number.isNaN(Number(values.adaptiveLimit))) {
+        errors.adaptiveLimit = "La limite absolue doit être un nombre.";
+      }
+    }
+  }
   const seconds = Number(values.confirmationSeconds);
   if (!Number.isInteger(seconds) || seconds < 0 || seconds > 86400) {
     errors.confirmationSeconds = "Entre 0 et 86 400 secondes.";
@@ -103,5 +127,11 @@ export function toPayload(values) {
     active: values.active,
     siteIds: values.siteIds,
     equipmentIds: values.equipmentIds,
+    adaptive: Boolean(values.adaptive),
+    adaptiveSensitivity: Number(values.adaptiveSensitivity ?? 3) || 3,
+    adaptiveLimit:
+      values.adaptive && values.adaptiveLimit !== "" && values.adaptiveLimit != null
+        ? Number(values.adaptiveLimit)
+        : null,
   };
 }

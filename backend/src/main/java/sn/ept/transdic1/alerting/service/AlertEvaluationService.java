@@ -60,6 +60,7 @@ public class AlertEvaluationService {
   private final MaintenanceRepository maintenances;
   private final MetricHistory history;
   private final ApplicationEventPublisher publisher;
+  private final AdaptiveThresholdService adaptive;
 
   public AlertEvaluationService(
       AlertRuleRepository rules,
@@ -69,6 +70,7 @@ public class AlertEvaluationService {
       MetricHistory history,
       ApplicationEventPublisher publisher,
       AgentSnapshotRepository snapshots,
+      AdaptiveThresholdService adaptive,
       @Value("${alerting.flapping.threshold:4}") int flappingThreshold,
       @Value("${alerting.flapping.window-minutes:60}") long flappingWindowMinutes) {
     this.rules = rules;
@@ -78,6 +80,7 @@ public class AlertEvaluationService {
     this.history = history;
     this.publisher = publisher;
     this.snapshots = snapshots;
+    this.adaptive = adaptive;
     // Au moins deux ouvertures : en dessous, toute réouverture serait « instable ».
     this.flappingThreshold = Math.max(2, flappingThreshold);
     this.flappingWindow = Duration.ofMinutes(Math.max(5, flappingWindowMinutes));
@@ -116,15 +119,18 @@ public class AlertEvaluationService {
                 equipment.getId(), equipment.getSite().getId(), MetricKey.ruleTypes(metricKey)),
             metricKey);
     for (AlertRule rule : applicable) {
+      // Seuils de la règle, ou appris pour cet équipement et ce créneau (règle adaptative).
+      var limits = adaptive.limitsFor(rule, equipment.getId(), serviceId, metricKey, at);
+      var operator = rule.getOperator();
       var active =
           alerts.findActiveForRule(equipment.getId(), rule.getId(), serviceId, instance, ACTIVE);
       if (active.isPresent()) {
-        if (rule.isRecoveredBy(value)) {
+        if (limits.recoveredBy(operator, value)) {
           changes.add(resolve(active.get(), at, "Retour à la normale détecté"));
         }
-      } else if (rule.isBreachedBy(value)
-          && breachConfirmed(rule, equipment, service, metricKey, at)) {
-        changes.add(open(rule, equipment, service, metricKey, value, at));
+      } else if (limits.breachedBy(operator, value)
+          && breachConfirmed(rule, limits, equipment, service, metricKey, at)) {
+        changes.add(open(rule, limits, equipment, service, metricKey, value, at));
       }
     }
     return changes;
@@ -149,7 +155,12 @@ public class AlertEvaluationService {
   }
 
   private boolean breachConfirmed(
-      AlertRule rule, Equipment equipment, MonitoredService service, String metricKey, Instant at) {
+      AlertRule rule,
+      AdaptiveThreshold.Limits limits,
+      Equipment equipment,
+      MonitoredService service,
+      String metricKey,
+      Instant at) {
     Duration confirmation = rule.getConfirmationDuration();
     if (confirmation.isZero()) {
       return true;
@@ -168,7 +179,7 @@ public class AlertEvaluationService {
       if (!sample.at().isBefore(at)) {
         continue;
       }
-      if (!rule.isBreachedBy(sample.value())) {
+      if (!limits.breachedBy(rule.getOperator(), sample.value())) {
         break;
       }
       runStart = sample.at();
@@ -192,13 +203,14 @@ public class AlertEvaluationService {
 
   private AlertChange open(
       AlertRule rule,
+      AdaptiveThreshold.Limits limits,
       Equipment equipment,
       MonitoredService service,
       String metricKey,
       BigDecimal value,
       Instant at) {
     boolean notify = !underMaintenance(equipment, at);
-    String message = message(rule, metricKey, value);
+    String message = message(rule, limits, metricKey, value);
     if (service != null) {
       message = message + " [" + service.getName() + "]";
     }
@@ -307,18 +319,52 @@ public class AlertEvaluationService {
         .isEmpty();
   }
 
-  private static String message(AlertRule rule, String metricKey, BigDecimal value) {
+  /**
+   * Message lisible. Pour un seuil appris, il dit d'où vient le seuil : sans cela, une alerte « au-
+   * dessus de 412 » sur une règle écrite à 80 serait incompréhensible.
+   */
+  static String message(
+      AlertRule rule, AdaptiveThreshold.Limits limits, String metricKey, BigDecimal value) {
     String unit = rule.getUnit() == null ? "" : " " + rule.getUnit();
-    return rule.getName()
+    String head =
+        rule.getName()
+            + " : "
+            + metricKey
+            + " = "
+            + value.stripTrailingZeros().toPlainString()
+            + unit
+            + " (seuil "
+            + rule.getOperator()
+            + " "
+            + (limits.learned()
+                ? plain(limits.threshold())
+                : limits.threshold().stripTrailingZeros().toPlainString());
+    if (!rule.isAdaptive()) {
+      return head + ")";
+    }
+    if (!limits.learned()) {
+      return head + ", seuil de départ : historique encore insuffisant pour apprendre)";
+    }
+    if (limits.capped()) {
+      return head + ", limite absolue de la règle)";
+    }
+    boolean peaks = AdaptiveThreshold.watchesPeaks(rule.getOperator());
+    return head
+        + ", seuil appris "
+        + limits.slot()
         + " : "
-        + metricKey
-        + " = "
-        + value.stripTrailingZeros().toPlainString()
+        + (peaks ? "pointes" : "creux")
+        + " habituel"
+        + (peaks ? "les " : "s ")
+        + plain(limits.normal())
+        + " ± "
+        + plain(limits.deviation())
         + unit
-        + " (seuil "
-        + rule.getOperator()
-        + " "
-        + rule.getThreshold().stripTrailingZeros().toPlainString()
         + ")";
+  }
+
+  /** Valeur apprise arrondie au centième : quatre décimales donneraient une fausse précision. */
+  private static String plain(BigDecimal value) {
+    return value.setScale(2, java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
   }
 }

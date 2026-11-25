@@ -18,7 +18,7 @@ function OnCallCard() {
   }, []);
 
   return (
-    <section aria-labelledby="carte-astreinte" className="panel mt-5">
+    <section aria-labelledby="carte-astreinte" className="panel oncall-card">
       <div className="panel-head">
         <h2 id="carte-astreinte">D&apos;astreinte</h2>
         <Link to="/astreinte" className="panel-link">

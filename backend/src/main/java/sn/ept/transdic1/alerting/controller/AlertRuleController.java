@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import sn.ept.transdic1.alerting.dto.AlertRuleRequest;
 import sn.ept.transdic1.alerting.dto.AlertRuleResponse;
+import sn.ept.transdic1.alerting.dto.LearnedThresholdResponse;
 import sn.ept.transdic1.alerting.service.AlertRuleService;
 
 @Tag(
@@ -52,6 +54,17 @@ public class AlertRuleController {
   @GetMapping("/{id}")
   public AlertRuleResponse get(@PathVariable UUID id) {
     return service.get(id);
+  }
+
+  @Operation(
+      summary = "Seuils appris d'une règle adaptative",
+      description =
+          "Dernier seuil calculé pour chaque équipement et indicateur visés, avec la normale du"
+              + " créneau qui l'explique. Vide pour une règle à seuil fixe.")
+  @ApiResponse(responseCode = "404", description = "Règle introuvable", content = @Content)
+  @GetMapping("/{id}/seuils-appris")
+  public List<LearnedThresholdResponse> learned(@PathVariable UUID id) {
+    return service.learned(id);
   }
 
   @Operation(summary = "Créer une règle")

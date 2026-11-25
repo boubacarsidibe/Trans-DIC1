@@ -12,11 +12,23 @@ import ProblemsTable from "../ui/dashboard/ProblemsTable.jsx";
 import TopHosts from "../ui/dashboard/TopHosts.jsx";
 import { elapsed, hostState, isSilent, percent } from "../ui/dashboard/hostState.js";
 import OnCallCard from "./OnCallCard.jsx";
+import RiskCard from "./RiskCard.jsx";
 
 const SEVERITIES = [
   { id: "CRITICAL", label: "Critique" },
   { id: "WARNING", label: "Avertissement" },
   { id: "INFO", label: "Information" },
+];
+
+// Ordre de la barre d'état du parc : du pire au meilleur, comme une rangée de voyants.
+const FLEET_SEGMENTS = [
+  { id: "critical" },
+  { id: "warning" },
+  { id: "silent" },
+  { id: "maintenance" },
+  { id: "info" },
+  { id: "unknown" },
+  { id: "ok" },
 ];
 
 /** Indicateur cliquable : un clic réduit tout l'écran à cet état, un second clic rétablit tout. */
@@ -184,18 +196,6 @@ function DashboardPage() {
               <Link to="/mur" className="btn btn-secondary">
                 <Monitor size={16} aria-hidden="true" /> Mur NOC
               </Link>
-              <OnCallCard />
-
-        {board && (
-                <Link to="/alertes?actives=1" className={`health ${critical > 0 ? "health-bad" : "health-ok"}`}>
-                  {critical > 0 ? (
-                    <AlertTriangle size={18} aria-hidden="true" />
-                  ) : (
-                    <CheckCircle2 size={18} aria-hidden="true" />
-                  )}
-                  <span>{critical > 0 ? `${critical} alerte(s) critique(s)` : "Aucune alerte critique"}</span>
-                </Link>
-              )}
             </div>
           }
         />
@@ -206,15 +206,38 @@ function DashboardPage() {
           </p>
         )}
 
+        <div className="dash-now">
+          {board && (
+            <Link to="/alertes?actives=1" className={`dash-alarm ${critical > 0 ? "dash-alarm-bad" : "dash-alarm-ok"}`}>
+              {critical > 0 ? (
+                <AlertTriangle size={22} aria-hidden="true" />
+              ) : (
+                <CheckCircle2 size={22} aria-hidden="true" />
+              )}
+              <span>{critical > 0 ? `${critical} alerte(s) critique(s)` : "Aucune alerte critique"}</span>
+            </Link>
+          )}
+          <OnCallCard />
+        </div>
+
         {board && (
           <>
-            <section aria-label="Chiffres clés" className="tiles">
-              <Tile {...tile} id="" label="Équipements" value={onSite.length} tone="plain" />
-              <Tile {...tile} id="ok" label="Normaux" value={count("ok")} tone="ok" />
-              <Tile {...tile} id="warning" label="Avertissements" value={count("warning")} tone="warn" />
-              <Tile {...tile} id="critical" label="Critiques" value={count("critical")} tone="bad" />
-              <Tile {...tile} id="down" label="Hors service" value={down} tone={down ? "bad" : "plain"} />
-              <Tile {...tile} id="silent" label="Sans données" value={count("silent")} tone={count("silent") ? "warn" : "plain"} />
+            <section aria-label="Chiffres clés" className="fleet">
+              <div className="fleet-bar" aria-hidden="true">
+                {FLEET_SEGMENTS.map(({ id }) =>
+                  count(id) > 0 ? (
+                    <span key={id} className={`fleet-seg fleet-${id}`} style={{ flexGrow: count(id) }} />
+                  ) : null,
+                )}
+              </div>
+              <div className="tiles">
+                <Tile {...tile} id="" label="Équipements" value={onSite.length} tone="plain" />
+                <Tile {...tile} id="ok" label="Normaux" value={count("ok")} tone="ok" />
+                <Tile {...tile} id="warning" label="Avertissements" value={count("warning")} tone="warn" />
+                <Tile {...tile} id="critical" label="Critiques" value={count("critical")} tone="bad" />
+                <Tile {...tile} id="down" label="Hors service" value={down} tone={down ? "bad" : "plain"} />
+                <Tile {...tile} id="silent" label="Sans données" value={count("silent")} tone={count("silent") ? "silent" : "plain"} />
+              </div>
             </section>
 
             <div className="dash-grid">
@@ -268,6 +291,8 @@ function DashboardPage() {
                 </div>
                 <ActivityChart activity={board.activity} />
               </section>
+
+              <RiskCard />
 
               <section aria-labelledby="saturation" className="panel">
                 <div className="panel-head">

@@ -4,6 +4,7 @@ import collections
 import logging
 import time
 
+from .actions import ActionRunner
 from .client import AuthError, RejectedError, SendError
 from .config import MAX_BATCH
 from .logs import LogReader, default_auth_files
@@ -41,6 +42,12 @@ class Agent:
         self.snapshot_supported = True
         self.logs_supported = True
         self.log_reader = _log_reader(config)
+        actions = getattr(config, "actions", None)
+        # Sans action déclarée, l'agent ne demande rien au serveur : aucun coût, aucune surface.
+        self.actions = (
+            ActionRunner(actions, getattr(config, "action_timeout", 60)) if actions else None
+        )
+        self.actions_supported = True
 
     def enqueue(self, measures):
         overflow = len(self.pending) + len(measures) - self.pending.maxlen
@@ -88,7 +95,40 @@ class Agent:
         sent = self.flush()
         self.send_snapshot()
         self.send_logs()
+        self.handle_actions()
         return sent
+
+    def handle_actions(self):
+        """Annonce les actions autorisées, exécute celles que la plateforme demande, rend compte.
+
+        Une action demandée qui n'est pas dans la configuration locale est refusée par
+        ActionRunner : la plateforme ne choisit jamais la commande.
+        """
+        if self.actions is None or not self.actions_supported:
+            return 0
+        poll = getattr(self.client, "poll_actions", None)
+        if poll is None:
+            return 0
+        try:
+            jobs = poll(self.actions.announced())
+        except (AuthError, SendError, OSError, ValueError) as error:
+            LOG.warning("actions correctives non relevées : %s", error)
+            return 0
+        if jobs is None:
+            self.actions_supported = False
+            LOG.info("le serveur ne connaît pas les actions correctives : relève arrêtée")
+            return 0
+        done = 0
+        for job in jobs:
+            name = job.get("action")
+            code, output, duration = self.actions.execute(name)
+            LOG.info("action corrective %s : code de sortie %d (%d ms)", name, code, duration)
+            try:
+                self.client.send_action_result(job["id"], code, output, duration)
+                done += 1
+            except (AuthError, SendError, OSError, ValueError) as error:
+                LOG.warning("compte rendu de l'action %s non envoyé : %s", name, error)
+        return done
 
     def send_logs(self):
         """Lit les journaux suivis et envoie ce qui est apparu depuis le passage précédent."""

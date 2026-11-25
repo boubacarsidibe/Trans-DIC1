@@ -169,7 +169,7 @@ Les sections suivantes détaillent les choix les plus structurants.
 ## Les modèles éprouvés avant d'être livrés — et ceux que la mesure a réfutés
 
 La comparaison aux outils du marché a produit un plan de quatorze modèles de détection et de
-corrélation. Huit ont été livrés en novembre. Ce qui mérite d'être raconté n'est pas qu'ils
+corrélation. Neuf ont été livrés en novembre. Ce qui mérite d'être raconté n'est pas qu'ils
 existent, c'est que **trois d'entre eux ont été conçus d'une façon, mesurés, puis changés** — et que
 sans la mesure, les trois auraient été livrés faux, en silence.
 
@@ -260,7 +260,7 @@ formé), un indicateur relevé onze heures sur deux cent quarante qui désactiva
 détection pour toute une machine, et l'ordre des identifiants — signé en Java, octet par octet en
 PostgreSQL — qu'une contrainte de table a attrapé.
 
-La leçon tient en une phrase, et elle vaut plus que les huit modèles : **un jeu d'épreuve construit à
+La leçon tient en une phrase, et elle vaut plus que les neuf modèles : **un jeu d'épreuve construit à
 la main valide le calcul, pas l'hypothèse.** Les tests unitaires employaient du bruit indépendant ;
 les séries réelles ne le sont pas. Il faut les deux.
 
@@ -301,3 +301,6 @@ Changer d'avis quand les faits l'imposent fait partie de la démarche. Les princ
 | Une forêt d'isolement pour l'état d'ensemble | Forêt à découpes obliques **et** distance de Mahalanobis | La forêt seule ratait le cas d'usage visé, mesuré |
 | Ramener une pointe au bord de la bande apprise | La ramener à deux écarts | Au bord, dix pointes élargissaient encore la bande d'un facteur huit |
 | Regrouper les alertes aussi par ressemblance des messages | Ressemblance reléguée au seul cas du gabarit identique | Mesurée, elle ne sépare pas « même fait » de « faits différents » |
+| Poids du diagnostic par régression logistique | Taux de réussite par source, tiré vers le poids fixé à la main tant que les confirmations sont rares | Avec une seule variable, c'est le même modèle, et un opérateur peut vérifier un taux |
+| Connexion unique par OpenID Connect seulement | OpenID Connect **et** annuaire LDAP ou Active Directory, sans rôle par défaut | Le CRI peut n'avoir qu'un annuaire ; un compte sans groupe reconnu n'entre pas |
+| Un agent et un jeton par équipement | Plus un proxy par site, un jeton de site, un tampon rejoué sans réveiller l'astreinte | Une liaison de bâtiment coupée laissait un trou définitif dans l'historique |

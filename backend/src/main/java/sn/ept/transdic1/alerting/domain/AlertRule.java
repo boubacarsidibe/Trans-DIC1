@@ -51,6 +51,21 @@ public class AlertRule {
   @Column(name = "active", nullable = false)
   private boolean active;
 
+  /**
+   * Seuil adaptatif (ADR 0049) : le seuil de chaque équipement suit ses pointes habituelles au même
+   * créneau horaire ; {@link #threshold} ne sert qu'au départ, tant que l'historique ne suffit pas.
+   */
+  @Column(name = "adaptive", nullable = false)
+  private boolean adaptive;
+
+  /** Marge au-delà des pointes habituelles, en écarts-types (1,5 à 10). */
+  @Column(name = "adaptive_sensitivity", nullable = false, precision = 4, scale = 2)
+  private BigDecimal adaptiveSensitivity = new BigDecimal("3");
+
+  /** Limite absolue facultative : franchie, elle ouvre l'alerte quoi qu'ait appris le modèle. */
+  @Column(name = "adaptive_limit", precision = 20, scale = 4)
+  private BigDecimal adaptiveLimit;
+
   @Column(name = "created_at", nullable = false)
   private Instant createdAt;
 
@@ -182,6 +197,30 @@ public class AlertRule {
 
   public void setActive(boolean active) {
     this.active = active;
+  }
+
+  public boolean isAdaptive() {
+    return adaptive;
+  }
+
+  public void setAdaptive(boolean adaptive) {
+    this.adaptive = adaptive;
+  }
+
+  public BigDecimal getAdaptiveSensitivity() {
+    return adaptiveSensitivity;
+  }
+
+  public void setAdaptiveSensitivity(BigDecimal adaptiveSensitivity) {
+    this.adaptiveSensitivity = adaptiveSensitivity;
+  }
+
+  public BigDecimal getAdaptiveLimit() {
+    return adaptiveLimit;
+  }
+
+  public void setAdaptiveLimit(BigDecimal adaptiveLimit) {
+    this.adaptiveLimit = adaptiveLimit;
   }
 
   public Instant getCreatedAt() {

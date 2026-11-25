@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { listEquipment, listSites } from "../api/equipment.js";
 import {
   OPERATORS,
+  SENSITIVITIES,
   SEVERITIES,
   createRule,
   deleteRule,
@@ -13,6 +14,8 @@ import {
 import { useAuth } from "../auth/AuthContext.jsx";
 import { canAdministerAlerts } from "../auth/permissions.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import LearnedThresholdsPanel from "./LearnedThresholdsPanel.jsx";
+import RemediationPolicyPanel from "./RemediationPolicyPanel.jsx";
 import RuleTestPanel from "./RuleTestPanel.jsx";
 import ThresholdAdvicePanel from "./ThresholdAdvicePanel.jsx";
 import { Badge } from "../ui/Badges.jsx";
@@ -30,6 +33,9 @@ const EMPTY = {
   siteIds: [],
   equipmentIds: [],
   allEquipment: false,
+  adaptive: false,
+  adaptiveSensitivity: "3",
+  adaptiveLimit: "",
 };
 
 // Indicateurs proposés ; une autre clé reste possible (saisie libre).
@@ -64,6 +70,10 @@ function toValues(rule) {
     siteIds: rule.siteIds ?? [],
     equipmentIds: rule.equipmentIds ?? [],
     allEquipment: Boolean(rule.allEquipment),
+    adaptive: Boolean(rule.adaptive),
+    adaptiveSensitivity:
+      rule.adaptiveSensitivity == null ? "3" : String(Number(rule.adaptiveSensitivity)),
+    adaptiveLimit: rule.adaptiveLimit == null ? "" : String(rule.adaptiveLimit),
   };
 }
 
@@ -167,7 +177,9 @@ function RuleForm({ initial, sites, equipments, submitting, onSubmit, onCancel }
           ))}
         </select>
       </label>
-      {field("threshold", "Seuil d'ouverture", { inputMode: "decimal" })}
+      {field("threshold", values.adaptive ? "Seuil de départ" : "Seuil d'ouverture", {
+        inputMode: "decimal",
+      })}
       {field("recoveryThreshold", "Seuil de retour (facultatif)", { inputMode: "decimal" })}
       {field("unit", "Unité", { maxLength: 24 })}
       {field("confirmationSeconds", "Durée de confirmation (secondes)", { inputMode: "numeric" })}
@@ -193,6 +205,66 @@ function RuleForm({ initial, sites, equipments, submitting, onSubmit, onCancel }
         />
         Règle active
       </label>
+
+      <fieldset className="adaptive-box md:col-span-2">
+        <legend className="sr-only">Seuil adaptatif</legend>
+        <label className="flex items-start gap-3 text-sm text-slate-300">
+          <input
+            type="checkbox"
+            checked={values.adaptive}
+            onChange={(e) => setValues({ ...values, adaptive: e.target.checked })}
+            aria-describedby="adaptive-help"
+          />
+          <span>
+            <span className="text-white">Seuil adaptatif</span>
+            <span id="adaptive-help" className="mt-1 block text-xs text-slate-400">
+              Chaque équipement reçoit son propre seuil, réajusté à chaque heure d’après ses pointes
+              (ou ses creux, pour « inférieur à ») des quatre dernières semaines au même créneau. Un serveur toujours chargé n’alerte
+              plus à son niveau habituel ; un poste calme alerte dès qu’il sort de son habitude. Le
+              seuil saisi plus haut sert de départ, tant que l’historique ne suffit pas (six jours au
+              moins).
+            </span>
+          </span>
+        </label>
+        {errors.adaptive && <p className="mt-2 text-sm text-red-300">{errors.adaptive}</p>}
+        {values.adaptive && (
+          <div className="mt-3 grid gap-4 md:grid-cols-2">
+            <label className="block text-sm text-slate-300" htmlFor="adaptiveSensitivity">
+              Tolérance
+              <select
+                id="adaptiveSensitivity"
+                value={values.adaptiveSensitivity}
+                onChange={set("adaptiveSensitivity")}
+                className="field mt-2"
+              >
+                {SENSITIVITIES.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm text-slate-300" htmlFor="adaptiveLimit">
+              Limite absolue (facultative)
+              <input
+                id="adaptiveLimit"
+                value={values.adaptiveLimit}
+                onChange={set("adaptiveLimit")}
+                inputMode="decimal"
+                className="field mt-2"
+                aria-describedby="adaptive-limit-help"
+              />
+              <span id="adaptive-limit-help" className="mt-1 block text-xs text-slate-400">
+                Franchie, elle ouvre l’alerte quoi qu’ait appris la plateforme : un disque plein
+                depuis un mois reste un disque plein.
+              </span>
+              {errors.adaptiveLimit && (
+                <span className="text-red-300">{errors.adaptiveLimit}</span>
+              )}
+            </label>
+          </div>
+        )}
+      </fieldset>
 
       <label className="flex items-center gap-3 text-sm text-slate-300 md:col-span-2">
         <input
@@ -276,6 +348,8 @@ function RulesPage() {
   const [scope, setScope] = useState({ sites: [], equipments: [] });
   const [submitting, setSubmitting] = useState(false);
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [learnedFor, setLearnedFor] = useState(null);
+  const [remediationFor, setRemediationFor] = useState(null);
 
   const load = useCallback(async (targetPage) => {
     setLoading(true);
@@ -442,6 +516,20 @@ function RulesPage() {
                     {rule.unit ? ` ${rule.unit}` : ""}
                     {rule.recoveryThreshold != null &&
                       ` (retour à ${rule.recoveryThreshold})`}
+                    {rule.adaptive && (
+                      <span className="rule-adaptive">
+                        <Badge tone="info">Seuil adaptatif</Badge>
+                        <button
+                          type="button"
+                          onClick={() => setLearnedFor(learnedFor?.id === rule.id ? null : rule)}
+                          aria-expanded={learnedFor?.id === rule.id}
+                          aria-label={`Seuils appris de ${rule.name}`}
+                          className="btn btn-secondary btn-sm"
+                        >
+                          Seuils appris
+                        </button>
+                      </span>
+                    )}
                   </td>
                   <td className="p-3">{rule.confirmationSeconds} s</td>
                   <td className="p-3">
@@ -465,6 +553,17 @@ function RulesPage() {
                         </button>
                         <button
                           type="button"
+                          onClick={() =>
+                            setRemediationFor(remediationFor?.id === rule.id ? null : rule)
+                          }
+                          aria-expanded={remediationFor?.id === rule.id}
+                          aria-label={`Action corrective de ${rule.name}`}
+                          className="btn btn-secondary btn-sm"
+                        >
+                          Action corrective
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => setPendingDelete(rule)}
                           aria-label={`Supprimer ${rule.name}`}
                           className="btn btn-danger btn-sm"
@@ -479,6 +578,22 @@ function RulesPage() {
             </tbody>
           </table>
         </div>
+
+        {remediationFor && (
+          <RemediationPolicyPanel
+            key={remediationFor.id}
+            rule={remediationFor}
+            onClose={() => setRemediationFor(null)}
+          />
+        )}
+
+        {learnedFor && (
+          <LearnedThresholdsPanel
+            key={learnedFor.id}
+            rule={learnedFor}
+            onClose={() => setLearnedFor(null)}
+          />
+        )}
 
         {totalPages > 1 && (
           <div className="mt-6 flex items-center gap-4 text-sm text-slate-300">

@@ -21,6 +21,7 @@ import { humanMessage } from "../ui/metricCatalog.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import AssigneesEditor from "./AssigneesEditor.jsx";
 import DiagnosticPanel from "./DiagnosticPanel.jsx";
+import RemediationPanel from "./RemediationPanel.jsx";
 import Pagination from "../ui/Pagination.jsx";
 
 const formatDate = (value) =>
@@ -343,6 +344,12 @@ function AlertsPage() {
               alertId={detail.alert.id}
               onOpenAlert={openAlert}
               canConfirm={canHandle}
+            />
+            <RemediationPanel
+              key={`remediation-${detail.alert.id}`}
+              alertId={detail.alert.id}
+              canAct={canHandle}
+              alertOpen={detail.alert.state === "OPEN" || detail.alert.state === "IN_PROGRESS"}
             />
             {canAdminister && (
               <AssigneesEditor

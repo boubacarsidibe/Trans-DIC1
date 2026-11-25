@@ -83,6 +83,17 @@ Les équipements réseau peuvent signaler d'eux-mêmes un événement (« le por
 
 Les routeurs peuvent exporter des statistiques de trafic (NetFlow v5 et v9). La plateforme les additionne en mémoire par conversation et n'écrit en base qu'une synthèse par minute : volume et débit, plus grosses conversations, adresses les plus actives, services, équipements exportateurs. Les adresses étant des données personnelles, elles sont **effacées au bout de 7 jours**. Cette fonction est désactivée par défaut.
 
+### Les proxys de collecte par site
+
+Un bâtiment relié par une liaison fragile perdait ses mesures à chaque coupure, sans rattrapage. Un **proxy de collecte** relaie tous les équipements d'un site avec **un seul jeton**, garde les mesures dans un tampon quand la liaison tombe, puis les rejoue à son retour. Le serveur sait recevoir ces lots après coup :
+
+- une mesure plus vieille que la fenêtre de fraîcheur (dix minutes par défaut) est **stockée sans être évaluée** : elle remplit l'historique et les rapports, sans réveiller l'astreinte pour une panne terminée depuis longtemps ;
+- chaque lot est numéroté : un lot renvoyé parce que l'accusé de réception s'est perdu n'est pas stocké deux fois ;
+- une mesure visant un équipement d'un autre site est écartée et comptée, et un lot n'échoue jamais en entier pour une mesure fautive ;
+- un proxy muet ouvre une alerte de collecte par équipement relayé, regroupées en **un seul incident**.
+
+L'administrateur enregistre ou révoque le proxy d'un site depuis l'écran Sites. **Seul le côté serveur est livré** : le logiciel à installer dans le bâtiment reste à écrire, et il n'a besoin que du contrat d'échange déjà publié et éprouvé.
+
 ## Détecter : les alertes
 
 ### La règle à seuil, pierre angulaire
@@ -94,6 +105,8 @@ Une règle dit : « si l'indicateur *processeur* d'un équipement de ce périmè
 3. **La déduplication** : une seule alerte active par équipement et par règle ; si le problème revient avant archivage, l'alerte existante est rouverte au lieu d'en créer une nouvelle.
 
 Une règle peut viser des sites, des équipements précis ou tout le parc, et une famille d'indicateurs (« tous les disques »). Avant d'enregistrer une règle, l'administrateur peut la **tester sur l'historique** (« sur les 7 derniers jours, elle aurait ouvert 12 alertes sur 3 équipements ») ou demander une **proposition de seuils** calculée sur ce que les équipements ont réellement mesuré : trois propositions (prudente, équilibrée, sensible), chacune rejouée sur la même période.
+
+Une règle peut enfin être **à seuil adaptatif** (ADR 0049). Chaque équipement reçoit alors son propre seuil, recalculé à chaque heure d'après ses pointes des quatre dernières semaines au même créneau : un serveur toujours chargé n'alerte plus à son niveau habituel, un poste calme alerte dès qu'il sort de son habitude, même sous le seuil commun. Le seuil saisi sert de départ tant que l'historique ne suffit pas, une limite absolue facultative garde le dernier mot (un disque plein depuis un mois reste un disque plein), et chaque alerte dit lequel des seuils a joué.
 
 ### Le cycle de vie d'une alerte
 
@@ -227,6 +240,8 @@ Dans le détail d'une alerte, un **diagnostic** rassemble ce qu'un opérateur ex
 
 Le diagnostic repose sur des **règles fixes et un score documenté**, sans IA ni appel extérieur. L'écran parle de « cause probable », affiche toujours le score et les preuves (« Pourquoi ? ») et dit « aucune cause probable identifiée » plutôt que d'inventer.
 
+Les poids des causes, fixés à la main au départ, **s'ajustent sur les confirmations des opérateurs** : quand un opérateur indique laquelle des causes proposées était la bonne (ou qu'aucune ne l'était), chaque proposition est enregistrée. Le poids d'une source devient son taux de réussite, tiré vers la valeur fixée à la main tant que les confirmations sont rares : un chiffre qu'un opérateur peut vérifier (« proposée 23 fois, retenue 19 fois »), là où il ne pourrait jamais vérifier un coefficient.
+
 ### Rapports
 
 | Rapport | Contenu |
@@ -239,6 +254,67 @@ Les rapports couvrent une journée, une semaine, un mois ou une période choisie
 ### Pages de statut
 
 Une **page de statut** présente aux usagers l'état des services de l'école (messagerie, ENT, Wi-Fi…) : chaque service est relié à une sonde, un équipement ou un site, mais affiché **sous un nom choisi pour les usagers**. L'état est calculé automatiquement (opérationnel, dégradé, panne partielle, panne majeure, maintenance), avec la disponibilité sur 90 jours et les incidents en cours accompagnés de leurs mises à jour. Une page peut être interne ou **publique**, consultable sans compte. Une page publique n'affiche jamais de nom d'hôte, d'adresse ni de nom d'équipement (liste blanche stricte vérifiée par un test), répond de la même façon pour une page inconnue ou privée, et est protégée contre les abus (limite par adresse, cache).
+
+## Gérer l'incident jusqu'au bout : ajouts du 25 novembre
+
+Ces six fonctions répondent à la question « qu'apporte la plateforme de plus qu'un outil du
+marché ? ». Aucune n'existe en standard dans Zabbix. Chacune a sa décision d'architecture écrite
+(ADR 0050 à 0053), ses tests automatiques et son écran.
+
+### Le post-mortem automatique d'un incident {ok}
+
+Sur un incident, un bouton ouvre son **post-mortem** : délai de prise en charge (comparé à un
+objectif de 15 minutes), durée, alertes regroupées, notifications évitées, cause confirmée, et
+surtout des **constats chiffrés avec une recommandation** chacun — prise en charge hors objectif,
+notifications en échec, astreinte injoignable, escalade, récidive sur 30 jours, composant public
+touché sans communication aux usagers, action corrective réussie ou en échec. La chronologie range
+minute par minute tout ce que la plateforme a enregistré. Le même document se télécharge en PDF.
+Rien n'est saisi à la main ni stocké : le post-mortem est recalculé depuis l'historique, il ne peut
+pas le contredire.
+
+### Les indicateurs de service : MTTA, MTTR, MTBF {ok}
+
+Un écran « Indicateurs » donne le **délai de prise en charge** (MTTA) et le **délai de résolution**
+(MTTR), en moyenne et en médiane — une alerte oubliée un week-end fait exploser la moyenne, pas la
+médiane —, la part des prises en charge dans l'objectif, par sévérité, site, opérateur et semaine,
+et le **temps moyen entre pannes** (MTBF) des équipements les plus touchés. Seules les alertes
+racines comptent.
+
+### Les actions correctives automatiques {ok}
+
+Une règle peut porter une **action corrective** : quand elle s'ouvre, la plateforme demande à
+l'agent de l'équipement de redémarrer un service ou de vider un cache, automatiquement ou après
+approbation d'un opérateur ; le retour à la normale ferme ensuite l'alerte tout seul. La plateforme
+ne transmet **qu'un nom d'action** : la commande est écrite dans la configuration de l'agent, sur la
+machine, et un nom inconnu est refusé. Une plateforme compromise ne peut donc rien exécuter que
+l'exploitant de la machine n'ait autorisé. Garde-fous : lancement sans interpréteur de commandes,
+une même action jamais deux fois à la fois, délai de grâce contre les alertes qui clignotent,
+expiration, rien pendant une maintenance, audit de chaque étape.
+
+### La prise en charge depuis Telegram {ok}
+
+Les alertes reçues sur Telegram portent les boutons « Je prends », « Résolu » et « Diagnostic ».
+Le clic est exécuté **au nom du compte lié**, avec ses droits et son périmètre, et l'écran du NOC se
+met à jour en direct. La liaison se fait par un code à usage unique généré dans l'application. La
+plateforme interroge Telegram : aucune adresse publique n'est nécessaire.
+
+### L'analyse d'impact avant une maintenance {ok}
+
+Depuis la topologie, « Analyse d'impact complète » dit ce que l'arrêt d'un équipement entraîne :
+équipements en aval, en repérant ceux qui gardent un **second chemin** vers le cœur du réseau,
+sondes interrompues, composants de pages de statut touchés (publics signalés), personne d'astreinte,
+liens appris. Un niveau d'impact et des recommandations suivent, et la maintenance se planifie en un
+geste sur tout l'aval réellement perdu.
+
+### La prédiction du risque de panne : l'apprentissage explicable {ok}
+
+Chaque nuit, une **régression logistique** apprend sur deux mois d'historique de la plateforme —
+une ligne par équipement et par journée, la cible étant une panne le lendemain — et donne pour
+chaque équipement la **probabilité d'une panne dans les 24 heures**, avec les trois faits qui la
+poussent (« disque jusqu'à 97 % en 24 h »). Les poids appris sont tirés vers des poids initiaux
+raisonnés tant que les pannes observées sont rares, et le modèle est évalué sur la dernière semaine,
+qu'il n'a pas vue (AUC, score de Brier). La fiche du modèle affiche chaque poids et son facteur de
+risque : c'est de l'intelligence artificielle, mais vérifiable ligne à ligne.
 
 ## Protéger le parc : la supervision de sécurité
 
@@ -255,12 +331,15 @@ Une **page de statut** présente aux usagers l'état des services de l'école (m
 
 Un écran **Sécurité** présente les compteurs de la période, les adresses les plus actives, les équipements visés et les dernières lignes retenues. Les requêtes ordinaires ne laissent aucune trace : seules les tentatives d'authentification, les attaques reconnues et les erreurs sont gardées, 30 jours au plus. Ce n'est pas un pare-feu : l'attaque est vue après coup, pour alerter.
 
+Chaque détection porte, quand elle s'applique honnêtement, son **repère MITRE ATT&CK**, la matrice de référence des équipes de sécurité : force brute (T1110), exploitation d'une application exposée (T1190), interpréteur de commandes (T1059), balayage par liste de mots (T1595.003), découverte de services réseau (T1046), déni de service réseau (T1498), comptes valides détournés (T1078). L'écran Sécurité liste les techniques repérées avec un lien vers leur fiche officielle. Le soupçon d'un modèle appris ou un écart de volume ne reçoit **aucune technique** : en inventer une ferait passer une hypothèse pour un fait.
+
 ## Administrer
 
 | Fonction | Détail |
 |---|---|
 | Comptes et rôles | Création par un administrateur, changement de rôle, activation, réinitialisation du mot de passe ; on ne peut pas modifier son propre compte et le dernier administrateur est protégé ; un changement de droits coupe les sessions du compte |
 | Périmètres | Limiter un opérateur ou un lecteur à certains sites ; un objet hors périmètre est traité comme inexistant |
+| Connexion par l'annuaire | Les comptes du CRI se connectent avec leur identifiant habituel (LDAP ou Active Directory, chiffré) ; le rôle vient des groupes de l'annuaire, sans rôle par défaut ; un compte local de secours reste possible |
 | Double authentification | Code à six chiffres d'une application d'authentification, activé par l'utilisateur, désactivable par un administrateur en cas de téléphone perdu |
 | Jetons d'API | Chacun peut créer des jetons pour qu'un autre outil appelle l'API en son nom, avec ses droits ; le secret n'est montré qu'une fois et seule son empreinte est gardée |
 | Journal d'audit | Qui a fait quoi, quand ; filtrable, exportable en CSV, en ajout seul |

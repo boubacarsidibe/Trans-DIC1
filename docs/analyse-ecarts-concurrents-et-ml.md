@@ -39,7 +39,7 @@ Collecte par agent 2.0 (Linux, Windows), SNMP v2c/v3 avec modèles d'équipement
 | Conditions composées ET/OU sur plusieurs mesures | Zabbix, Checkmk, Datadog | Absent | M |
 | Détection du clignotement (flapping) d'une alerte | Zabbix, Nagios, Icinga | Partiel : anti-rebond sur les événements réseau seulement | S |
 | Dépendances entre règles, inhibition d'une alerte par une autre | Zabbix, Alertmanager | Partiel : par la topologie pour la collecte seulement | M |
-| Seuils adaptatifs proposés par la machine | OpManager, SolarWinds, Checkmk | Absent | M |
+| Seuils adaptatifs proposés par la machine | OpManager, SolarWinds, Checkmk | ✅ Proposés (ADR 0035), et appliqués d'eux-mêmes sur une règle où on l'active (ADR 0049) | M |
 | Comparaison d'un équipement à ses semblables (valeur aberrante dans un groupe) | Datadog, Grafana ML | Absent | M |
 | Remédiation : lancer un script ou une commande à l'ouverture d'une alerte | Zabbix, OpManager | Absent | M, risque de sécurité |
 | Arbre de services métier avec propagation de l'état | Zabbix, Checkmk (BI), Icinga | Partiel : composants des pages de statut | M |
@@ -110,6 +110,7 @@ Principes : tout reste dans le backend Java (pas de service Python, pas de Docke
 | M12 ✅ | Poids du diagnostic appris | Remplacer les poids fixés à la main | L'opérateur confirme la vraie cause ; régression logistique sur ces confirmations, à partir d'un nombre suffisant de cas | — |
 | M13 ✅ | Prévision saisonnière | Débit et mémoire, pas seulement le disque | Holt-Winters sur les agrégats horaires | Zabbix, Datadog |
 | M14 ✅ | Seuils proposés | Régler une règle sans tâtonner | Centiles de l'historique, simulés avec le test de règle existant | OpManager |
+| M15 ✅ | Seuil adaptatif (demandé le 2026-11-24) | Un seuil par équipement qui suit son habitude, sur les règles où l'administrateur l'active | Normale robuste des pointes horaires au même créneau sur 28 jours, plus une tolérance en écarts-types ; seuil de départ pendant l'apprentissage, limite absolue facultative (ADR 0049) | OpManager, SolarWinds (seuils adaptatifs) |
 
 M9 et M12 ont besoin de plusieurs semaines d'alertes réelles : sans données de l'EPT, ils ne peuvent être démontrés que sur des cas simulés.
 

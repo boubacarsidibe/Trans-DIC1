@@ -143,7 +143,9 @@ public class NotificationDispatchService {
       return NotificationSender.Context.unknown();
     }
     return new NotificationSender.Context(
-        notification.getAlert().getSeverity(), notification.getKind());
+        notification.getAlert().getSeverity(),
+        notification.getKind(),
+        notification.getAlert().getId());
   }
 
   private String body(Notification notification) {

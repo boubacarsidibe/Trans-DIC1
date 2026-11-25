@@ -5,6 +5,7 @@ import random
 import ssl
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 from . import VERSION
@@ -100,6 +101,42 @@ class Client:
         except (urllib.error.URLError, OSError) as error:
             raise SendError("journaux non envoyés (%s)" % type(error).__name__)
         return True
+
+    def poll_actions(self, available):
+        """Annonce les actions de l'agent et rend celles à exécuter ; None si le serveur ne connaît
+        pas cette route (version plus ancienne)."""
+        body = json.dumps({"available": available}).encode("utf-8")
+        try:
+            response = self._post(body, self.config.actions_url)
+        except urllib.error.HTTPError as error:
+            status = error.code
+            error.close()
+            if status in (401, 403):
+                raise AuthError("jeton d'agent refusé par le serveur (HTTP %d)" % status)
+            if status in (404, 405):
+                return None
+            raise SendError("actions refusées (HTTP %d)" % status)
+        except (urllib.error.URLError, OSError) as error:
+            raise SendError("actions non relevées (%s)" % type(error).__name__)
+        jobs = response.get("jobs") if isinstance(response, dict) else None
+        return [j for j in (jobs or []) if isinstance(j, dict) and "id" in j]
+
+    def send_action_result(self, job_id, exit_code, output, duration_ms):
+        """Rend compte d'une action exécutée."""
+        body = json.dumps(
+            {"exitCode": exit_code, "output": output, "durationMs": duration_ms}
+        ).encode("utf-8")
+        url = "%s/%s/resultat" % (self.config.actions_url, urllib.parse.quote(str(job_id), safe=""))
+        try:
+            self._post(body, url)
+        except urllib.error.HTTPError as error:
+            status = error.code
+            error.close()
+            if status in (401, 403):
+                raise AuthError("jeton d'agent refusé par le serveur (HTTP %d)" % status)
+            raise SendError("compte rendu refusé (HTTP %d)" % status)
+        except (urllib.error.URLError, OSError) as error:
+            raise SendError("compte rendu non envoyé (%s)" % type(error).__name__)
 
     def _post(self, body, url=None):
         request = urllib.request.Request(

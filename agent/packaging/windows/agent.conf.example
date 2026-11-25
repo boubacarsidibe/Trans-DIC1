@@ -32,3 +32,16 @@ buffer_limit = 2000
 
 # Services surveillés, séparés par des virgules (état remonté dans service.up[nom]).
 # services = Spooler, W32Time
+
+# --- Actions correctives (ADR 0050) ------------------------------------------
+# La plateforme ne transmet qu'un NOM d'action ; la commande correspondante est écrite ici, sur
+# cette machine, et nulle part ailleurs. Un nom absent de cette liste est refusé.
+# Commande lancée sans interpréteur (cmd.exe n'est jamais appelé), durée bornée par action_timeout.
+# Le compte LOCAL SERVICE doit avoir le droit de démarrer le service visé (sc sdset), sinon
+# l'action échoue proprement avec son message d'erreur.
+#
+# [actions]
+# redemarrer-spouleur = "C:\Windows\System32\sc.exe" start Spooler
+#
+# [action_descriptions]
+# redemarrer-spouleur = Redémarre le spouleur d'impression

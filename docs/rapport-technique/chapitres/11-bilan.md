@@ -4,14 +4,14 @@
 
 | Domaine | Traité |
 |---|---|
-| Accès | Connexion sécurisée, trois rôles, périmètre par site, connexion unique de l'école, double authentification, jetons d'API, verrouillage des comptes, journal d'audit |
+| Accès | Connexion sécurisée, trois rôles, périmètre par site, connexion unique de l'école, annuaire LDAP ou Active Directory, double authentification, jetons d'API, verrouillage des comptes, journal d'audit |
 | Inventaire | Sites, équipements, import CSV, découverte sur plages autorisées, modèles d'équipement, topologie, voisins proposés |
-| Collecte | Agent Linux et Windows, SNMP v2c et v3, interfaces réseau, sondes (ping, TCP, web, certificat, DNS), traps et syslog, NetFlow |
+| Collecte | Agent Linux et Windows, SNMP v2c et v3, interfaces réseau, sondes (ping, TCP, web, certificat, DNS), traps et syslog, NetFlow, réception des proxys de site avec rattrapage |
 | Détection | Seuils avec confirmation et retour à la normale, absence de donnée, comportement inhabituel, état d'ensemble inhabituel, rupture durable de niveau, plage apprise par port, écart aux semblables par modèle, prévision à cycle journalier, budget d'erreur d'un service, alerte qui clignote, test de règle et proposition de seuils |
 | Traitement | Cycle de vie complet, plusieurs assignés, regroupement en incidents (tous types, une notification), liens entre équipements appris et validés, escalade, astreinte, maintenances, diagnostic expliqué avec les mesures liées |
 | Notification | E-mail, Teams, Slack, Telegram, webhook, SIEM ; préférences par utilisateur ; file fiable avec reprises |
 | Restitution | Tableau de bord temps réel, vues, mur NOC, score de santé, historique, rapports PDF et CSV, rapports planifiés, pages de statut |
-| Sécurité du parc | Attaques web, force brute, comportements inhabituels, balayages et inondations |
+| Sécurité du parc | Attaques web, force brute, comportements inhabituels, balayages et inondations, repères MITRE ATT&CK |
 | Exploitation | Déploiement de production, sauvegarde vérifiée, supervision de la plateforme, retour arrière, documentation |
 
 ## Ce qui est partiellement traité
@@ -26,6 +26,8 @@
 | Journal d'audit pour le NOC | Réservé aux administrateurs, alors que le NOC devait voir celui de son périmètre |
 | Agent | Installation manuelle uniquement, pas de déploiement ni de mise à jour à distance |
 | Intégration continue | Remplacée par une vérification locale qui ne bloque aucune fusion |
+| Connexion par l'annuaire | Éprouvée par des tests, jamais contre l'annuaire réel du CRI |
+| Proxys de collecte | Côté serveur livré et éprouvé ; le logiciel à installer dans un bâtiment reste à écrire |
 
 ## Ce qui n'est pas traité
 
@@ -37,7 +39,8 @@
 | « Collecter maintenant » | Petite fonction |
 | Archivage d'un équipement | Seule la suppression définitive existe |
 | Conditions d'alerte composées (ET / OU) | Une règle porte sur un seul indicateur |
-| Haute disponibilité, collecteurs déportés par site | Demande plusieurs machines |
+| Haute disponibilité | Demande plusieurs machines |
+| Connexion SAML | Seuls LDAP, Active Directory et OpenID Connect sont pris en charge |
 | Procédures liées aux règles (runbooks), rapport de capacité, application installable | Prévus au plan d'améliorations, non commencés |
 | Abonnement des usagers à la page de statut | Pas d'e-mail ni de flux RSS |
 | IPFIX, sFlow, CDP | Seuls NetFlow v5 / v9 et LLDP sont pris en charge |

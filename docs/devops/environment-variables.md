@@ -109,6 +109,23 @@
 
 Les variables non retenues par la stack devront être supprimées du contrat plutôt que laissées inactives.
 
+## Fonctions de novembre 2026 (ADR 0050 à 0053)
+
+| Variable | Défaut | Rôle |
+| --- | --- | --- |
+| `POSTMORTEM_ACKNOWLEDGE_TARGET_MINUTES` | 15 | Objectif de prise en charge du post-mortem et des indicateurs |
+| `POSTMORTEM_RECURRENCE_WINDOW_DAYS` | 30 | Fenêtre de récidive d'un incident sur le même équipement |
+| `REMEDIATION_ENABLED` | true | Déclenchement automatique des actions correctives |
+| `REMEDIATION_QUEUE_TTL_MINUTES` | 10 | Délai pour que l'agent prenne l'action, puis en rende compte |
+| `REMEDIATION_APPROVAL_TTL_MINUTES` | 60 | Délai d'approbation d'une action par un opérateur |
+| `CHATOPS_TELEGRAM_ENABLED` | false | Boutons « Je prends » / « Résolu » sur Telegram et écoute du bot |
+| `CHATOPS_TELEGRAM_BOT_TOKEN` | — | Référence de secret du jeton du bot (`env:NOM`), jamais la valeur |
+| `CHATOPS_TELEGRAM_BOT_USERNAME` | — | Nom du bot affiché dans les instructions de liaison |
+| `RISK_HISTORY_DAYS` | 60 | Historique d'apprentissage du risque de panne |
+| `RISK_EVALUATION_DAYS` | 7 | Derniers jours gardés pour l'évaluation du modèle |
+| `RISK_SHRINKAGE` | 20 | Rappel vers les poids initiaux tant que les pannes sont rares |
+| `RISK_TRAINING_CRON` | `0 20 3 * * *` | Heure de l'apprentissage nocturne (heure de Dakar) |
+
 ## Différences d'environnement
 
 | Environnement | Données | Secrets | Exposition |

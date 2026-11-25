@@ -1,5 +1,7 @@
 package sn.ept.transdic1.alerting.dto;
 
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -35,7 +37,42 @@ public record AlertRuleRequest(
     Boolean active,
     List<UUID> siteIds,
     List<UUID> equipmentIds,
-    Boolean allEquipment) {
+    Boolean allEquipment,
+    Boolean adaptive,
+    @DecimalMin("1.5") @DecimalMax("10") BigDecimal adaptiveSensitivity,
+    BigDecimal adaptiveLimit) {
+
+  /** Règle à seuil fixe (sans seuil adaptatif). */
+  public AlertRuleRequest(
+      String name,
+      String metricType,
+      ComparisonOperator operator,
+      BigDecimal threshold,
+      BigDecimal recoveryThreshold,
+      String unit,
+      Long confirmationSeconds,
+      Severity initialSeverity,
+      Boolean active,
+      List<UUID> siteIds,
+      List<UUID> equipmentIds,
+      Boolean allEquipment) {
+    this(
+        name,
+        metricType,
+        operator,
+        threshold,
+        recoveryThreshold,
+        unit,
+        confirmationSeconds,
+        initialSeverity,
+        active,
+        siteIds,
+        equipmentIds,
+        allEquipment,
+        null,
+        null,
+        null);
+  }
 
   public AlertRuleRequest(
       String name,
