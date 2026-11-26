@@ -216,6 +216,14 @@ L'agent s'identifie par une empreinte de `/etc/machine-id` (Linux) ou de `Machin
 | « identifiant de machine introuvable » | `/etc/machine-id` vide ou absent | `sudo systemd-machine-id-setup`, puis redémarrer le service |
 | « le fichier de jeton … doit avoir les droits 600 » | droits du jeton d'inscription trop ouverts | `chmod 600` sur le fichier, ou relancer `install.sh` |
 
+## Services découverts et suivis (ADR 0056)
+
+Depuis l'agent 2.2, l'instantané envoyé toutes les 5 minutes contient aussi les **services actifs** (`systemctl list-units --type=service --state=running` sous Linux, gestionnaire de services sous Windows) et les **ports TCP en écoute** (`/proc/net/tcp` et `tcp6`, table TCP d'iphlpapi sous Windows). Rien à configurer.
+
+Quand un administrateur clique sur « Suivre » dans la fiche de l'équipement, l'agent l'apprend au passage suivant (`GET /api/v1/agent/services-suivis`) et remonte `service.up[nom]` comme pour un service de la ligne `services` de sa configuration. **Le fichier de configuration n'est jamais modifié** : la liste reçue s'ajoute en mémoire à celle du fichier (50 services au plus). Seuls des noms passent (même motif que `services`), l'agent ne fait qu'interroger l'état du service.
+
+Le compte de l'agent n'a besoin d'aucun droit supplémentaire : la liste des services et la table des ports sont lisibles par tout compte. Les ports sont listés sans le processus qui écoute.
+
 ## Configuration
 
 Le fichier `/etc/trans-dic1-agent/agent.conf` est commenté (modèle : `agent/packaging/agent.conf.example`). Chaque valeur peut être remplacée par une variable `TRANS_DIC1_AGENT_<NOM>`.

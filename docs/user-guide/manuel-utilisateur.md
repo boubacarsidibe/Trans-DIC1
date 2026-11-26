@@ -158,6 +158,16 @@ Une alerte de type **Événement** vient d'un trap SNMP ou d'un message syslog e
 
 Le lecteur voit tout, mais aucun bouton d'action : c'est normal.
 
+### Cause racine : pourquoi c'est tombé
+
+Le panneau de diagnostic d'une alerte, et le détail d'un incident, commencent par une **cause racine** : une phrase qui dit pourquoi, par exemple « ENT est injoignable parce que le routeur rtr-coeur est hors service », « La VM vm-web-01 est éteinte parce que son hôte proxmox-02 est hors service », « nginx est arrêté sur vm-web-01 » ou « PostgreSQL ne répond plus : disque plein sur vm-db-01 ».
+
+Dessous, la chaîne parcourue, étape par étape : le service, ce dont il dépend, l'équipement où il tourne, l'hôte ou le réseau en amont. Chaque étape dit sa relation (« dépend de », « tourne sur », « hébergée par », « derrière »), son état en toutes lettres et ses preuves (l'alerte, la dernière mesure). La dernière étape est marquée « (cause) ». Seules comptent les pannes **du même moment** (à un quart d'heure près). S'il y a plusieurs causes possibles, elles sont toutes listées sous « Autres causes possibles », la plus probable en premier.
+
+Ce qui est hors de votre périmètre de sites n'est jamais nommé : la chaîne s'arrête sur « élément hors de votre périmètre ».
+
+La recherche suit les **dépendances entre services** déclarées dans **Parc → Dépendances** : sans elles, elle se limite à l'équipement, à ses ressources et à son amont.
+
 ### Diagnostic d'un incident
 
 Le bouton **Historique** d'une alerte ouvre son détail, qui commence par le panneau **Diagnostic**. Il est calculé au moment où vous l'ouvrez (bouton **Recalculer** pour le refaire), à partir des seules données de Trans-DIC1 : topologie, autres alertes, traps et messages syslog, journal d'audit, mesures et prévisions. Ce sont des règles fixes, pas une intelligence artificielle, et rien ne sort du serveur.
@@ -320,6 +330,12 @@ Si l'alerte a changé d'état entre-temps (un collègue l'a déjà prise), la li
 Plusieurs opérateurs peuvent suivre la même alerte : dans le détail de l'alerte, **Assignés** permet d'ajouter ou de retirer un collègue. Chacun reçoit les notifications de l'alerte.
 
 Une alerte regroupée sous une alerte racine se résout en général avec elle : traiter d'abord la racine, puis vérifier que les alertes regroupées se ferment d'elles-mêmes.
+
+### Services d'une machine et dépendances
+
+Sur la fiche d'un équipement équipé d'un agent (onglet de vue d'ensemble), **Services et ports** liste les services actifs et les ports TCP en écoute, mis à jour toutes les 5 minutes. Les services système sans intérêt sont masqués (le nombre masqué est indiqué). **Suivre nginx** fait remonter l'état de ce service (mesure `service.up[nginx]`) au prochain passage de l'agent, sans rien changer sur la machine ; un service suivi qui s'arrête reste affiché. Une règle d'alerte sur cette mesure (inférieure à 1) vous préviendra de son arrêt.
+
+**Parc → Dépendances** dit quel service dépend de quel autre (l'ENT dépend de PostgreSQL, PostgreSQL du service postgresql de sa VM). Ajoutez-les une à une, ou importez un fichier CSV d'une ligne par dépendance (`code_equipement;service;code_equipement;service`) : le bilan dit ce qui a été créé et pourquoi chaque ligne écartée l'a été. Une dépendance qui ferait une boucle est refusée. Les lecteurs voient la liste ; opérateurs et administrateurs la modifient.
 
 ### Gérer l'inventaire
 
