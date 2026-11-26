@@ -31,6 +31,17 @@ public class RemediationPolicy {
   @Column(nullable = false)
   private boolean enabled;
 
+  /** Délai de vérification après l'action (ADR 0057) ; 0 = aucune vérification. */
+  @Column(name = "verify_minutes", nullable = false)
+  private int verifyMinutes;
+
+  /** Au plus ce nombre d'exécutions automatiques par équipement sur la fenêtre. */
+  @Column(name = "max_auto_runs", nullable = false)
+  private int maxAutoRuns = 3;
+
+  @Column(name = "window_hours", nullable = false)
+  private int windowHours = 24;
+
   @Column(name = "updated_at", nullable = false)
   private Instant updatedAt;
 
@@ -49,14 +60,32 @@ public class RemediationPolicy {
       RemediationMode mode,
       int cooldownMinutes,
       boolean enabled,
+      int verifyMinutes,
+      int maxAutoRuns,
+      int windowHours,
       String by,
       Instant at) {
+    this.verifyMinutes = verifyMinutes;
+    this.maxAutoRuns = maxAutoRuns;
+    this.windowHours = windowHours;
     this.actionName = actionName;
     this.mode = mode;
     this.cooldownMinutes = cooldownMinutes;
     this.enabled = enabled;
     this.updatedBy = by;
     this.updatedAt = at;
+  }
+
+  public int getVerifyMinutes() {
+    return verifyMinutes;
+  }
+
+  public int getMaxAutoRuns() {
+    return maxAutoRuns;
+  }
+
+  public int getWindowHours() {
+    return windowHours;
   }
 
   public UUID getId() {

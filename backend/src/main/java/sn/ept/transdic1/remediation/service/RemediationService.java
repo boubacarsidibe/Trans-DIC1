@@ -26,11 +26,13 @@ import sn.ept.transdic1.alerting.domain.AlertState;
 import sn.ept.transdic1.alerting.repository.AlertRepository;
 import sn.ept.transdic1.alerting.repository.AlertRuleRepository;
 import sn.ept.transdic1.audit.service.AuditService;
+import sn.ept.transdic1.common.alerting.RemediationNeedsHuman;
 import sn.ept.transdic1.common.scheduling.JobGuard;
 import sn.ept.transdic1.common.scope.SiteScope;
 import sn.ept.transdic1.inventory.domain.AgentStatus;
 import sn.ept.transdic1.inventory.domain.CollectionAgent;
 import sn.ept.transdic1.inventory.domain.Equipment;
+import sn.ept.transdic1.inventory.domain.EquipmentType;
 import sn.ept.transdic1.inventory.repository.CollectionAgentRepository;
 import sn.ept.transdic1.inventory.repository.EquipmentRepository;
 import sn.ept.transdic1.remediation.domain.RemediationJob;
@@ -38,6 +40,7 @@ import sn.ept.transdic1.remediation.domain.RemediationMode;
 import sn.ept.transdic1.remediation.domain.RemediationPolicy;
 import sn.ept.transdic1.remediation.domain.RemediationState;
 import sn.ept.transdic1.remediation.domain.RemediationTrigger;
+import sn.ept.transdic1.remediation.domain.RemediationVerification;
 import sn.ept.transdic1.remediation.dto.RemediationDtos.ActionOption;
 import sn.ept.transdic1.remediation.dto.RemediationDtos.AgentJob;
 import sn.ept.transdic1.remediation.dto.RemediationDtos.AgentPollResponse;
@@ -77,6 +80,22 @@ public class RemediationService {
   private static final Set<RemediationState> ACTIVE =
       EnumSet.of(
           RemediationState.PENDING_APPROVAL, RemediationState.QUEUED, RemediationState.RUNNING);
+
+  /** Exécutions qui comptent dans la limite de fréquence : celles remises à l'agent. */
+  private static final Set<RemediationState> COUNTED =
+      EnumSet.of(
+          RemediationState.QUEUED,
+          RemediationState.RUNNING,
+          RemediationState.SUCCEEDED,
+          RemediationState.FAILED);
+
+  /**
+   * Jamais d'action corrective sur un équipement réseau (ADR 0057) : un routeur ou un commutateur
+   * mal redémarré coupe tout ce qui est derrière, et aucun agent n'y tourne de toute façon.
+   */
+  private static final Set<EquipmentType> NETWORK =
+      EnumSet.of(EquipmentType.ROUTER, EquipmentType.SWITCH, EquipmentType.WIFI_ACCESS_POINT);
+
   private static final int MAX_OUTPUT = 2000;
 
   private final RemediationPolicyRepository policies;
@@ -146,6 +165,9 @@ public class RemediationService {
         request.mode(),
         request.cooldownMinutes() == null ? 30 : request.cooldownMinutes(),
         request.enabled() == null || request.enabled(),
+        request.verifyMinutes() == null ? 0 : request.verifyMinutes(),
+        request.maxAutoRuns() == null ? 3 : request.maxAutoRuns(),
+        request.windowHours() == null ? 24 : request.windowHours(),
         username,
         clock.instant());
     policies.save(policy);
@@ -153,7 +175,17 @@ public class RemediationService {
         "REMEDIATION_POLICY_SAVED",
         "ALERT_RULE",
         ruleId,
-        "action=" + request.actionName() + " mode=" + request.mode());
+        "action="
+            + request.actionName()
+            + " mode="
+            + request.mode()
+            + " verification="
+            + policy.getVerifyMinutes()
+            + "min limite="
+            + policy.getMaxAutoRuns()
+            + "/"
+            + policy.getWindowHours()
+            + "h");
     return PolicyResponse.from(policy);
   }
 
@@ -207,6 +239,10 @@ public class RemediationService {
     if (alert.getState() != AlertState.OPEN && alert.getState() != AlertState.IN_PROGRESS) {
       throw new ResponseStatusException(
           HttpStatus.CONFLICT, "Action impossible : l'alerte n'est plus ouverte.");
+    }
+    if (isNetwork(alert.getEquipment())) {
+      throw new ResponseStatusException(
+          HttpStatus.CONFLICT, "Aucune action corrective n'est permise sur un équipement réseau.");
     }
     UUID equipmentId = alert.getEquipment().getId();
     CollectionAgent agent =
@@ -297,6 +333,9 @@ public class RemediationService {
     if (policy == null || !policy.isEnabled()) {
       return Optional.empty();
     }
+    if (isNetwork(alert.getEquipment())) {
+      return Optional.empty();
+    }
     UUID equipmentId = alert.getEquipment().getId();
     CollectionAgent agent =
         agents.findByEquipmentIdAndStatus(equipmentId, AgentStatus.ACTIVE).orElse(null);
@@ -316,6 +355,10 @@ public class RemediationService {
       return Optional.empty();
     }
     boolean approval = policy.getMode() == RemediationMode.APPROVAL;
+    String forced = approval ? null : forcedApprovalReason(policy, equipmentId, now);
+    if (forced != null) {
+      approval = true;
+    }
     RemediationJob job =
         jobs.save(
             new RemediationJob(
@@ -329,12 +372,54 @@ public class RemediationService {
                 null,
                 now,
                 now.plus(approval ? approvalTtl : queueTtl)));
-    audit.record(
-        approval ? "REMEDIATION_AWAITING_APPROVAL" : "REMEDIATION_TRIGGERED",
-        "ALERT",
-        alertId,
-        "action=" + policy.getActionName());
+    if (forced != null) {
+      job.setApprovalReason(forced);
+      audit.record(
+          "REMEDIATION_FORCED_APPROVAL",
+          "ALERT",
+          alertId,
+          "action=" + policy.getActionName() + " raison=" + forced);
+      events.publishEvent(
+          new RemediationNeedsHuman(
+              alertId,
+              "approbation:" + job.getId(),
+              "Action corrective "
+                  + policy.getActionName()
+                  + " en attente d'approbation : "
+                  + forced));
+    } else {
+      audit.record(
+          approval ? "REMEDIATION_AWAITING_APPROVAL" : "REMEDIATION_TRIGGERED",
+          "ALERT",
+          alertId,
+          "action=" + policy.getActionName());
+    }
     return Optional.of(job);
+  }
+
+  /**
+   * Pourquoi une politique automatique doit cette fois attendre un humain (ADR 0057), ou null : la
+   * même action a été jugée inefficace dans la fenêtre, ou la limite de fréquence est atteinte.
+   */
+  private String forcedApprovalReason(RemediationPolicy policy, UUID equipmentId, Instant now) {
+    Instant since = now.minus(Duration.ofHours(policy.getWindowHours()));
+    if (jobs.existsByEquipmentIdAndActionNameAndVerificationAndVerifiedAtAfter(
+        equipmentId, policy.getActionName(), RemediationVerification.INEFFECTIVE, since)) {
+      return "la même action a été jugée inefficace dans les "
+          + policy.getWindowHours()
+          + " dernières heures";
+    }
+    long runs =
+        jobs.countByEquipmentIdAndActionNameAndTriggerAndStateInAndCreatedAtAfter(
+            equipmentId, policy.getActionName(), RemediationTrigger.AUTO, COUNTED, since);
+    if (runs >= policy.getMaxAutoRuns()) {
+      return "limite de fréquence atteinte ("
+          + runs
+          + " exécutions automatiques en "
+          + policy.getWindowHours()
+          + " h)";
+    }
+    return null;
   }
 
   // ------------------------------------------------------------------ côté agent
@@ -386,8 +471,74 @@ public class RemediationService {
         exitCode == 0 ? "REMEDIATION_SUCCEEDED" : "REMEDIATION_FAILED",
         jobId,
         "action=" + job.getActionName() + " code=" + exitCode + " agent=" + agentId);
+    planVerification(job);
     refresh(job);
     return JobResponse.from(job);
+  }
+
+  // ------------------------------------------------------------------ vérification (ADR 0057)
+
+  /**
+   * Après le compte rendu de l'agent : si la politique de la règle prévoit une vérification, une
+   * action réussie sera jugée à l'échéance ; une action en échec est inefficace tout de suite.
+   */
+  private void planVerification(RemediationJob job) {
+    if (job.getRuleId() == null || job.getAlertId() == null) {
+      return;
+    }
+    RemediationPolicy policy = policies.findByRuleId(job.getRuleId()).orElse(null);
+    if (policy == null || policy.getVerifyMinutes() <= 0) {
+      return;
+    }
+    Instant now = clock.instant();
+    if (job.getState() == RemediationState.SUCCEEDED) {
+      job.scheduleVerification(now.plus(Duration.ofMinutes(policy.getVerifyMinutes())));
+    } else {
+      ineffective(job, now, "l'action a échoué (code " + job.getExitCode() + ")");
+    }
+  }
+
+  @Scheduled(fixedDelayString = "${remediation.verify-scan-ms:60000}")
+  public void scheduledVerification() {
+    guard.run("remediation.verify", Duration.ofMinutes(5), () -> verifyDue(clock.instant()));
+  }
+
+  /**
+   * Juge les exécutions dont la vérification est échue : alerte résolue (ou archivée) d'ici là, la
+   * correction est efficace ; toujours ouverte, elle est inefficace et l'astreinte est prévenue.
+   * Rien n'est relancé : la prochaine ouverture passera en approbation.
+   */
+  @Transactional
+  public int verifyDue(Instant now) {
+    int verified = 0;
+    for (RemediationJob job : jobs.findByVerificationIsNullAndVerifyDueAtBefore(now)) {
+      Alert alert = alerts.findById(job.getAlertId()).orElse(null);
+      boolean stillOpen =
+          alert != null
+              && (alert.getState() == AlertState.OPEN
+                  || alert.getState() == AlertState.IN_PROGRESS);
+      if (stillOpen) {
+        ineffective(job, now, "l'alerte est toujours ouverte après le délai de vérification");
+      } else {
+        job.verified(RemediationVerification.EFFECTIVE, now);
+        auditAsSystem("REMEDIATION_EFFECTIVE", job.getId(), "action=" + job.getActionName());
+        refresh(job);
+      }
+      verified++;
+    }
+    return verified;
+  }
+
+  private void ineffective(RemediationJob job, Instant now, String why) {
+    job.verified(RemediationVerification.INEFFECTIVE, now);
+    auditAsSystem(
+        "REMEDIATION_INEFFECTIVE", job.getId(), "action=" + job.getActionName() + " raison=" + why);
+    events.publishEvent(
+        new RemediationNeedsHuman(
+            job.getAlertId(),
+            "inefficace:" + job.getId(),
+            "Action corrective " + job.getActionName() + " inefficace : " + why));
+    refresh(job);
   }
 
   // ------------------------------------------------------------------ expiration
@@ -458,6 +609,10 @@ public class RemediationService {
     Equipment equipment = equipments.findById(job.getEquipmentId()).orElse(null);
     scope.requireVisible(equipment == null ? null : siteOf(equipment), "Exécution introuvable");
     return job;
+  }
+
+  private static boolean isNetwork(Equipment equipment) {
+    return equipment != null && NETWORK.contains(equipment.getType());
   }
 
   private static UUID siteOf(Equipment equipment) {

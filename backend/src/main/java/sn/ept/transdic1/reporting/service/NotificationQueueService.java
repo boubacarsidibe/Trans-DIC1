@@ -128,6 +128,28 @@ public class NotificationQueueService {
    */
   @Transactional
   public OnCallDelivery queueOnCall(UUID alertId, UUID userId, boolean secondary) {
+    return queueToOnCall(
+        alertId,
+        userId,
+        secondary ? "[2e niveau] " : "",
+        "oncall:" + alertId + ":" + (secondary ? "SECONDARY" : "PRIMARY") + ":" + userId);
+  }
+
+  /**
+   * Rappel à la personne d'astreinte hors de la chaîne d'escalade (ADR 0057) : une correction
+   * automatique n'a pas suffi. Un rappel par fait (clé), jamais deux.
+   */
+  public OnCallDelivery queueOnCallReminder(
+      UUID alertId, UUID userId, String subjectPrefix, String factKey) {
+    return queueToOnCall(
+        alertId,
+        userId,
+        subjectPrefix,
+        "oncall:" + alertId + ":REMINDER:" + factKey + ":" + userId);
+  }
+
+  private OnCallDelivery queueToOnCall(
+      UUID alertId, UUID userId, String subjectPrefix, String dedupKey) {
     Alert alert = alerts.findById(alertId).orElseThrow();
     AppUser user = users.findById(userId).orElseThrow();
     if (!scope.allowsUser(user.getId(), siteOf(alert))) {
@@ -143,15 +165,10 @@ public class NotificationQueueService {
     if (destination == null || destination.isBlank()) {
       return OnCallDelivery.NO_CHANNEL;
     }
-    String subject = renderer.render(ONCALL_KIND, alert).subject();
-    if (secondary) {
-      subject = "[2e niveau] " + subject;
-    }
+    String subject = subjectPrefix + renderer.render(ONCALL_KIND, alert).subject();
     if (subject.length() > 255) {
       subject = subject.substring(0, 255);
     }
-    String dedupKey =
-        "oncall:" + alertId + ":" + (secondary ? "SECONDARY" : "PRIMARY") + ":" + userId;
     if (!notifications.existsByDedupKey(dedupKey)) {
       var notification =
           new Notification(user, channel, destination, subject, NotificationState.PENDING);

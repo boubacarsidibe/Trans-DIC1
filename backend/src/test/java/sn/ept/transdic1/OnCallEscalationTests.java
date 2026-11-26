@@ -27,6 +27,7 @@ import sn.ept.transdic1.alerting.repository.AlertEventRepository;
 import sn.ept.transdic1.alerting.repository.AlertRepository;
 import sn.ept.transdic1.alerting.repository.MaintenanceRepository;
 import sn.ept.transdic1.alerting.service.AlertEscalationService;
+import sn.ept.transdic1.common.alerting.RemediationNeedsHuman;
 import sn.ept.transdic1.inventory.domain.Equipment;
 import sn.ept.transdic1.inventory.domain.EquipmentStatus;
 import sn.ept.transdic1.inventory.domain.EquipmentType;
@@ -258,6 +259,59 @@ class OnCallEscalationTests {
 
     assertThat(alerts.findById(alert.getId()).orElseThrow().getEscalatedAt()).isNotNull();
     assertThat(onCallNotifications(alert, secondary)).isEqualTo(1);
+  }
+
+  @Test
+  void uneCorrectionInefficacePrevientLeprincipalToutDeSuite_memeApresLOuverture() {
+    Alert alert = alert(Severity.CRITICAL, AlertState.OPEN, 0);
+    chain.startChain(alert.getId(), now);
+    assertThat(onCallNotifications(alert, primary)).isEqualTo(1);
+
+    boolean reached =
+        chain.remind(
+            new RemediationNeedsHuman(alert.getId(), "inefficace:j1", "Action X inefficace"), now);
+
+    assertThat(reached).isTrue();
+    // Un rappel en plus de la notification d'ouverture, hors de la chaîne d'escalade.
+    assertThat(onCallNotifications(alert, primary)).isEqualTo(2);
+    assertThat(onCallNotifications(alert, secondary)).isZero();
+    assertThat(comments(alert))
+        .contains("Action X inefficace ; astreinte : oc-prim-" + suffix + " prévenu(e)");
+    // Le même fait ne prévient qu'une fois.
+    chain.remind(new RemediationNeedsHuman(alert.getId(), "inefficace:j1", "Action X"), now);
+    assertThat(onCallNotifications(alert, primary)).isEqualTo(2);
+  }
+
+  @Test
+  void leRappelVaAuSecondaireSiLePrincipalNaAucunCanal() {
+    preferences.delete(preferences.findByUserId(primary.getId()).orElseThrow());
+    Alert alert = alert(Severity.WARNING, AlertState.OPEN, 0);
+
+    assertThat(
+            chain.remind(
+                new RemediationNeedsHuman(alert.getId(), "approbation:j2", "Approbation imposée"),
+                now))
+        .isTrue();
+
+    assertThat(onCallNotifications(alert, secondary)).isEqualTo(1);
+  }
+
+  @Test
+  void aucunRappelPendantUneMaintenanceNiPourUneAlerteResolue() {
+    Alert inMaintenance = alert(Severity.CRITICAL, AlertState.OPEN, 0);
+    maintenance(now.minus(1, ChronoUnit.HOURS), now.plus(1, ChronoUnit.HOURS));
+    assertThat(
+            chain.remind(new RemediationNeedsHuman(inMaintenance.getId(), "k1", "inefficace"), now))
+        .isFalse();
+    assertThat(onCallNotifications(inMaintenance, primary)).isZero();
+    assertThat(comments(inMaintenance)).isEmpty();
+  }
+
+  @Test
+  void aucunRappelPourUneAlerteDejaResolue() {
+    Alert resolved = alert(Severity.CRITICAL, AlertState.ARCHIVED, 0);
+    assertThat(chain.remind(new RemediationNeedsHuman(resolved.getId(), "k2", "x"), now)).isFalse();
+    assertThat(onCallNotifications(resolved, primary)).isZero();
   }
 
   private long onCallNotifications(Alert alert, AppUser user) {

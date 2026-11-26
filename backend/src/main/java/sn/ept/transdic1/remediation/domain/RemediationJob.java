@@ -71,6 +71,21 @@ public class RemediationJob {
   @Column(name = "duration_ms")
   private Long durationMs;
 
+  /** Échéance de la vérification (ADR 0057) : l'alerte doit être résolue d'ici là. */
+  @Column(name = "verify_due_at")
+  private Instant verifyDueAt;
+
+  @Enumerated(EnumType.STRING)
+  @Column(length = 16)
+  private RemediationVerification verification;
+
+  @Column(name = "verified_at")
+  private Instant verifiedAt;
+
+  /** Pourquoi l'approbation a été imposée à une politique automatique, s'il y a lieu. */
+  @Column(name = "approval_reason", length = 200)
+  private String approvalReason;
+
   protected RemediationJob() {}
 
   public RemediationJob(
@@ -127,6 +142,24 @@ public class RemediationJob {
     output = text;
     durationMs = duration;
     finishedAt = at;
+  }
+
+  /** L'alerte devra être résolue à cette échéance, sinon la correction sera inefficace. */
+  public void scheduleVerification(Instant due) {
+    verifyDueAt = due;
+  }
+
+  /** Verdict de la vérification (une seule fois). */
+  public void verified(RemediationVerification verdict, Instant at) {
+    if (verification != null) {
+      throw new IllegalStateException("Exécution déjà vérifiée");
+    }
+    verification = verdict;
+    verifiedAt = at;
+  }
+
+  public void setApprovalReason(String reason) {
+    approvalReason = reason;
   }
 
   public void expire() {
@@ -209,6 +242,22 @@ public class RemediationJob {
 
   public String getOutput() {
     return output;
+  }
+
+  public Instant getVerifyDueAt() {
+    return verifyDueAt;
+  }
+
+  public RemediationVerification getVerification() {
+    return verification;
+  }
+
+  public Instant getVerifiedAt() {
+    return verifiedAt;
+  }
+
+  public String getApprovalReason() {
+    return approvalReason;
   }
 
   public Long getDurationMs() {

@@ -3,6 +3,7 @@ package sn.ept.transdic1.oncall.service;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -27,6 +28,7 @@ import sn.ept.transdic1.alerting.repository.AlertRepository;
 import sn.ept.transdic1.alerting.repository.MaintenanceRepository;
 import sn.ept.transdic1.audit.service.AuditService;
 import sn.ept.transdic1.common.alerting.IncidentGrouping;
+import sn.ept.transdic1.common.alerting.RemediationNeedsHuman;
 import sn.ept.transdic1.common.scheduling.JobGuard;
 import sn.ept.transdic1.oncall.domain.OnCallAlertStep;
 import sn.ept.transdic1.oncall.domain.OnCallLevel;
@@ -140,6 +142,61 @@ public class OnCallEscalationService {
       notify(alert, OnCallLevel.SECONDARY, resolution.secondary(), now);
     }
     return true;
+  }
+
+  /**
+   * Une correction automatique n'a pas suffi (ADR 0057) : inefficace à l'échéance de sa
+   * vérification, ou approbation imposée par la limite de fréquence. La personne d'astreinte
+   * principale est prévenue tout de suite, hors de la chaîne d'escalade (le secondaire si le
+   * principal n'est pas joignable). Mêmes conditions qu'à l'ouverture : alerte encore ouverte,
+   * sévérité suffisante, hors maintenance, site couvert par un planning.
+   */
+  @EventListener
+  @Transactional
+  public void onRemediationNeedsHuman(RemediationNeedsHuman event) {
+    remind(event, clock.instant());
+  }
+
+  /** Retourne vrai si quelqu'un a été prévenu. */
+  @Transactional
+  public boolean remind(RemediationNeedsHuman event, Instant now) {
+    Alert alert = alerts.findById(event.alertId()).orElse(null);
+    if (alert == null
+        || (alert.getState() != AlertState.OPEN && alert.getState() != AlertState.IN_PROGRESS)
+        || alert.getSeverity().ordinal() < minimumSeverity.ordinal()
+        || underMaintenance(alert, now)) {
+      return false;
+    }
+    var resolution = resolver.resolve(siteOf(alert), now);
+    if (!resolution.covered()) {
+      return false;
+    }
+    Optional<OnCallPerson> reached = Optional.empty();
+    for (Optional<OnCallPerson> candidate : List.of(resolution.primary(), resolution.secondary())) {
+      if (candidate.isPresent()
+          && queue.queueOnCallReminder(
+                  alert.getId(), candidate.get().userId(), "[Correction] ", event.factKey())
+              == OnCallDelivery.QUEUED) {
+        reached = candidate;
+        break;
+      }
+    }
+    var timeline = new AlertEvent(alert, AlertEventType.NOTIFIED, now);
+    timeline.setComment(
+        event.reason()
+            + (reached.isPresent()
+                ? " ; astreinte : " + reached.get().username() + " prévenu(e)"
+                : " ; astreinte : personne de joignable"));
+    events.save(timeline);
+    publisher.publishEvent(new AlertActivityEvent(alert.getId(), AlertEventType.NOTIFIED));
+    audit.record(
+        "ONCALL_REMEDIATION",
+        "ALERT",
+        alert.getId(),
+        "fait="
+            + event.factKey()
+            + reached.map(p -> " personne=" + p.username()).orElse(" personne=aucune"));
+    return reached.isPresent();
   }
 
   @Scheduled(cron = "${oncall.escalation.cron:20 * * * * *}", zone = "UTC")

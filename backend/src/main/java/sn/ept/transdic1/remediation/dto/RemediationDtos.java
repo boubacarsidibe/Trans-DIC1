@@ -27,7 +27,17 @@ public final class RemediationDtos {
       @NotBlank @Pattern(regexp = NAME, message = "Nom d'action invalide") String actionName,
       @NotNull RemediationMode mode,
       @Min(0) @Max(1440) Integer cooldownMinutes,
-      Boolean enabled) {}
+      Boolean enabled,
+      @Schema(description = "Délai de vérification après l'action, en minutes (0 = aucune)")
+          @Min(0)
+          @Max(240)
+          Integer verifyMinutes,
+      @Schema(description = "Exécutions automatiques au plus par équipement sur la fenêtre")
+          @Min(1)
+          @Max(100)
+          Integer maxAutoRuns,
+      @Schema(description = "Fenêtre de la limite de fréquence, en heures") @Min(1) @Max(168)
+          Integer windowHours) {}
 
   public record PolicyResponse(
       UUID ruleId,
@@ -35,6 +45,9 @@ public final class RemediationDtos {
       RemediationMode mode,
       int cooldownMinutes,
       boolean enabled,
+      int verifyMinutes,
+      int maxAutoRuns,
+      int windowHours,
       Instant updatedAt,
       String updatedBy) {
     public static PolicyResponse from(RemediationPolicy p) {
@@ -44,6 +57,9 @@ public final class RemediationDtos {
           p.getMode(),
           p.getCooldownMinutes(),
           p.isEnabled(),
+          p.getVerifyMinutes(),
+          p.getMaxAutoRuns(),
+          p.getWindowHours(),
           p.getUpdatedAt(),
           p.getUpdatedBy());
     }
@@ -75,7 +91,12 @@ public final class RemediationDtos {
       Instant expiresAt,
       Integer exitCode,
       String output,
-      Long durationMs) {
+      Long durationMs,
+      @Schema(description = "Échéance de la vérification, si la politique en prévoit une")
+          Instant verifyDueAt,
+      @Schema(description = "EFFECTIVE ou INEFFECTIVE une fois vérifiée") String verification,
+      Instant verifiedAt,
+      @Schema(description = "Pourquoi l'approbation a été imposée") String approvalReason) {
     public static JobResponse from(RemediationJob j) {
       return new JobResponse(
           j.getId(),
@@ -93,7 +114,11 @@ public final class RemediationDtos {
           j.getExpiresAt(),
           j.getExitCode(),
           j.getOutput(),
-          j.getDurationMs());
+          j.getDurationMs(),
+          j.getVerifyDueAt(),
+          j.getVerification() == null ? null : j.getVerification().name(),
+          j.getVerifiedAt(),
+          j.getApprovalReason());
     }
   }
 

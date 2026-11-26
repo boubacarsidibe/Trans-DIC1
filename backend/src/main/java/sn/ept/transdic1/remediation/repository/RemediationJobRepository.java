@@ -8,6 +8,8 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import sn.ept.transdic1.remediation.domain.RemediationJob;
 import sn.ept.transdic1.remediation.domain.RemediationState;
+import sn.ept.transdic1.remediation.domain.RemediationTrigger;
+import sn.ept.transdic1.remediation.domain.RemediationVerification;
 
 public interface RemediationJobRepository extends JpaRepository<RemediationJob, UUID> {
   List<RemediationJob> findByAlertIdOrderByCreatedAtAsc(UUID alertId);
@@ -28,4 +30,19 @@ public interface RemediationJobRepository extends JpaRepository<RemediationJob, 
 
   List<RemediationJob> findByStateInAndExpiresAtBefore(
       Collection<RemediationState> states, Instant now);
+
+  /** Exécutions automatiques de cette action sur cet équipement dans la fenêtre (ADR 0057). */
+  long countByEquipmentIdAndActionNameAndTriggerAndStateInAndCreatedAtAfter(
+      UUID equipmentId,
+      String actionName,
+      RemediationTrigger trigger,
+      Collection<RemediationState> states,
+      Instant since);
+
+  /** Une exécution jugée inefficace récemment : l'action ne repart plus seule. */
+  boolean existsByEquipmentIdAndActionNameAndVerificationAndVerifiedAtAfter(
+      UUID equipmentId, String actionName, RemediationVerification verification, Instant since);
+
+  /** Vérifications arrivées à échéance. */
+  List<RemediationJob> findByVerificationIsNullAndVerifyDueAtBefore(Instant now);
 }
