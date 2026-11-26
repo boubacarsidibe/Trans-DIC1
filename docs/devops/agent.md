@@ -314,6 +314,30 @@ redemarrer-nginx = Redémarre le serveur web nginx
   sur approbation, délai de grâce), et détail d'une alerte → « Actions correctives » (lancer,
   approuver, refuser, lire le résultat).
 
+### Catalogue, sudo sous systemd, vérification (ADR 0057)
+
+- `agent.conf.example` (Linux) et `windows/agent.conf.example` contiennent un **catalogue commenté**
+  d'actions courantes (nginx, apache2, php-fpm, rotation des journaux, dossier temporaire
+  d'application ; spouleur, IIS sous Windows), chacune avec sa ligne sudoers exacte ou le droit de
+  service à accorder. Rien n'est actif tant qu'une ligne n'est pas décommentée.
+- **Sous systemd, sudo est bloqué par le durcissement du service** (`NoNewPrivileges`, capacités
+  vides, système en lecture seule). Une machine dont une action passe par sudo reçoit le complément
+  livré dans le paquet :
+
+  ```bash
+  sudo install -D -m 0644 actions-privileges.conf \
+    /etc/systemd/system/trans-dic1-agent.service.d/actions.conf
+  sudo systemctl daemon-reload && sudo systemctl restart trans-dic1-agent
+  ```
+
+  Il ne rouvre que ce dont sudo a besoin ; une machine sans action garde le durcissement complet.
+- À grande échelle, le rôle Ansible pose les actions, les règles sudo (validées par `visudo`) et ce
+  complément : voir `docs/devops/deploiement-a-grande-echelle.md`, section 10.
+- Côté plateforme, la politique d'une règle peut **vérifier** l'action (l'alerte doit être résolue
+  au bout du délai, sinon la correction est inefficace et l'astreinte est prévenue) et **limiter sa
+  fréquence** (au-delà de N exécutions automatiques sur la fenêtre, l'approbation est imposée).
+  Aucune action n'est jamais demandée pour un routeur, un commutateur ou une borne Wi-Fi.
+
 ## Comportement en cas de problème
 
 | Situation | Comportement de l'agent | Action |

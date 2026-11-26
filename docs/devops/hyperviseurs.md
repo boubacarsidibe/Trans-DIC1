@@ -60,6 +60,8 @@ Puis **Essayer la connexion** (lit l'inventaire sans rien créer) et **Synchroni
 | `COLLECTION_HYPERVISOR_TIMEOUT_SECONDS` | 15 | délai d'un appel à l'API |
 | `COLLECTION_HYPERVISOR_FAILURE_THRESHOLD` | 3 | passages sans réponse avant l'alerte sur les hôtes |
 | `COLLECTION_HYPERVISOR_ADDRESS_LOOKUPS_PER_RUN` | 50 | lectures d'adresse par l'agent invité au plus par passage |
+| `COLLECTION_HYPERVISOR_VM_ACTIONS_APPROVAL_TTL_MINUTES` | 60 | délai pour approuver une demande de redémarrage de VM (section 7) |
+| `COLLECTION_HYPERVISOR_VM_ACTIONS_EXPIRY_SCAN_MS` | 60000 | fréquence du passage qui fait expirer les demandes non décidées |
 
 ## 5. Dépannage
 
@@ -76,3 +78,35 @@ Puis **Essayer la connexion** (lit l'inventaire sans rien créer) et **Synchroni
 ## 6. Ce qui n'a pas été vérifié
 
 Le connecteur n'a jamais été essayé contre un Proxmox réel : il l'est contre un faux serveur HTTPS qui rejoue des réponses écrites d'après la documentation de l'API (voir l'ADR, section Limites). À éprouver sur un cluster du CRI avant de s'y fier.
+
+## 7. Redémarrer une VM bloquée (facultatif, ADR 0057)
+
+Désactivé par défaut. Pour une VM figée que son agent ne peut plus corriger, la plateforme peut
+demander à Proxmox un **redémarrage forcé** (`reset`, sans arrêt propre), toujours sur approbation.
+
+1. Sur Proxmox, créer un **second jeton**, distinct du jeton de lecture, avec le seul droit
+   `VM.PowerMgmt`, limité aux VM concernées si possible :
+
+   ```bash
+   pveum role add TransDic1Power --privs "VM.PowerMgmt"
+   pveum user token add supervision@pve trans-dic1-actions --privsep 1
+   pveum acl modify /vms --tokens 'supervision@pve!trans-dic1-actions' --roles TransDic1Power
+   ```
+
+2. Mettre son secret dans une variable d'environnement du serveur (ex. `PVE_CAMPUS_POWER_TOKEN`),
+   jamais dans Git.
+3. Dans **Hyperviseurs → Modifier**, section « Actions sur les VM » : identifiant du jeton d'action,
+   référence `env:PVE_CAMPUS_POWER_TOKEN`, case « Permettre le redémarrage des VM ». La plateforme
+   refuse un jeton d'action identique au jeton de lecture.
+4. **Ressources** → « Redémarrer … » sur une VM présente : un administrateur saisit le motif ; un
+   **autre** administrateur approuve (le demandeur ne peut pas s'approuver), l'ordre part alors. Une
+   demande non décidée expire au bout d'une heure. Seule une VM peut être redémarrée, jamais un hôte
+   ni un conteneur, et jamais automatiquement par une alerte. Chaque étape est dans l'audit.
+
+| Message | Cause | Action |
+| --- | --- | --- |
+| « Droits insuffisants (HTTP 403) : droit VM.PowerMgmt attendu sur le jeton d'action » | rôle absent pour ce jeton sur la VM | `pveum acl modify /vms/<vmid> --tokens '…' --roles TransDic1Power` |
+| « Actions sur les VM désactivées pour ce connecteur » | case décochée ou second jeton absent | compléter la section « Actions sur les VM » |
+| « Un autre administrateur que le demandeur doit approuver » | règle des quatre yeux | faire approuver par un collègue |
+
+Jamais essayé contre un Proxmox réel (double de l'API et faux serveur HTTPS seulement).

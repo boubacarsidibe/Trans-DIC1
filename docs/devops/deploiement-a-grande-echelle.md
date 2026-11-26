@@ -163,3 +163,33 @@ Vérifié, sur le poste de développement :
 - les dix tests du script de synchronisation contre une fausse plateforme, sous Windows (Python 3.12) et Linux (Python 3.14).
 
 **Pas vérifié** : la partie Windows du rôle n'a été exécutée contre aucun serveur Windows (aucun hôte WinRM disponible) — elle est relue, analysée par `--syntax-check` et `ansible-lint`, et `install.ps1` lui-même a été essayé à la main sous Windows 11 ; les pipelines d'exemple n'ont tourné ni dans GitLab ni dans GitHub ; le modèle cloud-init n'a été appliqué à aucune VM ; rien n'a été déployé sur une machine de l'EPT.
+
+## 10. Actions correctives d'un groupe de machines (ADR 0057)
+
+La variable `trans_dic1_agent_actions` (vide par défaut) liste les actions qu'un groupe de machines
+sait exécuter. Exemple complet, avec des noms de groupes d'exemple, dans
+`deploy/ansible/inventory/group_vars/exemple-actions.yml.example` :
+
+```yaml
+trans_dic1_agent_actions:
+  - name: redemarrer-nginx
+    description: Redémarre le serveur web nginx
+    command: sudo -n /usr/bin/systemctl restart nginx
+    sudo: /usr/bin/systemctl restart nginx
+```
+
+Le rôle :
+
+- vérifie chaque action avant tout changement (nom en minuscules, commande non vide, et `sudo` =
+  chemin absolu exact repris dans `command` après `sudo -n`) ;
+- écrit `[actions]` et `[action_descriptions]` dans un bloc marqué de `agent.conf` (relancer le rôle
+  ne duplique rien ; vider la liste vide le bloc) ;
+- Linux : pose `/etc/sudoers.d/trans-dic1-agent` (une ligne par commande exacte, sans joker),
+  **validé par `visudo -cf` avant d'être mis en place**, et le complément systemd
+  `actions.conf` qui autorise sudo dans le service durci — seulement si une action passe par sudo ;
+- Windows : écrit le même bloc ; les droits du compte de l'agent sur les services visés
+  (`sc.exe sdset`) restent un geste d'administration à part, décrit dans `agent.conf.example`.
+
+La plateforme ne pourra demander que ces noms ; la commande reste écrite sur la machine (ADR 0050).
+Vérifié : `yamllint`, `ansible-lint` (profil production), `--syntax-check`. Non vérifié : une
+exécution sous systemd réel (le poste de développement n'en a pas) et la partie Windows.

@@ -3,6 +3,7 @@
 - Statut : accepté
 - Date : 2026-11-25
 - S'appuie sur l'agent (ADR 0006, 0012, 0023) et sur l'astreinte (ADR 0025)
+- Complétée par l'[ADR 0057](0057-correction-a-distance-enrichie.md) : vérification après l'action, limite de fréquence, catalogue et déploiement des actions, redémarrage de VM par l'hyperviseur
 
 ## Contexte
 

@@ -523,6 +523,17 @@ Ce que vous verrez dans les alertes : une VM **éteinte après avoir tourné** o
 
 Quand l'adresse d'une VM est connue, une sonde ICMP est préparée **inactive** sur son équipement : activez-la si vous voulez suivre la VM par ping. Cette page est réservée aux administrateurs.
 
+**Redémarrer une VM bloquée** (si l'administrateur l'a permis sur le connecteur, avec un second jeton dédié) : dans **Ressources**, le bouton **Redémarrer …** d'une VM demande un motif et enregistre une demande ; un **autre** administrateur l'approuve avec **Approuver et redémarrer**, ou la refuse. C'est un redémarrage forcé, sans arrêt propre, à réserver aux VM figées. Une demande non décidée expire au bout d'une heure.
+
+### Actions correctives : vérifier et limiter
+
+Sur l'écran **Règles**, la fenêtre « Action corrective » d'une règle propose, en plus du mode et du délai de grâce :
+
+- **Vérification après l'action** (en minutes, 0 = aucune) : si l'alerte n'est pas résolue à la fin de ce délai, la correction est jugée **inefficace** — la personne d'astreinte est prévenue tout de suite et l'action ne repart plus d'elle-même : la fois suivante, elle attendra une approbation. Choisissez un délai qui laisse à la règle le temps de confirmer le retour à la normale.
+- **Exécutions automatiques au plus** sur **une fenêtre** (en heures) : au-delà, pour cet équipement, l'action passe d'office en approbation et l'astreinte est prévenue. Une panne qui revient sans cesse est l'affaire d'un humain.
+
+Dans le détail de l'alerte, chaque exécution affiche son verdict (« Efficace », « Inefficace ») ou l'heure de la vérification prévue, et, quand l'approbation a été imposée, sa raison. Aucune action corrective n'est jamais demandée pour un routeur, un commutateur ou une borne Wi-Fi.
+
 ### Sondes (supervision sans agent)
 
 Pour un équipement qui n'a ni agent ni SNMP (imprimante, borne Wi-Fi, ENT, messagerie, site web), **Parc > Équipements**, bouton **Sondes** sur la ligne de l'équipement. Tous les rôles voient la page (dans leur périmètre de sites) ; seuls les administrateurs ajoutent, modifient, testent, réactivent ou suppriment.
