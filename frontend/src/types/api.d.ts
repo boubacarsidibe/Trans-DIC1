@@ -927,6 +927,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inscriptions/jetons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lister les jetons d'inscription
+         * @description Le jeton lui-même n'est jamais renvoyé : seule son empreinte est stockée.
+         */
+        get: operations["listTokens"];
+        put?: never;
+        /**
+         * Créer un jeton d'inscription
+         * @description Retourne le jeton, affiché une seule fois. Valable au plus 365 jours, pour un nombre d'utilisations borné, éventuellement limité à des plages d'adresses (CIDR).
+         */
+        post: operations["createToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inscriptions/demandes/refus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refuser des demandes d'inscription */
+        post: operations["reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inscriptions/demandes/approbation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approuver des demandes d'inscription
+         * @description L'équipement est créé aussitôt ; l'agent reçoit son jeton à sa prochaine demande.
+         */
+        post: operations["approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/equipements": {
         parameters: {
             query?: never;
@@ -1131,7 +1192,7 @@ export interface paths {
          * Écarter un lien proposé
          * @description Il ne sera plus reproposé, même si la statistique persiste.
          */
-        post: operations["reject"];
+        post: operations["reject_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1586,6 +1647,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/agent/enroll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * S'inscrire (agent)
+         * @description Authentifié par un jeton d'inscription (tdic1e_…) dans l'en-tête Authorization: Bearer. 201 : l'agent est inscrit et reçoit son jeton personnel, affiché une seule fois. 202 : la demande attend un administrateur, redemander après reessayerDansSecondes. La même machine (même identifiant) ne crée jamais deux équipements : elle retrouve le sien et reçoit un nouveau jeton.
+         */
+        post: operations["enroll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/agent/actions": {
         parameters: {
             query?: never;
@@ -1639,7 +1720,7 @@ export interface paths {
          * Refuser une action corrective
          * @description Opérateurs NOC et administrateurs.
          */
-        post: operations["reject_1"];
+        post: operations["reject_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1659,7 +1740,7 @@ export interface paths {
          * Approuver une action corrective
          * @description Opérateurs NOC et administrateurs.
          */
-        post: operations["approve"];
+        post: operations["approve_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2070,6 +2151,26 @@ export interface paths {
          * @description Dernière mesure connue par équipement et par indicateur.
          */
         get: operations["latest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inscriptions/demandes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lister les machines inscrites ou en attente
+         * @description Par défaut, les demandes en attente et celles approuvées non encore retirées.
+         */
+        get: operations["listRequests"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2743,6 +2844,26 @@ export interface paths {
          * @description Le jeton cesse d'être accepté tout de suite ; la ligne reste pour l'audit.
          */
         delete: operations["revoke_2"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inscriptions/jetons/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Révoquer un jeton d'inscription
+         * @description Plus aucune machine ne peut s'inscrire avec ce jeton. Les agents déjà inscrits gardent leur jeton personnel.
+         */
+        delete: operations["revokeToken"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3446,6 +3567,36 @@ export interface components {
             /** Format: date-time */
             revokedAt?: string;
         };
+        EnrollmentTokenRequest: {
+            nom: string;
+            /** Format: uuid */
+            siteId: string;
+            /** Format: date-time */
+            expireLe: string;
+            /** Format: int32 */
+            utilisationsMax?: number;
+            plagesAutorisees?: string[];
+            /** @enum {string} */
+            mode: "AUTO" | "APPROVAL";
+            /** @enum {string} */
+            typeEquipement: "SERVER" | "ROUTER" | "SWITCH" | "VIRTUAL_MACHINE" | "WIFI_ACCESS_POINT";
+        };
+        EnrollmentTokenCreated: {
+            /** Format: uuid */
+            id?: string;
+            nom?: string;
+            jeton?: string;
+            /** Format: date-time */
+            expireLe?: string;
+        };
+        EnrollmentDecisionRequest: {
+            ids: string[];
+        };
+        EnrollmentDecisionResult: {
+            /** Format: int32 */
+            traitees?: number;
+            ignorees?: string[];
+        };
         ProbeResponse: {
             /** Format: uuid */
             id?: string;
@@ -3748,6 +3899,14 @@ export interface components {
             request?: string;
             /** Format: int32 */
             status?: number;
+        };
+        AgentEnrollRequest: {
+            hostname: string;
+            machineId: string;
+            ipAddresses?: string[];
+            os: string;
+            osVersion?: string;
+            agentVersion?: string;
         };
         /** @description Passage de l'agent : actions qu'il sait exécuter */
         AgentPollRequest: {
@@ -4198,6 +4357,62 @@ export interface components {
         PagedModelMaintenanceResponse: {
             content?: components["schemas"]["MaintenanceResponse"][];
             page?: components["schemas"]["PageMetadata"];
+        };
+        EnrollmentTokenResponse: {
+            /** Format: uuid */
+            id?: string;
+            nom?: string;
+            /** Format: uuid */
+            siteId?: string;
+            siteNom?: string;
+            /** Format: date-time */
+            expireLe?: string;
+            /** Format: int32 */
+            utilisationsMax?: number;
+            /** Format: int32 */
+            utilisations?: number;
+            plagesAutorisees?: string[];
+            /** @enum {string} */
+            mode?: "AUTO" | "APPROVAL";
+            /** @enum {string} */
+            typeEquipement?: "SERVER" | "ROUTER" | "SWITCH" | "VIRTUAL_MACHINE" | "WIFI_ACCESS_POINT";
+            etat?: string;
+            creePar?: string;
+            /** Format: date-time */
+            creeLe?: string;
+            /** Format: date-time */
+            revoqueLe?: string;
+            /** Format: date-time */
+            derniereUtilisation?: string;
+        };
+        EnrollmentRequestResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            siteId?: string;
+            siteNom?: string;
+            nomHote?: string;
+            machine?: string;
+            adresses?: string[];
+            adresseSource?: string;
+            systeme?: string;
+            versionSysteme?: string;
+            versionAgent?: string;
+            /** @enum {string} */
+            statut?: "PENDING" | "APPROVED" | "REJECTED" | "ENROLLED";
+            jetonNom?: string;
+            /** Format: uuid */
+            equipementId?: string;
+            equipementNom?: string;
+            /** Format: date-time */
+            demandeeLe?: string;
+            /** Format: date-time */
+            vueLe?: string;
+            decidePar?: string;
+            /** Format: date-time */
+            decideLe?: string;
+            /** Format: date-time */
+            inscriteLe?: string;
         };
         /** @description Fiabilité d'un équipement : pannes = alertes de perte de collecte ; MTBF = temps en service divisé par le nombre de pannes (nul sans panne) */
         EquipmentReliability: {
@@ -8592,6 +8807,177 @@ export interface operations {
             };
         };
     };
+    listTokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EnrollmentTokenResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    createToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnrollmentTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EnrollmentTokenCreated"];
+                };
+            };
+            /** @description Paramètres invalides */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    reject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnrollmentDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EnrollmentDecisionResult"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnrollmentDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EnrollmentDecisionResult"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     list_9: {
         parameters: {
             query: {
@@ -9242,7 +9628,7 @@ export interface operations {
             };
         };
     };
-    reject: {
+    reject_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -10442,6 +10828,46 @@ export interface operations {
             };
         };
     };
+    enroll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentEnrollRequest"];
+            };
+        };
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Trop de demandes */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     poll: {
         parameters: {
             query?: never;
@@ -10524,7 +10950,7 @@ export interface operations {
             };
         };
     };
-    reject_1: {
+    reject_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -10569,7 +10995,7 @@ export interface operations {
             };
         };
     };
-    approve: {
+    approve_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -11452,6 +11878,46 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MetricResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listRequests: {
+        parameters: {
+            query?: {
+                statut?: ("PENDING" | "APPROVED" | "REJECTED" | "ENROLLED")[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EnrollmentRequestResponse"][];
                 };
             };
             /** @description Authentification requise ou jeton expiré */
@@ -12894,6 +13360,51 @@ export interface operations {
         };
     };
     revoke_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Jeton introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    revokeToken: {
         parameters: {
             query?: never;
             header?: never;

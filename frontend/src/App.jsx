@@ -37,6 +37,7 @@ import ChannelsPage from "./pages/ChannelsPage.jsx";
 import DiscoveryPage from "./pages/DiscoveryPage.jsx";
 import ImportPage from "./pages/ImportPage.jsx";
 import ChangePasswordPage from "./pages/ChangePasswordPage.jsx";
+import AgentEnrollmentPage from "./pages/AgentEnrollmentPage.jsx";
 
 function App() {
   return (
@@ -77,6 +78,7 @@ function App() {
           </Route>
           <Route element={<ProtectedRoute roles={["ADMIN"]} />}>
             <Route path="/decouverte" element={<DiscoveryPage />} />
+            <Route path="/inscription-agents" element={<AgentEnrollmentPage />} />
             <Route path="/utilisateurs" element={<UsersPage />} />
             <Route path="/audit" element={<AuditPage />} />
             <Route path="/canaux" element={<ChannelsPage />} />

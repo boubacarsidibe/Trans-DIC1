@@ -17,6 +17,7 @@ import {
   LogOut,
   CalendarClock,
   KeyRound,
+  KeySquare,
   Menu,
   PhoneCall,
   Radar,
@@ -70,6 +71,12 @@ const SECTIONS = [
       { to: "/maintenances", label: "Maintenances", icon: Wrench },
       { to: "/import", label: "Import CSV", icon: Upload, roles: ["ADMIN", "NOC_OPERATOR"] },
       { to: "/decouverte", label: "Découverte", icon: Radar, roles: ["ADMIN"] },
+      {
+        to: "/inscription-agents",
+        label: "Inscription des agents",
+        icon: KeySquare,
+        roles: ["ADMIN"],
+      },
     ],
   },
   {
