@@ -8,6 +8,7 @@ import {
   Building2,
   FileBarChart2,
   Gauge,
+  HardDrive,
   Funnel,
   LayoutDashboard,
   LayoutTemplate,
@@ -71,6 +72,7 @@ const SECTIONS = [
       { to: "/maintenances", label: "Maintenances", icon: Wrench },
       { to: "/import", label: "Import CSV", icon: Upload, roles: ["ADMIN", "NOC_OPERATOR"] },
       { to: "/decouverte", label: "Découverte", icon: Radar, roles: ["ADMIN"] },
+      { to: "/hyperviseurs", label: "Hyperviseurs", icon: HardDrive, roles: ["ADMIN"] },
       {
         to: "/inscription-agents",
         label: "Inscription des agents",

@@ -239,6 +239,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/hyperviseurs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lire un connecteur d'hyperviseur */
+        get: operations["get_4"];
+        /** Modifier un connecteur d'hyperviseur */
+        put: operations["update_6"];
+        post?: never;
+        /**
+         * Supprimer un connecteur d'hyperviseur
+         * @description Les équipements découverts restent dans l'inventaire, avec leur historique.
+         */
+        delete: operations["delete_6"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/equipements/{id}": {
         parameters: {
             query?: never;
@@ -247,12 +269,12 @@ export interface paths {
             cookie?: never;
         };
         /** Consulter un équipement */
-        get: operations["get_4"];
+        get: operations["get_5"];
         /** Modifier un équipement */
-        put: operations["update_6"];
+        put: operations["update_7"];
         post?: never;
         /** Supprimer un équipement */
-        delete: operations["delete_6"];
+        delete: operations["delete_7"];
         options?: never;
         head?: never;
         patch?: never;
@@ -290,7 +312,7 @@ export interface paths {
             cookie?: never;
         };
         /** Consulter la collecte SNMP d'un équipement */
-        get: operations["get_5"];
+        get: operations["get_6"];
         /**
          * Configurer la collecte SNMP
          * @description Crée ou remplace la configuration. Communauté et mots de passe se donnent par référence (env:NOM), jamais en clair. La première lecture a lieu à la prochaine passe.
@@ -301,7 +323,7 @@ export interface paths {
          * Arrêter la collecte SNMP
          * @description Désactive la collecte ; les mesures déjà reçues sont conservées.
          */
-        delete: operations["delete_7"];
+        delete: operations["delete_8"];
         options?: never;
         head?: never;
         patch?: never;
@@ -988,6 +1010,61 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/hyperviseurs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les connecteurs d'hyperviseur */
+        get: operations["list_9"];
+        put?: never;
+        /**
+         * Créer un connecteur d'hyperviseur
+         * @description Adresse HTTPS de l'API, identifiant du jeton en lecture seule et référence env:NOM de son secret (jamais le secret), autorité de certification interne facultative.
+         */
+        post: operations["create_9"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hyperviseurs/{id}/synchronisation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Synchroniser maintenant, sans attendre l'intervalle */
+        post: operations["synchronize"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hyperviseurs/{id}/essai": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Essayer la connexion à l'hyperviseur, sans rien créer */
+        post: operations["test_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/equipements": {
         parameters: {
             query?: never;
@@ -999,10 +1076,10 @@ export interface paths {
          * Lister les équipements
          * @description Liste paginée (20 par page, tri par nom), filtrable par site, type et statut.
          */
-        get: operations["list_9"];
+        get: operations["list_10"];
         put?: never;
         /** Créer un équipement */
-        post: operations["create_9"];
+        post: operations["create_10"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1232,7 +1309,7 @@ export interface paths {
          * Envoyer un message de test
          * @description Envoie un message fictif immédiatement et indique si le canal répond. Rien n'est enregistré dans l'historique.
          */
-        post: operations["test_2"];
+        post: operations["test_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2032,7 +2109,7 @@ export interface paths {
             cookie?: never;
         };
         /** Comptes limités à certains sites */
-        get: operations["list_10"];
+        get: operations["list_11"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2210,7 +2287,7 @@ export interface paths {
          * Lister les incidents
          * @description Liste paginée (20 par page, plus récents d'abord), filtrable par état. Chaque incident indique le nombre d'alertes et les équipements touchés.
          */
-        get: operations["list_11"];
+        get: operations["list_12"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2230,7 +2307,7 @@ export interface paths {
          * Consulter un incident et ses alertes
          * @description Chaque alerte porte la règle qui l'a rapprochée des autres, en clair, et un repère sur celle qui a notifié au nom de l'incident.
          */
-        get: operations["get_6"];
+        get: operations["get_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2279,6 +2356,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/hyperviseurs/{id}/ressources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hôtes, VM et conteneurs vus par le connecteur */
+        get: operations["resources"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/flux": {
         parameters: {
             query?: never;
@@ -2310,7 +2404,7 @@ export interface paths {
          * Lister les événements réseau
          * @description Liste paginée (50 par page, plus récents d'abord), filtrable par équipement, source, sévérité minimale (EMERGENCY la plus grave), période [from, to[ et texte (titre, détails, OID). 200 événements par page au plus.
          */
-        get: operations["list_12"];
+        get: operations["list_13"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2447,7 +2541,7 @@ export interface paths {
             cookie?: never;
         };
         /** Consulter une recherche et les équipements trouvés */
-        get: operations["get_7"];
+        get: operations["get_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2484,7 +2578,7 @@ export interface paths {
          * Lister les liens proposés
          * @description Les plus confiants d'abord. Un lien n'est listé que si les deux équipements sont visibles : une proposition porte sur leur couple, en montrer la moitié n'aurait aucun sens.
          */
-        get: operations["list_13"];
+        get: operations["list_14"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2602,7 +2696,7 @@ export interface paths {
          * Consulter le journal
          * @description Liste paginée (50 par page, plus récentes d'abord), filtrable par période (from inclus, to exclu), compte, action et cible.
          */
-        get: operations["list_14"];
+        get: operations["list_15"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2742,7 +2836,7 @@ export interface paths {
          * Lister les alertes
          * @description Liste paginée (20 par page, plus récentes d'abord), filtrable par état, équipement, sévérité ou alertes actives. Les alertes supprimées sont masquées.
          */
-        get: operations["list_15"];
+        get: operations["list_16"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2759,14 +2853,14 @@ export interface paths {
             cookie?: never;
         };
         /** Consulter une alerte et son historique */
-        get: operations["get_8"];
+        get: operations["get_9"];
         put?: never;
         post?: never;
         /**
          * Supprimer une alerte
          * @description Suppression logique : l'alerte et son historique restent en base.
          */
-        delete: operations["delete_8"];
+        delete: operations["delete_9"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3112,6 +3206,21 @@ export interface components {
             active?: boolean;
             email?: string;
             destination?: string;
+        };
+        ConnectorRequest: {
+            nom: string;
+            /** @enum {string} */
+            type: "PROXMOX" | "VSPHERE" | "HYPERV";
+            urlApi: string;
+            identifiantJeton: string;
+            referenceSecret: string;
+            certificatAutorite?: string;
+            /** Format: int32 */
+            intervalleSecondes?: number;
+            /** Format: uuid */
+            siteId: string;
+            creerSondesIcmp?: boolean;
+            actif?: boolean;
         };
         EquipmentRequest: {
             inventoryCode: string;
@@ -3596,6 +3705,63 @@ export interface components {
             /** Format: int32 */
             traitees?: number;
             ignorees?: string[];
+        };
+        ConnectorResponse: {
+            /** Format: uuid */
+            id?: string;
+            nom?: string;
+            /** @enum {string} */
+            type?: "PROXMOX" | "VSPHERE" | "HYPERV";
+            urlApi?: string;
+            identifiantJeton?: string;
+            referenceSecret?: string;
+            certificatAutorite?: string;
+            /** Format: int32 */
+            intervalleSecondes?: number;
+            /** Format: uuid */
+            siteId?: string;
+            siteNom?: string;
+            creerSondesIcmp?: boolean;
+            actif?: boolean;
+            /** Format: date-time */
+            dernierPassage?: string;
+            /** Format: date-time */
+            dernierSucces?: string;
+            derniereErreur?: string;
+            /** Format: int32 */
+            echecsConsecutifs?: number;
+            /** Format: int64 */
+            hotes?: number;
+            /** Format: int64 */
+            vms?: number;
+            /** Format: int64 */
+            conteneurs?: number;
+            /** Format: int64 */
+            supprimees?: number;
+        };
+        SyncReport: {
+            reussi?: boolean;
+            /** Format: int32 */
+            hotes?: number;
+            /** Format: int32 */
+            invites?: number;
+            /** Format: int32 */
+            equipementsCrees?: number;
+            /** Format: int32 */
+            migrations?: number;
+            /** Format: int32 */
+            supprimees?: number;
+            /** Format: int32 */
+            alertesOuvertes?: number;
+            erreur?: string;
+        };
+        TestResult: {
+            reussi?: boolean;
+            message?: string;
+            /** Format: int32 */
+            hotes?: number;
+            /** Format: int32 */
+            invites?: number;
         };
         ProbeResponse: {
             /** Format: uuid */
@@ -4628,6 +4794,27 @@ export interface components {
             title?: string;
             detail?: string;
             actor?: string;
+        };
+        ResourceResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            type?: "HOST" | "VM" | "CONTAINER";
+            nom?: string;
+            identifiantExterne?: string;
+            hote?: string;
+            /** @enum {string} */
+            etat?: "RUNNING" | "STOPPED" | "PAUSED" | "ONLINE" | "OFFLINE" | "UNKNOWN";
+            adresse?: string;
+            /** @enum {string} */
+            statut?: "PRESENT" | "REMOVED";
+            /** Format: uuid */
+            equipementId?: string;
+            equipementNom?: string;
+            /** Format: date-time */
+            vueLe?: string;
+            /** Format: date-time */
+            supprimeeLe?: string;
         };
         NetworkEventResponse: {
             /** Format: uuid */
@@ -6385,6 +6572,124 @@ export interface operations {
                     "application/json": components["schemas"]["ApiError"];
                 };
             };
+            /** @description Connecteur introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectorRequest"];
+            };
+        };
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Connecteur introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    get_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
             /** @description Équipement introuvable */
             404: {
                 headers: {
@@ -6396,7 +6701,7 @@ export interface operations {
             };
         };
     };
-    update_6: {
+    update_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -6458,7 +6763,7 @@ export interface operations {
             };
         };
     };
-    delete_6: {
+    delete_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -6606,7 +6911,7 @@ export interface operations {
             };
         };
     };
-    get_5: {
+    get_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -6693,7 +6998,7 @@ export interface operations {
             };
         };
     };
-    delete_7: {
+    delete_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -8980,6 +9285,173 @@ export interface operations {
     };
     list_9: {
         parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ConnectorResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    create_9: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectorRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ConnectorResponse"];
+                };
+            };
+            /** @description Réglage invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    synchronize: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SyncReport"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    test_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TestResult"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    list_10: {
+        parameters: {
             query: {
                 siteId?: string;
                 type?: "SERVER" | "ROUTER" | "SWITCH" | "VIRTUAL_MACHINE" | "WIFI_ACCESS_POINT";
@@ -9022,7 +9494,7 @@ export interface operations {
             };
         };
     };
-    create_9: {
+    create_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -9732,7 +10204,7 @@ export interface operations {
             };
         };
     };
-    test_2: {
+    test_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -11583,7 +12055,7 @@ export interface operations {
             };
         };
     };
-    list_10: {
+    list_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -11996,7 +12468,7 @@ export interface operations {
             };
         };
     };
-    list_11: {
+    list_12: {
         parameters: {
             query: {
                 state?: "OPEN" | "RESOLVED";
@@ -12037,7 +12509,7 @@ export interface operations {
             };
         };
     };
-    get_6: {
+    get_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -12169,6 +12641,46 @@ export interface operations {
             };
         };
     };
+    resources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResourceResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     stream: {
         parameters: {
             query?: never;
@@ -12205,7 +12717,7 @@ export interface operations {
             };
         };
     };
-    list_12: {
+    list_13: {
         parameters: {
             query: {
                 equipmentId?: string;
@@ -12501,7 +13013,7 @@ export interface operations {
             };
         };
     };
-    get_7: {
+    get_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -12577,7 +13089,7 @@ export interface operations {
             };
         };
     };
-    list_13: {
+    list_14: {
         parameters: {
             query?: never;
             header?: never;
@@ -12836,7 +13348,7 @@ export interface operations {
             };
         };
     };
-    list_14: {
+    list_15: {
         parameters: {
             query: {
                 from?: string;
@@ -13102,7 +13614,7 @@ export interface operations {
             };
         };
     };
-    list_15: {
+    list_16: {
         parameters: {
             query: {
                 state?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ARCHIVED" | "DELETED";
@@ -13146,7 +13658,7 @@ export interface operations {
             };
         };
     };
-    get_8: {
+    get_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -13184,7 +13696,7 @@ export interface operations {
             };
         };
     };
-    delete_8: {
+    delete_9: {
         parameters: {
             query?: never;
             header?: never;
