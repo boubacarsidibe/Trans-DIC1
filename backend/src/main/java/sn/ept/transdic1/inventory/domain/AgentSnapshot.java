@@ -12,7 +12,7 @@ public class AgentSnapshot {
   @Column(name = "equipment_id")
   private UUID equipmentId;
 
-  @Column(nullable = false, length = 20000)
+  @Column(nullable = false, length = 100000)
   private String payload;
 
   @Column(name = "received_at", nullable = false)

@@ -187,7 +187,9 @@ class AgentCompletTests {
         8,
         16_000_000_000L,
         false,
-        new AgentSnapshotDto.Processes(List.of(line), List.of(line)));
+        new AgentSnapshotDto.Processes(List.of(line), List.of(line)),
+        null,
+        null);
   }
 
   @Test
