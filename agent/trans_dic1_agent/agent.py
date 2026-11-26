@@ -48,6 +48,7 @@ class Agent:
             ActionRunner(actions, getattr(config, "action_timeout", 60)) if actions else None
         )
         self.actions_supported = True
+        self.followed_supported = True
 
     def enqueue(self, measures):
         overflow = len(self.pending) + len(measures) - self.pending.maxlen
@@ -169,6 +170,24 @@ class Agent:
                 LOG.warning("le serveur ne connaît pas les instantanés : inventaire non envoyé")
         except (AuthError, SendError, OSError, ValueError) as error:
             LOG.warning("instantané non envoyé : %s", error)
+        self.refresh_followed_services()
+
+    def refresh_followed_services(self):
+        """Relit les services que la plateforme demande de suivre (ADR 0056), au rythme de
+        l'instantané. La configuration locale n'est pas modifiée : la liste s'y ajoute en mémoire."""
+        follow = getattr(self.collector, "follow_services", None)
+        read = getattr(self.client, "followed_services", None)
+        if follow is None or read is None or not self.followed_supported:
+            return
+        try:
+            names = read()
+        except (AuthError, SendError, OSError, ValueError) as error:
+            LOG.warning("services suivis non relus : %s", error)
+            return
+        if names is None:
+            self.followed_supported = False
+            return
+        follow(names)
 
     def run(self):
         LOG.info("agent démarré : envoi vers %s toutes les %d s", self.config.server_url, self.config.interval)

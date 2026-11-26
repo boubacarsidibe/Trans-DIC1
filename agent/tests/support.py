@@ -15,9 +15,21 @@ class FakeServer:
     def __init__(self):
         self.requests = []
         self.responses = []
+        # Lectures (GET) : services suivis renvoyés à l'agent, gardées à part des envois.
+        self.gets = []
+        self.followed = []
         server = self
 
         class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                server.gets.append({"path": self.path, "headers": dict(self.headers)})
+                data = json.dumps({"services": server.followed}).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+
             def do_POST(self):
                 length = int(self.headers.get("Content-Length", 0))
                 body = json.loads(self.rfile.read(length).decode("utf-8"))

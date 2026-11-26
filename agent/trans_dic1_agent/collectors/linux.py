@@ -5,6 +5,7 @@ import platform
 import socket
 import subprocess
 
+from .. import discovery
 from ..metrics import Collector
 from .common import (
     MAX_INSTANCES,
@@ -49,7 +50,8 @@ class LinuxFamilies:
     def __init__(self, proc_root="/proc", sys_root="/sys", services=(), rates=None, run=subprocess.run):
         self.proc = proc_root
         self.sys = sys_root
-        self.services = services
+        self.configured = tuple(services)
+        self.services = tuple(services)
         self.rates = rates or Rates()
         self.run = run
         self.processes = Rates()
@@ -159,6 +161,11 @@ class LinuxFamilies:
         except OSError:
             return False
 
+    def follow(self, names):
+        """Services suivis depuis la plateforme (ADR 0056), en plus de ceux de la configuration."""
+        extra = [n for n in names if SERVICE_NAME.match(n)][:50]
+        self.services = tuple(dict.fromkeys(list(self.configured) + extra))
+
     def service_states(self, at):
         measures = []
         for name in self.services:
@@ -185,7 +192,7 @@ class LinuxFamilies:
             rate = self.processes.rate(pid, cpu_seconds)
             rows.append((name, int(pid), 100.0 * (rate or 0.0) / cores, rss))
         self.processes.keep({str(row[1]) for row in rows})
-        return {
+        snapshot = {
             "hostname": socket.gethostname(),
             "os": "Linux",
             "osVersion": platform.release(),
@@ -195,6 +202,13 @@ class LinuxFamilies:
             "partial": False,
             "processes": top_processes(rows),
         }
+        snapshot.update(
+            discovery.describe(
+                lambda: discovery.linux_services(self.run),
+                lambda: discovery.linux_listening_ports(self.proc),
+            )
+        )
+        return snapshot
 
 
 def create(config, clock):
@@ -213,5 +227,6 @@ def create(config, clock):
         clock,
     )
     collector.snapshot = families.snapshot
+    collector.follow_services = families.follow
     return collector
 

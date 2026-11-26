@@ -138,6 +138,34 @@ class Client:
         except (urllib.error.URLError, OSError) as error:
             raise SendError("compte rendu non envoyé (%s)" % type(error).__name__)
 
+    def followed_services(self):
+        """Noms des services que la plateforme demande de suivre (ADR 0056) ; None si le serveur
+        ne connaît pas cette route (version plus ancienne)."""
+        request = urllib.request.Request(
+            self.config.server_url + "/api/v1/agent/services-suivis",
+            method="GET",
+            headers={
+                "Authorization": "Bearer " + self.config.token,
+                "Accept": "application/json",
+                "User-Agent": "trans-dic1-agent/" + VERSION,
+            },
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=self.config.timeout, context=self.context) as response:
+                payload = json.loads(response.read().decode("utf-8") or "{}")
+        except urllib.error.HTTPError as error:
+            status = error.code
+            error.close()
+            if status in (401, 403):
+                raise AuthError("jeton d'agent refusé par le serveur (HTTP %d)" % status)
+            if status in (404, 405):
+                return None
+            raise SendError("services suivis non lus (HTTP %d)" % status)
+        except (urllib.error.URLError, OSError, ValueError) as error:
+            raise SendError("services suivis non lus (%s)" % type(error).__name__)
+        names = payload.get("services") if isinstance(payload, dict) else None
+        return [n for n in (names or []) if isinstance(n, str)]
+
     def enroll(self, enrollment_token, identity):
         """Demande d'inscription (ADR 0054) avec le jeton partagé, pas avec le jeton de l'agent.
 

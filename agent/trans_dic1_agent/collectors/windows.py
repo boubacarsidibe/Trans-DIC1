@@ -12,6 +12,7 @@ import shutil
 import socket
 import struct
 
+from .. import discovery
 from ..metrics_windows import WindowsCollector
 from .common import (
     MAX_INSTANCES,
@@ -194,6 +195,71 @@ class Win32Extended:  # pragma: no cover - appels système, exercés par les tes
         finally:
             self.advapi32.CloseServiceHandle(manager)
 
+    def running_services(self):
+        """Noms des services Win32 démarrés (EnumServicesStatusExW)."""
+        wintypes = self._wintypes
+
+        class Status(ctypes.Structure):
+            _fields_ = [
+                (name, wintypes.DWORD)
+                for name in (
+                    "service_type", "current_state", "controls", "exit_code", "specific_exit_code",
+                    "check_point", "wait_hint", "process_id", "flags",
+                )
+            ]
+
+        class Entry(ctypes.Structure):
+            _fields_ = [("name", wintypes.LPWSTR), ("display", wintypes.LPWSTR), ("status", Status)]
+
+        enum = self.advapi32.EnumServicesStatusExW
+        enum.restype = wintypes.BOOL
+        enum.argtypes = [
+            ctypes.c_void_p, ctypes.c_int, wintypes.DWORD, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD,
+            ctypes.POINTER(wintypes.DWORD), ctypes.POINTER(wintypes.DWORD), ctypes.POINTER(wintypes.DWORD),
+            wintypes.LPCWSTR,
+        ]
+        manager = self.advapi32.OpenSCManagerW(None, None, 0x0001 | 0x0004)
+        if not manager:
+            raise OSError("gestionnaire de services inaccessible")
+        try:
+            needed, returned, resume = wintypes.DWORD(0), wintypes.DWORD(0), wintypes.DWORD(0)
+            enum(manager, 0, 0x30, 0x1, None, 0, ctypes.byref(needed), ctypes.byref(returned), ctypes.byref(resume), None)
+            size = needed.value + 4096
+            buffer = ctypes.create_string_buffer(size)
+            names = []
+            for _ in range(32):
+                done = enum(
+                    manager, 0, 0x30, 0x1, buffer, size,
+                    ctypes.byref(needed), ctypes.byref(returned), ctypes.byref(resume), None,
+                )
+                entries = ctypes.cast(buffer, ctypes.POINTER(Entry))
+                names.extend(entries[i].name for i in range(returned.value))
+                if done:
+                    break
+                if ctypes.get_last_error() != 234:  # ERROR_MORE_DATA
+                    raise OSError("EnumServicesStatusExW a échoué (code %d)" % ctypes.get_last_error())
+            return names
+        finally:
+            self.advapi32.CloseServiceHandle(manager)
+
+    def tcp_listener_tables(self):
+        """Tables TCP_TABLE_OWNER_PID_LISTENER d'IPv4 puis d'IPv6 (octets bruts, vides si refusées)."""
+        wintypes = self._wintypes
+        call = self.iphlpapi.GetExtendedTcpTable
+        call.restype = wintypes.DWORD
+        call.argtypes = [
+            ctypes.c_void_p, ctypes.POINTER(wintypes.DWORD), wintypes.BOOL, wintypes.ULONG, ctypes.c_int, wintypes.ULONG,
+        ]
+        tables = []
+        for family in (2, 23):  # AF_INET, AF_INET6
+            size = wintypes.DWORD(0)
+            call(None, ctypes.byref(size), False, family, 3, 0)
+            buffer = ctypes.create_string_buffer(size.value + 4096)
+            size = wintypes.DWORD(len(buffer))
+            result = call(buffer, ctypes.byref(size), False, family, 3, 0)
+            tables.append(buffer.raw[: size.value] if result == 0 else b"")
+        return tables[0], tables[1]
+
     def processes(self):
         """[(pid, nom, temps CPU en s, mémoire en octets ou None)] ; illisibles : temps None."""
 
@@ -262,7 +328,8 @@ class Win32Extended:  # pragma: no cover - appels système, exercés par les tes
 class WindowsFamilies:
     def __init__(self, api, services=(), rates=None, disk_usage=shutil.disk_usage):
         self.api = api
-        self.services = services
+        self.configured = tuple(services)
+        self.services = tuple(services)
         self.rates = rates or Rates()
         self.disk_usage = disk_usage
         self.processes = Rates()
@@ -314,6 +381,11 @@ class WindowsFamilies:
                     measures.append(value(instance_key(family, name), rate * factor, unit, at))
         return measures
 
+    def follow(self, names):
+        """Services suivis depuis la plateforme (ADR 0056), en plus de ceux de la configuration."""
+        extra = [n for n in names if SERVICE_NAME.match(n)][:50]
+        self.services = tuple(dict.fromkeys(list(self.configured) + extra))
+
     def service_states(self, at):
         return [
             value(instance_key("service.up", name), 1 if self.api.service_running(name) else 0, "state", at)
@@ -335,7 +407,7 @@ class WindowsFamilies:
             rate = self.processes.rate(pid, cpu_seconds)
             rows.append((name, pid, 100.0 * (rate or 0.0) / (os.cpu_count() or 1), memory))
         self.processes.keep(seen)
-        return {
+        snapshot = {
             "hostname": socket.gethostname(),
             "os": "Windows",
             "osVersion": platform.version(),
@@ -345,6 +417,13 @@ class WindowsFamilies:
             "partial": partial,
             "processes": top_processes(rows),
         }
+        snapshot.update(
+            discovery.describe(
+                lambda: discovery.windows_services(self.api),
+                lambda: discovery.windows_listening_ports(self.api),
+            )
+        )
+        return snapshot
 
 
 def create(config, clock):
@@ -378,4 +457,5 @@ def create(config, clock):
         clock,
     )
     collector.snapshot = families.snapshot
+    collector.follow_services = families.follow
     return collector
