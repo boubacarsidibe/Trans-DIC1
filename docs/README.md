@@ -18,6 +18,7 @@ Point d'entrée de toute la documentation. Pour lancer le projet tout de suite :
 | superviser la plateforme elle-même | [devops/observability.md](devops/observability.md) |
 | installer l'agent sur un serveur | [devops/agent.md](devops/agent.md) |
 | déployer l'agent sur tout un parc (pipeline, Ansible, cloud-init, CMDB) | [devops/deploiement-a-grande-echelle.md](devops/deploiement-a-grande-echelle.md) |
+| voir les VM d'un cluster Proxmox sans agent | [devops/hyperviseurs.md](devops/hyperviseurs.md) |
 | superviser sans agent (sondes), ping en conteneur | [user-guide/manuel-utilisateur.md](user-guide/manuel-utilisateur.md#sondes-supervision-sans-agent), [devops/sondes-icmp-conteneur.md](devops/sondes-icmp-conteneur.md), [ADR-0019](adr/0019-sondes-actives.md) |
 | découvrir des équipements, importer un CSV | [devops/discovery-and-import.md](devops/discovery-and-import.md) |
 | lancer tous les contrôles en local (remplace la CI supprimée) | [devops/verification-locale.md](devops/verification-locale.md) (`scripts/verify-all.ps1`), [devops/ci-cd.md](devops/ci-cd.md) |

@@ -493,6 +493,20 @@ Le tableau des jetons montre, pour chacun, le nombre de machines déjà inscrite
 
 Cette page est réservée aux administrateurs.
 
+### Hyperviseurs : les VM sans agent
+
+**Parc → Hyperviseurs** relie la plateforme à un cluster Proxmox VE. Une fois le connecteur créé (voir le guide d'exploitation `docs/devops/hyperviseurs.md` : il faut un jeton en lecture seule préparé sur Proxmox), chaque hôte et chaque VM apparaissent seuls dans l'inventaire, sans rien installer dedans, et la **Topologie** montre sur quel hôte tourne chaque VM — le lien suit la VM quand elle migre.
+
+Sur chaque ligne de connecteur :
+
+- **Essayer la connexion** lit le cluster sans rien créer et dit combien d'hôtes et d'invités il voit, ou pourquoi il échoue (jeton refusé, certificat refusé, hyperviseur injoignable…) ;
+- **Synchroniser** fait un passage tout de suite, sans attendre l'intervalle ;
+- **Ressources** liste les hôtes, VM et conteneurs vus, avec leur état en toutes lettres (allumée, éteinte, hors ligne), leur adresse et un lien vers l'équipement. Une VM supprimée du cluster reste listée comme « supprimée de l'hyperviseur » : son équipement et son historique sont conservés.
+
+Ce que vous verrez dans les alertes : une VM **éteinte après avoir tourné** ouvre une alerte de collecte ; quand un **hôte** est hors ligne, son alerte s'ouvre et celles de ses VM sont rangées dessous, pour ne traiter qu'un seul incident. Une VM qui n'a jamais été allumée n'ouvre pas d'alerte. Les mesures de l'hyperviseur portent des noms qui commencent par `hv.` (par exemple `hv.cpu.usage`) dans l'historique de l'équipement.
+
+Quand l'adresse d'une VM est connue, une sonde ICMP est préparée **inactive** sur son équipement : activez-la si vous voulez suivre la VM par ping. Cette page est réservée aux administrateurs.
+
 ### Sondes (supervision sans agent)
 
 Pour un équipement qui n'a ni agent ni SNMP (imprimante, borne Wi-Fi, ENT, messagerie, site web), **Parc > Équipements**, bouton **Sondes** sur la ligne de l'équipement. Tous les rôles voient la page (dans leur périmètre de sites) ; seuls les administrateurs ajoutent, modifient, testent, réactivent ou suppriment.
