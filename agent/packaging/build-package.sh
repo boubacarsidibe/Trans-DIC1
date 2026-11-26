@@ -14,7 +14,7 @@ trap 'rm -rf "$work"' EXIT
 
 mkdir -p "$work/$name" dist
 cp -R trans_dic1_agent "$work/$name/"
-cp packaging/install.sh packaging/uninstall.sh packaging/agent.conf.example \
+cp packaging/install.sh packaging/uninstall.sh packaging/agent.conf.example packaging/actions-privileges.conf \
   packaging/trans-dic1-agent.service README.md "$work/$name/"
 find "$work/$name" -name '__pycache__' -prune -exec rm -rf {} +
 chmod 755 "$work/$name/install.sh" "$work/$name/uninstall.sh"

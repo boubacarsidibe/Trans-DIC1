@@ -39,15 +39,31 @@ buffer_limit = 2000
 # Services surveillés, séparés par des virgules (état remonté dans service.up[nom]).
 # services = Spooler, W32Time
 
-# --- Actions correctives (ADR 0050) ------------------------------------------
+# --- Actions correctives (ADR 0050 et 0057) ----------------------------------
 # La plateforme ne transmet qu'un NOM d'action ; la commande correspondante est écrite ici, sur
 # cette machine, et nulle part ailleurs. Un nom absent de cette liste est refusé.
-# Commande lancée sans interpréteur (cmd.exe n'est jamais appelé), durée bornée par action_timeout.
-# Le compte LOCAL SERVICE doit avoir le droit de démarrer le service visé (sc sdset), sinon
-# l'action échoue proprement avec son message d'erreur.
+# Commande lancée sans interpréteur par l'agent (cmd.exe n'est jamais appelé), durée bornée par
+# action_timeout. Quand une action appelle elle-même PowerShell, c'est avec une commande FIXE
+# écrite ici : la plateforme n'y ajoute rien.
+#
+# CATALOGUE PRÊT À L'EMPLOI, DÉSACTIVÉ PAR DÉFAUT : décommenter les lignes voulues.
+#
+# Droits à accorder au compte de l'agent (LOCAL SERVICE, SID S-1-5-19), en administrateur :
+#  - démarrer ou redémarrer un service : ajouter à son descripteur l'entrée (A;;RPWPLC;;;LS).
+#    Lire d'abord le descripteur actuel, puis le réécrire avec l'entrée ajoutée avant « S: » :
+#      sc.exe sdshow Spooler
+#      sc.exe sdset Spooler "D:(A;;CCLCSWLOCRRC;;;AU)...(A;;RPWPLC;;;LS)S:..."
+#  - nettoyer un dossier : droit de modification sur ce dossier seulement :
+#      icacls "C:\Appli\temp" /grant "*S-1-5-19:(OI)(CI)M"
 #
 # [actions]
-# redemarrer-spouleur = "C:\Windows\System32\sc.exe" start Spooler
+# demarrer-spouleur = "C:\Windows\System32\sc.exe" start Spooler
+# redemarrer-spouleur = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -Command "Restart-Service -Name Spooler -Force"
+# redemarrer-iis = "C:\Windows\System32\iisreset.exe" /restart
+# nettoyer-temp-appli = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -Command "Get-ChildItem -LiteralPath 'C:\Appli\temp' -File | Where-Object LastWriteTime -lt (Get-Date).AddDays(-7) | Remove-Item -Force"
 #
 # [action_descriptions]
+# demarrer-spouleur = Démarre le spouleur d'impression arrêté
 # redemarrer-spouleur = Redémarre le spouleur d'impression
+# redemarrer-iis = Redémarre IIS (le compte de l'agent doit être administrateur local : à éviter)
+# nettoyer-temp-appli = Supprime les fichiers de plus de 7 jours de C:\Appli\temp

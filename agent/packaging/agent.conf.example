@@ -47,21 +47,48 @@ buffer_limit = 2000
 # Rien par défaut : le chemin dépend du site servi. Un format personnalisé n'est pas lu.
 # access_logs = /var/log/nginx/access.log
 
-# --- Actions correctives (ADR 0050) ------------------------------------------
+# --- Actions correctives (ADR 0050 et 0057) ----------------------------------
 # La plateforme ne transmet qu'un NOM d'action ; la commande correspondante est écrite ici, sur
-# cette machine, et nulle part ailleurs. Un nom absent de cette liste est refusé.
+# cette machine, et nulle part ailleurs. Un nom absent de cette liste est refusé (code 127).
 # Commande lancée sans interpréteur de commandes (pas de « ; », « | », « $( ) »), entrée fermée,
-# durée bornée par action_timeout. L'agent tourne sans privilèges : pour une commande qui en a
-# besoin, ajouter une règle sudo limitée à cette commande exacte, par exemple dans
-# /etc/sudoers.d/trans-dic1-agent :
-#   trans-dic1-agent ALL=(root) NOPASSWD: /usr/bin/systemctl restart nginx
+# durée bornée par action_timeout (section [agent], 1 à 600 s, 60 par défaut).
 #
-# action_timeout = 60   (dans la section [agent], en secondes, de 1 à 600)
+# CATALOGUE PRÊT À L'EMPLOI, DÉSACTIVÉ PAR DÉFAUT : décommenter les lignes voulues dans [actions]
+# et [action_descriptions] (les deux sections ne doivent apparaître qu'une fois dans le fichier).
+#
+# Privilèges : l'agent tourne sous son propre compte, sans droit. Une commande qui en a besoin passe
+# par sudo, avec une règle limitée à cette commande exacte, dans /etc/sudoers.d/trans-dic1-agent
+# (droits 440, à vérifier avec « visudo -cf /etc/sudoers.d/trans-dic1-agent ») :
+#
+#   trans-dic1-agent ALL=(root) NOPASSWD: /usr/bin/systemctl restart nginx
+#   trans-dic1-agent ALL=(root) NOPASSWD: /usr/bin/systemctl restart apache2
+#   trans-dic1-agent ALL=(root) NOPASSWD: /usr/bin/systemctl restart php8.2-fpm
+#   trans-dic1-agent ALL=(root) NOPASSWD: /usr/bin/systemctl reload php8.2-fpm
+#   trans-dic1-agent ALL=(root) NOPASSWD: /usr/bin/find /var/cache/nginx -mindepth 1 -delete
+#   trans-dic1-agent ALL=(root) NOPASSWD: /usr/sbin/logrotate --force /etc/logrotate.conf
+#   trans-dic1-agent ALL=(root) NOPASSWD: /usr/bin/find /var/tmp/appli -type f -mtime +7 -delete
+#
+# ET le service systemd doit autoriser sudo, que son durcissement interdit par défaut
+# (NoNewPrivileges, ProtectSystem=strict) : installer le complément fourni
+#   sudo install -D -m 644 actions-privileges.conf /etc/systemd/system/trans-dic1-agent.service.d/actions.conf
+#   sudo systemctl daemon-reload && sudo systemctl restart trans-dic1-agent
+# Sans actions, ne pas l'installer : l'agent garde son durcissement complet.
+# Le rôle Ansible (deploy/ansible, variable trans_dic1_agent_actions) fait ces trois gestes.
 #
 # [actions]
 # redemarrer-nginx = sudo -n /usr/bin/systemctl restart nginx
-# vider-cache-php = /usr/local/sbin/vider-cache-php
+# redemarrer-apache2 = sudo -n /usr/bin/systemctl restart apache2
+# redemarrer-php-fpm = sudo -n /usr/bin/systemctl restart php8.2-fpm
+# vider-cache-opcache = sudo -n /usr/bin/systemctl reload php8.2-fpm
+# vider-cache-nginx = sudo -n /usr/bin/find /var/cache/nginx -mindepth 1 -delete
+# rotation-journaux = sudo -n /usr/sbin/logrotate --force /etc/logrotate.conf
+# nettoyer-tmp-appli = sudo -n /usr/bin/find /var/tmp/appli -type f -mtime +7 -delete
 #
 # [action_descriptions]
 # redemarrer-nginx = Redémarre le serveur web nginx
-# vider-cache-php = Vide le cache d'opcodes PHP
+# redemarrer-apache2 = Redémarre le serveur web Apache
+# redemarrer-php-fpm = Redémarre PHP-FPM
+# vider-cache-opcache = Recharge PHP-FPM, ce qui vide le cache d'opcodes
+# vider-cache-nginx = Vide le cache de nginx (/var/cache/nginx)
+# rotation-journaux = Force la rotation des journaux (logrotate)
+# nettoyer-tmp-appli = Supprime les fichiers de plus de 7 jours de /var/tmp/appli
