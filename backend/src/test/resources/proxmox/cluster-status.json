@@ -1,0 +1,5 @@
+{"data":[
+ {"type":"cluster","name":"campus","nodes":2,"quorate":1,"id":"cluster"},
+ {"type":"node","name":"pve-01","ip":"192.0.2.11","online":1,"local":1,"id":"node/pve-01"},
+ {"type":"node","name":"pve-02","ip":"192.0.2.12","online":0,"id":"node/pve-02"}
+]}

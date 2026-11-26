@@ -74,6 +74,9 @@ tags:
     \ en charge et la résolution se font sur les alertes."
 - name: Notifications
   description: Préférences de notification de l'utilisateur connecté.
+- name: Hyperviseurs
+  description: "Connecteurs d'hyperviseur (Proxmox VE) : hôtes, VM et conteneurs vus\
+    \ sans agent, avec leur lien VM → hôte et leurs mesures (ADR 0055)."
 - name: Sondes
   description: "Contrôles de disponibilité lancés depuis le serveur, sans agent (port\
     \ TCP, HTTP, HTTPS, ICMP, certificat TLS). Lecture selon le périmètre par site,\
@@ -1003,12 +1006,102 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/hyperviseurs/{id}:
+    get:
+      tags:
+      - Hyperviseurs
+      summary: Lire un connecteur d'hyperviseur
+      operationId: get_4
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Connecteur introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    put:
+      tags:
+      - Hyperviseurs
+      summary: Modifier un connecteur d'hyperviseur
+      operationId: update_6
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectorRequest"
+        required: true
+      responses:
+        "404":
+          description: Connecteur introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      tags:
+      - Hyperviseurs
+      summary: Supprimer un connecteur d'hyperviseur
+      description: "Les équipements découverts restent dans l'inventaire, avec leur\
+        \ historique."
+      operationId: delete_6
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/equipements/{id}:
     get:
       tags:
       - Équipements
       summary: Consulter un équipement
-      operationId: get_4
+      operationId: get_5
       parameters:
       - name: id
         in: path
@@ -1039,7 +1132,7 @@ paths:
       tags:
       - Équipements
       summary: Modifier un équipement
-      operationId: update_6
+      operationId: update_7
       parameters:
       - name: id
         in: path
@@ -1088,7 +1181,7 @@ paths:
       tags:
       - Équipements
       summary: Supprimer un équipement
-      operationId: delete_6
+      operationId: delete_7
       parameters:
       - name: id
         in: path
@@ -1200,7 +1293,7 @@ paths:
       tags:
       - Collecte SNMP
       summary: Consulter la collecte SNMP d'un équipement
-      operationId: get_5
+      operationId: get_6
       parameters:
       - name: equipmentId
         in: path
@@ -1266,7 +1359,7 @@ paths:
       - Collecte SNMP
       summary: Arrêter la collecte SNMP
       description: Désactive la collecte ; les mesures déjà reçues sont conservées.
-      operationId: delete_7
+      operationId: delete_8
       parameters:
       - name: equipmentId
         in: path
@@ -2981,6 +3074,132 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/hyperviseurs:
+    get:
+      tags:
+      - Hyperviseurs
+      summary: Lister les connecteurs d'hyperviseur
+      operationId: list_9
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ConnectorResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      tags:
+      - Hyperviseurs
+      summary: Créer un connecteur d'hyperviseur
+      description: "Adresse HTTPS de l'API, identifiant du jeton en lecture seule\
+        \ et référence env:NOM de son secret (jamais le secret), autorité de certification\
+        \ interne facultative."
+      operationId: create_9
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectorRequest"
+        required: true
+      responses:
+        "400":
+          description: Réglage invalide
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ConnectorResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/hyperviseurs/{id}/synchronisation:
+    post:
+      tags:
+      - Hyperviseurs
+      summary: "Synchroniser maintenant, sans attendre l'intervalle"
+      operationId: synchronize
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SyncReport"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/hyperviseurs/{id}/essai:
+    post:
+      tags:
+      - Hyperviseurs
+      summary: "Essayer la connexion à l'hyperviseur, sans rien créer"
+      operationId: test_2
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TestResult"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/equipements:
     get:
       tags:
@@ -2988,7 +3207,7 @@ paths:
       summary: Lister les équipements
       description: "Liste paginée (20 par page, tri par nom), filtrable par site,\
         \ type et statut."
-      operationId: list_9
+      operationId: list_10
       parameters:
       - name: siteId
         in: query
@@ -3051,7 +3270,7 @@ paths:
       tags:
       - Équipements
       summary: Créer un équipement
-      operationId: create_9
+      operationId: create_10
       requestBody:
         content:
           application/json:
@@ -3575,7 +3794,7 @@ paths:
       summary: Envoyer un message de test
       description: Envoie un message fictif immédiatement et indique si le canal répond.
         Rien n'est enregistré dans l'historique.
-      operationId: test_2
+      operationId: test_3
       requestBody:
         content:
           application/json:
@@ -5071,7 +5290,7 @@ paths:
       tags:
       - Périmètres d'accès
       summary: Comptes limités à certains sites
-      operationId: list_10
+      operationId: list_11
       responses:
         "200":
           description: OK
@@ -5433,7 +5652,7 @@ paths:
       description: "Liste paginée (20 par page, plus récents d'abord), filtrable par\
         \ état. Chaque incident indique le nombre d'alertes et les équipements touché\
         s."
-      operationId: list_11
+      operationId: list_12
       parameters:
       - name: state
         in: query
@@ -5474,7 +5693,7 @@ paths:
       summary: Consulter un incident et ses alertes
       description: "Chaque alerte porte la règle qui l'a rapprochée des autres, en\
         \ clair, et un repère sur celle qui a notifié au nom de l'incident."
-      operationId: get_6
+      operationId: get_7
       parameters:
       - name: id
         in: path
@@ -5573,6 +5792,40 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/hyperviseurs/{id}/ressources:
+    get:
+      tags:
+      - Hyperviseurs
+      summary: "Hôtes, VM et conteneurs vus par le connecteur"
+      operationId: resources
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ResourceResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/flux:
     get:
       tags:
@@ -5605,7 +5858,7 @@ paths:
       description: "Liste paginée (50 par page, plus récents d'abord), filtrable par\
         \ équipement, source, sévérité minimale (EMERGENCY la plus grave), période\
         \ [from, to[ et texte (titre, détails, OID). 200 événements par page au plus."
-      operationId: list_12
+      operationId: list_13
       parameters:
       - name: equipmentId
         in: query
@@ -5922,7 +6175,7 @@ paths:
       tags:
       - Découverte
       summary: Consulter une recherche et les équipements trouvés
-      operationId: get_7
+      operationId: get_8
       parameters:
       - name: id
         in: path
@@ -5978,7 +6231,7 @@ paths:
       description: "Les plus confiants d'abord. Un lien n'est listé que si les deux\
         \ équipements sont visibles : une proposition porte sur leur couple, en montrer\
         \ la moitié n'aurait aucun sens."
-      operationId: list_13
+      operationId: list_14
       responses:
         "200":
           description: OK
@@ -6165,7 +6418,7 @@ paths:
       summary: Consulter le journal
       description: "Liste paginée (50 par page, plus récentes d'abord), filtrable\
         \ par période (from inclus, to exclu), compte, action et cible."
-      operationId: list_14
+      operationId: list_15
       parameters:
       - name: from
         in: query
@@ -6438,7 +6691,7 @@ paths:
       description: "Liste paginée (20 par page, plus récentes d'abord), filtrable\
         \ par état, équipement, sévérité ou alertes actives. Les alertes supprimé\
         es sont masquées."
-      operationId: list_15
+      operationId: list_16
       parameters:
       - name: state
         in: query
@@ -6501,7 +6754,7 @@ paths:
       tags:
       - Alertes
       summary: Consulter une alerte et son historique
-      operationId: get_8
+      operationId: get_9
       parameters:
       - name: id
         in: path
@@ -6529,7 +6782,7 @@ paths:
       - Alertes
       summary: Supprimer une alerte
       description: "Suppression logique : l'alerte et son historique restent en base."
-      operationId: delete_8
+      operationId: delete_9
       parameters:
       - name: id
         in: path
@@ -7354,6 +7607,55 @@ components:
           type: string
         destination:
           type: string
+    ConnectorRequest:
+      type: object
+      properties:
+        nom:
+          type: string
+          maxLength: 120
+          minLength: 0
+        type:
+          type: string
+          enum:
+          - PROXMOX
+          - VSPHERE
+          - HYPERV
+        urlApi:
+          type: string
+          maxLength: 255
+          minLength: 0
+        identifiantJeton:
+          type: string
+          maxLength: 160
+          minLength: 0
+        referenceSecret:
+          type: string
+          maxLength: 80
+          minLength: 0
+          pattern: "env:[A-Za-z_][A-Za-z0-9_]{0,63}"
+        certificatAutorite:
+          type: string
+          maxLength: 20000
+          minLength: 0
+        intervalleSecondes:
+          type: integer
+          format: int32
+          maximum: 3600
+          minimum: 30
+        siteId:
+          type: string
+          format: uuid
+        creerSondesIcmp:
+          type: boolean
+        actif:
+          type: boolean
+      required:
+      - identifiantJeton
+      - nom
+      - referenceSecret
+      - siteId
+      - type
+      - urlApi
     EquipmentRequest:
       type: object
       properties:
@@ -8484,6 +8786,101 @@ components:
           type: array
           items:
             type: string
+    ConnectorResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nom:
+          type: string
+        type:
+          type: string
+          enum:
+          - PROXMOX
+          - VSPHERE
+          - HYPERV
+        urlApi:
+          type: string
+        identifiantJeton:
+          type: string
+        referenceSecret:
+          type: string
+        certificatAutorite:
+          type: string
+        intervalleSecondes:
+          type: integer
+          format: int32
+        siteId:
+          type: string
+          format: uuid
+        siteNom:
+          type: string
+        creerSondesIcmp:
+          type: boolean
+        actif:
+          type: boolean
+        dernierPassage:
+          type: string
+          format: date-time
+        dernierSucces:
+          type: string
+          format: date-time
+        derniereErreur:
+          type: string
+        echecsConsecutifs:
+          type: integer
+          format: int32
+        hotes:
+          type: integer
+          format: int64
+        vms:
+          type: integer
+          format: int64
+        conteneurs:
+          type: integer
+          format: int64
+        supprimees:
+          type: integer
+          format: int64
+    SyncReport:
+      type: object
+      properties:
+        reussi:
+          type: boolean
+        hotes:
+          type: integer
+          format: int32
+        invites:
+          type: integer
+          format: int32
+        equipementsCrees:
+          type: integer
+          format: int32
+        migrations:
+          type: integer
+          format: int32
+        supprimees:
+          type: integer
+          format: int32
+        alertesOuvertes:
+          type: integer
+          format: int32
+        erreur:
+          type: string
+    TestResult:
+      type: object
+      properties:
+        reussi:
+          type: boolean
+        message:
+          type: string
+        hotes:
+          type: integer
+          format: int32
+        invites:
+          type: integer
+          format: int32
     ProbeResponse:
       type: object
       properties:
@@ -10464,6 +10861,51 @@ components:
           type: string
         actor:
           type: string
+    ResourceResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum:
+          - HOST
+          - VM
+          - CONTAINER
+        nom:
+          type: string
+        identifiantExterne:
+          type: string
+        hote:
+          type: string
+        etat:
+          type: string
+          enum:
+          - RUNNING
+          - STOPPED
+          - PAUSED
+          - ONLINE
+          - OFFLINE
+          - UNKNOWN
+        adresse:
+          type: string
+        statut:
+          type: string
+          enum:
+          - PRESENT
+          - REMOVED
+        equipementId:
+          type: string
+          format: uuid
+        equipementNom:
+          type: string
+        vueLe:
+          type: string
+          format: date-time
+        supprimeeLe:
+          type: string
+          format: date-time
     NetworkEventResponse:
       type: object
       properties:

@@ -74,7 +74,22 @@ public class MeasureIngestionService {
   @Transactional
   public IngestionResult ingest(UUID equipmentId, List<MeasureInput> measures) {
     // Source directe : tout ce qui arrive est récent, donc tout est évalué.
-    return receive(equipmentId, measures, Instant.MIN, false);
+    return receive(equipmentId, measures, Instant.MIN, false, true);
+  }
+
+  /**
+   * Mesures observées de l'extérieur par un connecteur d'hyperviseur (ADR 0055).
+   *
+   * <p>Une seule différence avec un envoi direct : {@code provesReachable}. L'hyperviseur sait dire
+   * qu'une VM est éteinte, et cet état doit entrer dans l'historique ({@code hv.power = 0}) et dans
+   * l'évaluation des règles ; mais recevoir cette mesure ne prouve pas que la VM répond. Avec
+   * {@code provesReachable} faux, l'équipement n'est pas rétabli et l'alerte de collecte « VM
+   * éteinte » reste ouverte.
+   */
+  @Transactional
+  public IngestionResult ingestObserved(
+      UUID equipmentId, List<MeasureInput> measures, boolean provesReachable) {
+    return receive(equipmentId, measures, Instant.MIN, false, provesReachable);
   }
 
   /**
@@ -92,11 +107,15 @@ public class MeasureIngestionService {
   @Transactional
   public IngestionResult ingestBuffered(
       UUID equipmentId, List<MeasureInput> measures, Instant evaluateFrom) {
-    return receive(equipmentId, measures, evaluateFrom, true);
+    return receive(equipmentId, measures, evaluateFrom, true, true);
   }
 
   private IngestionResult receive(
-      UUID equipmentId, List<MeasureInput> measures, Instant evaluateFrom, boolean recoverOnStore) {
+      UUID equipmentId,
+      List<MeasureInput> measures,
+      Instant evaluateFrom,
+      boolean recoverOnStore,
+      boolean provesReachable) {
     if (measures == null || measures.isEmpty() || measures.size() > MAX_BATCH) {
       throw new ResponseStatusException(
           HttpStatus.BAD_REQUEST, "Entre 1 et " + MAX_BATCH + " mesures par envoi");
@@ -138,7 +157,7 @@ public class MeasureIngestionService {
     // Une mesure exploitable prouve que la source répond : l'équipement repasse en service et
     // l'alerte de collecte éventuelle se résout. Pour un proxy, c'est la réception elle-même qui
     // le prouve, pas la fraîcheur de ce qu'il rejoue.
-    if (tally.evaluated > 0 || (recoverOnStore && tally.stored > 0)) {
+    if (provesReachable && (tally.evaluated > 0 || (recoverOnStore && tally.stored > 0))) {
       equipment.markReachable();
       if (collectionAlerts.reportRecovery(equipment, clock.instant()).isPresent()) {
         tally.resolved++;

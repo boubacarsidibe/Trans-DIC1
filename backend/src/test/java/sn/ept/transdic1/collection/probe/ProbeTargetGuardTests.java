@@ -121,4 +121,26 @@ class ProbeTargetGuardTests {
   void skipsForbiddenAddressAndTakesNextAllowed() {
     assertThat(guard.resolve("mixed.example").getHostAddress()).isEqualTo("93.184.216.34");
   }
+
+  @Test
+  void strictVariantRefusesANameWithAnyForbiddenAddress() {
+    // Un client HTTP qui résout lui-même pourrait choisir l'adresse interdite (ADR 0055).
+    assertThatThrownBy(() -> guard.resolveAll("mixed.example"))
+        .isInstanceOf(ProbeTargetException.class)
+        .hasMessage("Cible interdite : mixed.example");
+    assertThatThrownBy(() -> guard.resolveAll("mapped-metadata.example"))
+        .isInstanceOf(ProbeTargetException.class);
+    assertThatThrownBy(() -> guard.resolveAll("-x")).isInstanceOf(ProbeTargetException.class);
+    assertThatThrownBy(() -> guard.resolveAll(null)).isInstanceOf(ProbeTargetException.class);
+    assertThat(guard.resolveAll("example.org")).hasSize(1);
+    assertThat(guard.resolveAll("192.0.2.10")[0].getHostAddress()).isEqualTo("192.0.2.10");
+  }
+
+  @Test
+  void strictVariantRefusesAnUnknownName() {
+    var empty = new ProbeTargetGuard(host -> new InetAddress[0]);
+    assertThatThrownBy(() -> empty.resolveAll("nowhere.example"))
+        .isInstanceOf(ProbeTargetException.class)
+        .hasMessage("Hôte introuvable : nowhere.example");
+  }
 }

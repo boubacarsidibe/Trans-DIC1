@@ -51,6 +51,28 @@ public class ProbeTargetGuard {
     throw new ProbeTargetException("Cible interdite : " + trimmed);
   }
 
+  /**
+   * Variante stricte pour un client HTTP qui résout lui-même le nom (connecteur d'hyperviseur, ADR
+   * 0055) : <b>toutes</b> les adresses du nom doivent être autorisées, sinon le client pourrait
+   * choisir celle qui est interdite. Retourne les adresses, ou refuse la cible.
+   */
+  public InetAddress[] resolveAll(String host) {
+    if (host == null || host.isBlank() || host.trim().startsWith("-")) {
+      throw new ProbeTargetException("Hôte invalide : " + host);
+    }
+    String trimmed = host.trim();
+    InetAddress[] addresses = resolver.apply(trimmed);
+    if (addresses.length == 0) {
+      throw new ProbeTargetException("Hôte introuvable : " + trimmed);
+    }
+    for (InetAddress address : addresses) {
+      if (!isAllowed(unmap(address))) {
+        throw new ProbeTargetException("Cible interdite : " + trimmed);
+      }
+    }
+    return addresses;
+  }
+
   /** Ramène une adresse IPv6 mappée (::ffff:a.b.c.d) à son IPv4 pour contrôler la vraie cible. */
   private static InetAddress unmap(InetAddress address) {
     if (address instanceof Inet6Address v6) {

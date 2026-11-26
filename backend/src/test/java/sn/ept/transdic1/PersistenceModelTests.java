@@ -319,8 +319,11 @@ class PersistenceModelTests {
             // Inscription automatique des agents : jetons partagés et machines inscrites (ADR
             // 0054).
             "EnrollmentToken",
-            "AgentEnrollment")
-        .hasSize(55);
+            "AgentEnrollment",
+            // Connecteurs d'hyperviseur et ressources vues sans agent (ADR 0055).
+            "HypervisorConnector",
+            "HypervisorResource")
+        .hasSize(57);
   }
 
   @Test
