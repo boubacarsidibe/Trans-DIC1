@@ -45,7 +45,7 @@ Une étape `SKIPPED` n'est jamais comptée comme réussie. Si aucune étape n'es
 | `-SkipFrontend` | ignore lint, tests et build du frontend |
 | `-SkipCompose` | ignore la validation statique des fichiers Compose |
 | `-FrontendCoverage` | remplace `npm test` par `npm run test:coverage` (seuils de couverture de `vite.config.js`) |
-| `-WithAgentTests` | tests de l'agent (Python), nativement sous Linux comme sous Windows |
+| `-WithAgentTests` | tests de l'agent (Python), nativement sous Linux comme sous Windows, et tests du script de synchronisation d'inventaire (`deploy/inventaire`) |
 | `-WithE2E` | parcours Playwright sur une pile native, voir [plus bas](#parcours-de-bout-en-bout-sans-docker) |
 | `-WithSecurityScans` | `gitleaks detect` et `trivy fs`, s'ils sont installés |
 
