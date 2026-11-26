@@ -1,0 +1,44 @@
+---
+# Rôle trans_dic1_agent : installe ou met à jour l'agent Trans-DIC1 (ADR 0054).
+# Aucune valeur secrète ici : le jeton d'inscription vient d'une variable masquée du pipeline
+# (TRANS_DIC1_ENROLL_TOKEN) ou d'Ansible Vault, jamais du dépôt.
+
+# Adresse de la plateforme, en HTTPS.
+trans_dic1_agent_server_url: "https://supervision.example"
+
+# Version attendue de l'agent. Si la machine a déjà cette version, le rôle ne change rien.
+trans_dic1_agent_version: "2.1.0"
+
+# Paquets construits par le pipeline (agent/packaging/build-package.sh et build-package.ps1),
+# présents sur la machine de contrôle, avec leur empreinte SHA-256.
+trans_dic1_agent_package_dir: "{{ playbook_dir }}/../../../agent/dist"
+trans_dic1_agent_linux_package: >-
+  {{ trans_dic1_agent_package_dir }}/trans-dic1-agent-{{ trans_dic1_agent_version }}.tar.gz
+trans_dic1_agent_windows_package: >-
+  {{ trans_dic1_agent_package_dir }}/trans-dic1-agent-windows-{{ trans_dic1_agent_version }}.zip
+# Empreintes attendues ; vides = lues dans les fichiers .sha256 publiés à côté des paquets.
+trans_dic1_agent_linux_sha256: ""
+trans_dic1_agent_windows_sha256: ""
+
+# Jeton d'inscription (préfixe tdic1e_). Par défaut, la variable d'environnement du pipeline.
+# Il n'est utilisé que sur une machine qui n'a pas encore de jeton personnel.
+trans_dic1_agent_enroll_token: "{{ lookup('ansible.builtin.env', 'TRANS_DIC1_ENROLL_TOKEN') }}"
+
+# Autorité de certification interne (chemin sur la machine supervisée), si besoin.
+trans_dic1_agent_ca_file: ""
+
+# Attendre que l'agent ait reçu son jeton personnel (mode AUTO). À désactiver pour un jeton en
+# mode APPROVAL : la machine attend alors un administrateur et n'a pas encore de jeton.
+trans_dic1_agent_wait_enrollment: true
+trans_dic1_agent_enrollment_timeout: 180
+
+# Linux sans systemd (conteneur, banc d'essai) : installation sans service, à démarrer autrement.
+trans_dic1_agent_systemd: true
+
+# Emplacements (ceux des scripts d'installation).
+trans_dic1_agent_linux_app_dir: /opt/trans-dic1-agent
+trans_dic1_agent_linux_conf_dir: /etc/trans-dic1-agent
+trans_dic1_agent_linux_state_dir: /var/lib/trans-dic1-agent
+trans_dic1_agent_windows_app_dir: 'C:\Program Files\Trans-DIC1-Agent'
+trans_dic1_agent_windows_data_dir: 'C:\ProgramData\Trans-DIC1-Agent'
+trans_dic1_agent_windows_task: "Trans-DIC1 Agent"

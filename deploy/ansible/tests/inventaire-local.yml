@@ -1,0 +1,15 @@
+---
+# Inventaire de contrôle : la machine du pipeline elle-même, sans réseau ni secret.
+# Sert à « ansible-playbook --check » dans le pipeline (tâche lint), pour éprouver le rôle en
+# mode simulation sans toucher au parc.
+all:
+  children:
+    trans_dic1:
+      children:
+        canari:
+          hosts:
+            controle-local:
+              ansible_connection: local
+              # Le pipeline tourne déjà en root dans son conteneur, souvent sans sudo.
+              ansible_become: false
+              ansible_python_interpreter: "{{ ansible_playbook_python }}"

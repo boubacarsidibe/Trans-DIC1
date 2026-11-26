@@ -1,0 +1,38 @@
+---
+# Inventaire d'exemple : adresses de documentation uniquement (RFC 5737), jamais une adresse réelle
+# de l'EPT. Copier ce fichier hors du dépôt, ou dans un dépôt d'inventaire privé, pour le parc réel.
+#
+# Groupes :
+#   canari     : quelques machines de test, déployées d'abord, automatiquement ;
+#   production : le reste du parc, déployé par vagues après approbation manuelle ;
+#   linux / windows : mode de connexion (SSH ou WinRM).
+all:
+  children:
+    trans_dic1:
+      children:
+        canari:
+          hosts:
+            srv-test-lin-01:
+              ansible_host: 192.0.2.10
+            srv-test-win-01:
+              ansible_host: 192.0.2.20
+        production:
+          hosts:
+            srv-web-01:
+              ansible_host: 198.51.100.11
+            srv-web-02:
+              ansible_host: 198.51.100.12
+            srv-db-01:
+              ansible_host: 198.51.100.21
+            srv-ad-01:
+              ansible_host: 198.51.100.31
+    linux:
+      hosts:
+        srv-test-lin-01:
+        srv-web-01:
+        srv-web-02:
+        srv-db-01:
+    windows:
+      hosts:
+        srv-test-win-01:
+        srv-ad-01:

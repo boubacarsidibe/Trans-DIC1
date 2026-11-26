@@ -1,0 +1,5 @@
+---
+# Collections nécessaires au rôle : ansible-galaxy collection install -r requirements.yml
+collections:
+  - name: ansible.windows
+    version: ">=2.0.0"

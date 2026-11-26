@@ -1,0 +1,10 @@
+---
+# Connexion WinRM en HTTPS (5986), certificat vérifié, authentification Kerberos (compte du
+# domaine). Le mot de passe éventuel vient d'une variable masquée, jamais du dépôt.
+ansible_connection: winrm
+ansible_port: 5986
+ansible_winrm_scheme: https
+ansible_winrm_transport: kerberos
+ansible_winrm_server_cert_validation: validate
+ansible_user: "{{ lookup('ansible.builtin.env', 'TRANS_DIC1_WINRM_USER') }}"
+ansible_password: "{{ lookup('ansible.builtin.env', 'TRANS_DIC1_WINRM_PASSWORD') }}"

@@ -1,0 +1,161 @@
+---
+# Linux (SSH). Idempotent : si la bonne version est déjà installée, rien ne change ; une mise à jour
+# garde la configuration et le jeton (install.sh ne les écrase jamais).
+
+- name: Empreinte attendue du paquet Linux
+  ansible.builtin.set_fact:
+    trans_dic1_agent_expected_sha256: >-
+      {{ trans_dic1_agent_linux_sha256 if trans_dic1_agent_linux_sha256 | length > 0
+         else lookup('ansible.builtin.file', trans_dic1_agent_linux_package ~ '.sha256').split()[0] }}
+
+- name: Lire le paquet sur la machine de contrôle
+  ansible.builtin.stat:
+    path: "{{ trans_dic1_agent_linux_package }}"
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  become: false
+  register: trans_dic1_agent_local_package
+
+- name: Refuser un paquet absent ou dont l'empreinte ne correspond pas
+  ansible.builtin.assert:
+    that:
+      - trans_dic1_agent_local_package.stat.exists
+      - trans_dic1_agent_local_package.stat.checksum == trans_dic1_agent_expected_sha256
+    fail_msg: "Paquet {{ trans_dic1_agent_linux_package }} absent ou altéré : déploiement arrêté."
+    quiet: true
+
+- name: Lire la version installée
+  ansible.builtin.slurp:
+    src: "{{ trans_dic1_agent_linux_app_dir }}/trans_dic1_agent/__init__.py"
+  register: trans_dic1_agent_init
+  failed_when: false
+
+- name: Chercher un jeton personnel déjà reçu
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ trans_dic1_agent_linux_state_dir }}/token"
+    - "{{ trans_dic1_agent_linux_conf_dir }}/token"
+  register: trans_dic1_agent_tokens
+
+- name: Retenir la version installée et la présence d'un jeton
+  ansible.builtin.set_fact:
+    trans_dic1_agent_installed: >-
+      {{ (trans_dic1_agent_init.content | default('') | b64decode
+          | regex_search('VERSION = "([^"]+)"', '\1') | default([''], true)) | first }}
+    trans_dic1_agent_has_token: >-
+      {{ trans_dic1_agent_tokens.results
+         | selectattr('stat.exists') | selectattr('stat.size', 'gt', 0) | list | length > 0 }}
+
+- name: Exiger un jeton d'inscription pour une machine encore jamais inscrite
+  ansible.builtin.assert:
+    that:
+      - trans_dic1_agent_has_token | bool or trans_dic1_agent_enroll_token is match('^tdic1e_')
+    fail_msg: >-
+      Aucun jeton personnel sur la machine et aucun jeton d'inscription (tdic1e_…) fourni :
+      définir TRANS_DIC1_ENROLL_TOKEN dans le pipeline ou trans_dic1_agent_enroll_token (Vault).
+    quiet: true
+
+- name: Installer ou mettre à jour l'agent
+  when: trans_dic1_agent_installed != trans_dic1_agent_version
+  block:
+    - name: Créer un dossier temporaire
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: tdic1-agent-
+      register: trans_dic1_agent_tmp
+      # Même en simulation : un dossier vide, supprimé à la fin, pour que les tâches suivantes
+      # puissent dire ce qu'elles feraient.
+      check_mode: false
+
+    - name: Copier le paquet
+      ansible.builtin.copy:
+        src: "{{ trans_dic1_agent_linux_package }}"
+        dest: "{{ trans_dic1_agent_tmp.path }}/agent.tar.gz"
+        mode: "0600"
+
+    - name: Recalculer l'empreinte du paquet copié
+      ansible.builtin.stat:
+        path: "{{ trans_dic1_agent_tmp.path }}/agent.tar.gz"
+        checksum_algorithm: sha256
+      register: trans_dic1_agent_remote_package
+      when: not ansible_check_mode
+
+    - name: Refuser un paquet altéré pendant la copie
+      ansible.builtin.assert:
+        that:
+          - trans_dic1_agent_remote_package.stat.checksum == trans_dic1_agent_expected_sha256
+        fail_msg: "Empreinte du paquet copié différente de l'empreinte publiée : arrêt."
+        quiet: true
+      when: not ansible_check_mode
+
+    - name: Décompresser le paquet
+      ansible.builtin.unarchive:
+        src: "{{ trans_dic1_agent_tmp.path }}/agent.tar.gz"
+        dest: "{{ trans_dic1_agent_tmp.path }}"
+        remote_src: true
+      when: not ansible_check_mode
+
+    - name: Déposer le jeton d'inscription (machine encore jamais inscrite)
+      ansible.builtin.copy:
+        content: "{{ trans_dic1_agent_enroll_token }}\n"
+        dest: "{{ trans_dic1_agent_tmp.path }}/inscription"
+        mode: "0600"
+      no_log: true
+      when: not trans_dic1_agent_has_token | bool
+
+    - name: Lancer install.sh
+      ansible.builtin.command:
+        argv: >-
+          {{ ['./install.sh', '--server-url', trans_dic1_agent_server_url]
+             + ([] if trans_dic1_agent_has_token | bool
+                else ['--enroll-token-file', trans_dic1_agent_tmp.path ~ '/inscription'])
+             + ([] if trans_dic1_agent_systemd | bool else ['--no-systemd']) }}
+        chdir: "{{ trans_dic1_agent_tmp.path }}/trans-dic1-agent-{{ trans_dic1_agent_version }}"
+      changed_when: true
+      when: not ansible_check_mode
+
+  always:
+    - name: Supprimer le dossier temporaire (paquet et jeton d'inscription)
+      ansible.builtin.file:
+        path: "{{ trans_dic1_agent_tmp.path }}"
+        state: absent
+      when: trans_dic1_agent_tmp.path is defined
+      check_mode: false
+
+- name: Garder l'adresse de la plateforme à jour
+  ansible.builtin.lineinfile:
+    path: "{{ trans_dic1_agent_linux_conf_dir }}/agent.conf"
+    regexp: '^server_url\s*='
+    line: "server_url = {{ trans_dic1_agent_server_url }}"
+  notify: Redémarrer l'agent Trans-DIC1 (Linux)
+  when: trans_dic1_agent_installed | length > 0
+
+- name: Garder l'autorité de certification interne à jour
+  ansible.builtin.lineinfile:
+    path: "{{ trans_dic1_agent_linux_conf_dir }}/agent.conf"
+    regexp: '^#?\s*ca_file\s*='
+    line: "ca_file = {{ trans_dic1_agent_ca_file }}"
+  notify: Redémarrer l'agent Trans-DIC1 (Linux)
+  when: trans_dic1_agent_ca_file | length > 0 and trans_dic1_agent_installed | length > 0
+
+- name: Activer et démarrer le service
+  ansible.builtin.systemd:
+    name: trans-dic1-agent
+    enabled: true
+    state: started
+  when:
+    - trans_dic1_agent_systemd | bool
+    - not ansible_check_mode or trans_dic1_agent_installed | length > 0
+
+- name: Attendre le jeton personnel reçu à l'inscription
+  ansible.builtin.wait_for:
+    path: "{{ trans_dic1_agent_linux_state_dir }}/token"
+    timeout: "{{ trans_dic1_agent_enrollment_timeout }}"
+    msg: >-
+      L'agent n'a pas reçu de jeton personnel : voir journalctl -u trans-dic1-agent (jeton
+      d'inscription refusé, plage d'adresses, mode APPROVAL ?). La vague est arrêtée.
+  when:
+    - trans_dic1_agent_wait_enrollment | bool
+    - not trans_dic1_agent_has_token | bool
+    - not ansible_check_mode

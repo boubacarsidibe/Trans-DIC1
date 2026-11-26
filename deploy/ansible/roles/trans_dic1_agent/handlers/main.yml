@@ -1,0 +1,15 @@
+---
+- name: Redémarrer l'agent Trans-DIC1 (Linux)
+  ansible.builtin.systemd:
+    name: trans-dic1-agent
+    state: restarted
+  when: trans_dic1_agent_systemd | bool
+
+- name: Redémarrer l'agent Trans-DIC1 (Windows)
+  ansible.windows.win_powershell:
+    script: |
+      param([string]$TaskName)
+      Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+      Start-ScheduledTask -TaskName $TaskName
+    parameters:
+      TaskName: "{{ trans_dic1_agent_windows_task }}"

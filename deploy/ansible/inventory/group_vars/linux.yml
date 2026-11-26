@@ -1,0 +1,5 @@
+---
+# Connexion SSH par clé ; la clé privée est un secret du pipeline (variable de type fichier).
+ansible_connection: ssh
+ansible_user: deploiement
+ansible_python_interpreter: auto_silent

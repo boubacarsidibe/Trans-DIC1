@@ -1,0 +1,18 @@
+---
+- name: Vérifier les paramètres du déploiement
+  ansible.builtin.assert:
+    that:
+      - trans_dic1_agent_server_url is match('^https://')
+      - trans_dic1_agent_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+    fail_msg: >-
+      trans_dic1_agent_server_url doit commencer par https:// (le jeton circulerait en clair)
+      et trans_dic1_agent_version être de la forme 2.1.0.
+    quiet: true
+
+- name: Installer ou mettre à jour l'agent sous Linux
+  ansible.builtin.import_tasks: linux.yml
+  when: ansible_facts['os_family'] != 'Windows'
+
+- name: Installer ou mettre à jour l'agent sous Windows
+  ansible.builtin.import_tasks: windows.yml
+  when: ansible_facts['os_family'] == 'Windows'

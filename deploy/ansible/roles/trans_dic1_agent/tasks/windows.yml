@@ -1,0 +1,141 @@
+---
+# Windows (WinRM). Mêmes garanties que sous Linux : rien ne change si la bonne version est déjà là,
+# et install.ps1 garde configuration et jeton lors d'une mise à jour.
+
+- name: Empreinte attendue du paquet Windows
+  ansible.builtin.set_fact:
+    trans_dic1_agent_expected_sha256: >-
+      {{ trans_dic1_agent_windows_sha256 if trans_dic1_agent_windows_sha256 | length > 0
+         else lookup('ansible.builtin.file', trans_dic1_agent_windows_package ~ '.sha256').split()[0] }}
+
+- name: Lire le paquet sur la machine de contrôle
+  ansible.builtin.stat:
+    path: "{{ trans_dic1_agent_windows_package }}"
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  become: false
+  register: trans_dic1_agent_local_package
+
+- name: Refuser un paquet absent ou dont l'empreinte ne correspond pas
+  ansible.builtin.assert:
+    that:
+      - trans_dic1_agent_local_package.stat.exists
+      - trans_dic1_agent_local_package.stat.checksum == trans_dic1_agent_expected_sha256
+    fail_msg: "Paquet {{ trans_dic1_agent_windows_package }} absent ou altéré : déploiement arrêté."
+    quiet: true
+
+- name: Lire la version installée
+  ansible.windows.slurp:
+    src: '{{ trans_dic1_agent_windows_app_dir }}\trans_dic1_agent\__init__.py'
+  register: trans_dic1_agent_init
+  failed_when: false
+
+- name: Chercher un jeton personnel déjà reçu
+  ansible.windows.win_stat:
+    path: "{{ item }}"
+  loop:
+    - '{{ trans_dic1_agent_windows_data_dir }}\state\token'
+    - '{{ trans_dic1_agent_windows_data_dir }}\token'
+  register: trans_dic1_agent_tokens
+
+- name: Retenir la version installée et la présence d'un jeton
+  ansible.builtin.set_fact:
+    trans_dic1_agent_installed: >-
+      {{ (trans_dic1_agent_init.content | default('') | b64decode
+          | regex_search('VERSION = "([^"]+)"', '\1') | default([''], true)) | first }}
+    trans_dic1_agent_has_token: >-
+      {{ trans_dic1_agent_tokens.results
+         | selectattr('stat.exists') | selectattr('stat.size', 'gt', 0) | list | length > 0 }}
+
+- name: Exiger un jeton d'inscription pour une machine encore jamais inscrite
+  ansible.builtin.assert:
+    that:
+      - trans_dic1_agent_has_token | bool or trans_dic1_agent_enroll_token is match('^tdic1e_')
+    fail_msg: >-
+      Aucun jeton personnel sur la machine et aucun jeton d'inscription (tdic1e_…) fourni.
+    quiet: true
+
+- name: Installer ou mettre à jour l'agent
+  when: trans_dic1_agent_installed != trans_dic1_agent_version
+  block:
+    - name: Créer un dossier temporaire
+      ansible.windows.win_tempfile:
+        state: directory
+        prefix: tdic1-agent-
+      register: trans_dic1_agent_tmp
+      # Même en simulation : un dossier vide, supprimé à la fin, pour que les tâches suivantes
+      # puissent dire ce qu'elles feraient.
+      check_mode: false
+
+    - name: Copier le paquet
+      ansible.windows.win_copy:
+        src: "{{ trans_dic1_agent_windows_package }}"
+        dest: '{{ trans_dic1_agent_tmp.path }}\agent.zip'
+
+    - name: Recalculer l'empreinte du paquet copié
+      ansible.windows.win_stat:
+        path: '{{ trans_dic1_agent_tmp.path }}\agent.zip'
+        get_checksum: true
+        checksum_algorithm: sha256
+      register: trans_dic1_agent_remote_package
+      when: not ansible_check_mode
+
+    - name: Refuser un paquet altéré pendant la copie
+      ansible.builtin.assert:
+        that:
+          - trans_dic1_agent_remote_package.stat.checksum == trans_dic1_agent_expected_sha256
+        fail_msg: "Empreinte du paquet copié différente de l'empreinte publiée : arrêt."
+        quiet: true
+      when: not ansible_check_mode
+
+    - name: Décompresser le paquet
+      ansible.windows.win_powershell:
+        script: |
+          param([string]$Archive, [string]$Destination)
+          Expand-Archive -LiteralPath $Archive -DestinationPath $Destination -Force
+        parameters:
+          Archive: '{{ trans_dic1_agent_tmp.path }}\agent.zip'
+          Destination: "{{ trans_dic1_agent_tmp.path }}"
+      when: not ansible_check_mode
+
+    - name: Déposer le jeton d'inscription (machine encore jamais inscrite)
+      ansible.windows.win_copy:
+        content: "{{ trans_dic1_agent_enroll_token }}"
+        dest: '{{ trans_dic1_agent_tmp.path }}\inscription.txt'
+      no_log: true
+      when: not trans_dic1_agent_has_token | bool
+
+    - name: Lancer install.ps1
+      ansible.windows.win_powershell:
+        script: |
+          param([string]$Folder, [string]$ServerUrl, [string]$EnrollTokenFile, [string]$CaFile)
+          $arguments = @{ ServerUrl = $ServerUrl }
+          if ($EnrollTokenFile) { $arguments.EnrollTokenFile = $EnrollTokenFile }
+          if ($CaFile) { $arguments.CaFile = $CaFile }
+          & (Join-Path $Folder 'install.ps1') @arguments
+          if ($LASTEXITCODE -ne 0) { throw "install.ps1 a échoué (code $LASTEXITCODE)" }
+        parameters:
+          Folder: '{{ trans_dic1_agent_tmp.path }}\trans-dic1-agent-windows-{{ trans_dic1_agent_version }}'
+          ServerUrl: "{{ trans_dic1_agent_server_url }}"
+          EnrollTokenFile: >-
+            {{ '' if trans_dic1_agent_has_token | bool
+               else trans_dic1_agent_tmp.path ~ '\inscription.txt' }}
+          CaFile: "{{ trans_dic1_agent_ca_file }}"
+      when: not ansible_check_mode
+
+  always:
+    - name: Supprimer le dossier temporaire (paquet et jeton d'inscription)
+      ansible.windows.win_file:
+        path: "{{ trans_dic1_agent_tmp.path }}"
+        state: absent
+      when: trans_dic1_agent_tmp.path is defined
+      check_mode: false
+
+- name: Attendre le jeton personnel reçu à l'inscription
+  ansible.windows.win_wait_for:
+    path: '{{ trans_dic1_agent_windows_data_dir }}\state\token'
+    timeout: "{{ trans_dic1_agent_enrollment_timeout }}"
+  when:
+    - trans_dic1_agent_wait_enrollment | bool
+    - not trans_dic1_agent_has_token | bool
+    - not ansible_check_mode

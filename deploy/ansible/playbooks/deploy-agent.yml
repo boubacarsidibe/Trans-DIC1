@@ -1,0 +1,17 @@
+---
+# Déploie ou met à jour l'agent Trans-DIC1 par vagues (ADR 0054).
+#
+#   ansible-playbook -i inventory/exemple.yml playbooks/deploy-agent.yml --limit canari
+#   ansible-playbook -i inventory/exemple.yml playbooks/deploy-agent.yml --limit production
+#
+# serial : d'abord 10 % des machines visées, puis le reste. max_fail_percentage: 0 : une seule
+# machine en échec arrête la vague, et les suivantes ne sont pas touchées.
+- name: Déployer l'agent Trans-DIC1
+  hosts: "{{ trans_dic1_targets | default('trans_dic1') }}"
+  serial: "{{ trans_dic1_serial | default(['10%', '100%']) }}"
+  max_fail_percentage: 0
+  any_errors_fatal: false
+  become: "{{ ansible_connection | default('ssh') != 'winrm' }}"
+  gather_facts: true
+  roles:
+    - role: trans_dic1_agent

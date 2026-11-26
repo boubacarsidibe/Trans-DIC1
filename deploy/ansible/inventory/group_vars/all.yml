@@ -1,0 +1,7 @@
+---
+# Valeurs communes, sans aucun secret. Le jeton d'inscription vient de la variable masquée
+# TRANS_DIC1_ENROLL_TOKEN du pipeline (défaut du rôle), ou d'un fichier chiffré par Ansible Vault :
+#   ansible-vault create inventory/group_vars/all/vault.yml   (hors dépôt, ou chiffré)
+#   trans_dic1_agent_enroll_token: "{{ vault_trans_dic1_enroll_token }}"
+trans_dic1_agent_server_url: "https://supervision.example"
+trans_dic1_agent_version: "2.1.0"
