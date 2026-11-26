@@ -4,6 +4,7 @@ import {
   EQUIPMENT_TYPES,
   validateEquipment,
 } from "../api/equipment.js";
+import { EQUIPMENT_STATUS, EQUIPMENT_TYPE } from "../ui/labels.js";
 
 const EMPTY = {
   inventoryCode: "",
@@ -85,14 +86,18 @@ function EquipmentForm({ initial, sites, onSubmit, onCancel, submitting }) {
       <Field label="Type" error={errors.type}>
         <select {...bind("type")} className={inputClass}>
           {EQUIPMENT_TYPES.map((t) => (
-            <option key={t}>{t}</option>
+            <option key={t} value={t}>
+              {EQUIPMENT_TYPE[t] ?? t}
+            </option>
           ))}
         </select>
       </Field>
       <Field label="Statut" error={errors.status}>
         <select {...bind("status")} className={inputClass}>
           {EQUIPMENT_STATUSES.map((s) => (
-            <option key={s}>{s}</option>
+            <option key={s} value={s}>
+              {EQUIPMENT_STATUS[s] ?? s}
+            </option>
           ))}
         </select>
       </Field>

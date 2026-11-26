@@ -12,6 +12,7 @@ import { canManageEquipment } from "../auth/permissions.js";
 import EquipmentForm from "./EquipmentForm.jsx";
 import TemplateApplyPanel from "./TemplateApplyPanel.jsx";
 import PageHeader from "../ui/PageHeader.jsx";
+import Modal from "../ui/Modal.jsx";
 import { Activity, LineChart, Pencil, ServerOff, Settings2, Trash2 } from "lucide-react";
 import apiClient from "../api/client.js";
 import { SeverityBadge, StatusBadge } from "../ui/Badges.jsx";
@@ -194,25 +195,49 @@ function EquipmentPage() {
           </p>
         )}
         {editing && (
-          <EquipmentForm
-            key={editing === "new" ? "new" : editing.id}
-            initial={editing === "new" ? null : editing}
-            sites={sites}
-            submitting={submitting}
-            onSubmit={save}
-            onCancel={() => setEditing(null)}
-          />
+          <Modal
+            title={editing === "new" ? "Ajouter un équipement" : `Modifier ${editing.name}`}
+            description={
+              editing === "new"
+                ? "Le mode de collecte (agent, SNMP, sondes) se choisit juste après l'enregistrement."
+                : undefined
+            }
+            error={error}
+            size="lg"
+            onClose={() => {
+              setEditing(null);
+              setError("");
+            }}
+          >
+            <EquipmentForm
+              key={editing === "new" ? "new" : editing.id}
+              initial={editing === "new" ? null : editing}
+              sites={sites}
+              submitting={submitting}
+              onSubmit={save}
+              onCancel={() => {
+                setEditing(null);
+                setError("");
+              }}
+            />
+          </Modal>
         )}
 
         {templating && (
-          <TemplateApplyPanel
-            key={templating.id}
-            equipment={templating}
+          <Modal
+            label={`Appliquer un modèle à ${templating.name}`}
+            size="lg"
             onClose={() => setTemplating(null)}
-          />
+          >
+            <TemplateApplyPanel
+              key={templating.id}
+              equipment={templating}
+              onClose={() => setTemplating(null)}
+            />
+          </Modal>
         )}
 
-        {error && (
+        {error && !editing && (
           <p role="alert" className="notice notice-bad">
             {error}
           </p>

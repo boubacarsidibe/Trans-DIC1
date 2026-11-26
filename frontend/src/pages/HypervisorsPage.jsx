@@ -23,6 +23,7 @@ import {
 } from "../api/hypervisors.js";
 import { listSites } from "../api/equipment.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import Modal from "../ui/Modal.jsx";
 
 const formatDate = (value) => (value ? new Date(value).toLocaleString("fr-FR") : "jamais");
 
@@ -502,7 +503,11 @@ function HypervisorsPage() {
           )}
         </section>
 
-        {shown && <ResourcesPanel connector={shown} onClose={() => setShown(null)} />}
+        {shown && (
+          <Modal label={`Ressources vues par ${shown.nom}`} size="lg" onClose={() => setShown(null)}>
+            <ResourcesPanel connector={shown} onClose={() => setShown(null)} />
+          </Modal>
+        )}
 
         <section aria-labelledby="formulaire-connecteur" className="panel mt-5">
           <div className="panel-head">

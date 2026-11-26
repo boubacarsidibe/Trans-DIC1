@@ -13,6 +13,7 @@ import {
   validateUser,
 } from "../api/users.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import Modal from "../ui/Modal.jsx";
 import { Badge } from "../ui/Badges.jsx";
 
 const EMPTY = { username: "", email: "", password: "", role: "VIEWER" };
@@ -44,6 +45,7 @@ function UserForm({ submitting, onSubmit, onCancel }) {
     <form
       onSubmit={submit}
       noValidate
+      aria-label="Nouveau compte"
       className="panel form-grid mt-5 md:grid-cols-2"
     >
       <label className="block text-sm text-slate-300">
@@ -246,7 +248,7 @@ function UsersPage() {
             {notice}
           </p>
         )}
-        {error && (
+        {error && !creating && (
           <p role="alert" className="notice notice-bad">
             {error}
           </p>
@@ -259,14 +261,33 @@ function UsersPage() {
         )}
 
         {creating && (
-          <UserForm
-            submitting={submitting}
-            onSubmit={create}
-            onCancel={() => setCreating(false)}
-          />
+          <Modal
+            title="Ajouter un compte"
+            description="Le compte devra changer ce mot de passe à sa première connexion."
+            error={error}
+            size="lg"
+            onClose={() => {
+              setCreating(false);
+              setError("");
+            }}
+          >
+            <UserForm
+              submitting={submitting}
+              onSubmit={create}
+              onCancel={() => {
+                setCreating(false);
+                setError("");
+              }}
+            />
+          </Modal>
         )}
 
         {resetting && (
+          <Modal
+            title={`Réinitialiser le mot de passe de ${resetting.user.username}`}
+            description="Ses connexions en cours seront fermées ; il devra choisir un nouveau mot de passe."
+            onClose={() => setResetting(null)}
+          >
           <form
             onSubmit={submitReset}
             noValidate
@@ -298,19 +319,26 @@ function UsersPage() {
               </button>
             </div>
           </form>
+          </Modal>
         )}
 
         {scoping && (
-          <SiteScopeEditor
-            key={scoping.user.id}
-            user={scoping.user}
-            sites={sites}
-            selected={scopes.get(scoping.user.id) ?? []}
-            saving={scoping.saving}
-            error={scoping.error}
-            onSave={saveScope}
-            onCancel={() => setScoping(null)}
-          />
+          <Modal
+            title={`Périmètre d'accès de ${scoping.user.username}`}
+            size="lg"
+            onClose={() => setScoping(null)}
+          >
+            <SiteScopeEditor
+              key={scoping.user.id}
+              user={scoping.user}
+              sites={sites}
+              selected={scopes.get(scoping.user.id) ?? []}
+              saving={scoping.saving}
+              error={scoping.error}
+              onSave={saveScope}
+              onCancel={() => setScoping(null)}
+            />
+          </Modal>
         )}
 
         <div className="panel panel-flush mt-5 overflow-x-auto">

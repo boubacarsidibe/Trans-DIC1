@@ -14,6 +14,7 @@ import {
 import { useAuth } from "../auth/AuthContext.jsx";
 import { canAdministerAlerts } from "../auth/permissions.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import Modal from "../ui/Modal.jsx";
 import LearnedThresholdsPanel from "./LearnedThresholdsPanel.jsx";
 import RemediationPolicyPanel from "./RemediationPolicyPanel.jsx";
 import RuleTestPanel from "./RuleTestPanel.jsx";
@@ -446,25 +447,39 @@ function RulesPage() {
             {notice}
           </p>
         )}
-        {error && (
+        {error && !editing && (
           <p role="alert" className="notice notice-bad">
             {error}
           </p>
         )}
 
         {editing && (
-          <RuleForm
-            key={editing === "new" ? "new" : editing.id}
-            initial={editing === "new" ? EMPTY : toValues(editing)}
-            sites={scope.sites}
-            equipments={scope.equipments}
-            submitting={submitting}
-            onSubmit={save}
-            onCancel={() => setEditing(null)}
-          />
+          <Modal
+            title={editing === "new" ? "Nouvelle règle d'alerte" : `Modifier la règle ${editing.name}`}
+            error={error}
+            size="lg"
+            onClose={() => {
+              setEditing(null);
+              setError("");
+            }}
+          >
+            <RuleForm
+              key={editing === "new" ? "new" : editing.id}
+              initial={editing === "new" ? EMPTY : toValues(editing)}
+              sites={scope.sites}
+              equipments={scope.equipments}
+              submitting={submitting}
+              onSubmit={save}
+              onCancel={() => {
+                setEditing(null);
+                setError("");
+              }}
+            />
+          </Modal>
         )}
 
         {pendingDelete && (
+          <Modal title="Supprimer la règle" onClose={() => setPendingDelete(null)}>
           <div role="alertdialog" className="panel mt-5">
             <p className="text-white">
               Supprimer la règle « {pendingDelete.name} » ?
@@ -486,6 +501,7 @@ function RulesPage() {
               </button>
             </div>
           </div>
+          </Modal>
         )}
 
         <div className="panel panel-flush mt-5 overflow-x-auto">
@@ -580,19 +596,31 @@ function RulesPage() {
         </div>
 
         {remediationFor && (
-          <RemediationPolicyPanel
-            key={remediationFor.id}
-            rule={remediationFor}
+          <Modal
+            label={`Action corrective : ${remediationFor.name}`}
+            size="lg"
             onClose={() => setRemediationFor(null)}
-          />
+          >
+            <RemediationPolicyPanel
+              key={remediationFor.id}
+              rule={remediationFor}
+              onClose={() => setRemediationFor(null)}
+            />
+          </Modal>
         )}
 
         {learnedFor && (
-          <LearnedThresholdsPanel
-            key={learnedFor.id}
-            rule={learnedFor}
+          <Modal
+            label={`Seuils appris : ${learnedFor.name}`}
+            size="lg"
             onClose={() => setLearnedFor(null)}
-          />
+          >
+            <LearnedThresholdsPanel
+              key={learnedFor.id}
+              rule={learnedFor}
+              onClose={() => setLearnedFor(null)}
+            />
+          </Modal>
         )}
 
         {totalPages > 1 && (

@@ -15,6 +15,7 @@ import { canAdministerAlerts } from "../auth/permissions.js";
 import { Badge, SeverityBadge } from "../ui/Badges.jsx";
 import { EVENT_SEVERITY, EVENT_SEVERITY_ORDER, EVENT_SOURCE, label } from "../ui/labels.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import Modal from "../ui/Modal.jsx";
 import Pagination from "../ui/Pagination.jsx";
 
 const EMPTY = {
@@ -392,13 +393,22 @@ function EventRulesPage() {
             {notice}
           </p>
         )}
-        {error && (
+        {error && !editing && (
           <p role="alert" className="notice notice-bad">
             {error}
           </p>
         )}
 
         {editing && (
+          <Modal
+            title={editing === "new" ? "Nouvelle règle d'événement" : `Modifier la règle ${editing.name}`}
+            error={error}
+            size="lg"
+            onClose={() => {
+              setEditing(null);
+              setError("");
+            }}
+          >
           <EventRuleForm
             key={editing === "new" ? "new" : editing.id}
             initial={editing === "new" ? EMPTY : toValues(editing)}
@@ -411,9 +421,11 @@ function EventRulesPage() {
               setError("");
             }}
           />
+          </Modal>
         )}
 
         {pendingDelete && (
+          <Modal title="Supprimer la règle" onClose={() => setPendingDelete(null)}>
           <div role="alertdialog" className="panel mt-5">
             <p className="text-white">Supprimer la règle « {pendingDelete.name} » ?</p>
             <div className="mt-4 flex gap-3">
@@ -425,6 +437,7 @@ function EventRulesPage() {
               </button>
             </div>
           </div>
+          </Modal>
         )}
 
         <div className="panel panel-flush mt-5 overflow-x-auto">

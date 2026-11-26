@@ -12,6 +12,7 @@ import {
 import { useAuth } from "../auth/AuthContext.jsx";
 import { canHandleAlerts } from "../auth/permissions.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import Modal from "../ui/Modal.jsx";
 import { Badge } from "../ui/Badges.jsx";
 
 const EMPTY = {
@@ -239,20 +240,34 @@ function MaintenancesPage() {
             {notice}
           </p>
         )}
-        {error && (
+        {error && !creating && (
           <p role="alert" className="notice notice-bad">
             {error}
           </p>
         )}
 
         {creating && (
-          <MaintenanceForm
-            sites={scope.sites}
-            equipments={scope.equipments}
-            submitting={submitting}
-            onSubmit={save}
-            onCancel={() => setCreating(false)}
-          />
+          <Modal
+            title="Planifier une maintenance"
+            description="Pendant la fenêtre, aucune alerte n'est ouverte ni notifiée sur la cible."
+            error={error}
+            size="lg"
+            onClose={() => {
+              setCreating(false);
+              setError("");
+            }}
+          >
+            <MaintenanceForm
+              sites={scope.sites}
+              equipments={scope.equipments}
+              submitting={submitting}
+              onSubmit={save}
+              onCancel={() => {
+                setCreating(false);
+                setError("");
+              }}
+            />
+          </Modal>
         )}
 
         <div className="panel panel-flush mt-5 overflow-x-auto">

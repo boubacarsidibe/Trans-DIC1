@@ -11,6 +11,7 @@ import {
 import { useAuth } from "../auth/AuthContext.jsx";
 import { canManageEquipment } from "../auth/permissions.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import Modal from "../ui/Modal.jsx";
 import SiteProxyPanel from "./SiteProxyPanel.jsx";
 import { Badge } from "../ui/Badges.jsx";
 
@@ -187,13 +188,22 @@ function SitesPage() {
             {notice}
           </p>
         )}
-        {error && (
+        {error && !editing && (
           <p role="alert" className="notice notice-bad">
             {error}
           </p>
         )}
 
         {editing && (
+          <Modal
+            title={editing === "new" ? "Ajouter un site" : `Modifier le site ${editing.name}`}
+            error={error}
+            size="lg"
+            onClose={() => {
+              setEditing(null);
+              setError("");
+            }}
+          >
           <SiteForm
             key={editing === "new" ? "new" : editing.id}
             initial={
@@ -211,11 +221,16 @@ function SitesPage() {
             creating={editing === "new"}
             submitting={submitting}
             onSubmit={save}
-            onCancel={() => setEditing(null)}
+            onCancel={() => {
+              setEditing(null);
+              setError("");
+            }}
           />
+          </Modal>
         )}
 
         {pendingDelete && (
+          <Modal title="Supprimer le site" onClose={() => setPendingDelete(null)}>
           <div role="alertdialog" className="panel mt-5">
             <p className="text-white">Supprimer le site « {pendingDelete.name} » ?</p>
             <div className="mt-4 flex gap-3">
@@ -235,6 +250,7 @@ function SitesPage() {
               </button>
             </div>
           </div>
+          </Modal>
         )}
 
         <div className="panel panel-flush mt-5 overflow-x-auto">
@@ -311,11 +327,17 @@ function SitesPage() {
         </div>
 
         {proxySite && (
-          <SiteProxyPanel
-            site={proxySite}
-            canManage={canManage}
+          <Modal
+            label={`Proxy de collecte du site ${proxySite.name}`}
+            size="lg"
             onClose={() => setProxySite(null)}
-          />
+          >
+            <SiteProxyPanel
+              site={proxySite}
+              canManage={canManage}
+              onClose={() => setProxySite(null)}
+            />
+          </Modal>
         )}
 
         {totalPages > 1 && (

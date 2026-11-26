@@ -4,6 +4,7 @@ import { apiMessage, createStatusPage, listStatusPages } from "../api/statusPage
 import { useAuth } from "../auth/AuthContext.jsx";
 import { Badge } from "../ui/Badges.jsx";
 import PageHeader from "../ui/PageHeader.jsx";
+import Modal from "../ui/Modal.jsx";
 import { PAGE_VISIBILITY, label } from "../ui/labels.js";
 import StatusPageAdmin, { PageForm } from "./StatusPageAdmin.jsx";
 import { StateLabel } from "./StatusView.jsx";
@@ -73,19 +74,32 @@ function StatusPagesPage() {
             {notice}
           </p>
         )}
-        {error && (
+        {error && !creating && (
           <p role="alert" className="notice notice-bad">
             {error}
           </p>
         )}
         {creating && (
-          <PageForm
-            title="Nouvelle page"
-            submitLabel="Créer la page"
-            submitting={submitting}
-            onSubmit={create}
-            onCancel={() => setCreating(false)}
-          />
+          <Modal
+            label="Nouvelle page"
+            error={error}
+            size="lg"
+            onClose={() => {
+              setCreating(false);
+              setError("");
+            }}
+          >
+            <PageForm
+              title="Nouvelle page"
+              submitLabel="Créer la page"
+              submitting={submitting}
+              onSubmit={create}
+              onCancel={() => {
+                setCreating(false);
+                setError("");
+              }}
+            />
+          </Modal>
         )}
 
         <section className="panel" aria-labelledby="liste-pages">

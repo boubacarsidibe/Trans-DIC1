@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listSites } from "../api/equipment.js";
+import Modal from "../ui/Modal.jsx";
 import {
   LEVELS,
   apiMessage,
@@ -498,13 +499,31 @@ function OnCallAdmin({ people, onChanged }) {
           {notice}
         </p>
       )}
-      {error && (
+      {error && !creating && (
         <p role="alert" className="notice notice-bad">
           {error}
         </p>
       )}
       {creating && (
-        <PlanningForm sites={sites} submitting={submitting} onSubmit={addPlanning} onCancel={() => setCreating(false)} />
+        <Modal
+          title="Nouveau planning d'astreinte"
+          error={error}
+          size="lg"
+          onClose={() => {
+            setCreating(false);
+            setError("");
+          }}
+        >
+          <PlanningForm
+            sites={sites}
+            submitting={submitting}
+            onSubmit={addPlanning}
+            onCancel={() => {
+              setCreating(false);
+              setError("");
+            }}
+          />
+        </Modal>
       )}
 
       {plannings.length === 0 ? (
