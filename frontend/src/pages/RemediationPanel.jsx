@@ -3,6 +3,8 @@ import { Play, Wrench } from "lucide-react";
 import {
   JOB_STATE_LABELS,
   JOB_STATE_TONE,
+  VERIFICATION_LABELS,
+  VERIFICATION_TONE,
   approveRemediation,
   getAlertRemediation,
   launchRemediation,
@@ -89,6 +91,20 @@ function RemediationPanel({ alertId, canAct, alertOpen }) {
                 {job.exitCode != null && ` · code ${job.exitCode}`}
                 {job.durationMs != null && ` · ${(job.durationMs / 1000).toFixed(1)} s`}
               </span>
+              {job.approvalReason && (
+                <p className="cell-sub">Approbation imposée : {job.approvalReason}</p>
+              )}
+              {job.verification ? (
+                <p className="cell-sub">
+                  <Badge tone={VERIFICATION_TONE[job.verification]}>
+                    {VERIFICATION_LABELS[job.verification]}
+                  </Badge>
+                </p>
+              ) : (
+                job.verifyDueAt && (
+                  <p className="cell-sub">Vérification prévue à {formatTime(job.verifyDueAt)}</p>
+                )
+              )}
               {job.output && <pre className="cell-mono">{job.output}</pre>}
               {canAct && job.state === "PENDING_APPROVAL" && (
                 <span className="row-actions">

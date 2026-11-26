@@ -44,6 +44,38 @@ export async function listResources(id) {
   return data;
 }
 
+/** Redémarrage forcé d'une VM bloquée, sur approbation d'un autre administrateur (ADR 0057). */
+export const VM_ACTION_STATES = {
+  PENDING_APPROVAL: "En attente d'approbation",
+  SUCCEEDED: "Ordre accepté par l'hyperviseur",
+  FAILED: "Ordre refusé",
+  REJECTED: "Refusée",
+  EXPIRED: "Expirée",
+};
+
+export async function listVmActions(id) {
+  const { data } = await apiClient.get(`${base}/${id}/actions-vm`);
+  return data;
+}
+
+export async function requestVmReset(connectorId, resourceId, motif) {
+  const { data } = await apiClient.post(
+    `${base}/${connectorId}/ressources/${resourceId}/redemarrage`,
+    { motif },
+  );
+  return data;
+}
+
+export async function approveVmAction(actionId) {
+  const { data } = await apiClient.post(`${base}/actions-vm/${actionId}/approbation`);
+  return data;
+}
+
+export async function rejectVmAction(actionId) {
+  const { data } = await apiClient.post(`${base}/actions-vm/${actionId}/refus`);
+  return data;
+}
+
 export async function testConnector(id) {
   const { data } = await apiClient.post(`${base}/${id}/essai`);
   return data;
@@ -65,6 +97,9 @@ export const EMPTY_CONNECTOR = {
   siteId: "",
   creerSondesIcmp: true,
   actif: true,
+  identifiantJetonActions: "",
+  referenceSecretActions: "",
+  actionsVmActives: false,
 };
 
 export function fromConnector(connector) {
@@ -80,6 +115,9 @@ export function fromConnector(connector) {
     siteId: connector.siteId,
     creerSondesIcmp: connector.creerSondesIcmp,
     actif: connector.actif,
+    identifiantJetonActions: connector.identifiantJetonActions ?? "",
+    referenceSecretActions: connector.referenceSecretActions ?? "",
+    actionsVmActives: Boolean(connector.actionsVmActives),
   };
 }
 
@@ -107,6 +145,22 @@ export function validateConnector(values) {
     errors.intervalleSecondes = "Entre 30 et 3 600 secondes.";
   }
   if (!values.siteId) errors.siteId = "Choisissez le site où ranger les équipements découverts.";
+  const powerToken = values.identifiantJetonActions.trim();
+  const powerSecret = values.referenceSecretActions.trim();
+  if (powerToken || powerSecret) {
+    if (!TOKEN_ID.test(powerToken)) {
+      errors.identifiantJetonActions = "Forme utilisateur@domaine!nom, distincte du jeton de lecture.";
+    } else if (powerToken === values.identifiantJeton.trim()) {
+      errors.identifiantJetonActions = "Le jeton d'action doit être distinct du jeton de lecture.";
+    }
+    if (!SECRET_REFERENCE.test(powerSecret)) {
+      errors.referenceSecretActions = "Référence de la forme env:NOM (jamais le secret lui-même).";
+    } else if (powerSecret === values.referenceSecret.trim()) {
+      errors.referenceSecretActions = "Le secret d'action doit être distinct du secret de lecture.";
+    }
+  } else if (values.actionsVmActives) {
+    errors.identifiantJetonActions = "Les actions sur les VM demandent un second jeton (VM.PowerMgmt seul).";
+  }
   return errors;
 }
 
@@ -122,5 +176,8 @@ export function toConnectorPayload(values) {
     siteId: values.siteId,
     creerSondesIcmp: values.creerSondesIcmp,
     actif: values.actif,
+    identifiantJetonActions: values.identifiantJetonActions.trim() || null,
+    referenceSecretActions: values.referenceSecretActions.trim() || null,
+    actionsVmActives: values.actionsVmActives,
   };
 }

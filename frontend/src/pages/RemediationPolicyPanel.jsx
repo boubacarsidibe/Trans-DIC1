@@ -9,18 +9,24 @@ import {
 
 const NAME = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 
+const EMPTY = {
+  actionName: "",
+  mode: "AUTO",
+  cooldownMinutes: 30,
+  enabled: true,
+  verifyMinutes: 0,
+  maxAutoRuns: 3,
+  windowHours: 24,
+};
+
 /**
- * Action corrective d'une règle (ADR 0050) : quel nom d'action demander à l'agent quand la règle
- * s'ouvre, automatiquement ou après approbation. Administrateurs.
+ * Action corrective d'une règle (ADR 0050 et 0057) : quel nom d'action demander à l'agent quand la
+ * règle s'ouvre, automatiquement ou après approbation, avec la vérification après l'action et la
+ * limite de fréquence au-delà de laquelle l'approbation est imposée. Administrateurs.
  */
 function RemediationPolicyPanel({ rule, onClose }) {
   const [available, setAvailable] = useState([]);
-  const [values, setValues] = useState({
-    actionName: "",
-    mode: "AUTO",
-    cooldownMinutes: 30,
-    enabled: true,
-  });
+  const [values, setValues] = useState(EMPTY);
   const [exists, setExists] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -38,6 +44,9 @@ function RemediationPolicyPanel({ rule, onClose }) {
             mode: policy.mode,
             cooldownMinutes: policy.cooldownMinutes,
             enabled: policy.enabled,
+            verifyMinutes: policy.verifyMinutes ?? 0,
+            maxAutoRuns: policy.maxAutoRuns ?? 3,
+            windowHours: policy.windowHours ?? 24,
           });
         }
       })
@@ -54,7 +63,13 @@ function RemediationPolicyPanel({ rule, onClose }) {
       return;
     }
     try {
-      await saveRulePolicy(rule.id, { ...values, cooldownMinutes: Number(values.cooldownMinutes) });
+      await saveRulePolicy(rule.id, {
+        ...values,
+        cooldownMinutes: Number(values.cooldownMinutes),
+        verifyMinutes: Number(values.verifyMinutes),
+        maxAutoRuns: Number(values.maxAutoRuns),
+        windowHours: Number(values.windowHours),
+      });
       setExists(true);
       setError("");
       setNotice("Action corrective enregistrée.");
@@ -67,7 +82,7 @@ function RemediationPolicyPanel({ rule, onClose }) {
     try {
       await deleteRulePolicy(rule.id);
       setExists(false);
-      setValues({ actionName: "", mode: "AUTO", cooldownMinutes: 30, enabled: true });
+      setValues(EMPTY);
       setNotice("Action corrective retirée.");
     } catch {
       setError("Suppression impossible.");
@@ -141,6 +156,50 @@ function RemediationPolicyPanel({ rule, onClose }) {
             className="field mt-1"
           />
         </label>
+        <label className="text-sm">
+          Vérification après l'action (minutes, 0 = aucune)
+          <input
+            type="number"
+            min={0}
+            max={240}
+            value={values.verifyMinutes}
+            onChange={(event) => setValues({ ...values, verifyMinutes: event.target.value })}
+            className="field mt-1"
+            aria-describedby="verify-help"
+          />
+        </label>
+        <label className="text-sm">
+          Exécutions automatiques au plus
+          <input
+            type="number"
+            min={1}
+            max={100}
+            value={values.maxAutoRuns}
+            onChange={(event) => setValues({ ...values, maxAutoRuns: event.target.value })}
+            className="field mt-1"
+            aria-describedby="limit-help"
+          />
+        </label>
+        <label className="text-sm">
+          Sur une fenêtre de (heures)
+          <input
+            type="number"
+            min={1}
+            max={168}
+            value={values.windowHours}
+            onChange={(event) => setValues({ ...values, windowHours: event.target.value })}
+            className="field mt-1"
+            aria-describedby="limit-help"
+          />
+        </label>
+        <p id="verify-help" className="text-xs text-slate-400">
+          Si l'alerte n'est pas résolue à la fin de ce délai, la correction est jugée inefficace :
+          la personne d'astreinte est prévenue tout de suite et l'action ne repart plus seule.
+        </p>
+        <p id="limit-help" className="text-xs text-slate-400">
+          Au-delà de cette limite par équipement, l'action passe d'office en approbation et
+          l'astreinte est prévenue.
+        </p>
         <label className="text-sm field-inline">
           <input
             type="checkbox"

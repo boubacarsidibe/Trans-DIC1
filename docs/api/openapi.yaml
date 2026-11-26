@@ -3176,6 +3176,56 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/hyperviseurs/{id}/ressources/{ressourceId}/redemarrage:
+    post:
+      tags:
+      - Hyperviseurs
+      summary: Demander le redémarrage forcé d'une VM bloquée
+      description: Rien ne part avant l'approbation d'un autre administrateur. Le
+        connecteur doit avoir un second jeton (droit VM.PowerMgmt seul) et les actions
+        sur les VM activées.
+      operationId: requestReset
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: ressourceId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VmResetRequest"
+        required: true
+      responses:
+        "409":
+          description: "Actions désactivées, ressource qui n'est pas une VM, demande\
+            \ déjà en attente"
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/VmActionResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/hyperviseurs/{id}/essai:
     post:
       tags:
@@ -3196,6 +3246,67 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/TestResult"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/hyperviseurs/actions-vm/{actionId}/refus:
+    post:
+      tags:
+      - Hyperviseurs
+      summary: Refuser un redémarrage de VM
+      operationId: rejectReset
+      parameters:
+      - name: actionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/VmActionResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/hyperviseurs/actions-vm/{actionId}/approbation:
+    post:
+      tags:
+      - Hyperviseurs
+      summary: "Approuver un redémarrage de VM : l'ordre part aussitôt"
+      operationId: approveReset
+      parameters:
+      - name: actionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "409":
+          description: "Demande déjà traitée, expirée, ou approbateur identique au\
+            \ demandeur"
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -6001,6 +6112,40 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/hyperviseurs/{id}/actions-vm:
+    get:
+      tags:
+      - Hyperviseurs
+      summary: Demandes de redémarrage de VM d'un connecteur (ADR 0057)
+      operationId: vmActions
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VmActionResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/flux:
     get:
       tags:
@@ -7562,6 +7707,24 @@ components:
           minimum: 0
         enabled:
           type: boolean
+        verifyMinutes:
+          type: integer
+          format: int32
+          description: "Délai de vérification après l'action, en minutes (0 = aucune)"
+          maximum: 240
+          minimum: 0
+        maxAutoRuns:
+          type: integer
+          format: int32
+          description: Exécutions automatiques au plus par équipement sur la fenêtre
+          maximum: 100
+          minimum: 1
+        windowHours:
+          type: integer
+          format: int32
+          description: "Fenêtre de la limite de fréquence, en heures"
+          maximum: 168
+          minimum: 1
       required:
       - actionName
       - mode
@@ -8001,6 +8164,17 @@ components:
         creerSondesIcmp:
           type: boolean
         actif:
+          type: boolean
+        identifiantJetonActions:
+          type: string
+          maxLength: 160
+          minLength: 0
+        referenceSecretActions:
+          type: string
+          maxLength: 80
+          minLength: 0
+          pattern: "env:[A-Za-z_][A-Za-z0-9_]{0,63}"
+        actionsVmActives:
           type: boolean
       required:
       - identifiantJeton
@@ -9196,6 +9370,12 @@ components:
         supprimees:
           type: integer
           format: int64
+        identifiantJetonActions:
+          type: string
+        referenceSecretActions:
+          type: string
+        actionsVmActives:
+          type: boolean
     SyncReport:
       type: object
       properties:
@@ -9220,6 +9400,47 @@ components:
           type: integer
           format: int32
         erreur:
+          type: string
+    VmResetRequest:
+      type: object
+      properties:
+        motif:
+          type: string
+          maxLength: 300
+          minLength: 3
+      required:
+      - motif
+    VmActionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        ressourceId:
+          type: string
+          format: uuid
+        ressourceNom:
+          type: string
+        action:
+          type: string
+        etat:
+          type: string
+        motif:
+          type: string
+        demandePar:
+          type: string
+        decidePar:
+          type: string
+        creeLe:
+          type: string
+          format: date-time
+        decideLe:
+          type: string
+          format: date-time
+        expireLe:
+          type: string
+          format: date-time
+        resultat:
           type: string
     TestResult:
       type: object
@@ -9844,6 +10065,19 @@ components:
         durationMs:
           type: integer
           format: int64
+        verifyDueAt:
+          type: string
+          format: date-time
+          description: "Échéance de la vérification, si la politique en prévoit une"
+        verification:
+          type: string
+          description: EFFECTIVE ou INEFFECTIVE une fois vérifiée
+        verifiedAt:
+          type: string
+          format: date-time
+        approvalReason:
+          type: string
+          description: Pourquoi l'approbation a été imposée
     AgentSnapshotDto:
       type: object
       properties:
@@ -10717,6 +10951,15 @@ components:
           format: int32
         enabled:
           type: boolean
+        verifyMinutes:
+          type: integer
+          format: int32
+        maxAutoRuns:
+          type: integer
+          format: int32
+        windowHours:
+          type: integer
+          format: int32
         updatedAt:
           type: string
           format: date-time

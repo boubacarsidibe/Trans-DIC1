@@ -21,6 +21,14 @@ export const JOB_STATE_TONE = {
   EXPIRED: "muted",
 };
 
+/** Verdict de la vérification après l'action (ADR 0057). */
+export const VERIFICATION_LABELS = {
+  EFFECTIVE: "Efficace : l'alerte s'est résolue",
+  INEFFECTIVE: "Inefficace : astreinte prévenue, l'action ne repart plus seule",
+};
+
+export const VERIFICATION_TONE = { EFFECTIVE: "ok", INEFFECTIVE: "bad" };
+
 export const MODE_LABELS = {
   AUTO: "Automatique : dès l'ouverture de l'alerte",
   APPROVAL: "Sur approbation d'un opérateur",

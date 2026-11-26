@@ -184,6 +184,214 @@ describe("Hyperviseurs", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("Les équipements découverts restent dans l'inventaire.");
   });
 
+  it("demande le redémarrage d'une VM, puis l'approbation part (ADR 0057)", async () => {
+    const withActions = {
+      ...CONNECTOR,
+      actionsVmActives: true,
+      identifiantJetonActions: "supervision@pve!actions",
+      referenceSecretActions: "env:PVE_POWER",
+    };
+    mockApi({ connectors: [withActions] });
+    let actions = [];
+    apiClient.get.mockImplementation(async (url) => {
+      if (url === "/hyperviseurs") return { data: [withActions] };
+      if (url === "/hyperviseurs/c1/ressources") return { data: RESOURCES };
+      if (url === "/hyperviseurs/c1/actions-vm") return { data: actions };
+      if (url === "/sites")
+        return { data: { content: [{ id: "s1", name: "Salle serveurs" }] } };
+      return { data: [] };
+    });
+    const pending = {
+      id: "a1",
+      ressourceId: "r2",
+      ressourceNom: "vm-web-01",
+      action: "RESET",
+      etat: "PENDING_APPROVAL",
+      motif: "VM figée",
+      demandePar: "awa",
+      creeLe: "2026-11-26T10:00:00Z",
+    };
+    apiClient.post.mockImplementation(async (url) => {
+      if (url === "/hyperviseurs/c1/ressources/r2/redemarrage") {
+        actions = [pending];
+        return { data: pending };
+      }
+      if (url === "/hyperviseurs/actions-vm/a1/approbation") {
+        const done = {
+          ...pending,
+          etat: "SUCCEEDED",
+          decidePar: "moussa",
+          resultat: "Ordre accepté par l'hyperviseur",
+        };
+        actions = [done];
+        return { data: done };
+      }
+      return { data: {} };
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Ressources" }));
+    // Une VM présente seulement : ni l'hôte ni la VM disparue.
+    expect(
+      await screen.findByRole("button", { name: "Redémarrer vm-web-01…" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Redémarrer pve-01…" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Redémarrer vm-ancienne…" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Redémarrer vm-web-01…" }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Demander l'approbation" }),
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent("Indiquez le motif");
+    await user.type(
+      screen.getByLabelText(/Motif du redémarrage forcé/),
+      "VM figée",
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Demander l'approbation" }),
+    );
+    expect(apiClient.post).toHaveBeenCalledWith(
+      "/hyperviseurs/c1/ressources/r2/redemarrage",
+      { motif: "VM figée" },
+    );
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "un autre administrateur doit l'approuver",
+    );
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Approuver et redémarrer vm-web-01",
+      }),
+    );
+    expect(apiClient.post).toHaveBeenCalledWith(
+      "/hyperviseurs/actions-vm/a1/approbation",
+    );
+    expect(
+      await screen.findByText("Ordre accepté par l'hyperviseur", {
+        selector: "p",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("montre le refus du serveur quand le demandeur veut s'approuver lui-même", async () => {
+    const withActions = { ...CONNECTOR, actionsVmActives: true };
+    mockApi({ connectors: [withActions] });
+    const pending = {
+      id: "a1",
+      ressourceNom: "vm-web-01",
+      etat: "PENDING_APPROVAL",
+      motif: "x",
+      demandePar: "moi",
+      creeLe: "2026-11-26T10:00:00Z",
+    };
+    apiClient.get.mockImplementation(async (url) => {
+      if (url === "/hyperviseurs") return { data: [withActions] };
+      if (url === "/hyperviseurs/c1/ressources") return { data: RESOURCES };
+      if (url === "/hyperviseurs/c1/actions-vm") return { data: [pending] };
+      return { data: { content: [] } };
+    });
+    apiClient.post.mockRejectedValue({
+      response: {
+        data: {
+          error: "Un autre administrateur que le demandeur doit approuver.",
+        },
+      },
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Ressources" }));
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Approuver et redémarrer vm-web-01",
+      }),
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Un autre administrateur que le demandeur doit approuver.",
+    );
+    await user.click(screen.getByRole("button", { name: "Refuser" }));
+    expect(apiClient.post).toHaveBeenCalledWith(
+      "/hyperviseurs/actions-vm/a1/refus",
+    );
+  });
+
+  it("sans actions sur les VM, aucun bouton de redémarrage", async () => {
+    mockApi();
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "Ressources" }));
+    await screen.findByText("vm-web-01", { selector: "td" });
+    expect(
+      screen.queryByRole("button", { name: /^Redémarrer/ }),
+    ).not.toBeInTheDocument();
+    expect(apiClient.get).not.toHaveBeenCalledWith(
+      "/hyperviseurs/c1/actions-vm",
+    );
+  });
+
+  it("valide le second jeton : distinct, complet, exigé pour activer", () => {
+    const base = {
+      ...EMPTY_CONNECTOR,
+      nom: "x",
+      urlApi: "https://192.0.2.10:8006",
+      identifiantJeton: "a@pve!lecture",
+      referenceSecret: "env:LECTURE",
+      siteId: "s1",
+    };
+    expect(validateConnector(base)).toEqual({});
+    expect(
+      validateConnector({ ...base, actionsVmActives: true })
+        .identifiantJetonActions,
+    ).toMatch(/second jeton/);
+    expect(
+      validateConnector({
+        ...base,
+        identifiantJetonActions: "a@pve!lecture",
+        referenceSecretActions: "env:ACTION",
+      }).identifiantJetonActions,
+    ).toMatch(/distinct/);
+    expect(
+      validateConnector({
+        ...base,
+        identifiantJetonActions: "a@pve!action",
+        referenceSecretActions: "env:LECTURE",
+      }).referenceSecretActions,
+    ).toMatch(/distinct/);
+    expect(
+      validateConnector({ ...base, identifiantJetonActions: "a@pve!action" })
+        .referenceSecretActions,
+    ).toMatch(/env:NOM/);
+    const ok = {
+      ...base,
+      identifiantJetonActions: "a@pve!action",
+      referenceSecretActions: "env:ACTION",
+      actionsVmActives: true,
+    };
+    expect(validateConnector(ok)).toEqual({});
+    expect(toConnectorPayload(ok)).toEqual(
+      expect.objectContaining({
+        identifiantJetonActions: "a@pve!action",
+        referenceSecretActions: "env:ACTION",
+        actionsVmActives: true,
+      }),
+    );
+    expect(toConnectorPayload(base)).toEqual(
+      expect.objectContaining({
+        identifiantJetonActions: null,
+        referenceSecretActions: null,
+        actionsVmActives: false,
+      }),
+    );
+    expect(fromConnector({ ...CONNECTOR }).actionsVmActives).toBe(false);
+  });
+
   it("montre un connecteur en erreur ou désactivé", async () => {
     mockApi({
       connectors: [

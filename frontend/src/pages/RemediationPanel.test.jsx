@@ -65,6 +65,45 @@ describe("RemediationPanel", () => {
     );
   });
 
+  it("montre la vérification après l'action et l'approbation imposée (ADR 0057)", async () => {
+    apiClient.get.mockResolvedValue({
+      data: remediation({
+        jobs: [
+          {
+            id: "j3",
+            actionName: "redemarrer-nginx",
+            state: "PENDING_APPROVAL",
+            trigger: "AUTO",
+            createdAt: "2026-11-26T10:00:00Z",
+            approvalReason: "limite de fréquence atteinte (3 exécutions automatiques en 24 h)",
+          },
+          {
+            id: "j2",
+            actionName: "redemarrer-nginx",
+            state: "SUCCEEDED",
+            trigger: "AUTO",
+            createdAt: "2026-11-26T09:00:00Z",
+            verification: "INEFFECTIVE",
+          },
+          {
+            id: "j1",
+            actionName: "redemarrer-nginx",
+            state: "SUCCEEDED",
+            trigger: "AUTO",
+            createdAt: "2026-11-26T08:00:00Z",
+            verifyDueAt: "2026-11-26T08:10:00Z",
+          },
+        ],
+      }),
+    });
+    render(<RemediationPanel alertId="a1" canAct alertOpen />);
+    expect(
+      await screen.findByText(/Approbation imposée : limite de fréquence atteinte/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Inefficace : astreinte prévenue/)).toBeInTheDocument();
+    expect(screen.getByText(/Vérification prévue à/)).toBeInTheDocument();
+  });
+
   it("un lecteur voit sans pouvoir agir", async () => {
     render(<RemediationPanel alertId="a1" canAct={false} alertOpen />);
     await screen.findByText("En attente d'approbation");

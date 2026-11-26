@@ -5,11 +5,16 @@ import {
   HYPERVISOR_KINDS,
   POWER_LABELS,
   RESOURCE_KINDS,
+  VM_ACTION_STATES,
+  approveVmAction,
   createConnector,
   deleteConnector,
   fromConnector,
   listConnectors,
   listResources,
+  listVmActions,
+  rejectVmAction,
+  requestVmReset,
   synchronizeConnector,
   testConnector,
   toConnectorPayload,
@@ -21,20 +26,123 @@ import PageHeader from "../ui/PageHeader.jsx";
 
 const formatDate = (value) => (value ? new Date(value).toLocaleString("fr-FR") : "jamais");
 
+const apiError = (failure, fallback) => failure?.response?.data?.error ?? fallback;
+
+/**
+ * Demandes de redémarrage forcé des VM (ADR 0057) : la demande est motivée, un autre administrateur
+ * l'approuve (le serveur refuse que le demandeur s'approuve lui-même), puis l'ordre part.
+ */
+function VmActionsList({ actions, onDecide, busy }) {
+  if (actions.length === 0) return null;
+  return (
+    <section aria-labelledby="actions-vm-titre" className="mt-4">
+      <h3 id="actions-vm-titre" className="text-sm font-semibold">
+        Demandes de redémarrage de VM
+      </h3>
+      <ul className="diag-list">
+        {actions.map((action) => (
+          <li key={action.id} className="diag-line">
+            <strong>{action.ressourceNom}</strong> · {VM_ACTION_STATES[action.etat] ?? action.etat}
+            <span className="cell-sub">
+              {" "}
+              · demandée par {action.demandePar ?? "?"} le {formatDate(action.creeLe)} · motif :{" "}
+              {action.motif}
+              {action.decidePar && ` · décidée par ${action.decidePar}`}
+            </span>
+            {action.resultat && <p className="cell-sub">{action.resultat}</p>}
+            {action.etat === "PENDING_APPROVAL" && (
+              <span className="row-actions">
+                <button
+                  type="button"
+                  className="btn btn-danger btn-sm"
+                  disabled={busy}
+                  onClick={() => onDecide(action, "approve")}
+                >
+                  Approuver et redémarrer {action.ressourceNom}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  disabled={busy}
+                  onClick={() => onDecide(action, "reject")}
+                >
+                  Refuser
+                </button>
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 /** Panneau des hôtes, VM et conteneurs vus par un connecteur. */
 function ResourcesPanel({ connector, onClose }) {
   const [resources, setResources] = useState(null);
+  const [actions, setActions] = useState([]);
+  const [asking, setAsking] = useState(null);
+  const [motif, setMotif] = useState("");
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const vmActions = Boolean(connector.actionsVmActives);
+
+  const reloadActions = useCallback(() => {
+    if (!vmActions) return Promise.resolve();
+    return listVmActions(connector.id)
+      .then(setActions)
+      .catch(() => setError("Impossible de lire les demandes de redémarrage."));
+  }, [connector.id, vmActions]);
 
   useEffect(() => {
     let alive = true;
     listResources(connector.id)
       .then((data) => alive && setResources(data))
       .catch(() => alive && setError("Impossible de lire les ressources du connecteur."));
+    reloadActions();
     return () => {
       alive = false;
     };
-  }, [connector.id]);
+  }, [connector.id, reloadActions]);
+
+  async function ask(event) {
+    event.preventDefault();
+    if (motif.trim().length < 3) {
+      setError("Indiquez le motif du redémarrage (3 caractères au moins).");
+      return;
+    }
+    setBusy(true);
+    try {
+      await requestVmReset(connector.id, asking.id, motif.trim());
+      setNotice(
+        `Demande enregistrée pour ${asking.nom} : un autre administrateur doit l'approuver.`,
+      );
+      setError("");
+      setAsking(null);
+      setMotif("");
+      await reloadActions();
+    } catch (failure) {
+      setError(apiError(failure, "Demande refusée."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function decide(action, decision) {
+    setBusy(true);
+    try {
+      const done =
+        decision === "approve" ? await approveVmAction(action.id) : await rejectVmAction(action.id);
+      setNotice(`${done.ressourceNom} : ${VM_ACTION_STATES[done.etat] ?? done.etat}.`);
+      setError("");
+      await reloadActions();
+    } catch (failure) {
+      setError(apiError(failure, "Décision impossible."));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <section aria-labelledby="ressources-titre" className="panel mt-5">
@@ -47,6 +155,11 @@ function ResourcesPanel({ connector, onClose }) {
       {error && (
         <p role="alert" className="notice notice-bad mt-3">
           {error}
+        </p>
+      )}
+      {notice && (
+        <p role="status" className="notice notice-ok mt-3">
+          {notice}
         </p>
       )}
       {resources === null && !error && <p className="dash-empty">Chargement…</p>}
@@ -64,6 +177,7 @@ function ResourcesPanel({ connector, onClose }) {
               <th>Adresse</th>
               <th>Présence</th>
               <th>Équipement</th>
+              {vmActions && <th aria-label="Actions" />}
             </tr>
           </thead>
           <tbody>
@@ -88,11 +202,52 @@ function ResourcesPanel({ connector, onClose }) {
                     "—"
                   )}
                 </td>
+                {vmActions && (
+                  <td>
+                    {resource.type === "VM" && resource.statut === "PRESENT" && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => {
+                          setAsking(resource);
+                          setMotif("");
+                        }}
+                      >
+                        Redémarrer {resource.nom}…
+                      </button>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
       )}
+      {asking && (
+        <form onSubmit={ask} className="mt-4 grid gap-2" aria-label={`Redémarrer ${asking.nom}`}>
+          <label htmlFor="vm-motif" className="text-sm">
+            Motif du redémarrage forcé de {asking.nom} (équivalent du bouton « reset » : la VM
+            est coupée sans arrêt propre)
+            <textarea
+              id="vm-motif"
+              value={motif}
+              onChange={(event) => setMotif(event.target.value)}
+              rows={2}
+              maxLength={300}
+              className="field mt-2"
+            />
+          </label>
+          <div className="row-actions">
+            <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>
+              Demander l'approbation
+            </button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setAsking(null)}>
+              Annuler
+            </button>
+          </div>
+        </form>
+      )}
+      {vmActions && <VmActionsList actions={actions} onDecide={decide} busy={busy} />}
     </section>
   );
 }
@@ -427,6 +582,29 @@ function HypervisorsPage() {
                 Connecteur actif
               </label>
             </div>
+            <fieldset className="grid gap-3 md:col-span-3 md:grid-cols-3">
+              <legend className="text-sm font-semibold">
+                Actions sur les VM (facultatif, désactivées par défaut)
+              </legend>
+              <p className="text-sm text-slate-400 md:col-span-3">
+                Redémarrage forcé d'une VM bloquée, toujours sur demande motivée puis approbation
+                d'un autre administrateur. Un second jeton, distinct, au seul droit VM.PowerMgmt.
+              </p>
+              <label className="block text-sm" htmlFor="hv-jeton-actions">
+                Jeton d'action : identifiant
+                <input id="hv-jeton-actions" value={values.identifiantJetonActions} onChange={change("identifiantJetonActions")} placeholder="supervision@pve!trans-dic1-actions" className="field mt-2" aria-invalid={Boolean(errors.identifiantJetonActions)} />
+                {errors.identifiantJetonActions && <span className="block text-red-300">{errors.identifiantJetonActions}</span>}
+              </label>
+              <label className="block text-sm" htmlFor="hv-secret-actions">
+                Jeton d'action : référence du secret
+                <input id="hv-secret-actions" value={values.referenceSecretActions} onChange={change("referenceSecretActions")} placeholder="env:PVE_CAMPUS_POWER_TOKEN" className="field mt-2" aria-invalid={Boolean(errors.referenceSecretActions)} />
+                {errors.referenceSecretActions && <span className="block text-red-300">{errors.referenceSecretActions}</span>}
+              </label>
+              <label htmlFor="hv-actions-vm" className="flex items-center gap-2 text-sm">
+                <input id="hv-actions-vm" type="checkbox" checked={values.actionsVmActives} onChange={change("actionsVmActives")} />
+                Permettre le redémarrage des VM
+              </label>
+            </fieldset>
             <div className="flex flex-wrap items-end gap-3 md:col-span-3">
               <button type="submit" className="btn btn-primary">
                 {editing ? "Enregistrer les modifications" : "Ajouter le connecteur"}

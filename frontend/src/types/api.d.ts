@@ -1048,6 +1048,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/hyperviseurs/{id}/ressources/{ressourceId}/redemarrage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Demander le redémarrage forcé d'une VM bloquée
+         * @description Rien ne part avant l'approbation d'un autre administrateur. Le connecteur doit avoir un second jeton (droit VM.PowerMgmt seul) et les actions sur les VM activées.
+         */
+        post: operations["requestReset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/hyperviseurs/{id}/essai": {
         parameters: {
             query?: never;
@@ -1059,6 +1079,40 @@ export interface paths {
         put?: never;
         /** Essayer la connexion à l'hyperviseur, sans rien créer */
         post: operations["test_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hyperviseurs/actions-vm/{actionId}/refus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refuser un redémarrage de VM */
+        post: operations["rejectReset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hyperviseurs/actions-vm/{actionId}/approbation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approuver un redémarrage de VM : l'ordre part aussitôt */
+        post: operations["approveReset"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2451,6 +2505,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/hyperviseurs/{id}/actions-vm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Demandes de redémarrage de VM d'un connecteur (ADR 0057) */
+        get: operations["vmActions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/flux": {
         parameters: {
             query?: never;
@@ -3246,6 +3317,21 @@ export interface components {
             /** Format: int32 */
             cooldownMinutes?: number;
             enabled?: boolean;
+            /**
+             * Format: int32
+             * @description Délai de vérification après l'action, en minutes (0 = aucune)
+             */
+            verifyMinutes?: number;
+            /**
+             * Format: int32
+             * @description Exécutions automatiques au plus par équipement sur la fenêtre
+             */
+            maxAutoRuns?: number;
+            /**
+             * Format: int32
+             * @description Fenêtre de la limite de fréquence, en heures
+             */
+            windowHours?: number;
         };
         AlertRuleRequest: {
             name: string;
@@ -3407,6 +3493,9 @@ export interface components {
             siteId: string;
             creerSondesIcmp?: boolean;
             actif?: boolean;
+            identifiantJetonActions?: string;
+            referenceSecretActions?: string;
+            actionsVmActives?: boolean;
         };
         EquipmentRequest: {
             inventoryCode: string;
@@ -3924,6 +4013,9 @@ export interface components {
             conteneurs?: number;
             /** Format: int64 */
             supprimees?: number;
+            identifiantJetonActions?: string;
+            referenceSecretActions?: string;
+            actionsVmActives?: boolean;
         };
         SyncReport: {
             reussi?: boolean;
@@ -3940,6 +4032,28 @@ export interface components {
             /** Format: int32 */
             alertesOuvertes?: number;
             erreur?: string;
+        };
+        VmResetRequest: {
+            motif: string;
+        };
+        VmActionResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            ressourceId?: string;
+            ressourceNom?: string;
+            action?: string;
+            etat?: string;
+            motif?: string;
+            demandePar?: string;
+            decidePar?: string;
+            /** Format: date-time */
+            creeLe?: string;
+            /** Format: date-time */
+            decideLe?: string;
+            /** Format: date-time */
+            expireLe?: string;
+            resultat?: string;
         };
         TestResult: {
             reussi?: boolean;
@@ -4254,6 +4368,17 @@ export interface components {
             output?: string;
             /** Format: int64 */
             durationMs?: number;
+            /**
+             * Format: date-time
+             * @description Échéance de la vérification, si la politique en prévoit une
+             */
+            verifyDueAt?: string;
+            /** @description EFFECTIVE ou INEFFECTIVE une fois vérifiée */
+            verification?: string;
+            /** Format: date-time */
+            verifiedAt?: string;
+            /** @description Pourquoi l'approbation a été imposée */
+            approvalReason?: string;
         };
         AgentSnapshotDto: {
             hostname: string;
@@ -4685,6 +4810,12 @@ export interface components {
             /** Format: int32 */
             cooldownMinutes?: number;
             enabled?: boolean;
+            /** Format: int32 */
+            verifyMinutes?: number;
+            /** Format: int32 */
+            maxAutoRuns?: number;
+            /** Format: int32 */
+            windowHours?: number;
             /** Format: date-time */
             updatedAt?: string;
             updatedBy?: string;
@@ -9653,6 +9784,58 @@ export interface operations {
             };
         };
     };
+    requestReset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                ressourceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VmResetRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VmActionResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Actions désactivées, ressource qui n'est pas une VM, demande déjà en attente */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     test_2: {
         parameters: {
             query?: never;
@@ -9690,6 +9873,84 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ApiError"];
                 };
+            };
+        };
+    };
+    rejectReset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                actionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VmActionResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    approveReset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                actionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Demande déjà traitée, expirée, ou approbateur identique au demandeur */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -13120,6 +13381,46 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResourceResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    vmActions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VmActionResponse"][];
                 };
             };
             /** @description Authentification requise ou jeton expiré */
