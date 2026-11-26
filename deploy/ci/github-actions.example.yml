@@ -1,0 +1,88 @@
+---
+# Équivalent court pour GitHub Actions (à copier dans .github/workflows/ d'un dépôt du CRI).
+# Les étapes sont celles de gitlab-ci.example.yml ; l'approbation manuelle passe par
+# l'environnement « production » protégé (Settings > Environments > Required reviewers).
+# Secrets du dépôt : TRANS_DIC1_ENROLL_TOKEN, SSH_PRIVATE_KEY, ANSIBLE_INVENTORY (contenu YAML).
+name: Agent Trans-DIC1
+
+"on":
+  push:
+    tags: ["agent-v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sh agent/packaging/build-package.sh
+      - run: pwsh -NoProfile -File agent/packaging/windows/build-package.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paquets
+          path: agent/dist/
+
+  test:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        python: ["3.8", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: cd agent && python -m unittest discover -s tests -t .
+
+  canari:
+    needs: [build, test]
+    runs-on: ubuntu-24.04
+    environment: canari
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: paquets
+          path: agent/dist/
+      - run: |
+          pip install "ansible-core==2.18.*"
+          ansible-galaxy collection install -r deploy/ansible/requirements.yml -p deploy/ansible/collections
+      - name: Vague 1 (groupe de test)
+        env:
+          TRANS_DIC1_ENROLL_TOKEN: ${{ secrets.TRANS_DIC1_ENROLL_TOKEN }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          ANSIBLE_INVENTORY: ${{ secrets.ANSIBLE_INVENTORY }}
+        run: |
+          umask 077
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$RUNNER_TEMP/cle" && printf '%s\n' "$ANSIBLE_INVENTORY" > "$RUNNER_TEMP/inventaire.yml"
+          cd deploy/ansible
+          ansible-playbook -i "$RUNNER_TEMP/inventaire.yml" playbooks/deploy-agent.yml --limit canari \
+            --private-key "$RUNNER_TEMP/cle" -e trans_dic1_agent_version="${GITHUB_REF_NAME#agent-v}"
+
+  production:
+    needs: [canari]
+    runs-on: ubuntu-24.04
+    # Approbation manuelle : l'environnement protégé attend un relecteur avant de démarrer.
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: paquets
+          path: agent/dist/
+      - run: |
+          pip install "ansible-core==2.18.*"
+          ansible-galaxy collection install -r deploy/ansible/requirements.yml -p deploy/ansible/collections
+      - name: Vagues 2 et 3 (10 %, puis le reste ; arrêt au premier échec)
+        env:
+          TRANS_DIC1_ENROLL_TOKEN: ${{ secrets.TRANS_DIC1_ENROLL_TOKEN }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          ANSIBLE_INVENTORY: ${{ secrets.ANSIBLE_INVENTORY }}
+        run: |
+          umask 077
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$RUNNER_TEMP/cle" && printf '%s\n' "$ANSIBLE_INVENTORY" > "$RUNNER_TEMP/inventaire.yml"
+          cd deploy/ansible
+          ansible-playbook -i "$RUNNER_TEMP/inventaire.yml" playbooks/deploy-agent.yml --limit production \
+            --private-key "$RUNNER_TEMP/cle" -e trans_dic1_agent_version="${GITHUB_REF_NAME#agent-v}"

@@ -392,6 +392,25 @@ Add-Step 'Agent : tests unitaires (Python)' {
     return New-Outcome 'PASSED' ("{0} tests sous {1} : {2} réussis, {3} ignoré(s)" -f $ran, $platform, ($ran - $counts.skipped), $counts.skipped)
 } $agentSkip
 
+# Script de synchronisation de l'inventaire avec une CMDB (deploy/inventaire), même option que l'agent.
+Add-Step 'Déploiement : synchronisation d''inventaire (Python)' {
+    $python = Find-Python
+    if (-not $python) { return New-Outcome 'SKIPPED' 'Python introuvable' }
+    $run = Invoke-LoggedProcess -FilePath $python -Arguments @('-m', 'unittest', 'discover', '-s', 'tests', '-t', '.') `
+        -WorkingDirectory (Join-Path $repositoryRoot 'deploy\inventaire') -LogPrefix (Join-Path $logDirectory 'inventaire') `
+        -OnHeartbeat $genericHeartbeat
+    $lines = @(Get-LogLines @($run.OutFile, $run.ErrFile))
+    $ranLine = $lines | Where-Object { $_ -match '^Ran (\d+) tests?' } | Select-Object -Last 1
+    $ran = 0
+    if (($null -ne $ranLine) -and ($ranLine -match '^Ran (\d+) tests?')) { $ran = [int]$Matches[1] }
+    if ($run.ExitCode -ne 0) {
+        Write-LogTail @($run.OutFile, $run.ErrFile) 30
+        return New-Outcome 'FAILED' "unittest : code de sortie $($run.ExitCode)"
+    }
+    if ($ran -eq 0) { return New-Outcome 'FAILED' 'aucun test de la synchronisation exécuté' }
+    return New-Outcome 'PASSED' ("{0} tests réussis" -f $ran)
+} $agentSkip
+
 $securitySkip = ''
 if (-not $WithSecurityScans) { $securitySkip = 'option -WithSecurityScans absente' }
 Add-Step 'Sécurité : gitleaks detect' {

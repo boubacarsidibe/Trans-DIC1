@@ -1,0 +1,51 @@
+#cloud-config
+---
+# Exemple cloud-init (Linux) : chaque VM créée depuis ce modèle naît supervisée (ADR 0054).
+#
+# Au premier démarrage, la VM télécharge le paquet de l'agent depuis le dépôt d'artefacts, vérifie
+# son empreinte SHA-256 (écrite ici, pas lue sur le même serveur que le paquet), l'installe avec le
+# jeton d'inscription, puis efface le jeton. L'agent s'inscrit seul et apparaît dans l'inventaire.
+#
+# Remplacer les valeurs entre chevrons au moment de créer la VM (Terraform, cicustom de Proxmox,
+# modèle vSphere...). Ne jamais versionner un fichier rempli : le jeton d'inscription est un secret.
+# Conseils : un jeton dédié aux VM, de courte validité, avec un nombre maximal d'utilisations et
+# les plages d'adresses du réseau des VM ; le mode « sur approbation » pour un réseau moins sûr.
+#
+# Identifiant de machine : les images cloud régénèrent /etc/machine-id au premier démarrage. Pour
+# un modèle maison, vider /etc/machine-id avant de figer le modèle, sinon tous les clones se
+# présenteront comme une seule machine.
+
+package_update: false
+packages:
+  - python3
+  - curl
+  - ca-certificates
+
+write_files:
+  # /run est en mémoire : le jeton ne survit pas à un redémarrage.
+  - path: /run/trans-dic1/inscription
+    owner: root:root
+    permissions: "0600"
+    content: "<JETON_D_INSCRIPTION_tdic1e_...>"
+
+runcmd:
+  - - sh
+    - -c
+    - |
+      set -eu
+      version="2.1.0"
+      depot="<URL_DU_DEPOT_D_ARTEFACTS>/trans-dic1-agent/${version}"
+      empreinte="<EMPREINTE_SHA256_DU_PAQUET>"
+      travail="$(mktemp -d)"
+      curl --fail --silent --show-error --proto '=https' --tlsv1.2 \
+        -o "${travail}/agent.tar.gz" "${depot}/trans-dic1-agent-${version}.tar.gz"
+      echo "${empreinte}  ${travail}/agent.tar.gz" | sha256sum -c -
+      tar -xzf "${travail}/agent.tar.gz" -C "${travail}"
+      "${travail}/trans-dic1-agent-${version}/install.sh" \
+        --server-url "https://<ADRESSE_DE_LA_PLATEFORME>" \
+        --enroll-token-file /run/trans-dic1/inscription
+      shred -u /run/trans-dic1/inscription
+      rm -rf "${travail}"
+  # cloud-init garde une copie des données utilisateur (lisible par root seul) : on l'efface, le
+  # jeton d'inscription n'a plus d'usage une fois l'agent inscrit.
+  - [sh, -c, "rm -f /var/lib/cloud/instance/user-data.txt /var/lib/cloud/instance/user-data.txt.i"]
