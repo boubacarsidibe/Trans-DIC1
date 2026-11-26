@@ -37,4 +37,19 @@ public interface HypervisorSource {
    */
   Optional<String> guestUuid(HypervisorEndpoint endpoint, HypervisorInventory.Guest guest)
       throws HypervisorSourceException;
+
+  /**
+   * Seule écriture permise (ADR 0057) : redémarrage forcé d'une VM bloquée, avec le second jeton au
+   * droit limité, après approbation. Rend l'identifiant de la tâche côté hyperviseur.
+   *
+   * @param guestExternalId identifiant de la VM côté hyperviseur (ex. {@code qemu/101})
+   * @param hostExternalId hôte qui la porte (ex. {@code node/pve1})
+   */
+  default String resetGuest(
+      HypervisorEndpoint endpoint, String guestExternalId, String hostExternalId)
+      throws HypervisorSourceException {
+    throw new HypervisorSourceException(
+        HypervisorSourceException.Reason.NOT_AVAILABLE,
+        "Redémarrage de VM non pris en charge par le connecteur " + kind());
+  }
 }

@@ -47,6 +47,7 @@ class ProxmoxHypervisorSourceTests {
   private static URI base;
   private static final Map<String, Reply> replies = new ConcurrentHashMap<>();
   private static final CopyOnWriteArrayList<String> authorizations = new CopyOnWriteArrayList<>();
+  private static final CopyOnWriteArrayList<String> calls = new CopyOnWriteArrayList<>();
 
   private final ProxmoxHypervisorSource source = new ProxmoxHypervisorSource();
 
@@ -111,6 +112,7 @@ class ProxmoxHypervisorSourceTests {
         "/",
         exchange -> {
           authorizations.add(exchange.getRequestHeaders().getFirst("Authorization"));
+          calls.add(exchange.getRequestMethod() + " " + exchange.getRequestURI().getPath());
           Reply reply =
               replies.getOrDefault(exchange.getRequestURI().getPath(), new Reply(404, "{}", 0));
           if (reply.delayMs() > 0) {
@@ -144,6 +146,7 @@ class ProxmoxHypervisorSourceTests {
   void reset() throws IOException {
     replies.clear();
     authorizations.clear();
+    calls.clear();
     replies.put(
         "/api2/json/cluster/resources", new Reply(200, fixture("cluster-resources.json"), 0));
     replies.put("/api2/json/cluster/status", new Reply(200, fixture("cluster-status.json"), 0));
@@ -284,6 +287,41 @@ class ProxmoxHypervisorSourceTests {
               assertThat(e.reason()).isEqualTo(Reason.CERTIFICATE_REFUSED);
               assertThat(e.meansUnreachable()).isFalse();
               assertThat(e.getMessage()).doesNotContain(SECRET);
+            });
+  }
+
+  @Test
+  @DisplayName("Redémarrage forcé d'une VM : un POST, sur la VM seulement (ADR 0057)")
+  void resetsAVirtualMachineOnly() throws Exception {
+    replies.put(
+        "/api2/json/nodes/pve-01/qemu/101/status/reset",
+        new Reply(200, "{\"data\":\"UPID:pve-01:0001:qmreset:101:root@pam:\"}", 0));
+
+    String task = source.resetGuest(trusted(), "qemu/101", "node/pve-01");
+
+    assertThat(task).startsWith("UPID:pve-01");
+    assertThat(calls).containsExactly("POST /api2/json/nodes/pve-01/qemu/101/status/reset");
+    assertThat(authorizations).containsExactly("PVEAPIToken=" + TOKEN_ID + "=" + SECRET);
+
+    // Jamais un conteneur, jamais un identifiant mal formé : aucun appel ne part.
+    calls.clear();
+    assertThatThrownBy(() -> source.resetGuest(trusted(), "lxc/201", "node/pve-01"))
+        .isInstanceOf(HypervisorSourceException.class)
+        .hasMessageContaining("Seule une VM");
+    assertThatThrownBy(() -> source.resetGuest(trusted(), "qemu/101;reboot", "node/pve-01"))
+        .isInstanceOf(HypervisorSourceException.class);
+    assertThatThrownBy(() -> source.resetGuest(trusted(), "qemu/101", "node/../../access"))
+        .isInstanceOf(HypervisorSourceException.class);
+    assertThat(calls).isEmpty();
+
+    // Jeton sans le droit d'agir : message clair, sans le secret.
+    replies.put("/api2/json/nodes/pve-01/qemu/101/status/reset", new Reply(403, "{}", 0));
+    assertThatThrownBy(() -> source.resetGuest(trusted(), "qemu/101", "node/pve-01"))
+        .isInstanceOfSatisfying(
+            HypervisorSourceException.class,
+            e -> {
+              assertThat(e.reason()).isEqualTo(Reason.AUTH_REFUSED);
+              assertThat(e.getMessage()).contains("VM.PowerMgmt").doesNotContain(SECRET);
             });
   }
 

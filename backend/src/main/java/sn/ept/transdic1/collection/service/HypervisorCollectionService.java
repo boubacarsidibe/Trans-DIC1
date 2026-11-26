@@ -352,6 +352,28 @@ public class HypervisorCollectionService {
         uri, settings.tokenId(), secret, settings.caCertificate(), timeout);
   }
 
+  /**
+   * Point d'appel avec le second jeton, celui des actions sur les VM (ADR 0057) : jamais le jeton
+   * de lecture. Même garde anti-SSRF et même autorité de certification que la collecte.
+   */
+  HypervisorEndpoint powerEndpoint(HypervisorConnector c) throws HypervisorSourceException {
+    if (!c.allowsVmActions()) {
+      throw new HypervisorSourceException(
+          Reason.AUTH_REFUSED, "Actions sur les VM désactivées pour ce connecteur");
+    }
+    return endpoint(
+        new Settings(
+            c.getId(),
+            c.getName(),
+            c.getKind(),
+            c.getApiUrl(),
+            c.getPowerTokenId(),
+            c.getPowerSecretReference(),
+            c.getCaCertificate(),
+            c.getSite().getId(),
+            false));
+  }
+
   private String lookUpUuid(
       HypervisorSource source,
       HypervisorEndpoint endpoint,

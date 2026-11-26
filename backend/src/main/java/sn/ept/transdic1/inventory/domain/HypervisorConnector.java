@@ -29,6 +29,17 @@ public class HypervisorConnector {
   @Column(name = "secret_reference", nullable = false, length = 80)
   private String secretReference;
 
+  /** Second jeton, distinct, au seul droit VM.PowerMgmt (ADR 0057) ; absent par défaut. */
+  @Column(name = "power_token_id", length = 160)
+  private String powerTokenId;
+
+  @Column(name = "power_secret_reference", length = 80)
+  private String powerSecretReference;
+
+  /** Actions sur les VM permises par ce connecteur ; désactivées par défaut. */
+  @Column(name = "vm_actions_enabled", nullable = false)
+  private boolean vmActionsEnabled;
+
   @Column(name = "ca_certificate", columnDefinition = "TEXT")
   private String caCertificate;
 
@@ -101,6 +112,32 @@ public class HypervisorConnector {
     this.createIcmpProbes = createIcmpProbes;
     this.enabled = enabled;
     updatedAt = now;
+  }
+
+  /** Jeton d'action sur les VM : tous deux vides, ou tous deux renseignés. */
+  public void configureVmActions(
+      String powerTokenId, String powerSecretReference, boolean vmActionsEnabled, Instant now) {
+    this.powerTokenId = powerTokenId;
+    this.powerSecretReference = powerSecretReference;
+    this.vmActionsEnabled = vmActionsEnabled && powerTokenId != null;
+    updatedAt = now;
+  }
+
+  /** Vrai si un administrateur peut demander le redémarrage d'une VM de ce connecteur. */
+  public boolean allowsVmActions() {
+    return vmActionsEnabled && powerTokenId != null && powerSecretReference != null;
+  }
+
+  public String getPowerTokenId() {
+    return powerTokenId;
+  }
+
+  public String getPowerSecretReference() {
+    return powerSecretReference;
+  }
+
+  public boolean isVmActionsEnabled() {
+    return vmActionsEnabled;
   }
 
   /** Vrai si le prochain passage est dû à l'instant donné. */

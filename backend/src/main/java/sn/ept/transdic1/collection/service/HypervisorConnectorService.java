@@ -217,6 +217,7 @@ public class HypervisorConnectorService {
           HttpStatus.BAD_REQUEST,
           "Référence de secret de la forme env:NOM, jamais le secret lui-même");
     }
+    validateVmActions(request);
     String pem = blankToNull(request.certificatAutorite());
     if (pem != null) {
       if (pem.contains("PRIVATE KEY")) {
@@ -232,6 +233,44 @@ public class HypervisorConnectorService {
       }
     }
     return site;
+  }
+
+  /**
+   * Second jeton, pour le seul redémarrage des VM (ADR 0057) : facultatif, mais alors complet, et
+   * jamais le jeton de lecture — un jeton qui lit tout ne doit pas pouvoir écrire.
+   */
+  private static void validateVmActions(ConnectorRequest request) {
+    String token = blankToNull(request.identifiantJetonActions());
+    String secret = blankToNull(request.referenceSecretActions());
+    if (token == null && secret == null) {
+      if (request.vmActionsWanted()) {
+        throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST,
+            "Les actions sur les VM demandent un second jeton, au seul droit VM.PowerMgmt.");
+      }
+      return;
+    }
+    if (token == null || secret == null) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
+          "Jeton d'action incomplet : identifiant et référence de secret vont ensemble.");
+    }
+    if (!TOKEN_ID.matcher(token).matches()) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
+          "Identifiant du jeton d'action attendu de la forme utilisateur@domaine!nom");
+    }
+    if (token.equals(request.identifiantJeton().trim())
+        || secret.equals(request.referenceSecret().trim())) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
+          "Le jeton d'action doit être distinct du jeton de lecture (identifiant et secret).");
+    }
+    if (!SecretResolver.isSupported(secret)) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
+          "Référence de secret de la forme env:NOM, jamais le secret lui-même");
+    }
   }
 
   /**
@@ -274,6 +313,11 @@ public class HypervisorConnectorService {
         request.creerSondesIcmp(),
         request.actif(),
         clock.instant());
+    connector.configureVmActions(
+        blankToNull(request.identifiantJetonActions()),
+        blankToNull(request.referenceSecretActions()),
+        request.vmActionsWanted(),
+        clock.instant());
   }
 
   private HypervisorConnector find(UUID id) {
@@ -290,6 +334,11 @@ public class HypervisorConnectorService {
     find(id);
   }
 
+  /** Connecteur visible dans le périmètre de l'utilisateur, ou 404. */
+  HypervisorConnector visible(UUID id) {
+    return find(id);
+  }
+
   private static String details(HypervisorConnector c) {
     return "nom="
         + c.getName()
@@ -302,7 +351,13 @@ public class HypervisorConnectorService {
         + " secret="
         + c.getSecretReference()
         + " actif="
-        + c.isEnabled();
+        + c.isEnabled()
+        + " jetonActions="
+        + c.getPowerTokenId()
+        + " secretActions="
+        + c.getPowerSecretReference()
+        + " actionsVm="
+        + c.isVmActionsEnabled();
   }
 
   private ConnectorResponse toResponse(HypervisorConnector c) {
@@ -332,7 +387,10 @@ public class HypervisorConnectorService {
         hosts,
         vms,
         containers,
-        removed);
+        removed,
+        c.getPowerTokenId(),
+        c.getPowerSecretReference(),
+        c.isVmActionsEnabled());
   }
 
   private static long count(List<HypervisorResource> all, HypervisorResourceKind kind) {

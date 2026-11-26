@@ -324,8 +324,10 @@ class PersistenceModelTests {
             "HypervisorConnector",
             "HypervisorResource",
             // Dépendances entre services, pour la cause racine (ADR 0056).
-            "ServiceDependency")
-        .hasSize(58);
+            "ServiceDependency",
+            // Redémarrage forcé d'une VM, sur approbation (ADR 0057).
+            "HypervisorAction")
+        .hasSize(59);
   }
 
   @Test

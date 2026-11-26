@@ -32,7 +32,17 @@ public final class HypervisorDtos {
       @Min(30) @Max(3600) int intervalleSecondes,
       @NotNull UUID siteId,
       boolean creerSondesIcmp,
-      boolean actif) {}
+      boolean actif,
+      @Size(max = 160) String identifiantJetonActions,
+      @Size(max = 80) @Pattern(regexp = "env:[A-Za-z_][A-Za-z0-9_]{0,63}")
+          String referenceSecretActions,
+      Boolean actionsVmActives) {
+
+    /** Absent = désactivé (ADR 0057). */
+    public boolean vmActionsWanted() {
+      return Boolean.TRUE.equals(actionsVmActives);
+    }
+  }
 
   /**
    * Un connecteur tel qu'on peut le relire : la référence du secret, jamais sa valeur. Le
@@ -58,7 +68,28 @@ public final class HypervisorDtos {
       long hotes,
       long vms,
       long conteneurs,
-      long supprimees) {}
+      long supprimees,
+      String identifiantJetonActions,
+      String referenceSecretActions,
+      boolean actionsVmActives) {}
+
+  /** Demande de redémarrage forcé d'une VM bloquée (ADR 0057). */
+  public record VmResetRequest(@NotBlank @Size(min = 3, max = 300) String motif) {}
+
+  /** Une demande d'action sur une VM et sa décision. */
+  public record VmActionResponse(
+      UUID id,
+      UUID ressourceId,
+      String ressourceNom,
+      String action,
+      String etat,
+      String motif,
+      String demandePar,
+      String decidePar,
+      Instant creeLe,
+      Instant decideLe,
+      Instant expireLe,
+      String resultat) {}
 
   /** Un hôte, une VM ou un conteneur vu par le connecteur. */
   public record ResourceResponse(

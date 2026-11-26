@@ -188,18 +188,42 @@ public class ProxmoxHypervisorSource implements HypervisorSource {
     }
   }
 
+  /**
+   * Redémarrage forcé d'une VM (QEMU seulement, jamais un conteneur ni un hôte) : {@code POST
+   * /nodes/{noeud}/qemu/{vmid}/status/reset}, avec le jeton au seul droit {@code VM.PowerMgmt}.
+   */
+  @Override
+  public String resetGuest(
+      HypervisorEndpoint endpoint, String guestExternalId, String hostExternalId)
+      throws HypervisorSourceException {
+    String[] parts = path(guestExternalId, hostExternalId);
+    if (!guestExternalId.startsWith("qemu/")) {
+      throw new HypervisorSourceException(
+          Reason.INVALID_RESPONSE, "Seule une VM peut être redémarrée : " + guestExternalId);
+    }
+    JsonNode task =
+        send(
+            endpoint, "/api2/json/nodes/" + parts[0] + "/qemu/" + parts[1] + "/status/reset", true);
+    return task.asText("");
+  }
+
   // --- HTTP -------------------------------------------------------------------------------------
 
   /** Champ {@code data} d'une réponse de l'API, ou une erreur classée. */
   JsonNode get(HypervisorEndpoint endpoint, String path) throws HypervisorSourceException {
+    return send(endpoint, path, false);
+  }
+
+  private JsonNode send(HypervisorEndpoint endpoint, String path, boolean post)
+      throws HypervisorSourceException {
     URI uri = endpoint.apiUrl().resolve(path);
-    HttpRequest request =
+    HttpRequest.Builder builder =
         HttpRequest.newBuilder(uri)
             .timeout(endpoint.timeout())
             .header("Authorization", "PVEAPIToken=" + endpoint.tokenId() + "=" + endpoint.secret())
-            .header("Accept", "application/json")
-            .GET()
-            .build();
+            .header("Accept", "application/json");
+    HttpRequest request =
+        post ? builder.POST(HttpRequest.BodyPublishers.noBody()).build() : builder.GET().build();
     HttpResponse<InputStream> response;
     try {
       response = client(endpoint).send(request, HttpResponse.BodyHandlers.ofInputStream());
@@ -238,7 +262,10 @@ public class ProxmoxHypervisorSource implements HypervisorSource {
       if (status == 403) {
         throw new HypervisorSourceException(
             Reason.AUTH_REFUSED,
-            "Droits insuffisants (HTTP 403) : rôle PVEAuditor attendu",
+            post
+                ? "Droits insuffisants (HTTP 403) : droit VM.PowerMgmt attendu sur le jeton"
+                    + " d'action"
+                : "Droits insuffisants (HTTP 403) : rôle PVEAuditor attendu",
             status);
       }
       if (status >= 500) {
@@ -354,12 +381,16 @@ public class ProxmoxHypervisorSource implements HypervisorSource {
   }
 
   private static String[] path(HypervisorInventory.Guest guest) throws HypervisorSourceException {
-    var matcher = GUEST_ID.matcher(guest.externalId());
-    String node =
-        guest.hostExternalId() == null ? "" : guest.hostExternalId().replaceFirst("^node/", "");
+    return path(guest.externalId(), guest.hostExternalId());
+  }
+
+  private static String[] path(String externalId, String hostExternalId)
+      throws HypervisorSourceException {
+    var matcher = GUEST_ID.matcher(externalId == null ? "" : externalId);
+    String node = hostExternalId == null ? "" : hostExternalId.replaceFirst("^node/", "");
     if (!matcher.matches() || !NODE.matcher(node).matches()) {
       throw new HypervisorSourceException(
-          Reason.INVALID_RESPONSE, "Invité mal identifié : " + guest.externalId());
+          Reason.INVALID_RESPONSE, "Invité mal identifié : " + externalId);
     }
     return new String[] {node, matcher.group(2)};
   }

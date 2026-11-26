@@ -23,6 +23,9 @@ import sn.ept.transdic1.collection.dto.HypervisorDtos.ConnectorResponse;
 import sn.ept.transdic1.collection.dto.HypervisorDtos.ResourceResponse;
 import sn.ept.transdic1.collection.dto.HypervisorDtos.SyncReport;
 import sn.ept.transdic1.collection.dto.HypervisorDtos.TestResult;
+import sn.ept.transdic1.collection.dto.HypervisorDtos.VmActionResponse;
+import sn.ept.transdic1.collection.dto.HypervisorDtos.VmResetRequest;
+import sn.ept.transdic1.collection.service.HypervisorActionService;
 import sn.ept.transdic1.collection.service.HypervisorConnectorService;
 
 @Tag(
@@ -34,9 +37,12 @@ import sn.ept.transdic1.collection.service.HypervisorConnectorService;
 @RequestMapping("/api/v1/hyperviseurs")
 public class HypervisorController {
   private final HypervisorConnectorService connectors;
+  private final HypervisorActionService vmActions;
 
-  public HypervisorController(HypervisorConnectorService connectors) {
+  public HypervisorController(
+      HypervisorConnectorService connectors, HypervisorActionService vmActions) {
     this.connectors = connectors;
+    this.vmActions = vmActions;
   }
 
   @Operation(summary = "Lister les connecteurs d'hyperviseur")
@@ -104,5 +110,49 @@ public class HypervisorController {
   @PreAuthorize("hasRole('ADMIN')")
   SyncReport synchronize(@PathVariable UUID id) {
     return connectors.synchronizeNow(id);
+  }
+
+  @Operation(summary = "Demandes de redémarrage de VM d'un connecteur (ADR 0057)")
+  @GetMapping("/{id}/actions-vm")
+  @PreAuthorize("hasRole('ADMIN')")
+  List<VmActionResponse> vmActions(@PathVariable UUID id) {
+    return vmActions.list(id);
+  }
+
+  @Operation(
+      summary = "Demander le redémarrage forcé d'une VM bloquée",
+      description =
+          "Rien ne part avant l'approbation d'un autre administrateur. Le connecteur doit avoir un"
+              + " second jeton (droit VM.PowerMgmt seul) et les actions sur les VM activées.")
+  @ApiResponse(
+      responseCode = "409",
+      description = "Actions désactivées, ressource qui n'est pas une VM, demande déjà en attente",
+      content = @Content)
+  @PostMapping("/{id}/ressources/{ressourceId}/redemarrage")
+  @PreAuthorize("hasRole('ADMIN')")
+  @ResponseStatus(HttpStatus.CREATED)
+  VmActionResponse requestReset(
+      @PathVariable UUID id,
+      @PathVariable UUID ressourceId,
+      @Valid @RequestBody VmResetRequest request) {
+    return vmActions.request(id, ressourceId, request.motif());
+  }
+
+  @Operation(summary = "Approuver un redémarrage de VM : l'ordre part aussitôt")
+  @ApiResponse(
+      responseCode = "409",
+      description = "Demande déjà traitée, expirée, ou approbateur identique au demandeur",
+      content = @Content)
+  @PostMapping("/actions-vm/{actionId}/approbation")
+  @PreAuthorize("hasRole('ADMIN')")
+  VmActionResponse approveReset(@PathVariable UUID actionId) {
+    return vmActions.approve(actionId);
+  }
+
+  @Operation(summary = "Refuser un redémarrage de VM")
+  @PostMapping("/actions-vm/{actionId}/refus")
+  @PreAuthorize("hasRole('ADMIN')")
+  VmActionResponse rejectReset(@PathVariable UUID actionId) {
+    return vmActions.reject(actionId);
   }
 }
