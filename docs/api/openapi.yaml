@@ -16,6 +16,10 @@ tags:
     \ NOC_OPERATOR et ADMIN ; assignation, archivage et suppression pour ADMIN."
 - name: Utilisateurs
   description: "Gestion des comptes, réservée aux administrateurs."
+- name: Services découverts
+  description: "Services système actifs et ports en écoute vus par l'agent ; suivre\
+    \ un service en un clic ajoute service.up[nom] sans toucher à la configuration\
+    \ de l'agent (ADR 0056)."
 - name: Collecte SNMP
   description: Configuration de la lecture SNMP d'un équipement. Secrets par référence
     (env:NOM) uniquement.
@@ -59,6 +63,10 @@ tags:
   description: Jetons personnels pour appeler l'API depuis un autre outil.
 - name: Sécurité
   description: Journaux de sécurité et attaques repérées.
+- name: Dépendances des services
+  description: "Un service dépend d'un autre service : chaîne parcourue par la recherche\
+    \ de cause racine (ADR 0056). Lecture pour tous, saisie pour les opérateurs NOC\
+    \ et administrateurs."
 - name: Actions correctives
   description: "Remédiation automatique (ADR 0050) : une règle d'alerte peut demander\
     \ à l'agent de l'équipement d'exécuter une action qu'il a lui-même déclarée (par\
@@ -3420,6 +3428,46 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/equipements/{equipmentId}/services-suivis:
+    post:
+      tags:
+      - Services découverts
+      summary: Suivre un service système de l'équipement
+      operationId: follow
+      parameters:
+      - name: equipmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FollowRequest"
+        required: true
+      responses:
+        "409":
+          description: Nom déjà pris par une sonde
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DiscoveredService"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/equipements/{equipmentId}/modele/previsualiser:
     post:
       tags:
@@ -3644,6 +3692,99 @@ paths:
       responses:
         "400":
           description: "Fichier vide, trop long ou en-tête invalide"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/dependances:
+    get:
+      tags:
+      - Dépendances des services
+      summary: Lister les dépendances entre services
+      operationId: list_11
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DependencyResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      tags:
+      - Dépendances des services
+      summary: Déclarer qu'un service dépend d'un autre
+      description: Une dépendance qui fermerait un cycle est refusée (409).
+      operationId: create_11
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DependencyRequest"
+        required: true
+      responses:
+        "409":
+          description: "Déjà présente, ou cycle"
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DependencyResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/dependances/import:
+    post:
+      tags:
+      - Dépendances des services
+      summary: Importer des dépendances (CSV)
+      description: "Une ligne par dépendance : code_equipement;service;code_equipement;service\
+        \ (le premier service dépend du second). Chaque ligne est jugée seule."
+      operationId: importCsv_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ImportResult"
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -5290,7 +5431,7 @@ paths:
       tags:
       - Périmètres d'accès
       summary: Comptes limités à certains sites
-      operationId: list_11
+      operationId: list_12
       responses:
         "200":
           description: OK
@@ -5652,7 +5793,7 @@ paths:
       description: "Liste paginée (20 par page, plus récents d'abord), filtrable par\
         \ état. Chaque incident indique le nombre d'alertes et les équipements touché\
         s."
-      operationId: list_12
+      operationId: list_13
       parameters:
       - name: state
         in: query
@@ -5792,6 +5933,40 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/incidents/{id}/cause-racine:
+    get:
+      tags:
+      - Alertes
+      summary: Cause racine d'un incident
+      description: "Calculée à la demande (ADR 0056) : depuis le service ou l'équipement\
+        \ en panne, la chaîne est descendue — services dont il dépend, équipement\
+        \ où il tourne, ressources saturées, hôte et amont réseau — jusqu'à la cause\
+        \ la plus basse en panne au même moment, avec ses preuves. Plusieurs causes\
+        \ sont classées par les poids du diagnostic. Tous les rôles ; même périmè\
+        tre par site que la lecture de l'alerte."
+      operationId: forIncident
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Incident introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/hyperviseurs/{id}/ressources:
     get:
       tags:
@@ -5858,7 +6033,7 @@ paths:
       description: "Liste paginée (50 par page, plus récents d'abord), filtrable par\
         \ équipement, source, sévérité minimale (EMERGENCY la plus grave), période\
         \ [from, to[ et texte (titre, détails, OID). 200 événements par page au plus."
-      operationId: list_13
+      operationId: list_14
       parameters:
       - name: equipmentId
         in: query
@@ -5956,6 +6131,34 @@ paths:
                 $ref: "#/components/schemas/ImpactResponse"
         "404":
           description: Équipement introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/equipements/{equipmentId}/services-decouverts:
+    get:
+      tags:
+      - Services découverts
+      summary: Services actifs et ports en écoute d'un équipement
+      operationId: discovered
+      parameters:
+      - name: equipmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Équipement introuvable ou aucun inventaire reçu
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -6170,6 +6373,33 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/dependances/services:
+    get:
+      tags:
+      - Dépendances des services
+      summary: Services que l'on peut relier (sondes et services suivis)
+      operationId: services
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ServiceNode"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/decouverte/{id}:
     get:
       tags:
@@ -6231,7 +6461,7 @@ paths:
       description: "Les plus confiants d'abord. Un lien n'est listé que si les deux\
         \ équipements sont visibles : une proposition porte sur leur couple, en montrer\
         \ la moitié n'aurait aucun sens."
-      operationId: list_14
+      operationId: list_15
       responses:
         "200":
           description: OK
@@ -6418,7 +6648,7 @@ paths:
       summary: Consulter le journal
       description: "Liste paginée (50 par page, plus récentes d'abord), filtrable\
         \ par période (from inclus, to exclu), compte, action et cible."
-      operationId: list_15
+      operationId: list_16
       parameters:
       - name: from
         in: query
@@ -6691,7 +6921,7 @@ paths:
       description: "Liste paginée (20 par page, plus récentes d'abord), filtrable\
         \ par état, équipement, sévérité ou alertes actives. Les alertes supprimé\
         es sont masquées."
-      operationId: list_16
+      operationId: list_17
       parameters:
       - name: state
         in: query
@@ -6845,6 +7075,67 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/alertes/{id}/cause-racine:
+    get:
+      tags:
+      - Alertes
+      summary: Cause racine d'une alerte
+      description: "Calculée à la demande (ADR 0056) : depuis le service ou l'équipement\
+        \ en panne, la chaîne est descendue — services dont il dépend, équipement\
+        \ où il tourne, ressources saturées, hôte et amont réseau — jusqu'à la cause\
+        \ la plus basse en panne au même moment, avec ses preuves. Plusieurs causes\
+        \ sont classées par les poids du diagnostic. Tous les rôles ; même périmè\
+        tre par site que la lecture de l'alerte."
+      operationId: forAlert_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Alerte introuvable
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/agent/services-suivis:
+    get:
+      tags:
+      - Services découverts
+      summary: Services à suivre (agent)
+      description: "Authentifié par le jeton de l'agent : les noms dont il remonte\
+        \ l'état."
+      operationId: followed
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/FollowedNames"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/actions-correctives/disponibles:
     get:
       tags:
@@ -6955,6 +7246,68 @@ paths:
       responses:
         "404":
           description: Jeton introuvable
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/equipements/{equipmentId}/services-suivis/{serviceId}:
+    delete:
+      tags:
+      - Services découverts
+      summary: Cesser de suivre un service système
+      operationId: unfollow
+      parameters:
+      - name: equipmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: serviceId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/dependances/{id}:
+    delete:
+      tags:
+      - Dépendances des services
+      summary: Supprimer une dépendance
+      operationId: delete_10
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
         "204":
           description: No Content
         "401":
@@ -8899,6 +9252,7 @@ components:
           - DNS
           - TLS_CERT
           - OTHER
+          - AGENT_SERVICE
         port:
           type: integer
           format: int32
@@ -8958,6 +9312,25 @@ components:
           description: "Vitesse de consommation sur la dernière heure, rapportée à\
             \ la vitesse qui ferait durer le budget un mois : 1 = soutenable, 14,4\
             \ = épuisé en deux jours"
+    FollowRequest:
+      type: object
+      properties:
+        nom:
+          type: string
+          minLength: 1
+          pattern: "[A-Za-z0-9_.@-]{1,64}"
+      required:
+      - nom
+    DiscoveredService:
+      type: object
+      properties:
+        nom:
+          type: string
+        suivi:
+          type: boolean
+        serviceId:
+          type: string
+          format: uuid
     Options:
       type: object
       properties:
@@ -9020,6 +9393,83 @@ components:
           type: string
         token:
           type: string
+    DependencyRequest:
+      type: object
+      properties:
+        serviceId:
+          type: string
+          format: uuid
+        dependDeId:
+          type: string
+          format: uuid
+      required:
+      - dependDeId
+      - serviceId
+    DependencyResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        service:
+          $ref: "#/components/schemas/ServiceNode"
+        dependDe:
+          $ref: "#/components/schemas/ServiceNode"
+        creePar:
+          type: string
+        creeLe:
+          type: string
+          format: date-time
+    ServiceNode:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nom:
+          type: string
+        type:
+          type: string
+          enum:
+          - TCP_PORT
+          - HTTP
+          - HTTPS
+          - ICMP
+          - DNS
+          - TLS_CERT
+          - OTHER
+          - AGENT_SERVICE
+        equipementId:
+          type: string
+          format: uuid
+        equipementNom:
+          type: string
+        equipementCode:
+          type: string
+        site:
+          type: string
+    ImportRequest:
+      type: object
+      properties:
+        csv:
+          type: string
+          maxLength: 200000
+          minLength: 0
+      required:
+      - csv
+    ImportResult:
+      type: object
+      properties:
+        creees:
+          type: integer
+          format: int32
+        dejaPresentes:
+          type: integer
+          format: int32
+        erreurs:
+          type: array
+          items:
+            type: string
     DiscoveryRequest:
       type: object
       properties:
@@ -9423,9 +9873,41 @@ components:
           type: boolean
         processes:
           $ref: "#/components/schemas/Processes"
+        services:
+          type: array
+          items:
+            type: string
+            maxLength: 128
+            minLength: 0
+          maxItems: 300
+          minItems: 0
+        listeningPorts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ListeningPort"
+          maxItems: 200
+          minItems: 0
       required:
       - hostname
       - os
+    ListeningPort:
+      type: object
+      properties:
+        protocol:
+          type: string
+          minLength: 1
+          pattern: tcp6?
+        address:
+          type: string
+          maxLength: 45
+          minLength: 0
+        port:
+          type: integer
+          format: int32
+          maximum: 65535
+          minimum: 1
+      required:
+      - protocol
     ProcessLine:
       type: object
       properties:
@@ -11846,6 +12328,13 @@ components:
         valeur:
           type: number
           format: double
+    FollowedNames:
+      type: object
+      properties:
+        services:
+          type: array
+          items:
+            type: string
     AvailableAction:
       type: object
       description: Action annoncée par au moins un agent actif

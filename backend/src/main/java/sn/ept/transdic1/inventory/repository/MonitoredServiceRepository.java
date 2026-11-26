@@ -34,6 +34,12 @@ public interface MonitoredServiceRepository extends JpaRepository<MonitoredServi
 
   List<MonitoredService> findByEquipmentIdOrderByName(UUID equipmentId);
 
+  /** Tous les services avec leur équipement et son site : choix d'une dépendance (ADR 0056). */
+  @org.springframework.data.jpa.repository.Query(
+      "select s from MonitoredService s join fetch s.equipment e join fetch e.site"
+          + " order by e.name, s.name")
+  List<MonitoredService> findAllWithEquipment();
+
   long countByEquipmentIdAndActiveTrue(UUID equipmentId);
 
   /** Services actifs d'un type à au moins {@code failures} échecs consécutifs, sauf {@code id}. */

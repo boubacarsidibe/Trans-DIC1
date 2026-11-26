@@ -322,8 +322,10 @@ class PersistenceModelTests {
             "AgentEnrollment",
             // Connecteurs d'hyperviseur et ressources vues sans agent (ADR 0055).
             "HypervisorConnector",
-            "HypervisorResource")
-        .hasSize(57);
+            "HypervisorResource",
+            // Dépendances entre services, pour la cause racine (ADR 0056).
+            "ServiceDependency")
+        .hasSize(58);
   }
 
   @Test
