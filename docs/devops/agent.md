@@ -145,6 +145,11 @@ Depuis l'agent 2.0, tous les disques et toutes les cartes actives sont découver
 
 ## Inscription automatique (ADR 0054)
 
+> **Démonstration sur un poste Windows** : avec la plateforme locale lancée
+> (`scripts/run-backend-parallel.ps1`), `powershell -ExecutionPolicy Bypass -File scripts\demo-agent-local.ps1`
+> crée un jeton d'inscription, installe l'agent dans le profil (sans droits administrateur ni tâche
+> planifiée) et le lance au premier plan, une mesure toutes les 15 secondes. Ctrl+C l'arrête.
+
 Pour un parc entier, on ne crée ni les équipements ni les jetons à la main : un **jeton d'inscription** partagé par toute une vague de déploiement permet à chaque agent de s'inscrire seul. Il reçoit en retour son propre jeton, et le jeton d'inscription est supprimé de la machine. Le choix est expliqué dans l'[ADR-0054](../adr/0054-inscription-automatique-des-agents.md) ; le déploiement par pipeline et Ansible dans [deploiement-a-grande-echelle.md](deploiement-a-grande-echelle.md).
 
 ### 1. Créer un jeton d'inscription
