@@ -315,8 +315,12 @@ class PersistenceModelTests {
             "CauseFeedback",
             // Actions correctives : politique d'une règle et exécutions (ADR 0050).
             "RemediationPolicy",
-            "RemediationJob")
-        .hasSize(53);
+            "RemediationJob",
+            // Inscription automatique des agents : jetons partagés et machines inscrites (ADR
+            // 0054).
+            "EnrollmentToken",
+            "AgentEnrollment")
+        .hasSize(55);
   }
 
   @Test

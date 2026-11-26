@@ -36,6 +36,9 @@ tags:
 - name: Import de l'inventaire
   description: "Import CSV des équipements (code_inventaire;nom;adresse;type;statut;site)\
     \ : aperçu puis import des lignes valides. Réservé aux rôles ADMIN et NOC_OPERATOR."
+- name: Inscription des agents
+  description: "Jetons d'inscription partagés (administrateur) et inscription d'un\
+    \ agent par lui-même : il reçoit en retour son jeton personnel (ADR 0054)."
 - name: Sites
   description: Emplacements regroupant les équipements. Écriture réservée à ADMIN
     et NOC_OPERATOR.
@@ -2850,6 +2853,134 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/inscriptions/jetons:
+    get:
+      tags:
+      - Inscription des agents
+      summary: Lister les jetons d'inscription
+      description: "Le jeton lui-même n'est jamais renvoyé : seule son empreinte est\
+        \ stockée."
+      operationId: listTokens
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EnrollmentTokenResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      tags:
+      - Inscription des agents
+      summary: Créer un jeton d'inscription
+      description: "Retourne le jeton, affiché une seule fois. Valable au plus 365\
+        \ jours, pour un nombre d'utilisations borné, éventuellement limité à des\
+        \ plages d'adresses (CIDR)."
+      operationId: createToken
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrollmentTokenRequest"
+        required: true
+      responses:
+        "400":
+          description: Paramètres invalides
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EnrollmentTokenCreated"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/inscriptions/demandes/refus:
+    post:
+      tags:
+      - Inscription des agents
+      summary: Refuser des demandes d'inscription
+      operationId: reject
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrollmentDecisionRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EnrollmentDecisionResult"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/inscriptions/demandes/approbation:
+    post:
+      tags:
+      - Inscription des agents
+      summary: Approuver des demandes d'inscription
+      description: L'équipement est créé aussitôt ; l'agent reçoit son jeton à sa
+        prochaine demande.
+      operationId: approve
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrollmentDecisionRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EnrollmentDecisionResult"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/equipements:
     get:
       tags:
@@ -3376,7 +3507,7 @@ paths:
       - Corrélations apprises
       summary: Écarter un lien proposé
       description: "Il ne sera plus reproposé, même si la statistique persiste."
-      operationId: reject
+      operationId: reject_1
       parameters:
       - name: id
         in: path
@@ -4284,6 +4415,38 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/agent/enroll:
+    post:
+      tags:
+      - Inscription des agents
+      summary: S'inscrire (agent)
+      description: "Authentifié par un jeton d'inscription (tdic1e_…) dans l'en-tê\
+        te Authorization: Bearer. 201 : l'agent est inscrit et reçoit son jeton personnel,\
+        \ affiché une seule fois. 202 : la demande attend un administrateur, redemander\
+        \ après reessayerDansSecondes. La même machine (même identifiant) ne crée\
+        \ jamais deux équipements : elle retrouve le sien et reçoit un nouveau jeton."
+      operationId: enroll
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentEnrollRequest"
+        required: true
+      responses:
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "429":
+          description: Trop de demandes
   /api/v1/agent/actions:
     post:
       tags:
@@ -4356,7 +4519,7 @@ paths:
       - Actions correctives
       summary: Refuser une action corrective
       description: Opérateurs NOC et administrateurs.
-      operationId: reject_1
+      operationId: reject_2
       parameters:
       - name: jobId
         in: path
@@ -4387,7 +4550,7 @@ paths:
       - Actions correctives
       summary: Approuver une action corrective
       description: Opérateurs NOC et administrateurs.
-      operationId: approve
+      operationId: approve_1
       parameters:
       - name: jobId
         in: path
@@ -5154,6 +5317,49 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/MetricResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/inscriptions/demandes:
+    get:
+      tags:
+      - Inscription des agents
+      summary: Lister les machines inscrites ou en attente
+      description: "Par défaut, les demandes en attente et celles approuvées non encore\
+        \ retirées."
+      operationId: listRequests
+      parameters:
+      - name: statut
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - PENDING
+            - APPROVED
+            - REJECTED
+            - ENROLLED
+          uniqueItems: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EnrollmentRequestResponse"
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -6454,6 +6660,38 @@ paths:
       description: Le jeton cesse d'être accepté tout de suite ; la ligne reste pour
         l'audit.
       operationId: revoke_2
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Jeton introuvable
+        "204":
+          description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/inscriptions/jetons/{id}:
+    delete:
+      tags:
+      - Inscription des agents
+      summary: Révoquer un jeton d'inscription
+      description: Plus aucune machine ne peut s'inscrire avec ce jeton. Les agents
+        déjà inscrits gardent leur jeton personnel.
+      operationId: revokeToken
       parameters:
       - name: id
         in: path
@@ -8166,6 +8404,86 @@ components:
         revokedAt:
           type: string
           format: date-time
+    EnrollmentTokenRequest:
+      type: object
+      properties:
+        nom:
+          type: string
+          maxLength: 120
+          minLength: 0
+        siteId:
+          type: string
+          format: uuid
+        expireLe:
+          type: string
+          format: date-time
+        utilisationsMax:
+          type: integer
+          format: int32
+          maximum: 100000
+          minimum: 1
+        plagesAutorisees:
+          type: array
+          items:
+            type: string
+            maxLength: 49
+            minLength: 0
+          maxItems: 20
+          minItems: 0
+        mode:
+          type: string
+          enum:
+          - AUTO
+          - APPROVAL
+        typeEquipement:
+          type: string
+          enum:
+          - SERVER
+          - ROUTER
+          - SWITCH
+          - VIRTUAL_MACHINE
+          - WIFI_ACCESS_POINT
+      required:
+      - expireLe
+      - mode
+      - nom
+      - siteId
+      - typeEquipement
+    EnrollmentTokenCreated:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nom:
+          type: string
+        jeton:
+          type: string
+        expireLe:
+          type: string
+          format: date-time
+    EnrollmentDecisionRequest:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 500
+          minItems: 0
+      required:
+      - ids
+    EnrollmentDecisionResult:
+      type: object
+      properties:
+        traitees:
+          type: integer
+          format: int32
+        ignorees:
+          type: array
+          items:
+            type: string
     ProbeResponse:
       type: object
       properties:
@@ -8799,6 +9117,44 @@ components:
       required:
       - kind
       - occurredAt
+    AgentEnrollRequest:
+      type: object
+      properties:
+        hostname:
+          type: string
+          maxLength: 120
+          minLength: 0
+          pattern: "[A-Za-z0-9._-]+"
+        machineId:
+          type: string
+          maxLength: 128
+          minLength: 16
+          pattern: "[A-Fa-f0-9-]+"
+        ipAddresses:
+          type: array
+          items:
+            type: string
+            maxLength: 45
+            minLength: 0
+            pattern: "[0-9A-Fa-f:.]+"
+          maxItems: 16
+          minItems: 0
+        os:
+          type: string
+          maxLength: 64
+          minLength: 0
+        osVersion:
+          type: string
+          maxLength: 120
+          minLength: 0
+        agentVersion:
+          type: string
+          maxLength: 32
+          minLength: 0
+      required:
+      - hostname
+      - machineId
+      - os
     AgentPollRequest:
       type: object
       description: "Passage de l'agent : actions qu'il sait exécuter"
@@ -9634,6 +9990,113 @@ components:
             $ref: "#/components/schemas/MaintenanceResponse"
         page:
           $ref: "#/components/schemas/PageMetadata"
+    EnrollmentTokenResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nom:
+          type: string
+        siteId:
+          type: string
+          format: uuid
+        siteNom:
+          type: string
+        expireLe:
+          type: string
+          format: date-time
+        utilisationsMax:
+          type: integer
+          format: int32
+        utilisations:
+          type: integer
+          format: int32
+        plagesAutorisees:
+          type: array
+          items:
+            type: string
+        mode:
+          type: string
+          enum:
+          - AUTO
+          - APPROVAL
+        typeEquipement:
+          type: string
+          enum:
+          - SERVER
+          - ROUTER
+          - SWITCH
+          - VIRTUAL_MACHINE
+          - WIFI_ACCESS_POINT
+        etat:
+          type: string
+        creePar:
+          type: string
+        creeLe:
+          type: string
+          format: date-time
+        revoqueLe:
+          type: string
+          format: date-time
+        derniereUtilisation:
+          type: string
+          format: date-time
+    EnrollmentRequestResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        siteId:
+          type: string
+          format: uuid
+        siteNom:
+          type: string
+        nomHote:
+          type: string
+        machine:
+          type: string
+        adresses:
+          type: array
+          items:
+            type: string
+        adresseSource:
+          type: string
+        systeme:
+          type: string
+        versionSysteme:
+          type: string
+        versionAgent:
+          type: string
+        statut:
+          type: string
+          enum:
+          - PENDING
+          - APPROVED
+          - REJECTED
+          - ENROLLED
+        jetonNom:
+          type: string
+        equipementId:
+          type: string
+          format: uuid
+        equipementNom:
+          type: string
+        demandeeLe:
+          type: string
+          format: date-time
+        vueLe:
+          type: string
+          format: date-time
+        decidePar:
+          type: string
+        decideLe:
+          type: string
+          format: date-time
+        inscriteLe:
+          type: string
+          format: date-time
     EquipmentReliability:
       type: object
       description: "Fiabilité d'un équipement : pannes = alertes de perte de collecte\

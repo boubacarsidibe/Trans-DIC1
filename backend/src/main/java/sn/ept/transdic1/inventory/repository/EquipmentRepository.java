@@ -36,6 +36,9 @@ public interface EquipmentRepository
 
   boolean existsByManagementAddressAndIdNot(String address, UUID id);
 
+  /** Code d'inventaire déjà pris (code généré par l'inscription automatique, ADR 0054). */
+  boolean existsByInventoryCode(String code);
+
   /** Équipement déjà inventorié à cette adresse (découverte, import). */
   java.util.Optional<Equipment> findFirstByManagementAddress(String address);
 
