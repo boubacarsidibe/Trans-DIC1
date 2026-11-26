@@ -1,0 +1,66 @@
+---
+# Actions correctives d'un groupe de machines Linux (ADR 0050 et 0057) : section [actions] de la
+# configuration, règle sudo limitée à chaque commande exacte, complément systemd qui autorise sudo.
+# La plateforme ne pourra demander que ces noms ; la commande reste écrite sur la machine.
+
+- name: Vérifier les actions demandées
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z0-9][a-z0-9._-]{0,63}$')
+      - item.command | length > 0
+      - item.sudo is not defined or item.sudo is match('^/')
+      - item.sudo is not defined or item.command == 'sudo -n ' ~ item.sudo
+    fail_msg: >-
+      Action {{ item.name | default('?') }} invalide : nom en minuscules, commande non vide, et
+      « sudo » doit être le chemin absolu exact repris dans « command » (sudo -n /chemin …).
+    quiet: true
+  loop: "{{ trans_dic1_agent_actions }}"
+  loop_control:
+    label: "{{ item.name | default('?') }}"
+
+- name: Écrire les actions dans la configuration de l'agent
+  ansible.builtin.blockinfile:
+    path: "{{ trans_dic1_agent_linux_conf_dir }}/agent.conf"
+    marker: "# {mark} actions déployées par Ansible (trans_dic1_agent_actions)"
+    block: |
+      [actions]
+      {% for action in trans_dic1_agent_actions %}
+      {{ action.name }} = {{ action.command }}
+      {% endfor %}
+
+      [action_descriptions]
+      {% for action in trans_dic1_agent_actions %}
+      {{ action.name }} = {{ action.description | default(action.name) }}
+      {% endfor %}
+  notify: Redémarrer l'agent Trans-DIC1 (Linux)
+
+- name: Règles sudo limitées aux commandes exactes
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/trans-dic1-agent
+    owner: root
+    group: root
+    mode: "0440"
+    validate: /usr/sbin/visudo -cf %s
+    content: |
+      # Déployé par Ansible : une ligne par action corrective, commande exacte, sans joker.
+      {% for action in trans_dic1_agent_actions if action.sudo is defined %}
+      trans-dic1-agent ALL=(root) NOPASSWD: {{ action.sudo }}
+      {% endfor %}
+  when: trans_dic1_agent_actions | selectattr('sudo', 'defined') | list | length > 0
+
+- name: Autoriser sudo dans le service durci (complément systemd)
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/trans-dic1-agent.service.d/actions.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Déployé par Ansible (ADR 0057) : seulement parce que des actions passent par sudo.
+      [Service]
+      NoNewPrivileges=no
+      CapabilityBoundingSet=~
+      ReadWritePaths=/var/log /var/cache /var/tmp /run
+  when:
+    - trans_dic1_agent_systemd | bool
+    - trans_dic1_agent_actions | selectattr('sudo', 'defined') | list | length > 0
+  notify: Recharger systemd puis redémarrer l'agent

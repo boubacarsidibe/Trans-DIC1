@@ -131,6 +131,10 @@
       when: trans_dic1_agent_tmp.path is defined
       check_mode: false
 
+- name: Déployer les actions correctives autorisées
+  ansible.builtin.include_tasks: actions_windows.yml
+  when: trans_dic1_agent_actions | length > 0
+
 - name: Attendre le jeton personnel reçu à l'inscription
   ansible.windows.win_wait_for:
     path: '{{ trans_dic1_agent_windows_data_dir }}\state\token'

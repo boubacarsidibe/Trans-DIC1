@@ -7,7 +7,7 @@
 trans_dic1_agent_server_url: "https://supervision.example"
 
 # Version attendue de l'agent. Si la machine a déjà cette version, le rôle ne change rien.
-trans_dic1_agent_version: "2.1.0"
+trans_dic1_agent_version: "2.2.0"
 
 # Paquets construits par le pipeline (agent/packaging/build-package.sh et build-package.ps1),
 # présents sur la machine de contrôle, avec leur empreinte SHA-256.
@@ -34,6 +34,14 @@ trans_dic1_agent_enrollment_timeout: 180
 
 # Linux sans systemd (conteneur, banc d'essai) : installation sans service, à démarrer autrement.
 trans_dic1_agent_systemd: true
+
+# Actions correctives à déployer (ADR 0050 et 0057), vide par défaut. Chaque élément :
+#   name: redemarrer-nginx                       (minuscules, chiffres, . _ -)
+#   command: sudo -n /usr/bin/systemctl restart nginx
+#   sudo: /usr/bin/systemctl restart nginx       (Linux : règle sudo exacte, facultative)
+#   description: Redémarre nginx
+# Catalogue commenté : agent/packaging/agent.conf.example et windows/agent.conf.example.
+trans_dic1_agent_actions: []
 
 # Emplacements (ceux des scripts d'installation).
 trans_dic1_agent_linux_app_dir: /opt/trans-dic1-agent

@@ -5,6 +5,13 @@
     state: restarted
   when: trans_dic1_agent_systemd | bool
 
+- name: Recharger systemd puis redémarrer l'agent
+  ansible.builtin.systemd:
+    name: trans-dic1-agent
+    state: restarted
+    daemon_reload: true
+  when: trans_dic1_agent_systemd | bool
+
 - name: Redémarrer l'agent Trans-DIC1 (Windows)
   ansible.windows.win_powershell:
     script: |

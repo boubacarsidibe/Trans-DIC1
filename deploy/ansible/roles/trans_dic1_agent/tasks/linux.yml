@@ -139,6 +139,10 @@
   notify: Redémarrer l'agent Trans-DIC1 (Linux)
   when: trans_dic1_agent_ca_file | length > 0 and trans_dic1_agent_installed | length > 0
 
+- name: Déployer les actions correctives autorisées
+  ansible.builtin.include_tasks: actions_linux.yml
+  when: trans_dic1_agent_actions | length > 0
+
 - name: Activer et démarrer le service
   ansible.builtin.systemd:
     name: trans-dic1-agent

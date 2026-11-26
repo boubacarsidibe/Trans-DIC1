@@ -1,0 +1,42 @@
+---
+# Actions correctives d'un groupe de machines Windows (ADR 0050 et 0057). Les droits du compte de
+# l'agent sur les services visés (sc.exe sdset) restent un geste d'administration à part, décrit
+# dans agent.conf.example : le rôle ne modifie aucun descripteur de sécurité.
+
+- name: Vérifier les actions demandées
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z0-9][a-z0-9._-]{0,63}$')
+      - item.command | length > 0
+    quiet: true
+  loop: "{{ trans_dic1_agent_actions }}"
+  loop_control:
+    label: "{{ item.name | default('?') }}"
+
+- name: Écrire les actions dans la configuration de l'agent
+  ansible.windows.win_powershell:
+    script: |
+      param([string]$Path, [string]$Block)
+      $begin = '# BEGIN actions déployées par Ansible (trans_dic1_agent_actions)'
+      $end = '# END actions déployées par Ansible (trans_dic1_agent_actions)'
+      $text = [System.IO.File]::ReadAllText($Path)
+      $pattern = '(?s)' + [regex]::Escape($begin) + '.*?' + [regex]::Escape($end) + '\r?\n?'
+      $wanted = $begin + "`r`n" + $Block.Replace("`n", "`r`n").TrimEnd() + "`r`n" + $end + "`r`n"
+      $current = [regex]::Match($text, $pattern).Value
+      if ($current -eq $wanted) { $Ansible.Changed = $false; return }
+      $text = if ($current) { $text.Replace($current, $wanted) } else { $text.TrimEnd() + "`r`n`r`n" + $wanted }
+      [System.IO.File]::WriteAllText($Path, $text, (New-Object System.Text.UTF8Encoding($false)))
+      $Ansible.Changed = $true
+    parameters:
+      Path: '{{ trans_dic1_agent_windows_data_dir }}\agent.conf'
+      Block: |
+        [actions]
+        {% for action in trans_dic1_agent_actions %}
+        {{ action.name }} = {{ action.command }}
+        {% endfor %}
+
+        [action_descriptions]
+        {% for action in trans_dic1_agent_actions %}
+        {{ action.name }} = {{ action.description | default(action.name) }}
+        {% endfor %}
+  notify: Redémarrer l'agent Trans-DIC1 (Windows)

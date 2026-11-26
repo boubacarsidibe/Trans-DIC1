@@ -1,0 +1,11 @@
+---
+# Exemple : à copier dans group_vars/<groupe>.yml pour donner des actions à un groupe de serveurs web.
+trans_dic1_agent_actions:
+  - name: redemarrer-nginx
+    command: sudo -n /usr/bin/systemctl restart nginx
+    sudo: /usr/bin/systemctl restart nginx
+    description: Redémarre le serveur web nginx
+  - name: rotation-journaux
+    command: sudo -n /usr/sbin/logrotate --force /etc/logrotate.conf
+    sudo: /usr/sbin/logrotate --force /etc/logrotate.conf
+    description: Force la rotation des journaux
