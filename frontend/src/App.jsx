@@ -39,6 +39,7 @@ import ImportPage from "./pages/ImportPage.jsx";
 import ChangePasswordPage from "./pages/ChangePasswordPage.jsx";
 import AgentEnrollmentPage from "./pages/AgentEnrollmentPage.jsx";
 import HypervisorsPage from "./pages/HypervisorsPage.jsx";
+import DependenciesPage from "./pages/DependenciesPage.jsx";
 
 function App() {
   return (
@@ -57,6 +58,7 @@ function App() {
           <Route path="/modeles" element={<TemplatesPage />} />
           <Route path="/sites" element={<SitesPage />} />
           <Route path="/topologie" element={<TopologyPage />} />
+          <Route path="/dependances" element={<DependenciesPage />} />
           <Route path="/alertes" element={<AlertsPage />} />
           <Route path="/incidents" element={<IncidentsPage />} />
           <Route path="/indicateurs" element={<KpiPage />} />

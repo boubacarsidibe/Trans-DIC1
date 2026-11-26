@@ -26,6 +26,9 @@ import {
 } from "../api/metrics.js";
 import { useLiveUpdates } from "../hooks/useLiveUpdates.js";
 import EquipmentInsight from "../ui/EquipmentInsight.jsx";
+import DiscoveredServices from "../ui/DiscoveredServices.jsx";
+import { useAuth } from "../auth/AuthContext.jsx";
+import { canManageEquipment } from "../auth/permissions.js";
 import { EQUIPMENT_TYPE, label } from "../ui/labels.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import { GROUPS, describe, formatMetric, isState, sortIndicators } from "../ui/metricCatalog.js";
@@ -212,6 +215,7 @@ function ForecastCard({ forecast }) {
 
 function MetricsPage() {
   const { id } = useParams();
+  const { role } = useAuth();
   const [equipment, setEquipment] = useState(null);
   const [period, setPeriod] = useState("24h");
   const [histories, setHistories] = useState({});
@@ -397,6 +401,7 @@ function MetricsPage() {
         )}
 
         {tab === "overview" && <EquipmentInsight equipmentId={id} />}
+        {tab === "overview" && <DiscoveredServices equipmentId={id} canManage={canManageEquipment(role)} />}
 
         <div className="chart-grid">
           {charts.map((metric) => (

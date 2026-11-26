@@ -206,7 +206,8 @@ describe("panneau de diagnostic", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Impossible de calculer le diagnostic.");
     await userEvent.click(screen.getByRole("button", { name: "Réessayer" }));
     expect(await screen.findByRole("region", { name: "Diagnostic de l'alerte" })).toBeInTheDocument();
-    expect(apiClient.get).toHaveBeenCalledTimes(2);
+    // La cause racine (ADR 0056) fait son propre appel : on ne compte que ceux du diagnostic.
+    expect(apiClient.get.mock.calls.filter(([url]) => url.endsWith("/diagnostic"))).toHaveLength(2);
   });
 
   it("ignore une réponse arrivée après un changement d'alerte", async () => {

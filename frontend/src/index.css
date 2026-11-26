@@ -4476,3 +4476,43 @@ thead {
   gap: 0.5rem;
   margin-top: 0.4rem;
 }
+
+/* ==== Cause racine (ADR 0056) : la chaîne se lit aussi sans couleur (relation, état, « cause ») ==== */
+.root-cause {
+  margin: 0.75rem 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+}
+
+.root-chain {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+  list-style: decimal;
+}
+
+.root-step {
+  margin: 0.2rem 0;
+}
+
+.root-down {
+  border-left: 3px solid #b3261e;
+  padding-left: 0.4rem;
+}
+
+.root-relation,
+.root-kind {
+  color: #55636c;
+  font-size: 0.85rem;
+}
+
+.root-badge {
+  font-weight: 600;
+}
+
+.root-evidence {
+  margin: 0.2rem 0 0;
+  padding-left: 1rem;
+  list-style: disc;
+  font-size: 0.85rem;
+}

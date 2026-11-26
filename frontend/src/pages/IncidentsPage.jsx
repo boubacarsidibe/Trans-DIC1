@@ -14,6 +14,7 @@ import { humanMessage } from "../ui/metricCatalog.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Pagination from "../ui/Pagination.jsx";
 import PostMortemPanel from "./PostMortemPanel.jsx";
+import RootCausePanel from "./RootCausePanel.jsx";
 
 const formatDate = (value) =>
   value
@@ -88,6 +89,7 @@ function IncidentAlerts({ detail }) {
               ))}
             </tbody>
           </table>
+          <RootCausePanel incidentId={detail.incident.id} />
           {postMortem && <PostMortemPanel incidentId={detail.incident.id} />}
         </section>
       </td>

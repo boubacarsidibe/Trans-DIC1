@@ -1130,6 +1130,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/equipements/{equipmentId}/services-suivis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suivre un service système de l'équipement */
+        post: operations["follow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/equipements/{equipmentId}/modele/previsualiser": {
         parameters: {
             query?: never;
@@ -1229,6 +1246,47 @@ export interface paths {
          * @description Valide chaque ligne et sépare valides, erreurs et ignorées. Rien n'est créé.
          */
         post: operations["preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dependances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les dépendances entre services */
+        get: operations["list_11"];
+        put?: never;
+        /**
+         * Déclarer qu'un service dépend d'un autre
+         * @description Une dépendance qui fermerait un cycle est refusée (409).
+         */
+        post: operations["create_11"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dependances/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Importer des dépendances (CSV)
+         * @description Une ligne par dépendance : code_equipement;service;code_equipement;service (le premier service dépend du second). Chaque ligne est jugée seule.
+         */
+        post: operations["importCsv_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2109,7 +2167,7 @@ export interface paths {
             cookie?: never;
         };
         /** Comptes limités à certains sites */
-        get: operations["list_11"];
+        get: operations["list_12"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2287,7 +2345,7 @@ export interface paths {
          * Lister les incidents
          * @description Liste paginée (20 par page, plus récents d'abord), filtrable par état. Chaque incident indique le nombre d'alertes et les équipements touchés.
          */
-        get: operations["list_12"];
+        get: operations["list_13"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2356,6 +2414,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/incidents/{id}/cause-racine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Cause racine d'un incident
+         * @description Calculée à la demande (ADR 0056) : depuis le service ou l'équipement en panne, la chaîne est descendue — services dont il dépend, équipement où il tourne, ressources saturées, hôte et amont réseau — jusqu'à la cause la plus basse en panne au même moment, avec ses preuves. Plusieurs causes sont classées par les poids du diagnostic. Tous les rôles ; même périmètre par site que la lecture de l'alerte.
+         */
+        get: operations["forIncident"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/hyperviseurs/{id}/ressources": {
         parameters: {
             query?: never;
@@ -2404,7 +2482,7 @@ export interface paths {
          * Lister les événements réseau
          * @description Liste paginée (50 par page, plus récents d'abord), filtrable par équipement, source, sévérité minimale (EMERGENCY la plus grave), période [from, to[ et texte (titre, détails, OID). 200 événements par page au plus.
          */
-        get: operations["list_13"];
+        get: operations["list_14"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2425,6 +2503,23 @@ export interface paths {
          * @description Ce que son arrêt entraînerait : équipements en aval (avec ceux qui gardent un second chemin), services surveillés interrompus, composants de pages de statut touchés, liens appris, alertes en cours, personnes d'astreinte, niveau d'impact et recommandations. Tous les rôles ; l'aval hors périmètre est compté sans être nommé.
          */
         get: operations["impact_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipements/{equipmentId}/services-decouverts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Services actifs et ports en écoute d'un équipement */
+        get: operations["discovered"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2533,6 +2628,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dependances/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Services que l'on peut relier (sondes et services suivis) */
+        get: operations["services"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/decouverte/{id}": {
         parameters: {
             query?: never;
@@ -2578,7 +2690,7 @@ export interface paths {
          * Lister les liens proposés
          * @description Les plus confiants d'abord. Un lien n'est listé que si les deux équipements sont visibles : une proposition porte sur leur couple, en montrer la moitié n'aurait aucun sens.
          */
-        get: operations["list_14"];
+        get: operations["list_15"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2696,7 +2808,7 @@ export interface paths {
          * Consulter le journal
          * @description Liste paginée (50 par page, plus récentes d'abord), filtrable par période (from inclus, to exclu), compte, action et cible.
          */
-        get: operations["list_15"];
+        get: operations["list_16"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2836,7 +2948,7 @@ export interface paths {
          * Lister les alertes
          * @description Liste paginée (20 par page, plus récentes d'abord), filtrable par état, équipement, sévérité ou alertes actives. Les alertes supprimées sont masquées.
          */
-        get: operations["list_16"];
+        get: operations["list_17"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2878,6 +2990,46 @@ export interface paths {
          * @description Calculé à la demande, de façon déterministe (ADR 0024) : résumé, impact, causes probables classées avec leurs preuves, alertes voisines, événements et changements récents, contexte des mesures, incidents similaires et pistes. Tous les rôles ; même périmètre par site que la lecture de l'alerte.
          */
         get: operations["diagnostic"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alertes/{id}/cause-racine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Cause racine d'une alerte
+         * @description Calculée à la demande (ADR 0056) : depuis le service ou l'équipement en panne, la chaîne est descendue — services dont il dépend, équipement où il tourne, ressources saturées, hôte et amont réseau — jusqu'à la cause la plus basse en panne au même moment, avec ses preuves. Plusieurs causes sont classées par les poids du diagnostic. Tous les rôles ; même périmètre par site que la lecture de l'alerte.
+         */
+        get: operations["forAlert_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/services-suivis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Services à suivre (agent)
+         * @description Authentifié par le jeton de l'agent : les noms dont il remonte l'état.
+         */
+        get: operations["followed"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2958,6 +3110,40 @@ export interface paths {
          * @description Plus aucune machine ne peut s'inscrire avec ce jeton. Les agents déjà inscrits gardent leur jeton personnel.
          */
         delete: operations["revokeToken"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipements/{equipmentId}/services-suivis/{serviceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Cesser de suivre un service système */
+        delete: operations["unfollow"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dependances/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Supprimer une dépendance */
+        delete: operations["delete_10"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3768,7 +3954,7 @@ export interface components {
             id?: string;
             name?: string;
             /** @enum {string} */
-            type?: "TCP_PORT" | "HTTP" | "HTTPS" | "ICMP" | "DNS" | "TLS_CERT" | "OTHER";
+            type?: "TCP_PORT" | "HTTP" | "HTTPS" | "ICMP" | "DNS" | "TLS_CERT" | "OTHER" | "AGENT_SERVICE";
             /** Format: int32 */
             port?: number;
             accessPoint?: string;
@@ -3808,6 +3994,15 @@ export interface components {
              */
             tauxConsommation?: number | null;
         };
+        FollowRequest: {
+            nom: string;
+        };
+        DiscoveredService: {
+            nom?: string;
+            suivi?: boolean;
+            /** Format: uuid */
+            serviceId?: string;
+        };
         Options: {
             /** @enum {string} */
             snmpVersion?: "V2C" | "V3";
@@ -3840,6 +4035,43 @@ export interface components {
             agentId?: string;
             identifier?: string;
             token?: string;
+        };
+        DependencyRequest: {
+            /** Format: uuid */
+            serviceId: string;
+            /** Format: uuid */
+            dependDeId: string;
+        };
+        DependencyResponse: {
+            /** Format: uuid */
+            id?: string;
+            service?: components["schemas"]["ServiceNode"];
+            dependDe?: components["schemas"]["ServiceNode"];
+            creePar?: string;
+            /** Format: date-time */
+            creeLe?: string;
+        };
+        ServiceNode: {
+            /** Format: uuid */
+            id?: string;
+            nom?: string;
+            /** @enum {string} */
+            type?: "TCP_PORT" | "HTTP" | "HTTPS" | "ICMP" | "DNS" | "TLS_CERT" | "OTHER" | "AGENT_SERVICE";
+            /** Format: uuid */
+            equipementId?: string;
+            equipementNom?: string;
+            equipementCode?: string;
+            site?: string;
+        };
+        ImportRequest: {
+            csv: string;
+        };
+        ImportResult: {
+            /** Format: int32 */
+            creees?: number;
+            /** Format: int32 */
+            dejaPresentes?: number;
+            erreurs?: string[];
         };
         DiscoveryRequest: {
             cidr: string;
@@ -4034,6 +4266,14 @@ export interface components {
             memoryTotal?: number;
             partial?: boolean;
             processes?: components["schemas"]["Processes"];
+            services?: string[];
+            listeningPorts?: components["schemas"]["ListeningPort"][];
+        };
+        ListeningPort: {
+            protocol: string;
+            address?: string;
+            /** Format: int32 */
+            port?: number;
         };
         ProcessLine: {
             name: string;
@@ -5359,6 +5599,9 @@ export interface components {
             le?: string;
             /** Format: double */
             valeur?: number;
+        };
+        FollowedNames: {
+            services?: string[];
         };
         /** @description Action annoncée par au moins un agent actif */
         AvailableAction: {
@@ -9696,6 +9939,57 @@ export interface operations {
             };
         };
     };
+    follow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FollowRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DiscoveredService"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Nom déjà pris par une sonde */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     previewTemplate: {
         parameters: {
             query?: never;
@@ -9985,6 +10279,135 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    list_11: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DependencyResponse"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    create_11: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DependencyRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DependencyResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Déjà présente, ou cycle */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    importCsv_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ImportResult"];
+                };
             };
             /** @description Authentification requise ou jeton expiré */
             401: {
@@ -12055,7 +12478,7 @@ export interface operations {
             };
         };
     };
-    list_11: {
+    list_12: {
         parameters: {
             query?: never;
             header?: never;
@@ -12468,7 +12891,7 @@ export interface operations {
             };
         };
     };
-    list_12: {
+    list_13: {
         parameters: {
             query: {
                 state?: "OPEN" | "RESOLVED";
@@ -12641,6 +13064,44 @@ export interface operations {
             };
         };
     };
+    forIncident: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Incident introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     resources: {
         parameters: {
             query?: never;
@@ -12717,7 +13178,7 @@ export interface operations {
             };
         };
     };
-    list_13: {
+    list_14: {
         parameters: {
             query: {
                 equipmentId?: string;
@@ -12802,6 +13263,44 @@ export interface operations {
                 };
             };
             /** @description Équipement introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    discovered: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Équipement introuvable ou aucun inventaire reçu */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -13013,6 +13512,44 @@ export interface operations {
             };
         };
     };
+    services: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceNode"][];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     get_8: {
         parameters: {
             query?: never;
@@ -13089,7 +13626,7 @@ export interface operations {
             };
         };
     };
-    list_14: {
+    list_15: {
         parameters: {
             query?: never;
             header?: never;
@@ -13348,7 +13885,7 @@ export interface operations {
             };
         };
     };
-    list_15: {
+    list_16: {
         parameters: {
             query: {
                 from?: string;
@@ -13614,7 +14151,7 @@ export interface operations {
             };
         };
     };
-    list_16: {
+    list_17: {
         parameters: {
             query: {
                 state?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ARCHIVED" | "DELETED";
@@ -13788,6 +14325,82 @@ export interface operations {
             };
         };
     };
+    forAlert_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Alerte introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    followed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FollowedNames"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     available: {
         parameters: {
             query?: never;
@@ -13958,6 +14571,83 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    unfollow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipmentId: string;
+                serviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    delete_10: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
             };
         };
     };

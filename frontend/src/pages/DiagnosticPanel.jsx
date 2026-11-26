@@ -1,3 +1,4 @@
+import RootCausePanel from "./RootCausePanel.jsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Check, ChevronDown, ChevronRight, RefreshCw, Stethoscope } from "lucide-react";
@@ -416,6 +417,7 @@ function DiagnosticPanel({ alertId, onOpenAlert, canConfirm = false }) {
         </button>
       </div>
       <p className="diag-resume">{diagnostic.resume}</p>
+      <RootCausePanel alertId={alertId} />
       <p className="diag-muted">
         Calculé le {time(diagnostic.calculeLe)} à partir des données enregistrées (fenêtre ±{windowMinutes} min autour de
         l'ouverture, {time(diagnostic.ouverture)}). Des règles fixes, pas une intelligence artificielle : vérifiez
