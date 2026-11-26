@@ -173,7 +173,8 @@ def read_token_file(path):
             raise ConfigError(problem)
     elif os.stat(path).st_mode & (stat.S_IRWXG | stat.S_IRWXO):
         raise ConfigError("le fichier de jeton %s doit avoir les droits 600" % path)
-    with open(path, encoding="utf-8") as handle:
+    # utf-8-sig : un jeton collé dans le Bloc-notes et enregistré avec BOM reste valable.
+    with open(path, encoding="utf-8-sig") as handle:
         return handle.read().strip()
 
 
@@ -200,7 +201,8 @@ def load(path=None, environ=None):
     path = path or environ.get("TRANS_DIC1_AGENT_CONFIG", DEFAULT_CONFIG_FILE)
     parser = configparser.ConfigParser()
     if os.path.isfile(path):
-        parser.read(path, encoding="utf-8")
+        # utf-8-sig : un fichier enregistré avec BOM (Bloc-notes, PowerShell 5.1) reste lisible.
+        parser.read(path, encoding="utf-8-sig")
     section = parser["agent"] if parser.has_section("agent") else {}
 
     def get(name, default=None):

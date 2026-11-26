@@ -32,6 +32,18 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(loaded.token, TOKEN)
         self.assertEqual((loaded.interval, loaded.disk_path), (30, "/var"))
 
+    def test_accepte_un_fichier_et_un_jeton_enregistres_avec_bom(self):
+        # Bloc-notes ou PowerShell 5.1 (Set-Content -Encoding utf8) ajoutent un BOM en tête.
+        self.token_file = write("\ufeff" + TOKEN + "\n")
+        path = write(
+            "\ufeff[agent]\nserver_url = https://supervision.example/\ntoken_file = %s\ninterval = 15\n"
+            % self.token_file,
+            0o640,
+        )
+        loaded = config.load(path, environ={})
+        self.assertEqual(loaded.token, TOKEN)
+        self.assertEqual(loaded.interval, 15)
+
     def test_l_environnement_prime_sur_le_fichier(self):
         env = {"TRANS_DIC1_AGENT_INTERVAL": "120", "TRANS_DIC1_AGENT_TOKEN": "autre-" + TOKEN}
         loaded = config.load(self.conf(), environ=env)
