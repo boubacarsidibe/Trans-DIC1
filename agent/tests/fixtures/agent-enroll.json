@@ -1,0 +1,8 @@
+{
+  "hostname": "srv-web-01",
+  "machineId": "3f1c2b8e9a7d4c6b5e0f1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f",
+  "ipAddresses": ["192.0.2.21", "2001:db8::21"],
+  "os": "Linux",
+  "osVersion": "Debian GNU/Linux 12 (bookworm)",
+  "agentVersion": "2.1.0"
+}

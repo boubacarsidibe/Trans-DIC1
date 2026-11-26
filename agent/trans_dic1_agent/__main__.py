@@ -10,6 +10,7 @@ import time
 from . import VERSION, config as config_module
 from .agent import Agent
 from .client import Client
+from .enroll import EnrollError, Enroller, forget_enrollment_token
 from .metrics import create_collector
 
 
@@ -48,21 +49,55 @@ def main(argv=None):
     if args.check:
         for item in collector.collect():
             log.info("%s = %s %s", item["key"], item["value"], item["unit"])
+        if config.needs_enrollment:
+            log.info("inscription automatique prévue au démarrage : jeton personnel écrit dans %s", config.token_file)
         log.info("configuration valide (%r)", config)
         return 0
 
-    agent = Agent(config, collector, Client(config))
-    if args.once:
-        agent.run_once()
-        return 0 if not agent.pending else 1
-
+    client = Client(config)
+    stop = Stop()
     # SIGBREAK : arrêt de la tâche planifiée sous Windows (SIGTERM n'y est jamais délivré).
     for name in ("SIGTERM", "SIGINT", "SIGBREAK"):
         number = getattr(signal, name, None)
         if number is not None:
-            signal.signal(number, agent.stop)
+            signal.signal(number, stop)
+
+    if config.needs_enrollment:
+        try:
+            config.token = Enroller(config, client, stopped=stop.is_set).run(once=args.once)
+        except (EnrollError, OSError, config_module.ConfigError) as error:
+            log.error("inscription impossible : %s", error)
+            return 2
+        if not config.token:
+            return 1 if args.once else 0
+    else:
+        forget_enrollment_token(config.enroll_token_file)
+
+    agent = Agent(config, collector, client)
+    if args.once:
+        agent.run_once()
+        return 0 if not agent.pending else 1
+    stop.agent = agent
+    if stop.is_set():
+        return 0
     agent.run()
     return 0
+
+
+class Stop:
+    """Arrêt demandé par signal : pendant l'inscription, puis pendant la boucle de l'agent."""
+
+    def __init__(self):
+        self.requested = False
+        self.agent = None
+
+    def __call__(self, *_):
+        self.requested = True
+        if self.agent is not None:
+            self.agent.stop()
+
+    def is_set(self):
+        return self.requested
 
 
 if __name__ == "__main__":

@@ -138,13 +138,42 @@ class Client:
         except (urllib.error.URLError, OSError) as error:
             raise SendError("compte rendu non envoyé (%s)" % type(error).__name__)
 
-    def _post(self, body, url=None):
+    def enroll(self, enrollment_token, identity):
+        """Demande d'inscription (ADR 0054) avec le jeton partagé, pas avec le jeton de l'agent.
+
+        Renvoie (code HTTP, corps JSON ou None, Retry-After en secondes ou None). Lève SendError
+        si le serveur est injoignable ou si son certificat est refusé.
+        """
+        body = json.dumps(identity).encode("utf-8")
+        try:
+            response = self._post(body, self.config.enroll_url, token=enrollment_token, with_status=True)
+            return response[0], response[1], None
+        except urllib.error.HTTPError as error:
+            status = error.code
+            retry_after = error.headers.get("Retry-After") if error.headers else None
+            try:
+                payload = json.loads(error.read().decode("utf-8"))
+            except (ValueError, OSError, AttributeError):
+                payload = None
+            error.close()
+            try:
+                retry = int(retry_after) if retry_after else None
+            except ValueError:
+                retry = None
+            return status, payload, retry
+        except (urllib.error.URLError, OSError) as error:
+            reason = getattr(error, "reason", error)
+            if isinstance(reason, ssl.SSLCertVerificationError):
+                raise SendError("certificat du serveur refusé : %s" % reason.verify_message)
+            raise SendError("serveur injoignable (%s)" % type(reason).__name__)
+
+    def _post(self, body, url=None, token=None, with_status=False):
         request = urllib.request.Request(
             url or self.config.measures_url,
             data=body,
             method="POST",
             headers={
-                "Authorization": "Bearer " + self.config.token,
+                "Authorization": "Bearer " + (token or self.config.token),
                 "Content-Type": "application/json",
                 "Accept": "application/json",
                 "User-Agent": "trans-dic1-agent/" + VERSION,
@@ -154,7 +183,8 @@ class Client:
             request, timeout=self.config.timeout, context=self.context
         ) as response:
             payload = response.read()
-            return json.loads(payload.decode("utf-8")) if payload else {}
+            parsed = json.loads(payload.decode("utf-8")) if payload else {}
+            return (response.status, parsed) if with_status else parsed
 
 
 def _reason(error):

@@ -9,12 +9,17 @@ de Linux), vérifie la configuration, puis enregistre une tâche planifiée qui 
 démarrage de Windows et le relance en cas d'arrêt. L'agent s'exécute sous le compte limité
 « LOCAL SERVICE » (ou SYSTEM avec -RunAsSystem). Le jeton n'est jamais affiché.
 
-Première installation : -ServerUrl et -TokenFile sont obligatoires.
+Première installation : -ServerUrl, et -TokenFile ou -EnrollTokenFile, sont obligatoires.
+Avec -EnrollTokenFile (ADR 0054), l'agent s'inscrit seul au démarrage avec un jeton d'inscription
+partagé par tout le parc, reçoit son jeton personnel et supprime le jeton d'inscription.
 Mise à jour : relancer sans paramètre, la configuration et le jeton sont conservés.
 Nouveau jeton : relancer avec -TokenFile.
 
 .EXAMPLE
 .\install.ps1 -ServerUrl https://supervision.ept.sn -TokenFile C:\Temp\jeton-agent.txt
+
+.EXAMPLE
+.\install.ps1 -ServerUrl https://supervision.ept.sn -EnrollTokenFile C:\Temp\jeton-inscription.txt
 
 .EXAMPLE
 .\install.ps1 -WhatIf     # montre ce que ferait l'installation sans enregistrer la tâche
@@ -23,6 +28,7 @@ Nouveau jeton : relancer avec -TokenFile.
 param(
     [string]$ServerUrl,
     [string]$TokenFile,
+    [string]$EnrollTokenFile,
     [int]$Interval = 60,
     [string]$DiskPath,
     [string]$CaFile,
@@ -120,6 +126,10 @@ if (-not $RunAsSystem -and -not $NoTask -and $pythonPath -like (Join-Path (Split
 
 $configFile = Join-Path $DataDir 'agent.conf'
 $tokenTarget = Join-Path $DataDir 'token'
+# Dossier d'état, modifiable par le compte de l'agent : il y écrit le jeton reçu à l'inscription.
+$stateDir = Join-Path $DataDir 'state'
+$enrollTarget = Join-Path $stateDir 'enroll-token'
+$enrolledToken = Join-Path $stateDir 'token'
 $logDir = Join-Path $DataDir 'logs'
 $logFile = Join-Path $logDir 'agent.log'
 $firstInstall = -not (Test-Path -LiteralPath $configFile)
@@ -131,10 +141,20 @@ if ($firstInstall -or $ServerUrl) {
     }
     if ($Interval -lt 10 -or $Interval -gt 240) { Fail '-Interval doit être compris entre 10 et 240 secondes.' }
 }
-if ($firstInstall -or $TokenFile) {
-    if (-not $TokenFile) { Fail '-TokenFile est obligatoire à la première installation.' }
-    if (-not (Test-Path -LiteralPath $TokenFile -PathType Leaf)) { Fail "fichier de jeton introuvable : $TokenFile" }
+if ($TokenFile -and $EnrollTokenFile) {
+    Fail '-TokenFile et -EnrollTokenFile s''excluent : un jeton personnel ou un jeton d''inscription.'
 }
+if ($firstInstall -and -not $TokenFile -and -not $EnrollTokenFile) {
+    Fail '-TokenFile ou -EnrollTokenFile est obligatoire à la première installation.'
+}
+if ($TokenFile -and -not (Test-Path -LiteralPath $TokenFile -PathType Leaf)) { Fail "fichier de jeton introuvable : $TokenFile" }
+if ($EnrollTokenFile -and -not (Test-Path -LiteralPath $EnrollTokenFile -PathType Leaf)) {
+    Fail "fichier de jeton d'inscription introuvable : $EnrollTokenFile"
+}
+# Une machine déjà inscrite n'est pas réinscrite quand on relance l'installation (idempotence).
+$alreadyEnrolled = (Test-Path -LiteralPath $enrolledToken -PathType Leaf) -and ((Get-Item -LiteralPath $enrolledToken).Length -gt 0)
+$useEnrollment = $EnrollTokenFile -and -not $alreadyEnrolled
+$tokenPath = if ($useEnrollment -or ($alreadyEnrolled -and -not $TokenFile)) { $enrolledToken } else { $tokenTarget }
 
 if ($pythonPath -like '*\WindowsApps\*') {
     Fail 'ce Python vient du Microsoft Store et ne peut pas être lancé par une tâche système. Installer Python depuis python.org.'
@@ -159,25 +179,41 @@ Write-Host "Installation de l'agent Trans-DIC1 ($pythonPath)"
 
 # --- Fichiers ----------------------------------------------------------------------------------
 Step "copie de l'agent dans $InstallDir"
-New-Item -ItemType Directory -Force -Path $InstallDir, $DataDir, $logDir | Out-Null
+New-Item -ItemType Directory -Force -Path $InstallDir, $DataDir, $logDir, $stateDir | Out-Null
 $target = Join-Path $InstallDir 'trans_dic1_agent'
 if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Recurse -Force }
 Copy-Item -LiteralPath $source -Destination $InstallDir -Recurse
 Get-ChildItem -LiteralPath $target -Recurse -Directory -Filter '__pycache__' | Remove-Item -Recurse -Force
 
-if ($ServerUrl) {
+if (-not $ServerUrl -and ($useEnrollment -or $TokenFile)) {
+    # Jeton changé sans changer d'adresse : seules les lignes du jeton changent, le reste est gardé.
+    Step "mise à jour du jeton dans $configFile"
+    $kept = @()
+    foreach ($line in (Get-Content -LiteralPath $configFile)) {
+        if ($line -match '^\s*enroll_token_file\s*=') { continue }
+        if ($line -match '^\s*token_file\s*=') {
+            $kept += "token_file = $tokenPath"
+            if ($useEnrollment) { $kept += "enroll_token_file = $enrollTarget" }
+            continue
+        }
+        $kept += $line
+    }
+    Write-TextNoBom $configFile (($kept -join "`r`n") + "`r`n")
+}
+elseif ($ServerUrl) {
     Step "écriture de la configuration $configFile"
     $lines = @(
         '# Configuration de l''agent Trans-DIC1. Voir agent.conf.example pour le détail des paramètres.',
         '[agent]',
         "server_url = $($ServerUrl.TrimEnd('/'))",
-        "token_file = $tokenTarget",
+        "token_file = $tokenPath",
         "interval = $Interval",
         "log_file = $logFile"
     )
     if ($DiskPath) { $lines += "disk_path = $DiskPath" }
     if ($CaFile) { $lines += "ca_file = $CaFile" }
     if ($AllowInsecureHttp) { $lines += 'allow_insecure_http = true' }
+    if ($useEnrollment) { $lines += "enroll_token_file = $enrollTarget" }
     Write-TextNoBom $configFile (($lines -join "`r`n") + "`r`n")
 }
 
@@ -189,11 +225,34 @@ if ($TokenFile) {
     $token = $null
 }
 
+if ($useEnrollment) {
+    Step 'installation du jeton d''inscription (jamais affiché)'
+    $enrollToken = ([System.IO.File]::ReadAllText($EnrollTokenFile)).Trim()
+    if (-not $enrollToken.StartsWith('tdic1e_')) { Fail 'ce fichier ne contient pas un jeton d''inscription (préfixe tdic1e_).' }
+    Write-TextNoBom $enrollTarget $enrollToken
+    $enrollToken = $null
+}
+elseif ($EnrollTokenFile) {
+    Step 'jeton personnel déjà présent : jeton d''inscription ignoré'
+}
+
 Step 'protection des fichiers (ACL)'
 $readers = @("${sidSystem}:F", "${sidAdministrators}:F", "${serviceSid}:R")
 foreach ($account in $extraGrant) { $readers += "${account}:F" }
-Grant $tokenTarget $readers
+if (Test-Path -LiteralPath $tokenTarget) { Grant $tokenTarget $readers }
 Grant $configFile $readers
+# Dossier d'état : le compte de l'agent y crée son jeton et y supprime le jeton d'inscription ;
+# les fichiers créés héritent de cette ACL, sans aucun groupe large (vérifié par l'agent).
+$stateGrants = @("${sidSystem}:(OI)(CI)F", "${sidAdministrators}:(OI)(CI)F", "${serviceSid}:(OI)(CI)M")
+foreach ($account in $extraGrant) { $stateGrants += "${account}:(OI)(CI)F" }
+Grant $stateDir $stateGrants
+foreach ($file in @($enrollTarget, $enrolledToken)) {
+    if (Test-Path -LiteralPath $file) {
+        $previous = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try { & icacls $file /reset 2>&1 | Out-Null } finally { $ErrorActionPreference = $previous }
+    }
+}
 $logGrants = @("${sidSystem}:(OI)(CI)F", "${sidAdministrators}:(OI)(CI)F", "${serviceSid}:(OI)(CI)M")
 foreach ($account in $extraGrant) { $logGrants += "${account}:(OI)(CI)F" }
 Grant $logDir $logGrants
@@ -254,6 +313,7 @@ if ($PSCmdlet.ShouldProcess($TaskName, 'Enregistrer et démarrer la tâche plani
 Write-Host ''
 Write-Host 'Terminé. Supprimer maintenant le fichier de jeton d''origine si vous en avez un :'
 if ($TokenFile) { Write-Host "  Remove-Item -LiteralPath `"$TokenFile`" -Force" }
+if ($EnrollTokenFile) { Write-Host "  Remove-Item -LiteralPath `"$EnrollTokenFile`" -Force   # garder l'original dans le coffre du déploiement" }
 Write-Host 'Vérifier le fonctionnement :'
 Write-Host "  Get-Content `"$logFile`" -Tail 20 -Wait      # « 4 mesure(s) envoyée(s) » à chaque cycle"
 Write-Host "  Get-ScheduledTask -TaskName `"$TaskName`" | Get-ScheduledTaskInfo"

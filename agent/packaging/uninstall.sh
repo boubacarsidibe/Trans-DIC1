@@ -15,7 +15,7 @@ fi
 rm -rf /opt/trans-dic1-agent
 
 if [ "$purge" = "--purge" ]; then
-  rm -rf /etc/trans-dic1-agent
+  rm -rf /etc/trans-dic1-agent /var/lib/trans-dic1-agent
   id trans-dic1-agent >/dev/null 2>&1 && userdel trans-dic1-agent
   echo "trans-dic1-agent : désinstallé, configuration et jeton supprimés"
   echo "Pensez à révoquer l'agent dans la plateforme (fiche de l'équipement)."

@@ -14,6 +14,10 @@ Restart=on-failure
 RestartSec=10
 # Configuration invalide (code 2) : inutile de redémarrer en boucle.
 RestartPreventExitStatus=2
+# Dossier d'état écrit par l'agent (jeton reçu à l'inscription automatique, ADR 0054) : seul
+# endroit où il peut écrire malgré ProtectSystem=strict.
+StateDirectory=trans-dic1-agent
+StateDirectoryMode=0700
 
 # Durcissement : l'agent ne fait que lire /proc et la taille des disques, et sortir en HTTPS.
 NoNewPrivileges=yes

@@ -65,9 +65,14 @@ class Config:
         access_logs=(),
         actions=None,
         action_timeout=DEFAULT_TIMEOUT,
+        token_file=None,
+        enroll_token_file=None,
     ):
         self.server_url = server_url.rstrip("/")
         self.token = token
+        # Où écrire le jeton reçu à l'inscription, et où lire le jeton d'inscription (ADR 0054).
+        self.token_file = token_file
+        self.enroll_token_file = enroll_token_file
         self.interval = interval
         self.disk_path = disk_path or default_disk_path()
         self.timeout = timeout
@@ -105,6 +110,15 @@ class Config:
     def actions_url(self):
         return self.server_url + "/api/v1/agent/actions"
 
+    @property
+    def enroll_url(self):
+        return self.server_url + "/api/v1/agent/enroll"
+
+    @property
+    def needs_enrollment(self):
+        """Pas encore de jeton personnel, mais un jeton d'inscription : l'agent s'inscrira."""
+        return not self.token and bool(self.enroll_token_file)
+
     def validate(self):
         if not self.server_url.startswith(("https://", "http://")):
             raise ConfigError("server_url doit commencer par https://")
@@ -113,7 +127,12 @@ class Config:
                 "server_url doit utiliser HTTPS : le jeton circulerait en clair "
                 "(allow_insecure_http=true uniquement pour un test local)"
             )
-        if not self.token or len(self.token) < 20 or any(c.isspace() for c in self.token):
+        if self.needs_enrollment:
+            if not self.token_file:
+                raise ConfigError(
+                    "token_file est obligatoire avec enroll_token_file : le jeton reçu y sera écrit"
+                )
+        elif not self.token or len(self.token) < 20 or any(c.isspace() for c in self.token):
             raise ConfigError("jeton d'agent absent ou invalide")
         if not MIN_INTERVAL <= self.interval <= MAX_INTERVAL:
             raise ConfigError(
@@ -158,6 +177,14 @@ def read_token_file(path):
         return handle.read().strip()
 
 
+def _has_content(path):
+    """Vrai si le fichier existe et n'est pas vide (jeton déjà reçu)."""
+    try:
+        return os.path.getsize(path) > 0
+    except OSError:
+        return False
+
+
 def _flag(value):
     return str(value).strip().lower() in ("1", "true", "yes", "oui")
 
@@ -180,11 +207,19 @@ def load(path=None, environ=None):
         return environ.get("TRANS_DIC1_AGENT_" + name.upper(), section.get(name, default))
 
     token = environ.get("TRANS_DIC1_AGENT_TOKEN")
+    token_file = get("token_file")
+    enroll_token_file = get("enroll_token_file") or None
     if not token:
-        token_file = get("token_file")
-        if not token_file:
+        if token_file and _has_content(token_file):
+            token = read_token_file(token_file)
+        elif enroll_token_file:
+            # Pas encore de jeton personnel : l'agent s'inscrira au démarrage (ADR 0054). Le jeton
+            # d'inscription est vérifié dès maintenant (présence, droits), mais pas gardé en mémoire.
+            read_token_file(enroll_token_file)
+        elif token_file:
+            token = read_token_file(token_file)
+        else:
             raise ConfigError("ni token_file ni TRANS_DIC1_AGENT_TOKEN : jeton absent")
-        token = read_token_file(token_file)
 
     server_url = get("server_url")
     if not server_url:
@@ -223,6 +258,8 @@ def load(path=None, environ=None):
             access_logs=_paths(get("access_logs", "")),
             actions=actions,
             action_timeout=int(get("action_timeout", DEFAULT_TIMEOUT)),
+            token_file=token_file,
+            enroll_token_file=enroll_token_file,
         )
     except ValueError as error:
         raise ConfigError("valeur numérique invalide : %s" % error)

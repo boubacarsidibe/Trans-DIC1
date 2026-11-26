@@ -10,6 +10,12 @@ server_url = https://supervision.example
 # Jeton affiché une seule fois à l'enregistrement de l'agent dans la plateforme.
 token_file = C:\ProgramData\Trans-DIC1-Agent\token
 
+# Inscription automatique (ADR 0054) : au lieu d'un jeton personnel, un jeton d'inscription partagé
+# par tout un parc (préfixe tdic1e_). Au premier démarrage, l'agent s'inscrit, écrit le jeton reçu
+# dans token_file et supprime ce fichier. install.ps1 -EnrollTokenFile règle ces deux lignes.
+# token_file = C:\ProgramData\Trans-DIC1-Agent\state\token
+# enroll_token_file = C:\ProgramData\Trans-DIC1-Agent\state\enroll-token
+
 # Secondes entre deux relevés (10 à 240 ; la plateforme signale un agent muet après 300 s).
 interval = 60
 
