@@ -143,6 +143,79 @@ Dans la plateforme, l'agent passe en état actif, avec l'heure de sa dernière c
 
 Depuis l'agent 2.0, tous les disques et toutes les cartes actives sont découverts sans configuration ; `disk_path` ne choisit plus que le disque de la clé historique `disk.usage`. Les mesures sont datées par le serveur : son horloge doit être synchronisée (service Heure Windows).
 
+## Inscription automatique (ADR 0054)
+
+Pour un parc entier, on ne crée ni les équipements ni les jetons à la main : un **jeton d'inscription** partagé par toute une vague de déploiement permet à chaque agent de s'inscrire seul. Il reçoit en retour son propre jeton, et le jeton d'inscription est supprimé de la machine. Le choix est expliqué dans l'[ADR-0054](../adr/0054-inscription-automatique-des-agents.md) ; le déploiement par pipeline et Ansible dans [deploiement-a-grande-echelle.md](deploiement-a-grande-echelle.md).
+
+### 1. Créer un jeton d'inscription
+
+Un administrateur ouvre **Parc → Inscription des agents** et crée un jeton :
+
+| Champ | Rôle |
+| --- | --- |
+| Site | site où les équipements inscrits sont rangés (et dont le périmètre d'accès s'applique) |
+| Type d'équipement | serveur ou machine virtuelle |
+| Validité | 365 jours au plus ; un jeton expiré n'inscrit plus personne |
+| Nombre maximal de machines | chaque inscription, et chaque réinscription, consomme une utilisation |
+| Plages d'adresses | facultatif : seules les machines dont l'adresse **vue par le serveur** est dans ces plages peuvent s'inscrire (192.0.2.0/24, 2001:db8::/32) |
+| Mode | **Automatique** : l'agent est inscrit aussitôt. **Sur approbation** : la machine attend qu'un administrateur la valide |
+
+Le jeton (`tdic1e_…`) n'est **affiché qu'une seule fois** : il va directement dans le coffre du pipeline (variable masquée et protégée, Ansible Vault). Il n'ouvre que l'inscription : il ne permet ni d'envoyer des mesures, ni d'appeler une autre API.
+
+Par l'API (jeton d'API d'un administrateur) :
+
+```sh
+curl -X POST -H "Authorization: Bearer <jeton administrateur>" -H "Content-Type: application/json" \
+  https://<plateforme>/api/v1/inscriptions/jetons \
+  -d '{"nom":"Vague 1","siteId":"<id du site>","expireLe":"2026-12-31T00:00:00Z","utilisationsMax":500,
+       "plagesAutorisees":["192.0.2.0/24"],"mode":"AUTO","typeEquipement":"SERVER"}'
+```
+
+### 2. Installer avec le jeton d'inscription
+
+Linux :
+
+```sh
+sudo ./install.sh --server-url https://<plateforme> --enroll-token-file /root/jeton-inscription
+sudo shred -u /root/jeton-inscription
+```
+
+Windows (PowerShell administrateur) :
+
+```powershell
+.\install.ps1 -ServerUrl https://<plateforme> -EnrollTokenFile C:\Temp\jeton-inscription.txt
+Remove-Item C:\Temp\jeton-inscription.txt
+```
+
+Au premier démarrage, l'agent :
+1. présente le jeton d'inscription avec la description de sa machine : nom d'hôte, identifiant de machine, adresses, système ;
+2. reçoit son jeton personnel (mode automatique), ou une réponse « en attente » (mode sur approbation) et redemande plus tard, avec un délai croissant (une heure au plus) ;
+3. écrit son jeton dans `/var/lib/trans-dic1-agent/token` (Linux, droits 600) ou `C:\ProgramData\Trans-DIC1-Agent\state\token` (Windows, ACL restreinte) ;
+4. supprime le jeton d'inscription, puis envoie ses mesures comme n'importe quel agent.
+
+Les jetons n'apparaissent jamais dans un journal. Relancer l'installation sur une machine déjà inscrite ne change rien : le jeton d'inscription est ignoré.
+
+### 3. Approuver les demandes (mode sur approbation)
+
+La même page liste les **demandes en attente** : nom d'hôte, début de l'identifiant de machine, adresses déclarées et adresse vue par le serveur, système, jeton utilisé. Cocher les machines (ou toutes), puis **Approuver la sélection** ou **Refuser la sélection**. L'approbation crée l'équipement tout de suite ; l'agent reçoit son jeton à sa prochaine demande. Une machine refusée reçoit un refus à chaque demande, jusqu'à ce qu'un administrateur revienne sur sa décision.
+
+### Une machine, un équipement
+
+L'agent s'identifie par une empreinte de `/etc/machine-id` (Linux) ou de `MachineGuid` (Windows), calculée sur la machine : l'identifiant brut ne quitte jamais la machine. Réinstaller l'agent sur une machine déjà inscrite **ne crée pas de doublon** : elle retrouve son équipement, reçoit un nouveau jeton et l'ancien est révoqué. Un équipement déjà inventorié à l'adresse d'où l'agent se connecte (créé par la synchronisation de la CMDB, par exemple), dans le même site et sans agent, est repris au lieu d'être doublé.
+
+**Modèles de VM et clones** : deux machines clonées sans régénérer leur identifiant se présentent comme une seule. La seconde inscription révoque le jeton de la première, qui se tait et déclenche l'alerte de silence. Avant de figer un modèle Linux : `sudo truncate -s 0 /etc/machine-id` (il sera régénéré au premier démarrage du clone ; les images cloud le font déjà). Sous Windows, généraliser l'image avec `sysprep /generalize`.
+
+### Problèmes d'inscription
+
+| Message dans le journal de l'agent | Cause | Action |
+| --- | --- | --- |
+| « jeton d'inscription inconnu, expiré, révoqué ou épuisé » | jeton faux, expiré, révoqué ou compteur atteint (la raison exacte est dans le journal d'audit de la plateforme) | créer un nouveau jeton et relancer l'installation avec lui |
+| « inscription refusée par la plateforme » | adresse hors des plages autorisées, ou demande refusée par un administrateur | vérifier l'adresse vue par le serveur (page Inscription des agents) ou les plages du jeton |
+| « inscription en attente d'approbation » | jeton en mode sur approbation | approuver la machine dans la plateforme ; l'agent redemande seul |
+| « trop de demandes » | limitation de débit par adresse (30 par minute par défaut) | rien : l'agent réessaie seul |
+| « identifiant de machine introuvable » | `/etc/machine-id` vide ou absent | `sudo systemd-machine-id-setup`, puis redémarrer le service |
+| « le fichier de jeton … doit avoir les droits 600 » | droits du jeton d'inscription trop ouverts | `chmod 600` sur le fichier, ou relancer `install.sh` |
+
 ## Configuration
 
 Le fichier `/etc/trans-dic1-agent/agent.conf` est commenté (modèle : `agent/packaging/agent.conf.example`). Chaque valeur peut être remplacée par une variable `TRANS_DIC1_AGENT_<NOM>`.
@@ -150,7 +223,8 @@ Le fichier `/etc/trans-dic1-agent/agent.conf` est commenté (modèle : `agent/pa
 | Paramètre | Défaut | Rôle |
 | --- | --- | --- |
 | `server_url` | — | adresse HTTPS de la plateforme |
-| `token_file` | `/etc/trans-dic1-agent/token` | fichier du jeton, droits 600 obligatoires (ou variable `TRANS_DIC1_AGENT_TOKEN`) |
+| `token_file` | `/etc/trans-dic1-agent/token` | fichier du jeton, droits 600 obligatoires (ou variable `TRANS_DIC1_AGENT_TOKEN`) ; avec l'inscription automatique, le jeton reçu y est écrit |
+| `enroll_token_file` | (aucun) | jeton d'inscription partagé (ADR 0054), droits 600 ; utilisé seulement tant que `token_file` est vide, puis supprimé |
 | `interval` | 60 | secondes entre deux relevés (10 à 240 ; la plateforme signale un agent muet après 300 s) |
 | `disk_path` | `/` | système de fichiers de la clé historique `disk.usage` ; les autres sont découverts seuls |
 | `services` | — | services à surveiller, séparés par des virgules (mesure `service.up[nom]`) |

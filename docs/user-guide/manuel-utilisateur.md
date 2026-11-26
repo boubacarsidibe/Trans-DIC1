@@ -478,6 +478,21 @@ Si le relais lui-même se taît, c'est tout le bâtiment qui est sans collecte :
 
 Un site peut mélanger relais et agents : un équipement qui a son propre agent reste suivi par lui, sans double alerte.
 
+### Inscription des agents
+
+Pour installer l'agent sur des centaines de serveurs sans créer chaque équipement à la main, ouvrez **Parc → Inscription des agents** et créez un **jeton d'inscription** : un nom (« Vague 1 : bâtiment A »), le site où ranger les machines, le type (serveur ou machine virtuelle), une durée de validité, le nombre maximal de machines et, si vous voulez, les plages d'adresses autorisées. Le jeton est **affiché une seule fois**, avec un bouton « Copier » et les commandes d'installation : donnez-le à l'équipe qui déploie (il va dans le coffre de son pipeline), jamais par courriel.
+
+Chaque agent installé avec ce jeton s'inscrit seul : l'équipement apparaît dans l'inventaire avec le nom de la machine, puis passe « en service » à sa première mesure. Une machine réinstallée **retrouve son équipement** au lieu d'en créer un second.
+
+Deux modes :
+
+- **Automatique** : la machine est inscrite aussitôt.
+- **Sur approbation** : la machine apparaît dans **Demandes en attente**, avec son nom, ses adresses et l'adresse d'où elle s'est présentée. Cochez une ou plusieurs lignes (ou la case d'en-tête pour tout sélectionner), puis **Approuver la sélection** ou **Refuser la sélection**. Le bilan dit combien de demandes ont été traitées et pourquoi les autres ne l'ont pas été.
+
+Le tableau des jetons montre, pour chacun, le nombre de machines déjà inscrites sur le maximum et son état (actif, expiré, épuisé, révoqué — écrit en toutes lettres). **Révoquer** demande une confirmation : plus aucune machine ne peut alors s'inscrire avec ce jeton, mais les agents déjà inscrits continuent normalement. Chaque création, inscription, refus et décision est dans le journal d'audit.
+
+Cette page est réservée aux administrateurs.
+
 ### Sondes (supervision sans agent)
 
 Pour un équipement qui n'a ni agent ni SNMP (imprimante, borne Wi-Fi, ENT, messagerie, site web), **Parc > Équipements**, bouton **Sondes** sur la ligne de l'équipement. Tous les rôles voient la page (dans leur périmètre de sites) ; seuls les administrateurs ajoutent, modifient, testent, réactivent ou suppriment.
