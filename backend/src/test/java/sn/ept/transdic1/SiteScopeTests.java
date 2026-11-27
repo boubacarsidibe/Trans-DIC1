@@ -171,6 +171,7 @@ class SiteScopeTests {
             + inHours(4)
             + "\",\"reason\":\"Hors périmètre\"}";
     call(post("/api/v1/maintenances").content(onB), noc).andExpect(status().isForbidden());
+    call(post("/api/v1/maintenances/demandes").content(onB), noc).andExpect(status().isForbidden());
 
     // Un opérateur du site B ne peut pas être assigné à une alerte du site A.
     call(
