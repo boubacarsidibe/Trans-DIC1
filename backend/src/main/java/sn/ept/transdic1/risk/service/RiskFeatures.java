@@ -8,7 +8,7 @@ import java.util.Locale;
  * nombres de même ordre de grandeur (entre 0 et environ 3). Calcul pur.
  *
  * <p>Les comptes passent par {@code log(1 + n)} : la dixième alerte de la journée apprend moins que
- * la première. Les pics d'occupation sont ramenés entre 0 et 1.
+ * la première. Les pics d'occupation ne comptent qu'au-delà de 80 %, ramenés entre 0 et 1.
  */
 public final class RiskFeatures {
   private RiskFeatures() {}
@@ -93,11 +93,20 @@ public final class RiskFeatures {
     };
   }
 
+  /** Seuil sous lequel une occupation ne dit rien du risque de panne. */
+  static final double SATURATION_FROM = 80;
+
+  /**
+   * Part de la zone de saturation atteinte : 0 jusqu'à 80 %, 1 à 100 %. L'occupation brute comptait
+   * comme variable, et c'était une erreur visible : un poste au repos (disque à 86 %, mémoire à 77
+   * %, processeur à 65 %) recevait 41 % de risque à 24 h avec les seuls poids initiaux. Un disque à
+   * moitié plein n'est pas un signe de panne ; un disque qui approche de 100 % en est un.
+   */
   private static double percent(Double value) {
     if (value == null || value.isNaN()) {
       return 0;
     }
-    return Math.max(0, Math.min(1, value / 100d));
+    return Math.max(0, Math.min(1, (value - SATURATION_FROM) / (100 - SATURATION_FROM)));
   }
 
   private static String whole(Double value) {

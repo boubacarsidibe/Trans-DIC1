@@ -74,4 +74,21 @@ class LogisticModelTests {
             RiskFeatures.vector(new RiskFeatures.Facts(2, 1, 1, false, 60.0, 70.0, 96.0, 1, 0)));
     assertThat(loaded).isGreaterThan(0.5);
   }
+
+  @Test
+  @DisplayName("Un poste au repos, sans alerte, reste faible avec les poids initiaux")
+  void anIdleMachineStaysLowWithThePrior() {
+    // Le cas montré au jury : disque à 86 %, mémoire à 77 %, processeur à 65 %, rien d'autre.
+    // L'occupation brute lui donnait 41 % ; seule la zone de saturation compte désormais.
+    double p =
+        LogisticModel.probability(
+            RiskFeatures.priorWeights(),
+            RiskFeatures.vector(new RiskFeatures.Facts(0, 0, 0, false, 65.0, 77.0, 86.0, 0, 0)));
+    assertThat(p).isLessThan(0.05);
+    double[] x =
+        RiskFeatures.vector(new RiskFeatures.Facts(0, 0, 0, false, 79.0, 80.0, 100.0, 0, 0));
+    assertThat(x[4]).isZero();
+    assertThat(x[5]).isZero();
+    assertThat(x[6]).isEqualTo(1.0);
+  }
 }

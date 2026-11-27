@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { BrainCircuit, RefreshCw } from "lucide-react";
-import { MODEL_MODE, RISK_LEVEL, getRisks, percent, trainRiskModel } from "../api/risk.js";
+import {
+  MODEL_MODE,
+  RISK_LEVEL,
+  getRisks,
+  isUncalibrated,
+  riskValue,
+  trainRiskModel,
+} from "../api/risk.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { Badge } from "../ui/Badges.jsx";
 import PageHeader from "../ui/PageHeader.jsx";
@@ -86,6 +93,15 @@ function RiskPage() {
           </p>
         )}
 
+        {data && isUncalibrated(model) && (
+          <p className="notice">
+            Aucune panne observée pour l'instant : les scores viennent de poids initiaux fixés par
+            raisonnement. Ils classent les équipements du plus au moins préoccupant, mais ce ne
+            sont pas des probabilités mesurées. Ils le deviendront quand la plateforme aura vu des
+            pannes réelles.
+          </p>
+        )}
+
         {data && (
           <section aria-label="Équipements les plus à risque" className="panel">
             <table className="data-table">
@@ -93,7 +109,9 @@ function RiskPage() {
               <thead>
                 <tr>
                   <th scope="col">Équipement</th>
-                  <th scope="col">Risque à 24 h</th>
+                  <th scope="col">
+                    {isUncalibrated(model) ? "Indice de risque (non calibré)" : "Risque à 24 h"}
+                  </th>
                   <th scope="col">Pourquoi</th>
                 </tr>
               </thead>
@@ -108,7 +126,7 @@ function RiskPage() {
                       </td>
                       <td className="whitespace-nowrap">
                         <RiskBar probability={risk.probability} />{" "}
-                        <strong>{percent(risk.probability)}</strong>{" "}
+                        <strong>{riskValue(risk.probability, model)}</strong>{" "}
                         <Badge tone={level.tone}>{level.label}</Badge>
                       </td>
                       <td className="cell-message">

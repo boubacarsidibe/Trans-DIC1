@@ -1,17 +1,22 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { RISK_LEVEL, getRisks, percent } from "../api/risk.js";
+import { RISK_LEVEL, getRisks, riskValue } from "../api/risk.js";
 import { Badge } from "../ui/Badges.jsx";
 
 // Carte « Risque de panne » du tableau de bord : les cinq équipements les plus à risque (ADR 0052).
 function RiskCard() {
   const [risks, setRisks] = useState(null);
+  const [model, setModel] = useState(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
     getRisks(5)
-      .then((data) => active && setRisks(Array.isArray(data?.equipments) ? data.equipments : []))
+      .then((data) => {
+        if (!active) return;
+        setModel(data?.model ?? null);
+        setRisks(Array.isArray(data?.equipments) ? data.equipments : []);
+      })
       .catch(() => active && setFailed(true));
     return () => {
       active = false;
@@ -34,7 +39,7 @@ function RiskCard() {
             const level = RISK_LEVEL[risk.level] ?? RISK_LEVEL.FAIBLE;
             return (
               <li key={risk.equipmentId} className="diag-line">
-                <strong>{risk.name}</strong> {percent(risk.probability)}{" "}
+                <strong>{risk.name}</strong> {riskValue(risk.probability, model)}{" "}
                 <Badge tone={level.tone}>{level.label}</Badge>
                 {risk.reasons[0] && <span className="cell-grouped">{risk.reasons[0].fact}</span>}
               </li>

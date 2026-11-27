@@ -80,6 +80,17 @@ describe("RiskPage", () => {
     expect(screen.queryByRole("button", { name: /Réentraîner/ })).not.toBeInTheDocument();
   });
 
+  it("sans panne observée, un indice non calibré et non une probabilité", async () => {
+    apiClient.get.mockResolvedValue({
+      data: { ...overview, model: { ...overview.model, mode: "POIDS_INITIAUX", positives: 0 } },
+    });
+    render(<RiskPage />);
+    expect(await screen.findByText("indice 62/100")).toBeInTheDocument();
+    expect(screen.queryByText("62 %")).not.toBeInTheDocument();
+    expect(screen.getByText("Indice de risque (non calibré)")).toBeInTheDocument();
+    expect(screen.getByText(/ce ne\s+sont pas des probabilités mesurées/)).toBeInTheDocument();
+  });
+
   it("la carte du tableau de bord liste les plus à risque", async () => {
     render(
       <MemoryRouter>

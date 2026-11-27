@@ -23,6 +23,20 @@ export const MODEL_MODE = {
   APPRIS: "Poids appris sur l'historique de la plateforme",
 };
 
+/**
+ * Vrai quand le modèle n'a encore observé aucune panne : ses scores viennent des poids initiaux,
+ * fixés par raisonnement. Ils classent les équipements, mais ne sont pas des probabilités mesurées.
+ */
+export function isUncalibrated(model) {
+  return !model || model.mode === "POIDS_INITIAUX";
+}
+
+/** Le score tel qu'on a le droit de l'écrire : une probabilité si le modèle a appris, un indice sinon. */
+export function riskValue(probability, model) {
+  if (probability == null) return "—";
+  return isUncalibrated(model) ? `indice ${Math.round(probability * 100)}/100` : percent(probability);
+}
+
 export function percent(value) {
   if (value == null) return "—";
   return `${(value * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %`;
