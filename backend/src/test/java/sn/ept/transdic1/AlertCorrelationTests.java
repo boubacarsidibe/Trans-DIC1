@@ -158,6 +158,52 @@ class AlertCorrelationTests {
   }
 
   @Test
+  void apresRetablissementUneNouvellePanneRattacheEncoreLesAlertesRouvertes() {
+    Equipment core = equipment("Routeur cœur", site);
+    Equipment sw = equipment("Commutateur", site);
+    link(sw, core);
+
+    // Première panne : le commutateur est vu avant le routeur, puis rattaché a posteriori.
+    Alert child = fail(sw, T0);
+    Alert root = fail(core, T0.plusSeconds(30));
+    em.refresh(child);
+    assertThat(child.getParentAlertId()).isEqualTo(root.getId());
+
+    // Rétablissement : les deux alertes sont résolues, pas encore archivées.
+    collection.reportRecovery(sw, T0.plusSeconds(600));
+    collection.reportRecovery(core, T0.plusSeconds(610));
+    em.flush();
+
+    // Nouvelle panne deux heures plus tard, même ordre : les alertes sont rouvertes et gardent leur
+    // triggered_at d'origine, hors de la fenêtre. Le rattachement doit pourtant se refaire.
+    Instant later = T0.plus(Duration.ofHours(2));
+    Alert reopenedChild = fail(sw, later);
+    assertThat(reopenedChild.getId()).isEqualTo(child.getId());
+    Alert reopenedRoot = fail(core, later.plusSeconds(30));
+    assertThat(reopenedRoot.getId()).isEqualTo(root.getId());
+    em.refresh(reopenedChild);
+
+    assertThat(reopenedRoot.getParentAlertId()).isNull();
+    assertThat(reopenedChild.getParentAlertId()).isEqualTo(reopenedRoot.getId());
+    assertThat(reopenedChild.getCorrelationReason()).isEqualTo("Amont injoignable : Routeur cœur");
+  }
+
+  @Test
+  void uneAlerteRouverteSurLeMemeSiteCompteDansLaFenetre() {
+    Equipment a = equipment("Borne A", site);
+    Equipment b = equipment("Borne B", site);
+
+    Alert first = fail(a, Instant.now().minus(Duration.ofHours(3)));
+    collection.reportRecovery(a, Instant.now().minus(Duration.ofHours(2)));
+    em.flush();
+    Alert reopened = fail(a, Instant.now().minusSeconds(60));
+    assertThat(reopened.getId()).isEqualTo(first.getId());
+
+    Alert second = fail(b, Instant.now());
+    assertThat(second.getParentAlertId()).isEqualTo(first.getId());
+  }
+
+  @Test
   void sansTopologieLeSiteEtLaFenetreDeTempsRegroupent() {
     Equipment a = equipment("Borne A", site);
     Equipment b = equipment("Borne B", site);
@@ -168,10 +214,12 @@ class AlertCorrelationTests {
     assertThat(second.getParentAlertId()).isEqualTo(first.getId());
     assertThat(second.getCorrelationReason()).startsWith("Même site : Borne A");
 
-    // Hors de la fenêtre : une panne indépendante.
+    // Hors de la fenêtre : une panne indépendante (la fenêtre se juge sur la dernière ouverture).
+    var hourAgo = java.sql.Timestamp.from(Instant.now().minus(Duration.ofHours(1)));
+    jdbc.update("UPDATE alert SET triggered_at = ? WHERE id = ?", hourAgo, first.getId());
     jdbc.update(
-        "UPDATE alert SET triggered_at = ? WHERE id = ?",
-        java.sql.Timestamp.from(Instant.now().minus(Duration.ofHours(1))),
+        "UPDATE alert_event SET occurred_at = ? WHERE alert_id = ? AND type = 'OPENED'",
+        hourAgo,
         first.getId());
     em.clear();
     Alert third = fail(c, Instant.now());

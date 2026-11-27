@@ -31,6 +31,15 @@ public class AlertCorrelationService {
   /** Une décision de regroupement : l'alerte racine et la raison affichée. */
   public record Correlation(UUID rootAlertId, String reason) {}
 
+  /**
+   * Heure de la dernière ouverture d'une alerte. Une alerte de collecte rouverte avant archivage
+   * garde son {@code triggered_at} d'origine : la fenêtre de temps se juge donc sur son dernier
+   * événement OPENED, sinon une nouvelle panne serait vue comme ancienne et jamais regroupée.
+   */
+  private static final String OPENED_AT =
+      "COALESCE((SELECT max(ev.occurred_at) FROM alert_event ev"
+          + " WHERE ev.alert_id = a.id AND ev.type = 'OPENED'), a.triggered_at)";
+
   private final JdbcTemplate jdbc;
   private final MeterRegistry meters;
   private boolean enabled;
@@ -79,13 +88,23 @@ public class AlertCorrelationService {
     if (!upstream.isEmpty()) {
       return grouped(upstream.get(0));
     }
-    // 2. Même site, dans la fenêtre de temps.
+    // 2. Même site, dans la fenêtre de temps. Un équipement en aval n'est jamais pris pour racine
+    // de son amont : c'est l'inverse, et adoptDownstream le rattachera juste après.
     List<Correlation> site =
         jdbc.query(
-            "SELECT a.id, e.name FROM alert a JOIN equipment e ON e.id = a.equipment_id"
+            "WITH RECURSIVE down(id, depth) AS ("
+                + " SELECT equipment_id, 1 FROM equipment_link WHERE upstream_id = ?"
+                + " UNION SELECT l.equipment_id, d.depth + 1 FROM equipment_link l"
+                + " JOIN down d ON l.upstream_id = d.id WHERE d.depth < 64)"
+                + " SELECT a.id, e.name FROM alert a JOIN equipment e ON e.id = a.equipment_id"
                 + " WHERE e.site_id = ? AND a.equipment_id <> ? AND a.type = 'COLLECTION'"
+                + " AND a.equipment_id NOT IN (SELECT id FROM down)"
                 + " AND a.state IN ('OPEN', 'IN_PROGRESS') AND a.parent_alert_id IS NULL"
-                + " AND a.triggered_at >= ? ORDER BY a.triggered_at LIMIT 1",
+                + " AND "
+                + OPENED_AT
+                + " >= ? ORDER BY "
+                + OPENED_AT
+                + " LIMIT 1",
             (rs, i) ->
                 new Correlation(
                     rs.getObject(1, UUID.class),
@@ -94,6 +113,7 @@ public class AlertCorrelationService {
                         + " a perdu la collecte moins de "
                         + window.toMinutes()
                         + " min avant"),
+            equipment.getId(),
             equipment.getSite().getId(),
             equipment.getId(),
             Timestamp.from(at.minus(window)));
@@ -102,8 +122,8 @@ public class AlertCorrelationService {
 
   /**
    * Une alerte racine vient de s'ouvrir : les alertes de collecte actives des équipements en aval,
-   * ouvertes dans la fenêtre, lui sont rattachées (elles avaient été vues avant leur cause).
-   * Retourne le nombre d'alertes rattachées.
+   * ouvertes (ou rouvertes) dans la fenêtre, lui sont rattachées (elles avaient été vues avant leur
+   * cause). Retourne le nombre d'alertes rattachées.
    */
   public int adoptDownstream(UUID rootAlertId, Equipment root, Instant at) {
     if (!enabled) {
@@ -115,10 +135,12 @@ public class AlertCorrelationService {
                 + " SELECT equipment_id, 1 FROM equipment_link WHERE upstream_id = ?"
                 + " UNION SELECT l.equipment_id, d.depth + 1 FROM equipment_link l"
                 + " JOIN down d ON l.upstream_id = d.id WHERE d.depth < 64)"
-                + " UPDATE alert SET parent_alert_id = ?, correlation_reason = ?"
-                + " WHERE equipment_id IN (SELECT id FROM down) AND type = 'COLLECTION'"
-                + " AND state IN ('OPEN', 'IN_PROGRESS') AND parent_alert_id IS NULL"
-                + " AND id <> ? AND triggered_at >= ?",
+                + " UPDATE alert a SET parent_alert_id = ?, correlation_reason = ?"
+                + " WHERE a.equipment_id IN (SELECT id FROM down) AND a.type = 'COLLECTION'"
+                + " AND a.state IN ('OPEN', 'IN_PROGRESS') AND a.parent_alert_id IS NULL"
+                + " AND a.id <> ? AND "
+                + OPENED_AT
+                + " >= ?",
             root.getId(),
             rootAlertId,
             "Amont injoignable : " + root.getName(),
