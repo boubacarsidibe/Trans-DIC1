@@ -102,6 +102,12 @@ services:
       TRACING_SAMPLING_PROBABILITY: ${TRACING_SAMPLING_PROBABILITY:-0.1}
       # Découverte automatique (FEAT-07) : plages autorisées par l'exploitation.
       DISCOVERY_ALLOWED_RANGES: ${DISCOVERY_ALLOWED_RANGES:-}
+      # Telegram (ADR 0051) : URL du canal et jeton du bot, lus seulement par références env:NOM.
+      TELEGRAM_NOC_URL: ${TELEGRAM_NOC_URL:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      CHATOPS_TELEGRAM_ENABLED: ${CHATOPS_TELEGRAM_ENABLED:-false}
+      CHATOPS_TELEGRAM_BOT_TOKEN: ${CHATOPS_TELEGRAM_BOT_TOKEN:-}
+      CHATOPS_TELEGRAM_BOT_USERNAME: ${CHATOPS_TELEGRAM_BOT_USERNAME:-}
     # Sonde de disponibilité ; démarrage long toléré (migrations Flyway, serveur chargé : 215 s
     # mesurées sur un poste partagé), vérifié toutes les 5 s pendant cette période.
     healthcheck:

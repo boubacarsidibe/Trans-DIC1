@@ -132,6 +132,46 @@ Les variables non retenues par la stack devront être supprimées du contrat plu
 | `RISK_SHRINKAGE` | 20 | Rappel vers les poids initiaux tant que les pannes sont rares |
 | `RISK_TRAINING_CRON` | `0 20 3 * * *` | Heure de l'apprentissage nocturne (heure de Dakar) |
 
+## Telegram : notifications et prise en charge (ADR 0051)
+
+| Variable | Défaut | Rôle |
+| --- | --- | --- |
+| `TELEGRAM_NOC_URL` | — | URL complète d'envoi du canal NOC, jeton et destinataire compris ; le canal TELEGRAM y renvoie par `env:TELEGRAM_NOC_URL` |
+| `TELEGRAM_BOT_TOKEN` | — | Jeton du bot donné par BotFather ; jamais écrit ailleurs que dans `.env` |
+| `CHATOPS_TELEGRAM_ENABLED` | false | Active les boutons « Je prends » / « Résolu » et l'écoute du bot |
+| `CHATOPS_TELEGRAM_BOT_TOKEN` | — | Référence du jeton, `env:TELEGRAM_BOT_TOKEN` (la référence, pas la valeur) |
+| `CHATOPS_TELEGRAM_BOT_USERNAME` | — | Nom du bot sans @, affiché dans « Mes notifications » |
+
+Les cinq variables sont transmises au conteneur `backend` par `docker-compose.yml` et
+`docker-compose.prod.yml` ; vides par défaut, elles laissent Telegram éteint. Aucune ne va dans
+Git ni dans la base : la base ne garde que des références `env:NOM`.
+
+Mise en place avec BotFather :
+
+1. Dans Telegram, ouvrir une conversation avec `@BotFather`, envoyer `/newbot`, choisir un nom
+   puis un identifiant finissant par `bot` (par exemple `vigie_ept_bot`). BotFather répond avec
+   le jeton du bot.
+2. Dans `.env` (jamais dans `.env.example`) : `TELEGRAM_BOT_TOKEN=<jeton>`,
+   `CHATOPS_TELEGRAM_BOT_TOKEN=env:TELEGRAM_BOT_TOKEN`,
+   `CHATOPS_TELEGRAM_BOT_USERNAME=vigie_ept_bot` et `CHATOPS_TELEGRAM_ENABLED=true`.
+3. Trouver l'identifiant du groupe NOC (`chat_id`) : ajouter le bot au groupe, y écrire un
+   message, puis ouvrir `https://api.telegram.org/bot<jeton>/getUpdates` ; l'identifiant est la
+   valeur `chat.id` (négative pour un groupe). Si l'écoute du bot est déjà active, la couper le
+   temps de cette lecture : Telegram ne livre les messages qu'à un seul lecteur.
+4. Dans `.env` :
+   `TELEGRAM_NOC_URL=https://api.telegram.org/bot<jeton>/sendMessage?chat_id=<chat_id>`.
+5. Redémarrer le backend (`docker compose up -d backend`).
+6. Dans l'écran Canaux, créer le canal TELEGRAM avec la référence `env:TELEGRAM_NOC_URL` et
+   envoyer le test.
+7. Chaque opérateur lie son compte dans « Mes notifications » : « Générer un code de liaison »,
+   puis envoyer `/lier CODE` au bot. Les alertes reçues portent alors les boutons d'action, qui
+   agissent avec les droits et le périmètre de ce compte.
+
+Si « Mes notifications » affiche « L'état de la liaison Telegram n'a pas pu être lu », le
+backend ne répond pas sur `/api/v1/moi/telegram` : vérifier qu'il tourne et que les variables
+ci-dessus lui sont bien transmises (`docker compose exec backend sh -c 'env | cut -d= -f1 | grep TELEGRAM'`, qui
+liste les noms sans afficher les valeurs).
+
 ## Différences d'environnement
 
 | Environnement | Données | Secrets | Exposition |
