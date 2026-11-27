@@ -12,6 +12,7 @@ import com.jayway.jsonpath.JsonPath;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -224,7 +225,7 @@ class RemediationApiTests {
   }
 
   @Test
-  @DisplayName("Mode approbation : rien ne part tant qu'un opérateur n'a pas approuvé")
+  @DisplayName("Mode approbation : rien ne part tant qu'un administrateur n'a pas approuvé")
   void approvalMode() throws Exception {
     policy("APPROVAL");
     Alert alert = openAlert();
@@ -237,13 +238,21 @@ class RemediationApiTests {
             post("/api/v1/actions-correctives/" + job.getId() + "/approbation")
                 .with(user("viewer").roles("VIEWER")))
         .andExpect(status().isForbidden());
+    // ADR 0058 : l'opérateur lance une action autorisée, mais n'approuve ni ne refuse.
+    for (String decision : List.of("approbation", "refus")) {
+      mockMvc
+          .perform(
+              post("/api/v1/actions-correctives/" + job.getId() + "/" + decision)
+                  .with(user("noc").roles("NOC_OPERATOR")))
+          .andExpect(status().isForbidden());
+    }
     mockMvc
         .perform(
             post("/api/v1/actions-correctives/" + job.getId() + "/approbation")
-                .with(user("noc").roles("NOC_OPERATOR")))
+                .with(user("adm").roles("ADMIN")))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.state").value("QUEUED"))
-        .andExpect(jsonPath("$.decidedBy").value("noc"));
+        .andExpect(jsonPath("$.decidedBy").value("adm"));
     assertThat(JsonPath.<Integer>read(poll(), "$.jobs.length()")).isEqualTo(1);
   }
 

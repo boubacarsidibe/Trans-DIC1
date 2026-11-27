@@ -302,7 +302,7 @@ class RemediationVerificationTests {
     mockMvc
         .perform(
             post("/api/v1/actions-correctives/" + job.getId() + "/approbation")
-                .with(user("noc").roles("NOC_OPERATOR")))
+                .with(user("adm").roles("ADMIN")))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.state").value("QUEUED"))
         .andExpect(jsonPath("$.approvalReason").value(job.getApprovalReason()));

@@ -135,22 +135,22 @@ public class RemediationController {
 
   @Operation(
       summary = "Approuver une action corrective",
-      description = "Opérateurs NOC et administrateurs.")
+      description = "Administrateurs seulement (ADR 0058).")
   @ApiResponse(responseCode = "404", description = "Exécution introuvable", content = @Content)
   @ApiResponse(responseCode = "409", description = "N'attend pas d'approbation", content = @Content)
   @PostMapping("/actions-correctives/{jobId}/approbation")
-  @PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")
+  @PreAuthorize("hasRole('ADMIN')")
   public JobResponse approve(@PathVariable UUID jobId, Authentication authentication) {
     return service.approve(jobId, authentication.getName());
   }
 
   @Operation(
       summary = "Refuser une action corrective",
-      description = "Opérateurs NOC et administrateurs.")
+      description = "Administrateurs seulement (ADR 0058).")
   @ApiResponse(responseCode = "404", description = "Exécution introuvable", content = @Content)
   @ApiResponse(responseCode = "409", description = "N'attend pas d'approbation", content = @Content)
   @PostMapping("/actions-correctives/{jobId}/refus")
-  @PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")
+  @PreAuthorize("hasRole('ADMIN')")
   public JobResponse reject(@PathVariable UUID jobId, Authentication authentication) {
     return service.reject(jobId, authentication.getName());
   }

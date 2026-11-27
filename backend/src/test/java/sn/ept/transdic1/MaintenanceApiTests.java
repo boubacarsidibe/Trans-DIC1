@@ -157,7 +157,7 @@ class MaintenanceApiTests {
 
   private String create(String body) throws Exception {
     var response =
-        plan(noc, body)
+        plan(admin, body)
             .andExpect(status().isCreated())
             .andReturn()
             .getResponse()
@@ -166,7 +166,7 @@ class MaintenanceApiTests {
   }
 
   @Test
-  void everyRoleReadsButOnlyOperatorsAndAdministratorsWrite() throws Exception {
+  void everyRoleReadsButOnlyAdministratorsWrite() throws Exception {
     create(onEquipment(in(1), in(2)));
 
     for (String jwt : new String[] {admin, noc, viewer}) {
@@ -176,6 +176,8 @@ class MaintenanceApiTests {
     }
     mockMvc.perform(get(BASE)).andExpect(status().isUnauthorized());
     plan(viewer, onEquipment(in(1), in(2))).andExpect(status().isForbidden());
+    // ADR 0058 : l'opérateur NOC demande une maintenance, il ne la planifie plus.
+    plan(noc, onEquipment(in(1), in(2))).andExpect(status().isForbidden());
   }
 
   @Test
@@ -187,7 +189,7 @@ class MaintenanceApiTests {
         .andExpect(jsonPath("$.siteId").doesNotExist());
 
     plan(
-            noc,
+            admin,
             "{\"siteId\":\""
                 + site.getId()
                 + "\",\"startAt\":\""
@@ -243,7 +245,7 @@ class MaintenanceApiTests {
     String cancelled = create(onEquipment(in(5), in(6)));
     mockMvc
         .perform(
-            post(BASE + "/" + cancelled + "/annulation").header("Authorization", "Bearer " + noc))
+            post(BASE + "/" + cancelled + "/annulation").header("Authorization", "Bearer " + admin))
         .andExpect(status().isOk());
 
     for (var expected : List.of("PLANNED", "IN_PROGRESS", "CANCELLED")) {
@@ -271,11 +273,14 @@ class MaintenanceApiTests {
 
     mockMvc
         .perform(post(BASE + "/" + id + "/annulation").header("Authorization", "Bearer " + noc))
+        .andExpect(status().isForbidden());
+    mockMvc
+        .perform(post(BASE + "/" + id + "/annulation").header("Authorization", "Bearer " + admin))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.state").value("CANCELLED"))
         .andExpect(jsonPath("$.cancelledAt").isNotEmpty());
     mockMvc
-        .perform(post(BASE + "/" + id + "/annulation").header("Authorization", "Bearer " + noc))
+        .perform(post(BASE + "/" + id + "/annulation").header("Authorization", "Bearer " + admin))
         .andExpect(status().isConflict());
     mockMvc
         .perform(post(BASE + "/" + id + "/annulation").header("Authorization", "Bearer " + viewer))
@@ -283,7 +288,7 @@ class MaintenanceApiTests {
     mockMvc
         .perform(
             post(BASE + "/" + UUID.randomUUID() + "/annulation")
-                .header("Authorization", "Bearer " + noc))
+                .header("Authorization", "Bearer " + admin))
         .andExpect(status().isNotFound());
   }
 

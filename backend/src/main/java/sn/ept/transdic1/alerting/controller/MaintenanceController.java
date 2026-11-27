@@ -30,7 +30,7 @@ import sn.ept.transdic1.alerting.service.MaintenanceService;
     name = "Maintenances",
     description =
         "Fenêtres pendant lesquelles les alertes d'un site ou d'un équipement sont tracées sans notification."
-            + " Lecture pour tous, planification et annulation pour ADMIN et NOC_OPERATOR.")
+            + " Lecture pour tous, planification et annulation pour ADMIN (ADR 0058).")
 @RestController
 @RequestMapping("/api/v1/maintenances")
 public class MaintenanceController {
@@ -60,7 +60,7 @@ public class MaintenanceController {
       description = "Cible, dates ou motif invalides",
       content = @Content)
   @PostMapping
-  @PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.CREATED)
   public MaintenanceResponse create(
       @Valid @RequestBody MaintenanceRequest request, Authentication authentication) {
@@ -71,7 +71,7 @@ public class MaintenanceController {
   @ApiResponse(responseCode = "404", description = "Maintenance introuvable", content = @Content)
   @ApiResponse(responseCode = "409", description = "Déjà annulée ou terminée", content = @Content)
   @PostMapping("/{id}/annulation")
-  @PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")
+  @PreAuthorize("hasRole('ADMIN')")
   public MaintenanceResponse cancel(@PathVariable UUID id, Authentication authentication) {
     return service.cancel(id, authentication.getName());
   }
