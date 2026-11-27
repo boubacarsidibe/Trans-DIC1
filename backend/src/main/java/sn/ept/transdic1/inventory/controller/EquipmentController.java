@@ -17,8 +17,7 @@ import sn.ept.transdic1.inventory.service.EquipmentService;
 
 @Tag(
     name = "Équipements",
-    description =
-        "Inventaire des équipements supervisés. Écriture réservée aux rôles ADMIN et NOC_OPERATOR.")
+    description = "Inventaire des équipements supervisés. Écriture réservée à ADMIN (ADR 0058).")
 @RestController
 @RequestMapping("/api/v1/equipements")
 public class EquipmentController {
@@ -53,7 +52,7 @@ public class EquipmentController {
   @ApiResponse(responseCode = "400", description = "Données invalides")
   @ApiResponse(responseCode = "409", description = "Code d'inventaire déjà utilisé")
   @PostMapping
-  @PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")
+  @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<EquipmentResponse> create(@Valid @RequestBody EquipmentRequest r) {
     var response = service.create(r);
     return ResponseEntity.created(URI.create("/api/v1/equipements/" + response.id()))
@@ -65,7 +64,7 @@ public class EquipmentController {
   @ApiResponse(responseCode = "404", description = "Équipement introuvable")
   @ApiResponse(responseCode = "409", description = "Code d'inventaire déjà utilisé")
   @PutMapping("/{id}")
-  @PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")
+  @PreAuthorize("hasRole('ADMIN')")
   public EquipmentResponse update(@PathVariable UUID id, @Valid @RequestBody EquipmentRequest r) {
     return service.update(id, r);
   }
@@ -75,7 +74,7 @@ public class EquipmentController {
   @ApiResponse(responseCode = "404", description = "Équipement introuvable")
   @DeleteMapping("/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  @PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")
+  @PreAuthorize("hasRole('ADMIN')")
   public void delete(@PathVariable UUID id) {
     service.delete(id);
   }

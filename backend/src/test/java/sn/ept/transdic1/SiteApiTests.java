@@ -119,7 +119,7 @@ class SiteApiTests {
 
   private String createSite(String code) throws Exception {
     var body =
-        call("POST", noc, BASE, site(code, "Bâtiment " + code))
+        call("POST", admin, BASE, site(code, "Bâtiment " + code))
             .andExpect(status().isCreated())
             .andReturn()
             .getResponse()
@@ -128,7 +128,7 @@ class SiteApiTests {
   }
 
   @Test
-  void everyRoleReadsButOnlyOperatorsAndAdministratorsWrite() throws Exception {
+  void everyRoleReadsButOnlyAdministratorsWrite() throws Exception {
     String id = createSite("A" + suffix);
 
     for (String jwt : new String[] {admin, noc, viewer}) {
@@ -136,10 +136,13 @@ class SiteApiTests {
       call("GET", jwt, BASE, null).andExpect(status().isOk());
     }
     call("GET", null, BASE, null).andExpect(status().isUnauthorized());
-    call("POST", viewer, BASE, site("B" + suffix, "Interdit")).andExpect(status().isForbidden());
-    call("PUT", viewer, BASE + "/" + id, site("A" + suffix, "Interdit"))
-        .andExpect(status().isForbidden());
-    call("DELETE", viewer, BASE + "/" + id, null).andExpect(status().isForbidden());
+    // ADR 0058 : l'opérateur NOC lit les sites mais ne les modifie plus.
+    for (String jwt : new String[] {noc, viewer}) {
+      call("POST", jwt, BASE, site("B" + suffix, "Interdit")).andExpect(status().isForbidden());
+      call("PUT", jwt, BASE + "/" + id, site("A" + suffix, "Interdit"))
+          .andExpect(status().isForbidden());
+      call("DELETE", jwt, BASE + "/" + id, null).andExpect(status().isForbidden());
+    }
   }
 
   @Test
@@ -164,10 +167,10 @@ class SiteApiTests {
   void invalidAndDuplicateSitesAreRejected() throws Exception {
     createSite("D" + suffix);
 
-    call("POST", noc, BASE, site("D" + suffix, "Doublon")).andExpect(status().isConflict());
-    call("POST", noc, BASE, "{\"name\":\"Sans code\"}").andExpect(status().isBadRequest());
-    call("POST", noc, BASE, site("code invalide", "X")).andExpect(status().isBadRequest());
-    call("POST", noc, BASE, site("E" + suffix, "")).andExpect(status().isBadRequest());
+    call("POST", admin, BASE, site("D" + suffix, "Doublon")).andExpect(status().isConflict());
+    call("POST", admin, BASE, "{\"name\":\"Sans code\"}").andExpect(status().isBadRequest());
+    call("POST", admin, BASE, site("code invalide", "X")).andExpect(status().isBadRequest());
+    call("POST", admin, BASE, site("E" + suffix, "")).andExpect(status().isBadRequest());
   }
 
   @Test
@@ -176,16 +179,16 @@ class SiteApiTests {
 
     call(
             "PUT",
-            noc,
+            admin,
             BASE + "/" + id,
             "{\"name\":\"Nouveau nom\",\"status\":\"INACTIVE\",\"description\":\"Fermé\"}")
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.name").value("Nouveau nom"))
         .andExpect(jsonPath("$.status").value("INACTIVE"))
         .andExpect(jsonPath("$.code").value("F" + suffix));
-    call("PUT", noc, BASE + "/" + id, site("G" + suffix, "Autre code"))
+    call("PUT", admin, BASE + "/" + id, site("G" + suffix, "Autre code"))
         .andExpect(status().isBadRequest());
-    call("PUT", noc, BASE + "/" + UUID.randomUUID(), "{\"name\":\"X\"}")
+    call("PUT", admin, BASE + "/" + UUID.randomUUID(), "{\"name\":\"X\"}")
         .andExpect(status().isNotFound());
   }
 
@@ -209,17 +212,17 @@ class SiteApiTests {
 
     call("GET", viewer, BASE + "/" + occupied, null)
         .andExpect(jsonPath("$.equipmentCount").value(1));
-    call("DELETE", noc, BASE + "/" + occupied, null).andExpect(status().isConflict());
+    call("DELETE", admin, BASE + "/" + occupied, null).andExpect(status().isConflict());
 
     String empty = createSite("I" + suffix);
-    call("DELETE", noc, BASE + "/" + empty, null).andExpect(status().isNoContent());
+    call("DELETE", admin, BASE + "/" + empty, null).andExpect(status().isNoContent());
     call("GET", noc, BASE + "/" + empty, null).andExpect(status().isNotFound());
   }
 
   @Test
   void theListFiltersByStatus() throws Exception {
     String id = createSite("J" + suffix);
-    call("PUT", noc, BASE + "/" + id, "{\"name\":\"Fermé\",\"status\":\"INACTIVE\"}")
+    call("PUT", admin, BASE + "/" + id, "{\"name\":\"Fermé\",\"status\":\"INACTIVE\"}")
         .andExpect(status().isOk());
 
     var inactive =

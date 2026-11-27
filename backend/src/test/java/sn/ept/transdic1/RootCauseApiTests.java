@@ -468,7 +468,9 @@ class RootCauseApiTests {
             .andReturn()
             .getResponse()
             .getContentAsString();
-    declare(api, db, limitedJwt).andExpect(status().isCreated());
+    // ADR 0058 : seul l'administrateur saisit les dépendances.
+    declare(api, db, limitedJwt).andExpect(status().isForbidden());
+    declare(api, db, adminJwt).andExpect(status().isCreated());
     declare(ent, api, adminJwt).andExpect(status().isConflict());
     declare(ent, ent, adminJwt).andExpect(status().isBadRequest());
     declare(db, ent, adminJwt)
@@ -507,7 +509,8 @@ class RootCauseApiTests {
             equipment("vm-b", EquipmentType.VIRTUAL_MACHINE, datacenter),
             "LDAP",
             ServiceType.TCP_PORT);
-    declare(mine, theirs, limitedJwt).andExpect(status().isNotFound());
+    // L'opérateur ne saisit plus de dépendance (ADR 0058) : refus avant même le périmètre.
+    declare(mine, theirs, limitedJwt).andExpect(status().isForbidden());
   }
 
   @Test

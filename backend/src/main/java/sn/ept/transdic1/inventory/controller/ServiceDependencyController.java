@@ -28,7 +28,7 @@ import sn.ept.transdic1.inventory.service.ServiceDependencyService;
     name = "Dépendances des services",
     description =
         "Un service dépend d'un autre service : chaîne parcourue par la recherche de cause racine"
-            + " (ADR 0056). Lecture pour tous, saisie pour les opérateurs NOC et administrateurs.")
+            + " (ADR 0056). Lecture pour tous, saisie pour les administrateurs (ADR 0058).")
 @RestController
 @RequestMapping("/api/v1/dependances")
 public class ServiceDependencyController {
@@ -55,7 +55,7 @@ public class ServiceDependencyController {
       description = "Une dépendance qui fermerait un cycle est refusée (409).")
   @ApiResponse(responseCode = "409", description = "Déjà présente, ou cycle", content = @Content)
   @PostMapping
-  @PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.CREATED)
   DependencyResponse create(@Valid @RequestBody DependencyRequest request) {
     return dependencies.create(request);
@@ -63,7 +63,7 @@ public class ServiceDependencyController {
 
   @Operation(summary = "Supprimer une dépendance")
   @DeleteMapping("/{id}")
-  @PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   void delete(@PathVariable UUID id) {
     dependencies.delete(id);
@@ -75,7 +75,7 @@ public class ServiceDependencyController {
           "Une ligne par dépendance : code_equipement;service;code_equipement;service (le premier"
               + " service dépend du second). Chaque ligne est jugée seule.")
   @PostMapping("/import")
-  @PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")
+  @PreAuthorize("hasRole('ADMIN')")
   ImportResult importCsv(@Valid @RequestBody ImportRequest request) {
     return dependencies.importCsv(request.csv());
   }

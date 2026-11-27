@@ -28,8 +28,7 @@ import sn.ept.transdic1.inventory.service.SiteService;
 
 @Tag(
     name = "Sites",
-    description =
-        "Emplacements regroupant les équipements. Écriture réservée à ADMIN et NOC_OPERATOR.")
+    description = "Emplacements regroupant les équipements. Écriture réservée à ADMIN (ADR 0058).")
 @RestController
 @RequestMapping("/api/v1/sites")
 public class SiteController {
@@ -60,7 +59,7 @@ public class SiteController {
   @ApiResponse(responseCode = "400", description = "Données invalides", content = @Content)
   @ApiResponse(responseCode = "409", description = "Code déjà utilisé", content = @Content)
   @PostMapping
-  @PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.CREATED)
   public SiteResponse create(@Valid @RequestBody SiteRequest request) {
     return service.create(request);
@@ -70,7 +69,7 @@ public class SiteController {
   @ApiResponse(responseCode = "400", description = "Données invalides", content = @Content)
   @ApiResponse(responseCode = "404", description = "Site introuvable", content = @Content)
   @PutMapping("/{id}")
-  @PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")
+  @PreAuthorize("hasRole('ADMIN')")
   public SiteResponse update(@PathVariable UUID id, @Valid @RequestBody SiteRequest request) {
     return service.update(id, request);
   }
@@ -82,7 +81,7 @@ public class SiteController {
       description = "Le site contient des équipements",
       content = @Content)
   @DeleteMapping("/{id}")
-  @PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void delete(@PathVariable UUID id) {
     service.delete(id);

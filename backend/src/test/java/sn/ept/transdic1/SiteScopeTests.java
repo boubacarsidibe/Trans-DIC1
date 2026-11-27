@@ -132,7 +132,7 @@ class SiteScopeTests {
         .andExpect(jsonPath("$.content[*].id", Matchers.contains(siteA.getId().toString())));
     call(get("/api/v1/sites/" + siteB.getId()), noc).andExpect(status().isNotFound());
 
-    // Créer ou déplacer vers un site hors périmètre est refusé ; créer un site aussi.
+    // ADR 0058 : l'opérateur ne modifie plus l'inventaire, même dans son périmètre.
     call(post("/api/v1/equipements").content(equipmentJson("C", siteB, 13)), noc)
         .andExpect(status().isForbidden());
     call(
@@ -140,26 +140,16 @@ class SiteScopeTests {
             noc)
         .andExpect(status().isForbidden());
     call(post("/api/v1/equipements").content(equipmentJson("D", siteA, 14)), noc)
-        .andExpect(status().isCreated());
+        .andExpect(status().isForbidden());
     call(post("/api/v1/sites").content("{\"code\":\"SCX-" + suffix + "\",\"name\":\"X\"}"), noc)
         .andExpect(status().isForbidden());
-
-    // Import CSV : un site hors périmètre est traité comme inconnu.
-    String csv =
-        "code_inventaire;nom;adresse;type;statut;site\n"
-            + "SCI-"
-            + suffix
-            + ";Import;192.0.2.77;SWITCH;UP;"
-            + siteB.getCode()
-            + "\n";
     mockMvc
         .perform(
             post("/api/v1/equipements/import/apercu")
                 .header("Authorization", "Bearer " + noc)
                 .contentType("text/csv")
-                .content(csv))
-        .andExpect(jsonPath("$.valid.length()").value(0))
-        .andExpect(jsonPath("$.errors.length()").value(1));
+                .content("code_inventaire;nom;adresse;type;statut;site\n"))
+        .andExpect(status().isForbidden());
   }
 
   @Test

@@ -46,6 +46,7 @@ class EquipmentImportApiTests {
   @Autowired private EquipmentRepository equipments;
   @Autowired private JdbcTemplate jdbc;
 
+  private String admin;
   private String noc;
   private String viewer;
   private Site site;
@@ -55,10 +56,13 @@ class EquipmentImportApiTests {
   void data() throws Exception {
     p = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
     users.save(
+        new AppUser("imp-adm-" + p, p + "a@example.test", encoder.encode(PASSWORD), Role.ADMIN));
+    users.save(
         new AppUser(
             "imp-noc-" + p, p + "n@example.test", encoder.encode(PASSWORD), Role.NOC_OPERATOR));
     users.save(
         new AppUser("imp-view-" + p, p + "v@example.test", encoder.encode(PASSWORD), Role.VIEWER));
+    admin = login("imp-adm-" + p);
     noc = login("imp-noc-" + p);
     viewer = login("imp-view-" + p);
     site = sites.save(new Site("IMP-" + p, "Site d'import"));
@@ -145,7 +149,7 @@ class EquipmentImportApiTests {
   void lApercuSepareValidesErreursEtIgnoreesSansRienCreer() throws Exception {
     long before = equipments.count();
     String body =
-        send("/apercu", noc, sample())
+        send("/apercu", admin, sample())
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -179,7 +183,7 @@ class EquipmentImportApiTests {
 
   @Test
   void lImportCreeSeulementLesLignesValidesEtLesTrace() throws Exception {
-    send("", noc, sample())
+    send("", admin, sample())
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.created").value(3))
         .andExpect(jsonPath("$.errors.length()").value(12))
@@ -202,11 +206,11 @@ class EquipmentImportApiTests {
             jdbc.queryForObject(
                 "SELECT details_sanitized FROM audit_entry WHERE action = 'EQUIPMENT_IMPORTED' AND username = ? ORDER BY performed_at DESC LIMIT 1",
                 String.class,
-                "imp-noc-" + p))
+                "imp-adm-" + p))
         .isEqualTo("crees=3 erreurs=12 ignorees=2");
 
     // Réimporter le même fichier ne crée rien : toutes les lignes sont devenues des doublons.
-    send("", noc, sample()).andExpect(status().isOk()).andExpect(jsonPath("$.created").value(0));
+    send("", admin, sample()).andExpect(status().isOk()).andExpect(jsonPath("$.created").value(0));
   }
 
   @Test
@@ -217,15 +221,15 @@ class EquipmentImportApiTests {
             + "-V1,Routeur,198.51.100.130,ROUTER,UP,IMP-"
             + p
             + "\r\n";
-    send("/apercu", noc, csv)
+    send("/apercu", admin, csv)
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.valid[0].type").value("ROUTER"));
   }
 
   @Test
   void refuseUnFichierVideUnEnTeteInvalideOuTropLong() throws Exception {
-    send("/apercu", noc, "\n \n").andExpect(status().isBadRequest());
-    send("/apercu", noc, "code;nom\nA;B\n")
+    send("/apercu", admin, "\n \n").andExpect(status().isBadRequest());
+    send("/apercu", admin, "code;nom\nA;B\n")
         .andExpect(status().isBadRequest())
         .andExpect(
             jsonPath("$.error").value(org.hamcrest.Matchers.containsString("code_inventaire")));
@@ -233,14 +237,17 @@ class EquipmentImportApiTests {
     for (int i = 0; i < 1001; i++) {
       big.append("C").append(i).append(";N;198.51.100.11;SERVER;UP;S\n");
     }
-    send("/apercu", noc, big.toString()).andExpect(status().isBadRequest());
-    send("/apercu", noc, "x".repeat(1_000_001)).andExpect(status().isBadRequest());
+    send("/apercu", admin, big.toString()).andExpect(status().isBadRequest());
+    send("/apercu", admin, "x".repeat(1_000_001)).andExpect(status().isBadRequest());
   }
 
   @Test
-  void reserveAuxRolesQuiPeuventModifierLInventaire() throws Exception {
-    send("/apercu", viewer, sample()).andExpect(status().isForbidden());
-    send("", viewer, sample()).andExpect(status().isForbidden());
+  void reserveALAdministrateur() throws Exception {
+    // ADR 0058 : l'opérateur NOC ne modifie plus l'inventaire.
+    for (String jwt : new String[] {noc, viewer}) {
+      send("/apercu", jwt, sample()).andExpect(status().isForbidden());
+      send("", jwt, sample()).andExpect(status().isForbidden());
+    }
   }
 
   private ResultActions send(String path, String jwt, String csv) throws Exception {

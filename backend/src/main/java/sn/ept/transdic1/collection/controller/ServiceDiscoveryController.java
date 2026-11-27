@@ -54,7 +54,7 @@ public class ServiceDiscoveryController {
       description = "Nom déjà pris par une sonde",
       content = @Content)
   @PostMapping("/equipements/{equipmentId}/services-suivis")
-  @PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.CREATED)
   DiscoveredService follow(
       @PathVariable UUID equipmentId, @Valid @RequestBody FollowRequest request) {
@@ -63,7 +63,7 @@ public class ServiceDiscoveryController {
 
   @Operation(summary = "Cesser de suivre un service système")
   @DeleteMapping("/equipements/{equipmentId}/services-suivis/{serviceId}")
-  @PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   void unfollow(@PathVariable UUID equipmentId, @PathVariable UUID serviceId) {
     discovery.unfollow(equipmentId, serviceId);

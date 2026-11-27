@@ -19,10 +19,10 @@ import sn.ept.transdic1.inventory.service.EquipmentImportService;
     name = "Import de l'inventaire",
     description =
         "Import CSV des équipements (code_inventaire;nom;adresse;type;statut;site) : aperçu puis"
-            + " import des lignes valides. Réservé aux rôles ADMIN et NOC_OPERATOR.")
+            + " import des lignes valides. Réservé à ADMIN (ADR 0058).")
 @RestController
 @RequestMapping("/api/v1/equipements/import")
-@PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")
+@PreAuthorize("hasRole('ADMIN')")
 public class EquipmentImportController {
   /** 1 000 lignes d'inventaire tiennent largement dans 1 Mo. */
   static final int MAX_BYTES = 1_000_000;

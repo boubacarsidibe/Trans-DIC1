@@ -232,7 +232,8 @@ class ServiceDiscoveryApiTests {
     services.saveAndFlush(new MonitoredService(vm, "portail", ServiceType.HTTPS));
     follow("portail", adminJwt).andExpect(status().isConflict());
     follow("nginx", viewerJwt).andExpect(status().isForbidden());
-    follow("nginx", limitedJwt).andExpect(status().isNotFound());
+    // ADR 0058 : suivre un service est réservé à l'administrateur.
+    follow("nginx", limitedJwt).andExpect(status().isForbidden());
     discovered(limitedJwt).andExpect(status().isNotFound());
     mockMvc
         .perform(

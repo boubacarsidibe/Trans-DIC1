@@ -119,13 +119,14 @@ class EquipmentApiTests {
 
   @Test
   @WithMockUser(roles = "NOC_OPERATOR")
-  void unOperateurNocPeutCreerUnEquipement() throws Exception {
+  void unOperateurNocNePeutPasCreerUnEquipement() throws Exception {
+    // ADR 0058 : l'inventaire est réservé à l'administrateur.
     mockMvc
         .perform(
             post("/api/v1/equipements")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body("TEST-API-007", "Equipement NOC", "192.0.2.107")))
-        .andExpect(status().isCreated());
+        .andExpect(status().isForbidden());
   }
 
   @Test
