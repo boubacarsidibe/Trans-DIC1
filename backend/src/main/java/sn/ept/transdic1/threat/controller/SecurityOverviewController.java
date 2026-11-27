@@ -3,6 +3,7 @@ package sn.ept.transdic1.threat.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -11,11 +12,12 @@ import sn.ept.transdic1.threat.service.SecurityQueryService;
 
 /**
  * Écran Sécurité : ce qui a été repéré récemment dans les journaux, d'où cela vient et ce qui est
- * visé. Tous les rôles y accèdent, dans leur périmètre de sites.
+ * visé. Réservé à l'administrateur (moindre privilège, ADR 0058), dans son périmètre de sites.
  */
 @Tag(name = "Sécurité", description = "Journaux de sécurité et attaques repérées.")
 @RestController
 @RequestMapping("/api/v1/securite")
+@PreAuthorize("hasRole('ADMIN')")
 public class SecurityOverviewController {
   private final SecurityQueryService service;
 
