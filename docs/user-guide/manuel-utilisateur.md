@@ -525,6 +525,24 @@ Quand l'adresse d'une VM est connue, une sonde ICMP est préparée **inactive** 
 
 **Redémarrer une VM bloquée** (si l'administrateur l'a permis sur le connecteur, avec un second jeton dédié) : dans **Ressources**, le bouton **Redémarrer …** d'une VM demande un motif et enregistre une demande ; un **autre** administrateur l'approuve avec **Approuver et redémarrer**, ou la refuse. C'est un redémarrage forcé, sans arrêt propre, à réserver aux VM figées. Une demande non décidée expire au bout d'une heure.
 
+### Sécurité des postes (EDR)
+
+**Supervision → Sécurité des postes** montre ce que l'agent a vu de suspect sur chaque machine : un
+programme lancé depuis un dossier temporaire, un outil d'attaque connu (mineur de cryptomonnaie, vol de
+mots de passe), une nouvelle tâche planifiée ou un nouveau démarrage automatique, un nouveau compte
+administrateur, un fichier sensible modifié, une connexion vers un port de porte dérobée.
+
+- Le tableau **Postes surveillés** liste les machines qui envoient leur télémétrie, la date de leur ligne
+  de base (leur premier rapport, qui sert de référence) et le nombre de constats à examiner.
+- Chaque **constat** dit ce qui a été vu, sur quelle machine, avec sa gravité et sa **technique MITRE
+  ATT&CK** (le lien ouvre sa fiche). Il ouvre aussi une alerte de sécurité, prévenue comme les autres.
+- Un opérateur ou un administrateur le classe **Légitime** (une installation voulue : il ne reviendra
+  plus) ou **Malveillant** (une attaque confirmée : il reste visible pour l'enquête). Chaque jugement est
+  dans le journal d'audit.
+
+C'est un EDR léger : un rapport toutes les 5 minutes, sans surveillance du noyau. Il complète un EDR du
+marché, il ne le remplace pas.
+
 ### Actions correctives : vérifier et limiter
 
 Sur l'écran **Règles**, la fenêtre « Action corrective » d'une règle propose, en plus du mode et du délai de grâce :

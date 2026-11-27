@@ -221,6 +221,26 @@ L'agent s'identifie par une empreinte de `/etc/machine-id` (Linux) ou de `Machin
 | « identifiant de machine introuvable » | `/etc/machine-id` vide ou absent | `sudo systemd-machine-id-setup`, puis redémarrer le service |
 | « le fichier de jeton … doit avoir les droits 600 » | droits du jeton d'inscription trop ouverts | `chmod 600` sur le fichier, ou relancer `install.sh` |
 
+## Sécurité du poste : l'EDR léger (ADR 0058)
+
+Depuis la version 2.3, l'agent envoie toutes les 5 minutes, avec l'instantané, une **télémétrie de
+sécurité** de la machine (`POST /api/v1/agent/securite-poste`) :
+
+- les programmes en cours et le chemin de leur exécutable (jamais leurs arguments) ;
+- ce qui démarre seul : unités systemd, tâches cron, `rc.local`, `/etc/profile.d` sous Linux ; clés
+  `Run` du registre, dossiers de démarrage et services installés sous Windows ;
+- les comptes privilégiés (UID 0, groupes `sudo`/`wheel`, groupe Administrateurs) ;
+- l'empreinte SHA-256 de fichiers sensibles (`/etc/passwd`, `hosts`, `sshd_config`…) et la présence de
+  `/etc/ld.so.preload` ;
+- les connexions TCP sortantes établies.
+
+Le serveur fixe une **ligne de base** au premier rapport, puis signale les changements (nouvelle tâche
+planifiée, nouveau compte administrateur, fichier `hosts` modifié…) et des indicateurs connus (mineur de
+cryptomonnaie, programme lancé depuis `/tmp`, connexion vers le port 4444…). Chaque constat ouvre une
+alerte de sécurité rattachée à une technique MITRE ATT&CK ; l'écran **Sécurité des postes** permet de le
+classer légitime ou malveillant. Aucun contenu de fichier ni mot de passe ne quitte la machine.
+`edr = false` dans `agent.conf` coupe la télémétrie.
+
 ## Services découverts et suivis (ADR 0056)
 
 Depuis l'agent 2.2, l'instantané envoyé toutes les 5 minutes contient aussi les **services actifs** (`systemctl list-units --type=service --state=running` sous Linux, gestionnaire de services sous Windows) et les **ports TCP en écoute** (`/proc/net/tcp` et `tcp6`, table TCP d'iphlpapi sous Windows). Rien à configurer.
