@@ -158,4 +158,28 @@ class ExponentialBandTests {
     assertThat(state.excess(state.high(WIDTH) * 2, WIDTH)).isPositive();
     assertThat(state.low(WIDTH)).isLessThan(state.level());
   }
+
+  @Test
+  @DisplayName("Sur un trafic en rafales, la plage habituelle ne descend jamais sous zéro")
+  void onBurstyTrafficTheUsualRangeNeverGoesBelowZero() {
+    // Un lien Wi-Fi au repos avec des rafales : niveau bas, écart du même ordre que le niveau.
+    var random = new Random(41L);
+    ExponentialBand.State state = null;
+    for (int i = 0; i < 300; i++) {
+      double value = random.nextDouble() < 0.2 ? 200_000 + random.nextDouble() * 50_000 : 5_000;
+      state =
+          state == null
+              ? ExponentialBand.start(value)
+              : ExponentialBand.update(state, value, ALPHA, WIDTH);
+    }
+
+    // Sans plancher, la borne basse aurait été négative : le niveau moins six écarts.
+    assertThat(state.level() - state.spread(WIDTH)).isNegative();
+    assertThat(state.low(WIDTH)).isZero();
+    // Un débit nul est dans la plage, pas « en dessous » d'elle.
+    assertThat(state.outside(0, WIDTH)).isFalse();
+    assertThat(state.excess(0, WIDTH)).isZero();
+    // Le côté haut, lui, signale toujours.
+    assertThat(state.outside(state.high(WIDTH) * 3, WIDTH)).isTrue();
+  }
 }

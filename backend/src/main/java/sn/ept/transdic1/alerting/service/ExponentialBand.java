@@ -74,9 +74,15 @@ public final class ExponentialBand {
       return width * Math.max(deviation * MEAN_DEVIATION_TO_SIGMA, floor);
     }
 
-    /** Borne basse de la bande. */
+    /**
+     * Borne basse de la bande, jamais sous zéro. Les indicateurs surveillés sont des taux — débit,
+     * erreurs, rejets, gigue, perte — qui ne peuvent pas être négatifs. Sur un trafic en rafales,
+     * l'écart dépasse souvent le niveau, et la bande symétrique annonçait alors une plage «
+     * habituelle » commençant à −305 391 bit/s : une valeur absurde, et un côté de la bande qui ne
+     * pouvait jamais rien détecter.
+     */
     public double low(double width) {
-      return level - spread(width);
+      return Math.max(0, level - spread(width));
     }
 
     /** Borne haute de la bande. */
@@ -84,13 +90,17 @@ public final class ExponentialBand {
       return level + spread(width);
     }
 
-    /** Écart d'une mesure à la bande, en nombre de demi-largeurs ; 0 à l'intérieur. */
+    /**
+     * Écart d'une mesure à la bande, en nombre de demi-largeurs ; 0 à l'intérieur. Il est mesuré
+     * par rapport à la borne du côté où se trouve la mesure, donc à zéro en dessous quand la borne
+     * basse est plafonnée.
+     */
     public double excess(double value, double width) {
       double spread = spread(width);
       if (spread <= 0) {
         return 0;
       }
-      double distance = Math.abs(value - level) - spread;
+      double distance = value >= level ? value - high(width) : low(width) - value;
       // Une mesure pile sur le bord n'est pas dehors : sans cette marge, l'arrondi binaire la
       // ferait sortir d'un cheveu de 1e-16.
       return distance <= spread * 1e-9 ? 0 : distance / spread;
