@@ -14,12 +14,22 @@ function TelegramLinkCard() {
   const [status, setStatus] = useState(null);
   const [code, setCode] = useState(null);
   const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState("");
 
   const load = useCallback(async () => {
     try {
-      setStatus(await getTelegramStatus());
+      const value = await getTelegramStatus();
+      if (!value || typeof value.linked !== "boolean") throw new Error("réponse inattendue");
+      setStatus(value);
+      setLoadError("");
     } catch {
+      // La carte reste visible : un serveur qui ne répond pas doit se voir, pas faire disparaître
+      // la liaison Telegram sans explication.
       setStatus(null);
+      setLoadError(
+        "L'état de la liaison Telegram n'a pas pu être lu. Le serveur ne répond pas, ou le bot " +
+          "n'est pas configuré (variables CHATOPS_TELEGRAM_* du serveur).",
+      );
     }
   }, []);
 
@@ -27,7 +37,26 @@ function TelegramLinkCard() {
     load();
   }, [load]);
 
-  if (!status || typeof status.linked !== "boolean") return null;
+  if (loadError) {
+    return (
+      <section aria-label="Telegram" className="panel mt-5">
+        <div className="panel-head">
+          <h2>
+            <Send size={18} aria-hidden="true" /> Prendre en charge depuis Telegram
+          </h2>
+          <Badge tone="muted">Indisponible</Badge>
+        </div>
+        <p role="alert" className="notice notice-bad">
+          {loadError}
+        </p>
+        <button type="button" onClick={load} className="btn btn-secondary btn-sm">
+          Réessayer
+        </button>
+      </section>
+    );
+  }
+
+  if (!status) return null;
 
   const generate = async () => {
     try {

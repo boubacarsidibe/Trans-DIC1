@@ -51,4 +51,13 @@ describe("TelegramLinkCard", () => {
     expect(await screen.findByText(/n'est pas activé/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Générer un code de liaison" })).toBeDisabled();
   });
+
+  it("affiche une erreur claire, au lieu de disparaître, quand l'état ne peut pas être lu", async () => {
+    apiClient.get.mockRejectedValueOnce(new Error("500"));
+    render(<TelegramLinkCard />);
+    expect(await screen.findByRole("alert")).toHaveTextContent("n'a pas pu être lu");
+    apiClient.get.mockResolvedValue({ data: { botActive: true, botUsername: "vigie_ept_bot", linked: false } });
+    await userEvent.click(screen.getByRole("button", { name: "Réessayer" }));
+    expect(await screen.findByRole("button", { name: "Générer un code de liaison" })).toBeEnabled();
+  });
 });
