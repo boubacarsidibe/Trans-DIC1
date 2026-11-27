@@ -1,5 +1,6 @@
 package sn.ept.transdic1.security.config;
 
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
@@ -106,7 +107,19 @@ public class SecurityConfig {
                 // statut publique (ADR 0026). Toute autre méthode sur ce chemin, et tout autre
                 // chemin de /api/**, exige une authentification (test
                 // StatusPageAuthRegressionTests).
-                a.requestMatchers(HttpMethod.GET, PUBLIC_STATUS_PATH)
+                // Redistribution asynchrone d'une requête déjà autorisée : quand un écran ferme son
+                // flux SSE, le conteneur rejoue la requête en mode ASYNC pour la terminer. Le
+                // filtre
+                // JWT ne s'exécute qu'une fois par requête, donc ce rejeu arrive sans
+                // authentification, et la chaîne le refusait sur une réponse déjà envoyée : un
+                // « Access Denied » en ERROR dans le journal à chaque onglet fermé. Un client ne
+                // peut
+                // pas fabriquer ce type de redistribution : seul le conteneur la crée, à partir
+                // d'une
+                // requête qui a déjà passé la chaîne (test SecurityAsyncDispatchTests).
+                a.dispatcherTypeMatchers(DispatcherType.ASYNC)
+                    .permitAll()
+                    .requestMatchers(HttpMethod.GET, PUBLIC_STATUS_PATH)
                     .permitAll()
                     .requestMatchers(
                         "/actuator/health",
