@@ -85,6 +85,23 @@ class Client:
             raise SendError("instantané non envoyé (%s)" % type(error).__name__)
         return True
 
+    def send_security_report(self, report):
+        """Envoie la télémétrie de sécurité du poste (ADR 0058). Faux si le serveur ne la connaît pas."""
+        body = json.dumps(report).encode("utf-8")
+        try:
+            self._post(body, self.config.server_url + "/api/v1/agent/securite-poste")
+        except urllib.error.HTTPError as error:
+            status = error.code
+            error.close()
+            if status in (401, 403):
+                raise AuthError("jeton d'agent refusé par le serveur (HTTP %d)" % status)
+            if status in (404, 405):
+                return False
+            raise SendError("rapport de sécurité refusé (HTTP %d)" % status)
+        except (urllib.error.URLError, OSError) as error:
+            raise SendError("rapport de sécurité non envoyé (%s)" % type(error).__name__)
+        return True
+
     def send_logs(self, entries):
         """Envoie des lignes de journal. Faux si le serveur ne connaît pas cette route."""
         body = json.dumps({"entries": entries}).encode("utf-8")

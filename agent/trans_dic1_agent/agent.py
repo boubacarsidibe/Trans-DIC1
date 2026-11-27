@@ -40,6 +40,8 @@ class Agent:
         self.stopped = False
         self.next_snapshot = None
         self.snapshot_supported = True
+        # Télémétrie de sécurité du poste (ADR 0058) : « edr = false » dans la configuration la coupe.
+        self.security_supported = getattr(config, "edr", True)
         self.logs_supported = True
         self.log_reader = _log_reader(config)
         actions = getattr(config, "actions", None)
@@ -170,7 +172,21 @@ class Agent:
                 LOG.warning("le serveur ne connaît pas les instantanés : inventaire non envoyé")
         except (AuthError, SendError, OSError, ValueError) as error:
             LOG.warning("instantané non envoyé : %s", error)
+        self.send_security_report()
         self.refresh_followed_services()
+
+    def send_security_report(self):
+        """Rapport de sécurité du poste, au rythme de l'instantané (ADR 0058)."""
+        read = getattr(self.collector, "security_report", None)
+        send = getattr(self.client, "send_security_report", None)
+        if read is None or send is None or not self.security_supported:
+            return
+        try:
+            self.security_supported = send(read())
+            if not self.security_supported:
+                LOG.info("le serveur ne reçoit pas la télémétrie de sécurité : envoi arrêté")
+        except (AuthError, SendError, OSError, ValueError) as error:
+            LOG.warning("rapport de sécurité non envoyé : %s", error)
 
     def refresh_followed_services(self):
         """Relit les services que la plateforme demande de suivre (ADR 0056), au rythme de

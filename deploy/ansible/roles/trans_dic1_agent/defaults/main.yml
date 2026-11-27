@@ -7,7 +7,7 @@
 trans_dic1_agent_server_url: "https://supervision.example"
 
 # Version attendue de l'agent. Si la machine a déjà cette version, le rôle ne change rien.
-trans_dic1_agent_version: "2.2.0"
+trans_dic1_agent_version: "2.3.0"
 
 # Paquets construits par le pipeline (agent/packaging/build-package.sh et build-package.ps1),
 # présents sur la machine de contrôle, avec leur empreinte SHA-256.

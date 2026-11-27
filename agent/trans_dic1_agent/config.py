@@ -67,6 +67,7 @@ class Config:
         action_timeout=DEFAULT_TIMEOUT,
         token_file=None,
         enroll_token_file=None,
+        edr=True,
     ):
         self.server_url = server_url.rstrip("/")
         self.token = token
@@ -74,6 +75,7 @@ class Config:
         self.token_file = token_file
         self.enroll_token_file = enroll_token_file
         self.interval = interval
+        self.edr = edr
         self.disk_path = disk_path or default_disk_path()
         self.timeout = timeout
         self.max_retries = max_retries
@@ -258,6 +260,7 @@ def load(path=None, environ=None):
             # système sont suivis. « access_logs » attend des chemins séparés par des virgules.
             auth_logs=_paths(get("auth_logs")) if get("auth_logs") is not None else None,
             access_logs=_paths(get("access_logs", "")),
+            edr=_flag(get("edr", "true")),
             actions=actions,
             action_timeout=int(get("action_timeout", DEFAULT_TIMEOUT)),
             token_file=token_file,

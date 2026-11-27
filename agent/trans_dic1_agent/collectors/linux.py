@@ -5,7 +5,7 @@ import platform
 import socket
 import subprocess
 
-from .. import discovery
+from .. import discovery, edr
 from ..metrics import Collector
 from .common import (
     MAX_INSTANCES,
@@ -228,5 +228,6 @@ def create(config, clock):
     )
     collector.snapshot = families.snapshot
     collector.follow_services = families.follow
+    collector.security_report = lambda: edr.report(edr.LinuxSecurity("/", config.proc_root), "Linux")
     return collector
 

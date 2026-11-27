@@ -12,7 +12,7 @@ import shutil
 import socket
 import struct
 
-from .. import discovery
+from .. import discovery, edr
 from ..metrics_windows import WindowsCollector
 from .common import (
     MAX_INSTANCES,
@@ -195,8 +195,9 @@ class Win32Extended:  # pragma: no cover - appels système, exercés par les tes
         finally:
             self.advapi32.CloseServiceHandle(manager)
 
-    def running_services(self):
-        """Noms des services Win32 démarrés (EnumServicesStatusExW)."""
+    def running_services(self, state=0x1):
+        """Noms des services Win32 démarrés (EnumServicesStatusExW) ; state=0x3 : tous les
+        services installés, démarrés ou non (télémétrie de sécurité, ADR 0058)."""
         wintypes = self._wintypes
 
         class Status(ctypes.Structure):
@@ -223,13 +224,13 @@ class Win32Extended:  # pragma: no cover - appels système, exercés par les tes
             raise OSError("gestionnaire de services inaccessible")
         try:
             needed, returned, resume = wintypes.DWORD(0), wintypes.DWORD(0), wintypes.DWORD(0)
-            enum(manager, 0, 0x30, 0x1, None, 0, ctypes.byref(needed), ctypes.byref(returned), ctypes.byref(resume), None)
+            enum(manager, 0, 0x30, state, None, 0, ctypes.byref(needed), ctypes.byref(returned), ctypes.byref(resume), None)
             size = needed.value + 4096
             buffer = ctypes.create_string_buffer(size)
             names = []
             for _ in range(32):
                 done = enum(
-                    manager, 0, 0x30, 0x1, buffer, size,
+                    manager, 0, 0x30, state, buffer, size,
                     ctypes.byref(needed), ctypes.byref(returned), ctypes.byref(resume), None,
                 )
                 entries = ctypes.cast(buffer, ctypes.POINTER(Entry))
@@ -259,6 +260,98 @@ class Win32Extended:  # pragma: no cover - appels système, exercés par les tes
             result = call(buffer, ctypes.byref(size), False, family, 3, 0)
             tables.append(buffer.raw[: size.value] if result == 0 else b"")
         return tables[0], tables[1]
+
+    def tcp_all_tables(self):
+        """Tables TCP_TABLE_OWNER_PID_ALL d'IPv4 puis d'IPv6 (connexions établies comprises)."""
+        wintypes = self._wintypes
+        call = self.iphlpapi.GetExtendedTcpTable
+        call.restype = wintypes.DWORD
+        call.argtypes = [
+            ctypes.c_void_p, ctypes.POINTER(wintypes.DWORD), wintypes.BOOL, wintypes.ULONG, ctypes.c_int, wintypes.ULONG,
+        ]
+        tables = []
+        for family in (2, 23):  # AF_INET, AF_INET6
+            size = wintypes.DWORD(0)
+            call(None, ctypes.byref(size), False, family, 5, 0)
+            buffer = ctypes.create_string_buffer(size.value + 8192)
+            size = wintypes.DWORD(len(buffer))
+            result = call(buffer, ctypes.byref(size), False, family, 5, 0)
+            tables.append(buffer.raw[: size.value] if result == 0 else b"")
+        return tables[0], tables[1]
+
+    def process_images(self):
+        """[(nom, chemin de l'exécutable ou None)] : QueryFullProcessImageNameW, sans privilège."""
+        wintypes = self._wintypes
+        query = self.kernel32.QueryFullProcessImageNameW
+        query.restype = wintypes.BOOL
+        query.argtypes = [ctypes.c_void_p, wintypes.DWORD, wintypes.LPWSTR, ctypes.POINTER(wintypes.DWORD)]
+        rows = []
+        for pid, name, _, _ in self.processes():
+            if pid in (0, 4):
+                continue
+            path = None
+            handle = self.kernel32.OpenProcess(PROCESS_QUERY_LIMITED, False, pid)
+            if handle:
+                try:
+                    buffer = ctypes.create_unicode_buffer(1024)
+                    size = wintypes.DWORD(len(buffer))
+                    if query(ctypes.c_void_p(handle), 0, buffer, ctypes.byref(size)):
+                        path = buffer.value
+                finally:
+                    self.kernel32.CloseHandle(handle)
+            rows.append((name, path))
+        return rows
+
+    def administrators(self):
+        """Membres du groupe local Administrateurs, retrouvé par son SID (S-1-5-32-544) pour ne pas
+        dépendre de la langue du système."""
+        wintypes = self._wintypes
+        netapi32 = ctypes.WinDLL("netapi32")
+        sid = ctypes.c_void_p()
+        convert = self.advapi32.ConvertStringSidToSidW
+        convert.argtypes = [wintypes.LPCWSTR, ctypes.POINTER(ctypes.c_void_p)]
+        if not convert("S-1-5-32-544", ctypes.byref(sid)):
+            raise OSError("SID du groupe Administrateurs illisible")
+        try:
+            name = ctypes.create_unicode_buffer(256)
+            domain = ctypes.create_unicode_buffer(256)
+            name_size, domain_size, use = wintypes.DWORD(256), wintypes.DWORD(256), wintypes.DWORD(0)
+            lookup = self.advapi32.LookupAccountSidW
+            lookup.argtypes = [
+                wintypes.LPCWSTR, ctypes.c_void_p, wintypes.LPWSTR, ctypes.POINTER(wintypes.DWORD),
+                wintypes.LPWSTR, ctypes.POINTER(wintypes.DWORD), ctypes.POINTER(wintypes.DWORD),
+            ]
+            if not lookup(None, sid, name, ctypes.byref(name_size), domain, ctypes.byref(domain_size), ctypes.byref(use)):
+                raise OSError("nom du groupe Administrateurs introuvable")
+        finally:
+            self.kernel32.LocalFree.argtypes = [ctypes.c_void_p]
+            self.kernel32.LocalFree(sid)
+
+        class Member(ctypes.Structure):
+            _fields_ = [("domain_and_name", wintypes.LPWSTR)]
+
+        members = netapi32.NetLocalGroupGetMembers
+        members.restype = wintypes.DWORD
+        members.argtypes = [
+            wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.DWORD, ctypes.POINTER(ctypes.c_void_p), wintypes.DWORD,
+            ctypes.POINTER(wintypes.DWORD), ctypes.POINTER(wintypes.DWORD), ctypes.POINTER(ctypes.c_size_t),
+        ]
+        buffer = ctypes.c_void_p()
+        read, total, resume = wintypes.DWORD(0), wintypes.DWORD(0), ctypes.c_size_t(0)
+        result = members(None, name.value, 3, ctypes.byref(buffer), 0xFFFFFFFF,
+                         ctypes.byref(read), ctypes.byref(total), ctypes.byref(resume))
+        if result != 0:
+            raise OSError("NetLocalGroupGetMembers a échoué (code %d)" % result)
+        try:
+            entries = ctypes.cast(buffer, ctypes.POINTER(Member))
+            return [entries[i].domain_and_name for i in range(read.value)]
+        finally:
+            netapi32.NetApiBufferFree.argtypes = [ctypes.c_void_p]
+            netapi32.NetApiBufferFree(buffer)
+
+    def installed_services(self):
+        """Tous les services Win32 installés : un nouveau service se voit même arrêté."""
+        return self.running_services(state=0x3)
 
     def processes(self):
         """[(pid, nom, temps CPU en s, mémoire en octets ou None)] ; illisibles : temps None."""
@@ -458,4 +551,5 @@ def create(config, clock):
     )
     collector.snapshot = families.snapshot
     collector.follow_services = families.follow
+    collector.security_report = lambda: edr.report(edr.WindowsSecurity(api, edr.WindowsRegistry()), "Windows")
     return collector

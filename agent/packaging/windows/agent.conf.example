@@ -39,6 +39,13 @@ buffer_limit = 2000
 # Services surveillés, séparés par des virgules (état remonté dans service.up[nom]).
 # services = Spooler, W32Time
 
+# Télémétrie de sécurité du poste, l'EDR léger (ADR 0058), active par défaut : toutes les 5 minutes,
+# l'agent envoie les chemins des programmes (jamais leurs arguments), les clés Run du registre, les
+# dossiers de démarrage, les services installés, les membres du groupe Administrateurs, l'empreinte du
+# fichier hosts et les connexions sortantes. Jamais de contenu de fichier ni de mot de passe.
+# Pour la couper :
+# edr = false
+
 # --- Actions correctives (ADR 0050 et 0057) ----------------------------------
 # La plateforme ne transmet qu'un NOM d'action ; la commande correspondante est écrite ici, sur
 # cette machine, et nulle part ailleurs. Un nom absent de cette liste est refusé.

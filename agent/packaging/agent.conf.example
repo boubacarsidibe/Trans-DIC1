@@ -35,6 +35,13 @@ buffer_limit = 2000
 # Services surveillés, séparés par des virgules (état remonté dans service.up[nom]).
 # services = nginx, ssh
 
+# Télémétrie de sécurité du poste, l'EDR léger (ADR 0058), active par défaut : toutes les 5 minutes,
+# l'agent envoie les chemins des programmes (jamais leurs arguments), ce qui démarre seul (cron,
+# systemd, rc.local, profile.d), les comptes privilégiés, l'empreinte de quelques fichiers sensibles
+# (/etc/passwd, hosts, sshd_config, présence de /etc/ld.so.preload) et les connexions sortantes.
+# Jamais de contenu de fichier ni de mot de passe. Pour la couper :
+# edr = false
+
 # --- Journaux de sécurité ---------------------------------------------------
 # L'agent lit et découpe les lignes, le serveur juge s'il s'agit d'une attaque.
 # Il part de la fin des fichiers au démarrage : rien d'ancien n'est renvoye.
