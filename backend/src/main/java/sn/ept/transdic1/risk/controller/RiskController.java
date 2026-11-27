@@ -3,6 +3,7 @@ package sn.ept.transdic1.risk.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,11 +34,16 @@ public class RiskController {
       summary = "Équipements les plus à risque",
       description =
           "Probabilité de panne (perte de collecte ou alerte critique) dans les 24 heures, avec les"
-              + " trois faits qui la poussent le plus, et la fiche du modèle. Tous les rôles ;"
-              + " limité au périmètre par site.")
+              + " trois faits qui la poussent le plus. Tous les rôles ; limité au périmètre par"
+              + " site. La fiche du modèle n'y figure que pour un administrateur (ADR 0058).")
   @GetMapping
-  public RiskOverview overview(@RequestParam(defaultValue = "10") int limit) {
-    return service.overview(Math.min(Math.max(limit, 1), 200));
+  public RiskOverview overview(
+      @RequestParam(defaultValue = "10") int limit, Authentication authentication) {
+    RiskOverview overview = service.overview(Math.min(Math.max(limit, 1), 200));
+    boolean admin =
+        authentication.getAuthorities().stream()
+            .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+    return admin ? overview : new RiskOverview(null, overview.equipments(), overview.computedAt());
   }
 
   @Operation(

@@ -2137,7 +2137,7 @@ export interface paths {
         };
         /**
          * Équipements les plus à risque
-         * @description Probabilité de panne (perte de collecte ou alerte critique) dans les 24 heures, avec les trois faits qui la poussent le plus, et la fiche du modèle. Tous les rôles ; limité au périmètre par site.
+         * @description Probabilité de panne (perte de collecte ou alerte critique) dans les 24 heures, avec les trois faits qui la poussent le plus. Tous les rôles ; limité au périmètre par site. La fiche du modèle n'y figure que pour un administrateur (ADR 0058).
          */
         get: operations["overview_3"];
         put?: never;

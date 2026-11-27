@@ -130,13 +130,18 @@ class RiskApiTests {
   }
 
   @Test
-  @DisplayName("L'API rend la fiche du modèle à tous, l'entraînement aux seuls administrateurs")
+  @DisplayName("Le classement pour tous ; la fiche du modèle et l'entraînement aux administrateurs")
   void api() throws Exception {
+    // ADR 0058 : le lecteur et l'opérateur voient le classement, pas la fiche du modèle.
     mockMvc
         .perform(get("/api/v1/risques").param("limit", "5").with(user("lecteur").roles("VIEWER")))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.model.features.length()").value(9))
+        .andExpect(jsonPath("$.model").doesNotExist())
         .andExpect(jsonPath("$.equipments.length()").value(5));
+    mockMvc
+        .perform(get("/api/v1/risques").param("limit", "5").with(user("admin").roles("ADMIN")))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.model.features.length()").value(9));
     mockMvc
         .perform(post("/api/v1/risques/entrainement").with(user("lecteur").roles("VIEWER")))
         .andExpect(status().isForbidden());

@@ -5410,8 +5410,9 @@ paths:
       - Risque de panne
       summary: Équipements les plus à risque
       description: "Probabilité de panne (perte de collecte ou alerte critique) dans\
-        \ les 24 heures, avec les trois faits qui la poussent le plus, et la fiche\
-        \ du modèle. Tous les rôles ; limité au périmètre par site."
+        \ les 24 heures, avec les trois faits qui la poussent le plus. Tous les rô\
+        les ; limité au périmètre par site. La fiche du modèle n'y figure que pour\
+        \ un administrateur (ADR 0058)."
       operationId: overview_3
       parameters:
       - name: limit
