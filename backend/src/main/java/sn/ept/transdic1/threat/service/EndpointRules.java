@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import sn.ept.transdic1.alerting.domain.Severity;
 import sn.ept.transdic1.threat.domain.EndpointBaselineItem;
 import sn.ept.transdic1.threat.domain.EndpointBaselineItem.Category;
@@ -220,7 +221,7 @@ public final class EndpointRules {
     }
     if (report.persistence() != null) {
       for (var entry : report.persistence()) {
-        String key = entry.kind() + ":" + entry.name();
+        String key = persistenceKey(entry);
         EndpointBaselineItem before = known.get(Category.PERSISTENCE + "|" + key);
         Technique technique = persistenceTechnique(entry.kind());
         String label = persistenceLabel(entry.kind());
@@ -294,7 +295,7 @@ public final class EndpointRules {
       for (var entry : report.persistence()) {
         items.add(
             new EndpointBaselineItem(
-                Category.PERSISTENCE, entry.kind() + ":" + entry.name(), entry.fingerprint()));
+                Category.PERSISTENCE, persistenceKey(entry), entry.fingerprint()));
       }
     }
     if (report.accounts() != null) {
@@ -318,6 +319,24 @@ public final class EndpointRules {
   }
 
   // ---------------------------------------------------------------------------- outils
+  /**
+   * Services Windows « par utilisateur » (WpnUserService_14b498, AarSvc_14b498) : Windows leur
+   * ajoute un suffixe hexadécimal qui change à chaque ouverture de session. Sans le retirer, chaque
+   * redémarrage ferait passer tous ces services pour nouveaux.
+   */
+  private static final Pattern PER_USER_SERVICE = Pattern.compile("(.+)_[0-9a-fA-F]{4,8}");
+
+  static String persistenceKey(EndpointReport.Persistence entry) {
+    String name = entry.name();
+    if ("service".equals(entry.kind())) {
+      var matcher = PER_USER_SERVICE.matcher(name);
+      if (matcher.matches()) {
+        name = matcher.group(1) + "_*";
+      }
+    }
+    return entry.kind() + ":" + name;
+  }
+
   static boolean fromTemporaryDirectory(String path) {
     // Chemins Windows et Linux ramenés à la même forme : minuscules, barres obliques.
     String normal = path.toLowerCase(Locale.ROOT).replace('\\', '/');

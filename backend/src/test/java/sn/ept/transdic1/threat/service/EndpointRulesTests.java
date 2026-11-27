@@ -187,6 +187,38 @@ class EndpointRulesTests {
   }
 
   @Test
+  @DisplayName(
+      "Un service par utilisateur dont le suffixe change à chaque session n'est pas nouveau")
+  void perUserServicesAcrossSessions() {
+    var before =
+        report(
+            List.of(),
+            List.of(
+                new Persistence("service", "WpnUserService_14b498", null, null),
+                new Persistence("service", "Spooler", null, null)),
+            List.of(),
+            List.of(),
+            List.of());
+    var after =
+        report(
+            List.of(),
+            List.of(
+                new Persistence("service", "WpnUserService_3f2a1c", null, null),
+                new Persistence("service", "Spooler", null, null),
+                new Persistence("service", "EvilSvc", null, null)),
+            List.of(),
+            List.of(),
+            List.of());
+    var drafts = EndpointRules.evaluate(after, EndpointRules.baselineOf(before));
+    assertThat(drafts).extracting(Draft::subject).containsExactly("service:EvilSvc");
+    assertThat(
+            EndpointRules.persistenceKey(
+                new Persistence("cron", "/etc/cron.d/job_abcd", null, null)))
+        .as("seuls les services sont concernés")
+        .isEqualTo("cron:/etc/cron.d/job_abcd");
+  }
+
+  @Test
   @DisplayName("Chemins et noms de programmes ramenés à une forme commune")
   void normalisation() {
     assertThat(EndpointRules.fromTemporaryDirectory("C:\\WINDOWS\\Temp\\a.exe")).isTrue();
