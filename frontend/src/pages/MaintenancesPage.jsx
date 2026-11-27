@@ -1,16 +1,21 @@
 import { useCallback, useEffect, useState } from "react";
 import { listEquipment, listSites } from "../api/equipment.js";
 import {
+  DEMAND_LABELS,
   MAINTENANCE_LABELS,
   MAINTENANCE_STATES,
+  approveMaintenanceDemand,
   cancelMaintenance,
   createMaintenance,
+  listMaintenanceDemands,
   listMaintenances,
+  refuseMaintenanceDemand,
+  requestMaintenance,
   toPayload,
   validateMaintenance,
 } from "../api/maintenances.js";
 import { useAuth } from "../auth/AuthContext.jsx";
-import { canHandleAlerts } from "../auth/permissions.js";
+import { canPlanMaintenance, canRequestMaintenance } from "../auth/permissions.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Modal from "../ui/Modal.jsx";
 import { Badge } from "../ui/Badges.jsx";
@@ -25,7 +30,14 @@ const EMPTY = {
 
 const formatDate = (value) => (value ? new Date(value).toLocaleString("fr-FR") : "—");
 
-function MaintenanceForm({ sites, equipments, submitting, onSubmit, onCancel }) {
+function MaintenanceForm({
+  sites,
+  equipments,
+  submitting,
+  onSubmit,
+  onCancel,
+  submitLabel = "Planifier",
+}) {
   const [values, setValues] = useState(EMPTY);
   const [errors, setErrors] = useState({});
   const targets = values.targetType === "SITE" ? sites : equipments;
@@ -108,7 +120,7 @@ function MaintenanceForm({ sites, equipments, submitting, onSubmit, onCancel }) 
           disabled={submitting}
           className="btn btn-primary"
         >
-          Planifier
+          {submitLabel}
         </button>
         <button
           type="button"
@@ -122,9 +134,122 @@ function MaintenanceForm({ sites, equipments, submitting, onSubmit, onCancel }) 
   );
 }
 
+/**
+ * Demandes de maintenance (ADR 0058). L'administrateur voit celles qui attendent et les valide ou
+ * les refuse avec un motif ; l'opérateur suit les siennes et leur décision.
+ */
+function DemandsPanel({ demands, canDecide, onDecided }) {
+  const [refusing, setRefusing] = useState(null);
+  const [reason, setReason] = useState("");
+  const [problem, setProblem] = useState("");
+  const shown = canDecide ? demands.filter((d) => d.state === "PENDING") : demands;
+
+  async function decide(operation) {
+    setProblem("");
+    try {
+      await operation();
+      setRefusing(null);
+      setReason("");
+      await onDecided();
+    } catch (failure) {
+      setProblem(failure?.response?.data?.error ?? "La décision n'a pas pu être enregistrée.");
+    }
+  }
+
+  return (
+    <section aria-label="Demandes de maintenance" className="panel mt-5">
+      <div className="panel-head">
+        <h2>{canDecide ? "Demandes en attente" : "Mes demandes"}</h2>
+        {canDecide && shown.length > 0 && <Badge tone="warn">{shown.length}</Badge>}
+      </div>
+      {problem && (
+        <p role="alert" className="notice notice-bad">
+          {problem}
+        </p>
+      )}
+      {shown.length === 0 ? (
+        <p className="text-sm text-slate-400">
+          {canDecide ? "Aucune demande en attente." : "Aucune demande."}
+        </p>
+      ) : (
+        <ul className="space-y-3">
+          {shown.map((d) => (
+            <li key={d.id} className="text-sm">
+              <strong>{d.equipmentName ?? "Site " + d.siteName}</strong>, du {formatDate(d.startAt)}{" "}
+              au {formatDate(d.endAt)} : {d.reason}
+              <span className="cell-sub">
+                {" "}
+                Demandée par {d.requester} le {formatDate(d.createdAt)}
+              </span>{" "}
+              <Badge tone={{ PENDING: "warn", APPROVED: "ok", REFUSED: "bad" }[d.state] ?? "muted"}>
+                {DEMAND_LABELS[d.state] ?? d.state}
+              </Badge>
+              {d.decisionComment && (
+                <span className="cell-sub">
+                  {" "}
+                  {d.decidedBy} : {d.decisionComment}
+                </span>
+              )}
+              {canDecide && refusing !== d.id && (
+                <span className="row-actions mt-1">
+                  <button
+                    type="button"
+                    onClick={() => decide(() => approveMaintenanceDemand(d.id))}
+                    className="btn btn-primary btn-sm"
+                  >
+                    Valider
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRefusing(d.id)}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    Refuser
+                  </button>
+                </span>
+              )}
+              {canDecide && refusing === d.id && (
+                <form
+                  className="row-actions mt-1"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (reason.trim()) decide(() => refuseMaintenanceDemand(d.id, reason.trim()));
+                  }}
+                >
+                  <label className="text-sm">
+                    Motif du refus
+                    <input
+                      value={reason}
+                      maxLength={500}
+                      onChange={(e) => setReason(e.target.value)}
+                      className="field field-inline ml-2"
+                    />
+                  </label>
+                  <button disabled={!reason.trim()} className="btn btn-primary btn-sm">
+                    Confirmer le refus
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRefusing(null)}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    Annuler
+                  </button>
+                </form>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function MaintenancesPage() {
   const { role } = useAuth();
-  const canManage = canHandleAlerts(role);
+  const canManage = canPlanMaintenance(role);
+  const canRequest = canRequestMaintenance(role);
+  const [demands, setDemands] = useState([]);
   const [state, setState] = useState("");
   const [page, setPage] = useState(0);
   const [data, setData] = useState({ content: [], page: { totalPages: 0 } });
@@ -151,6 +276,18 @@ function MaintenancesPage() {
     load(page, state);
   }, [load, page, state]);
 
+  const loadDemands = useCallback(async () => {
+    try {
+      setDemands(await listMaintenanceDemands());
+    } catch {
+      setDemands([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (canManage || canRequest) loadDemands();
+  }, [canManage, canRequest, loadDemands]);
+
   async function openForm() {
     setNotice("");
     try {
@@ -173,12 +310,21 @@ function MaintenancesPage() {
     setNotice("");
     setError("");
     try {
-      await createMaintenance(payload);
+      if (canManage) {
+        await createMaintenance(payload);
+        setNotice("Maintenance planifiée.");
+      } else {
+        await requestMaintenance(payload);
+        setNotice("Demande envoyée : un administrateur la validera ou la refusera.");
+      }
       setCreating(false);
-      setNotice("Maintenance planifiée.");
-      await load(page, state);
+      await Promise.all([load(page, state), loadDemands()]);
     } catch {
-      setError("La planification a échoué. Vérifiez les dates et la cible.");
+      setError(
+        canManage
+          ? "La planification a échoué. Vérifiez les dates et la cible."
+          : "La demande n'a pas pu être envoyée. Vérifiez les dates et la cible.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -205,13 +351,13 @@ function MaintenancesPage() {
         <PageHeader
           title="Maintenances"
           description="Fenêtres pendant lesquelles les alertes ne notifient personne."
-          actions={canManage && !creating && (
+          actions={(canManage || canRequest) && !creating && (
           <button
             type="button"
             onClick={openForm}
             className="btn btn-primary"
           >
-            Planifier une maintenance
+            {canManage ? "Planifier une maintenance" : "Demander une maintenance"}
           </button>
         )}
         />
@@ -248,8 +394,12 @@ function MaintenancesPage() {
 
         {creating && (
           <Modal
-            title="Planifier une maintenance"
-            description="Pendant la fenêtre, aucune alerte n'est ouverte ni notifiée sur la cible."
+            title={canManage ? "Planifier une maintenance" : "Demander une maintenance"}
+            description={
+              canManage
+                ? "Pendant la fenêtre, aucune alerte n'est ouverte ni notifiée sur la cible."
+                : "Un administrateur valide ou refuse la demande ; rien n'est coupé avant sa validation."
+            }
             error={error}
             size="lg"
             onClose={() => {
@@ -261,6 +411,7 @@ function MaintenancesPage() {
               sites={scope.sites}
               equipments={scope.equipments}
               submitting={submitting}
+              submitLabel={canManage ? "Planifier" : "Envoyer la demande"}
               onSubmit={save}
               onCancel={() => {
                 setCreating(false);
@@ -268,6 +419,16 @@ function MaintenancesPage() {
               }}
             />
           </Modal>
+        )}
+
+        {(canManage || canRequest) && (
+          <DemandsPanel
+            demands={demands}
+            canDecide={canManage}
+            onDecided={async () => {
+              await Promise.all([load(page, state), loadDemands()]);
+            }}
+          />
         )}
 
         <div className="panel panel-flush mt-5 overflow-x-auto">

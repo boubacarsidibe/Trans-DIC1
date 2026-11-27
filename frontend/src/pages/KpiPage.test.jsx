@@ -8,6 +8,8 @@ import KpiPage from "./KpiPage.jsx";
 vi.mock("../api/client.js", () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
 }));
+let role = "ADMIN";
+vi.mock("../auth/AuthContext.jsx", () => ({ useAuth: () => ({ role }) }));
 
 const figures = (overrides = {}) => ({
   alerts: 12,
@@ -85,5 +87,12 @@ describe("KpiPage", () => {
       from: "2026-11-18T12:00:00.000Z",
       to: "2026-11-25T12:00:00.000Z",
     });
+  });
+
+  it("titre « Mes prises en charge » pour un non-administrateur (ADR 0058)", async () => {
+    role = "NOC_OPERATOR";
+    render(<KpiPage />);
+    expect(await screen.findByRole("heading", { name: "Mes prises en charge" })).toBeInTheDocument();
+    role = "ADMIN";
   });
 });

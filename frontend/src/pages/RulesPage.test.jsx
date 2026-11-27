@@ -100,14 +100,23 @@ describe("validation d'une règle", () => {
 });
 
 describe("page des règles", () => {
-  it("affiche les règles en lecture seule pour un lecteur", async () => {
+  it("affiche les règles à l'administrateur", async () => {
     mockGets();
-    renderPage("VIEWER");
+    renderPage("ADMIN");
 
     expect(await screen.findByText("CPU trop haut")).toBeInTheDocument();
     expect(screen.getByText(/retour à 80/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Ajouter une règle" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Supprimer/ })).not.toBeInTheDocument();
+  });
+
+  it("n'ouvre pas les règles à l'opérateur ni au lecteur (ADR 0058)", async () => {
+    for (const role of ["NOC_OPERATOR", "VIEWER"]) {
+      mockGets();
+      const { unmount } = renderPage(role);
+      expect(await screen.findByRole("navigation", { name: "Navigation principale" })).toBeInTheDocument();
+      expect(screen.queryByText("CPU trop haut")).not.toBeInTheDocument();
+      expect(apiClient.get).not.toHaveBeenCalledWith("/regles-alertes", expect.anything());
+      unmount();
+    }
   });
 
   it("crée une règle avec sa portée", async () => {
@@ -264,7 +273,7 @@ describe("page des règles", () => {
         };
       return { data: [] };
     });
-    renderPage("VIEWER");
+    renderPage("ADMIN");
 
     await userEvent.click(
       await screen.findByRole("button", { name: "Seuils appris de CPU trop haut" }),

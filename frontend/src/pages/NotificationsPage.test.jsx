@@ -30,6 +30,15 @@ function renderPage() {
   );
 }
 
+// La carte Telegram lit /moi/telegram : une réponse propre, pour ne tester ici que les préférences.
+function answer(preferences) {
+  apiClient.get.mockImplementation(async (url) => {
+    if (url === "/moi/telegram") return { data: { botActive: false, linked: false } };
+    if (preferences instanceof Error) throw preferences;
+    return { data: preferences };
+  });
+}
+
 beforeEach(() => {
   clearSession();
   vi.resetAllMocks();
@@ -37,7 +46,7 @@ beforeEach(() => {
 
 describe("mes notifications", () => {
   it("affiche des préférences inactives par défaut et l'adresse du compte", async () => {
-    apiClient.get.mockResolvedValue({ data: defaults });
+    answer(defaults);
     renderPage();
 
     expect(
@@ -48,7 +57,7 @@ describe("mes notifications", () => {
   });
 
   it("enregistre le choix de l'utilisateur", async () => {
-    apiClient.get.mockResolvedValue({ data: defaults });
+    answer(defaults);
     apiClient.put.mockResolvedValue({
       data: { ...defaults, active: true, minimumSeverity: "WARNING" },
     });
@@ -75,7 +84,7 @@ describe("mes notifications", () => {
   });
 
   it("demande une référence de secret pour un canal externe, jamais une URL", async () => {
-    apiClient.get.mockResolvedValue({ data: defaults });
+    answer(defaults);
     apiClient.put.mockResolvedValue({ data: { ...defaults, channel: "TEAMS", destination: "env:TEAMS_NOC_URL" } });
     renderPage();
 
@@ -99,12 +108,12 @@ describe("mes notifications", () => {
   });
 
   it("signale une erreur de chargement et d'enregistrement", async () => {
-    apiClient.get.mockRejectedValueOnce(new Error("boom"));
+    answer(new Error("boom"));
     const { unmount } = renderPage();
     expect(await screen.findByRole("alert")).toHaveTextContent("Impossible de charger");
     unmount();
 
-    apiClient.get.mockResolvedValue({ data: defaults });
+    answer(defaults);
     apiClient.put.mockRejectedValue(new Error("boom"));
     renderPage();
     await userEvent.click(await screen.findByRole("button", { name: "Enregistrer" }));

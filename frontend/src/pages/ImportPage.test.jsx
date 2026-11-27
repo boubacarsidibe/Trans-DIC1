@@ -22,7 +22,7 @@ const PREVIEW = {
   ignored: [{ line: 4, message: "Commentaire" }],
 };
 
-function renderPage(role = "NOC_OPERATOR", state) {
+function renderPage(role = "ADMIN", state) {
   saveSession({ accessToken: "jeton", role, expiresIn: 3600 });
   return render(
     <MemoryRouter initialEntries={[{ pathname: "/import", state }]}>

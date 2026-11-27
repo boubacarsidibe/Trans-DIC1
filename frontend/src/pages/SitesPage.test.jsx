@@ -28,7 +28,7 @@ const pageOf = (content) => ({
   data: { content, page: { totalPages: 1, number: 0, totalElements: content.length, size: 10 } },
 });
 
-function renderPage(role = "NOC_OPERATOR") {
+function renderPage(role = "ADMIN") {
   saveSession({ accessToken: "jeton", role, expiresIn: 3600 });
   return render(
     <MemoryRouter initialEntries={["/sites"]}>

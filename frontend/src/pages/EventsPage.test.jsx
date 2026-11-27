@@ -117,10 +117,8 @@ describe("page des événements", () => {
     renderPage();
     const nav = await screen.findByRole("navigation", { name: "Navigation principale" });
     expect(within(nav).getByRole("link", { name: "Événements" })).toHaveAttribute("href", "/evenements");
-    expect(within(nav).getByRole("link", { name: "Règles d'événements" })).toHaveAttribute(
-      "href",
-      "/regles-evenements",
-    );
+    // ADR 0058 : les règles d'événements ne figurent que dans le menu de l'administrateur.
+    expect(within(nav).queryByRole("link", { name: "Règles d'événements" })).not.toBeInTheDocument();
   });
 
   it("propose dans le filtre les équipements de toutes les pages", async () => {

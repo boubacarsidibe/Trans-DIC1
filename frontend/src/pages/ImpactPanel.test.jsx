@@ -51,6 +51,7 @@ describe("ImpactPanel", () => {
   });
 
   it("planifie la maintenance sur la cible et son aval sans second chemin", async () => {
+    role = "ADMIN";
     render(<ImpactPanel equipmentId="core" />);
     await screen.findByText(impact.summary);
     await userEvent.type(screen.getByLabelText("Motif"), "Mise à jour");
@@ -61,6 +62,20 @@ describe("ImpactPanel", () => {
       expect.objectContaining({ equipmentId: "sw", reason: "Mise à jour" }),
     );
     expect(await screen.findByRole("status")).toHaveTextContent("Maintenance planifiée sur 2 équipement(s)");
+  });
+
+  it("l'opérateur demande la maintenance au lieu de la planifier (ADR 0058)", async () => {
+    render(<ImpactPanel equipmentId="core" />);
+    await screen.findByText(impact.summary);
+    expect(screen.queryByRole("button", { name: /Planifier/ })).not.toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText("Motif"), "Mise à jour");
+    await userEvent.click(screen.getByRole("button", { name: /Demander la maintenance \(2 équipements\)/ }));
+    await waitFor(() => expect(apiClient.post).toHaveBeenCalledTimes(2));
+    expect(apiClient.post).toHaveBeenCalledWith(
+      "/maintenances/demandes",
+      expect.objectContaining({ equipmentId: "core", reason: "Mise à jour" }),
+    );
+    expect(await screen.findByRole("status")).toHaveTextContent("Demande envoyée pour 2 équipement(s)");
   });
 
   it("un lecteur ne peut pas planifier", async () => {

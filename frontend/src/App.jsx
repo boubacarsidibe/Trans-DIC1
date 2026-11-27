@@ -55,7 +55,6 @@ function App() {
           <Route path="/equipements" element={<EquipmentPage />} />
           <Route path="/equipements/:id/historique" element={<MetricsPage />} />
           <Route path="/equipements/:id/sondes" element={<ProbesPage />} />
-          <Route path="/modeles" element={<TemplatesPage />} />
           <Route path="/sites" element={<SitesPage />} />
           <Route path="/topologie" element={<TopologyPage />} />
           <Route path="/dependances" element={<DependenciesPage />} />
@@ -68,18 +67,18 @@ function App() {
           <Route path="/pages-statut" element={<StatusPagesPage />} />
           <Route path="/pages-statut/:id" element={<StatusPageViewPage />} />
           <Route path="/rapports" element={<ReportsPage />} />
-          <Route path="/regles" element={<RulesPage />} />
           <Route path="/evenements" element={<EventsPage />} />
-          <Route path="/securite" element={<SecurityPage />} />
           <Route path="/trafic" element={<TrafficPage />} />
-          <Route path="/regles-evenements" element={<EventRulesPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/jetons" element={<TokensPage />} />
           <Route path="/double-authentification" element={<TwoFactorPage />} />
-          <Route element={<ProtectedRoute roles={["ADMIN", "NOC_OPERATOR"]} />}>
-            <Route path="/import" element={<ImportPage />} />
-          </Route>
+          {/* Moindre privilège (ADR 0058) : réservé à l'administrateur, comme côté serveur. */}
           <Route element={<ProtectedRoute roles={["ADMIN"]} />}>
+            <Route path="/import" element={<ImportPage />} />
+            <Route path="/regles" element={<RulesPage />} />
+            <Route path="/regles-evenements" element={<EventRulesPage />} />
+            <Route path="/securite" element={<SecurityPage />} />
+            <Route path="/jetons" element={<TokensPage />} />
+            <Route path="/modeles" element={<TemplatesPage />} />
             <Route path="/decouverte" element={<DiscoveryPage />} />
             <Route path="/inscription-agents" element={<AgentEnrollmentPage />} />
             <Route path="/hyperviseurs" element={<HypervisorsPage />} />

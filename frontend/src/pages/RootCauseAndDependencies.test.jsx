@@ -128,7 +128,7 @@ describe("dépendances des services", () => {
   const NODE_ENT = { id: "s1", nom: "ENT", type: "HTTPS", equipementNom: "vm-ent" };
   const NODE_DB = { id: "s2", nom: "postgresql", type: "AGENT_SERVICE", equipementNom: "vm-db" };
 
-  function renderPage(role = "NOC_OPERATOR") {
+  function renderPage(role = "ADMIN") {
     saveSession({ accessToken: "jeton", role, expiresIn: 3600 });
     apiClient.get.mockImplementation(async (url) => {
       if (url === "/dependances") return { data: [{ id: "d1", service: NODE_ENT, dependDe: NODE_DB }] };

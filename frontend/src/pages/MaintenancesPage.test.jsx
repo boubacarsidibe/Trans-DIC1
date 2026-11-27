@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -102,7 +102,7 @@ describe("page des maintenances", () => {
   it("planifie une maintenance sur un équipement", async () => {
     mockGets([]);
     apiClient.post.mockResolvedValue({ data: maintenance() });
-    renderPage("NOC_OPERATOR");
+    renderPage("ADMIN");
 
     await userEvent.click(await screen.findByRole("button", { name: "Planifier une maintenance" }));
     await userEvent.selectOptions(await screen.findByLabelText("Équipement"), "e1");
@@ -155,7 +155,7 @@ describe("page des maintenances", () => {
   it("annule une maintenance à venir", async () => {
     mockGets();
     apiClient.post.mockResolvedValue({ data: maintenance({ state: "CANCELLED" }) });
-    renderPage("NOC_OPERATOR");
+    renderPage("ADMIN");
 
     await userEvent.click(
       await screen.findByRole("button", { name: "Annuler la maintenance Routeur cœur" }),
@@ -165,6 +165,65 @@ describe("page des maintenances", () => {
       expect(apiClient.post).toHaveBeenCalledWith("/maintenances/m1/annulation"),
     );
     expect(await screen.findByRole("status")).toHaveTextContent("Maintenance annulée.");
+  });
+
+  it("l'opérateur demande une maintenance au lieu de la planifier (ADR 0058)", async () => {
+    mockGets([maintenance()]);
+    apiClient.post.mockResolvedValue({ data: { id: "d1", state: "PENDING" } });
+    renderPage("NOC_OPERATOR");
+
+    expect(await screen.findByText("Routeur cœur")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Planifier une maintenance" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Annuler la maintenance/ })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Demander une maintenance" }));
+    await userEvent.selectOptions(await screen.findByLabelText("Équipement"), "e1");
+    await userEvent.type(screen.getByLabelText("Début"), "2030-01-01T08:00");
+    await userEvent.type(screen.getByLabelText("Fin"), "2030-01-01T10:00");
+    await userEvent.type(screen.getByLabelText("Motif"), "Remplacement du disque");
+    await userEvent.click(screen.getByRole("button", { name: "Envoyer la demande" }));
+
+    await waitFor(() =>
+      expect(apiClient.post).toHaveBeenCalledWith(
+        "/maintenances/demandes",
+        expect.objectContaining({ equipmentId: "e1", reason: "Remplacement du disque" }),
+      ),
+    );
+    expect(await screen.findByRole("status")).toHaveTextContent("Demande envoyée");
+  });
+
+  it("l'administrateur valide ou refuse une demande, avec un motif pour le refus", async () => {
+    const demand = {
+      id: "d1",
+      equipmentName: "Routeur cœur",
+      startAt: "2030-01-01T08:00:00Z",
+      endAt: "2030-01-01T10:00:00Z",
+      reason: "Remplacement du disque",
+      state: "PENDING",
+      requester: "awa",
+      createdAt: "2029-12-31T08:00:00Z",
+    };
+    apiClient.get.mockImplementation(async (url) => {
+      if (url === "/maintenances") return pageOf([]);
+      if (url === "/maintenances/demandes") return { data: [demand, { ...demand, id: "d2" }] };
+      return { data: [] };
+    });
+    apiClient.post.mockResolvedValue({ data: {} });
+    renderPage("ADMIN");
+
+    const panel = await screen.findByRole("region", { name: "Demandes de maintenance" });
+    expect(panel).toHaveTextContent("Demandée par awa");
+    await userEvent.click(within(panel).getAllByRole("button", { name: "Valider" })[0]);
+    expect(apiClient.post).toHaveBeenCalledWith("/maintenances/demandes/d1/validation", {
+      comment: undefined,
+    });
+    await userEvent.click(within(panel).getAllByRole("button", { name: "Refuser" })[1]);
+    const confirm = within(panel).getByRole("button", { name: "Confirmer le refus" });
+    expect(confirm).toBeDisabled();
+    await userEvent.type(within(panel).getByLabelText("Motif du refus"), "Période d'examens");
+    await userEvent.click(confirm);
+    expect(apiClient.post).toHaveBeenCalledWith("/maintenances/demandes/d2/refus", {
+      comment: "Période d'examens",
+    });
   });
 
   it("filtre par état", async () => {

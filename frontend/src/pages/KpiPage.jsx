@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { KPI_PERIODS, getServiceKpis, kpiRange, minutesLabel } from "../api/postmortem.js";
 import { listSitePage } from "../api/sites.js";
+import { useAuth } from "../auth/AuthContext.jsx";
 import PageHeader from "../ui/PageHeader.jsx";
 
 const pct = (value) => (value == null ? "—" : `${value.toLocaleString("fr-FR")} %`);
@@ -62,6 +63,10 @@ function FiguresTable({ caption, groups }) {
  * (MTTR), part dans l'objectif, tendance par semaine et fiabilité (MTBF) des équipements.
  */
 function KpiPage() {
+  // ADR 0058 : seul l'administrateur compare les opérateurs ; les autres voient leurs chiffres.
+  const { role } = useAuth();
+  const operatorTitle =
+    role === "ADMIN" ? "Prises en charge par opérateur" : "Mes prises en charge";
   const [days, setDays] = useState(30);
   const [siteId, setSiteId] = useState("");
   const [sites, setSites] = useState([]);
@@ -219,10 +224,10 @@ function KpiPage() {
 
             <section aria-label="Par opérateur" className="panel mt-5">
               <div className="panel-head">
-                <h2>Prises en charge par opérateur</h2>
+                <h2>{operatorTitle}</h2>
               </div>
               <table className="data-table">
-                <caption className="sr-only">Prises en charge par opérateur</caption>
+                <caption className="sr-only">{operatorTitle}</caption>
                 <thead>
                   <tr>
                     <th scope="col">Opérateur</th>

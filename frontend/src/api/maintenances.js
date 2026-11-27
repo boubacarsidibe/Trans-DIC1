@@ -23,6 +23,33 @@ export async function createMaintenance(payload) {
   return data;
 }
 
+/** Demandes de maintenance (ADR 0058) : l'opérateur demande, l'administrateur décide. */
+export const DEMAND_LABELS = {
+  PENDING: "En attente",
+  APPROVED: "Validée",
+  REFUSED: "Refusée",
+};
+
+export async function listMaintenanceDemands() {
+  const { data } = await apiClient.get("/maintenances/demandes");
+  return data;
+}
+
+export async function requestMaintenance(payload) {
+  const { data } = await apiClient.post("/maintenances/demandes", payload);
+  return data;
+}
+
+export async function approveMaintenanceDemand(id, comment) {
+  const { data } = await apiClient.post(`/maintenances/demandes/${id}/validation`, { comment });
+  return data;
+}
+
+export async function refuseMaintenanceDemand(id, comment) {
+  const { data } = await apiClient.post(`/maintenances/demandes/${id}/refus`, { comment });
+  return data;
+}
+
 export async function cancelMaintenance(id) {
   const { data } = await apiClient.post(`/maintenances/${id}/annulation`);
   return data;

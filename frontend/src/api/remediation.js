@@ -31,7 +31,7 @@ export const VERIFICATION_TONE = { EFFECTIVE: "ok", INEFFECTIVE: "bad" };
 
 export const MODE_LABELS = {
   AUTO: "Automatique : dès l'ouverture de l'alerte",
-  APPROVAL: "Sur approbation d'un opérateur",
+  APPROVAL: "Sur approbation d'un administrateur",
 };
 
 export async function getAlertRemediation(alertId) {

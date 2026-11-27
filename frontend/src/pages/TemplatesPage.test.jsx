@@ -119,7 +119,7 @@ beforeEach(() => {
 
 describe("catalogue des modèles", () => {
   it("affiche les cartes avec fabricant, catégorie, compteurs et le badge non validé", async () => {
-    renderAt("/modeles", "VIEWER");
+    renderAt("/modeles", "ADMIN");
 
     const catalogue = await screen.findByRole("list", { name: "Catalogue des modèles" });
     const card = (await within(catalogue).findByText("Serveur Linux (net-snmp)")).closest("li");
@@ -132,7 +132,7 @@ describe("catalogue des modèles", () => {
   });
 
   it("filtre par catégorie", async () => {
-    renderAt("/modeles", "VIEWER");
+    renderAt("/modeles", "ADMIN");
     await screen.findByText("Serveur Linux (net-snmp)");
 
     await userEvent.selectOptions(screen.getByLabelText("Catégorie"), "GENERIC");
@@ -142,7 +142,7 @@ describe("catalogue des modèles", () => {
   });
 
   it("montre le détail : OID, objet de MIB, conversion et règles", async () => {
-    renderAt("/modeles", "VIEWER");
+    renderAt("/modeles", "ADMIN");
     await userEvent.click(
       await screen.findByRole("button", { name: "Voir le détail du modèle Serveur Linux (net-snmp)" }),
     );

@@ -97,16 +97,23 @@ describe("validation d'une règle d'événement", () => {
 });
 
 describe("page des règles d'événements", () => {
-  it("affiche les règles en lecture seule pour un lecteur", async () => {
+  it("affiche les règles d'événements à l'administrateur", async () => {
     mockGets();
-    renderPage("VIEWER");
+    renderPage("ADMIN");
 
     expect(await screen.findByText("Interface coupée (linkDown)")).toBeInTheDocument();
     expect(screen.getByText(/OID 1.3.6.1.6.3.1.1.5.4/)).toBeInTheDocument();
     expect(screen.getByText("Désactivée")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Ajouter une règle d'événement" }),
-    ).not.toBeInTheDocument();
+  });
+
+  it("n'ouvre pas les règles d'événements à l'opérateur ni au lecteur (ADR 0058)", async () => {
+    for (const role of ["NOC_OPERATOR", "VIEWER"]) {
+      mockGets();
+      const { unmount } = renderPage(role);
+      expect(await screen.findByRole("navigation", { name: "Navigation principale" })).toBeInTheDocument();
+      expect(screen.queryByText("Interface coupée (linkDown)")).not.toBeInTheDocument();
+      unmount();
+    }
   });
 
   it("crée une règle syslog avec une expression", async () => {

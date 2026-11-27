@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { CalendarClock, ShieldAlert } from "lucide-react";
 import { IMPACT_LEVEL, getImpact } from "../api/impact.js";
-import { createMaintenance, toInstant } from "../api/maintenances.js";
+import { createMaintenance, requestMaintenance, toInstant } from "../api/maintenances.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { Badge, StatusBadge } from "../ui/Badges.jsx";
 import { EQUIPMENT_TYPE, label } from "../ui/labels.js";
@@ -19,7 +19,9 @@ function localInput(date) {
  */
 function ImpactPanel({ equipmentId, onClose }) {
   const { role } = useAuth();
-  const canPlan = role === "ADMIN" || role === "NOC_OPERATOR";
+  // ADR 0058 : l'administrateur planifie ; l'opérateur NOC en fait la demande.
+  const canPlan = role === "ADMIN";
+  const canRequest = role === "NOC_OPERATOR";
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -54,15 +56,18 @@ function ImpactPanel({ equipmentId, onClose }) {
     setError("");
     try {
       for (const target of data.maintenanceTargets) {
-        await createMaintenance({
+        const payload = {
           equipmentId: target,
           startAt: toInstant(form.startAt),
           endAt: toInstant(form.endAt),
           reason: form.reason.trim(),
-        });
+        };
+        await (canPlan ? createMaintenance(payload) : requestMaintenance(payload));
       }
       setNotice(
-        `Maintenance planifiée sur ${data.maintenanceTargets.length} équipement(s) : leurs alertes seront tracées sans réveiller personne.`,
+        canPlan
+          ? `Maintenance planifiée sur ${data.maintenanceTargets.length} équipement(s) : leurs alertes seront tracées sans réveiller personne.`
+          : `Demande envoyée pour ${data.maintenanceTargets.length} équipement(s) : un administrateur la validera ou la refusera.`,
       );
     } catch (failure) {
       setError(failure?.response?.data?.error ?? "La maintenance n'a pas pu être planifiée.");
@@ -178,8 +183,12 @@ function ImpactPanel({ equipmentId, onClose }) {
           {notice}
         </p>
       )}
-      {canPlan && !notice && (
-        <form onSubmit={plan} className="form-grid mt-3" aria-label="Planifier la maintenance">
+      {(canPlan || canRequest) && !notice && (
+        <form
+          onSubmit={plan}
+          className="form-grid mt-3"
+          aria-label={canPlan ? "Planifier la maintenance" : "Demander la maintenance"}
+        >
           <label className="text-sm">
             Début
             <input
@@ -210,7 +219,8 @@ function ImpactPanel({ equipmentId, onClose }) {
           <div className="row-actions">
             <button type="submit" disabled={saving} className="btn btn-primary btn-sm">
               <CalendarClock size={15} aria-hidden="true" />
-              Planifier la maintenance ({data.maintenanceTargets.length} équipement
+              {canPlan ? "Planifier la maintenance" : "Demander la maintenance"} (
+              {data.maintenanceTargets.length} équipement
               {data.maintenanceTargets.length > 1 ? "s" : ""})
             </button>
           </div>

@@ -25,7 +25,7 @@ function errorText(error) {
  * prévue par la règle, et les exécutions avec leur résultat. Le serveur ne transmet qu'un nom :
  * la commande vit dans la configuration de l'agent.
  */
-function RemediationPanel({ alertId, canAct, alertOpen }) {
+function RemediationPanel({ alertId, canAct, canDecide = false, alertOpen }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -70,7 +70,7 @@ function RemediationPanel({ alertId, canAct, alertOpen }) {
           La règle prévoit « {data.policy.actionName} »{" "}
           {data.policy.mode === "AUTO"
             ? "dès l'ouverture de l'alerte"
-            : "après approbation d'un opérateur"}
+            : "après approbation d'un administrateur"}
           {!data.policy.enabled && " (désactivée)"}.
         </p>
       )}
@@ -106,7 +106,10 @@ function RemediationPanel({ alertId, canAct, alertOpen }) {
                 )
               )}
               {job.output && <pre className="cell-mono">{job.output}</pre>}
-              {canAct && job.state === "PENDING_APPROVAL" && (
+              {!canDecide && job.state === "PENDING_APPROVAL" && (
+                <p className="cell-sub">En attente de la décision d'un administrateur.</p>
+              )}
+              {canDecide && job.state === "PENDING_APPROVAL" && (
                 <span className="row-actions">
                   <button
                     type="button"

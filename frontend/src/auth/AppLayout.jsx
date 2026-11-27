@@ -58,7 +58,7 @@ const SECTIONS = [
       { to: "/astreinte", label: "Astreinte", icon: PhoneCall },
       { to: "/pages-statut", label: "Pages de statut", icon: Gauge },
       { to: "/evenements", label: "Événements", icon: Activity },
-      { to: "/securite", label: "Sécurité", icon: ShieldAlert },
+      { to: "/securite", label: "Sécurité", icon: ShieldAlert, roles: ["ADMIN"] },
       { to: "/trafic", label: "Trafic", icon: Waypoints },
       { to: "/rapports", label: "Rapports", icon: FileBarChart2 },
     ],
@@ -67,12 +67,12 @@ const SECTIONS = [
     title: "Parc",
     links: [
       { to: "/equipements", label: "Équipements", icon: Server },
-      { to: "/modeles", label: "Modèles", icon: LibraryBig },
+      { to: "/modeles", label: "Modèles", icon: LibraryBig, roles: ["ADMIN"] },
       { to: "/sites", label: "Sites", icon: Building2 },
       { to: "/topologie", label: "Topologie", icon: Network },
       { to: "/dependances", label: "Dépendances", icon: GitBranch },
       { to: "/maintenances", label: "Maintenances", icon: Wrench },
-      { to: "/import", label: "Import CSV", icon: Upload, roles: ["ADMIN", "NOC_OPERATOR"] },
+      { to: "/import", label: "Import CSV", icon: Upload, roles: ["ADMIN"] },
       { to: "/decouverte", label: "Découverte", icon: Radar, roles: ["ADMIN"] },
       { to: "/hyperviseurs", label: "Hyperviseurs", icon: HardDrive, roles: ["ADMIN"] },
       {
@@ -86,10 +86,10 @@ const SECTIONS = [
   {
     title: "Réglages",
     links: [
-      { to: "/regles", label: "Règles", icon: SlidersHorizontal },
-      { to: "/regles-evenements", label: "Règles d'événements", icon: Funnel },
+      { to: "/regles", label: "Règles", icon: SlidersHorizontal, roles: ["ADMIN"] },
+      { to: "/regles-evenements", label: "Règles d'événements", icon: Funnel, roles: ["ADMIN"] },
       { to: "/notifications", label: "Mes notifications", icon: Bell },
-      { to: "/jetons", label: "Jetons d'API", icon: KeyRound },
+      { to: "/jetons", label: "Jetons d'API", icon: KeyRound, roles: ["ADMIN"] },
       { to: "/double-authentification", label: "Double authentification", icon: ShieldCheck },
     ],
   },

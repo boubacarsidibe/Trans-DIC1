@@ -349,6 +349,7 @@ function AlertsPage() {
               key={`remediation-${detail.alert.id}`}
               alertId={detail.alert.id}
               canAct={canHandle}
+              canDecide={canAdminister}
               alertOpen={detail.alert.state === "OPEN" || detail.alert.state === "IN_PROGRESS"}
             />
             {canAdminister && (

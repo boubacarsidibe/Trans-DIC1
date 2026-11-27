@@ -47,14 +47,21 @@ describe("RemediationPanel", () => {
 
   it("montre la politique, les exécutions et leur sortie", async () => {
     render(<RemediationPanel alertId="a1" canAct alertOpen />);
-    expect(await screen.findByText(/après approbation d'un opérateur/)).toBeInTheDocument();
+    expect(await screen.findByText(/après approbation d'un administrateur/)).toBeInTheDocument();
     expect(screen.getByText("En attente d'approbation")).toBeInTheDocument();
     expect(screen.getByText("Réussie")).toBeInTheDocument();
     expect(screen.getByText("nginx redémarré")).toBeInTheDocument();
   });
 
-  it("approuve une action en attente et lance une action à la main", async () => {
+  it("l'opérateur voit l'attente de décision mais n'approuve pas (ADR 0058)", async () => {
     render(<RemediationPanel alertId="a1" canAct alertOpen />);
+    expect(await screen.findByText(/décision d'un administrateur/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Approuver" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Refuser" })).not.toBeInTheDocument();
+  });
+
+  it("approuve une action en attente et lance une action à la main", async () => {
+    render(<RemediationPanel alertId="a1" canAct canDecide alertOpen />);
     await userEvent.click(await screen.findByRole("button", { name: "Approuver" }));
     expect(apiClient.post).toHaveBeenCalledWith("/actions-correctives/j1/approbation");
     await userEvent.click(screen.getByRole("button", { name: /redemarrer-nginx/ }));
