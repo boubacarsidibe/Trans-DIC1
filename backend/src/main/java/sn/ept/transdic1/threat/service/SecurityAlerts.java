@@ -48,7 +48,12 @@ public class SecurityAlerts {
     /** Balayage d'adresses ou de ports repéré dans les flux réseau. */
     NETWORK_SCAN("security:scan-reseau:"),
     /** Inondation d'une destination par de nombreuses sources. */
-    FLOOD("security:inondation:");
+    FLOOD("security:inondation:"),
+    /**
+     * Constat de l'EDR léger sur un poste (ADR 0058) ; la technique MITRE ATT&CK, propre à chaque
+     * constat, est écrite dans le message par l'appelant.
+     */
+    ENDPOINT("security:poste:");
 
     private final String prefix;
 

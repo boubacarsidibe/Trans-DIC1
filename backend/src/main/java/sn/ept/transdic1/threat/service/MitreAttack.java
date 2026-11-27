@@ -94,7 +94,7 @@ public final class MitreAttack {
       case NETWORK_SCAN -> List.of(NETWORK_SERVICE_DISCOVERY);
       case FLOOD -> List.of(NETWORK_DOS);
       // Soupçon d'un modèle, ou écart de volume : aucune technique ne s'y rattache honnêtement.
-      case SUSPECT, VOLUME -> List.of();
+      case SUSPECT, VOLUME, ENDPOINT -> List.of();
     };
   }
 

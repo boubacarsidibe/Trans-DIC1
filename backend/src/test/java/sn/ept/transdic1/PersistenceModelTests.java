@@ -326,8 +326,10 @@ class PersistenceModelTests {
             // Dépendances entre services, pour la cause racine (ADR 0056).
             "ServiceDependency",
             // Redémarrage forcé d'une VM, sur approbation (ADR 0057).
-            "HypervisorAction")
-        .hasSize(59);
+            "HypervisorAction",
+            // Constats de l'EDR léger sur les postes (ADR 0058).
+            "EndpointFinding")
+        .hasSize(60);
   }
 
   @Test

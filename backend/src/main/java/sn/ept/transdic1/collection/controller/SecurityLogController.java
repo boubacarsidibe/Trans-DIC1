@@ -12,7 +12,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import sn.ept.transdic1.collection.dto.AgentPrincipal;
+import sn.ept.transdic1.threat.dto.EndpointDtos.ReportResult;
+import sn.ept.transdic1.threat.dto.EndpointReport;
 import sn.ept.transdic1.threat.dto.LogBatch;
+import sn.ept.transdic1.threat.service.EndpointSecurityService;
 import sn.ept.transdic1.threat.service.SecurityIngestionService;
 
 /**
@@ -25,9 +28,12 @@ import sn.ept.transdic1.threat.service.SecurityIngestionService;
 @RequestMapping("/api/v1/agent")
 public class SecurityLogController {
   private final SecurityIngestionService ingestion;
+  private final EndpointSecurityService endpoint;
 
-  public SecurityLogController(SecurityIngestionService ingestion) {
+  public SecurityLogController(
+      SecurityIngestionService ingestion, EndpointSecurityService endpoint) {
     this.ingestion = ingestion;
+    this.endpoint = endpoint;
   }
 
   @Operation(
@@ -46,5 +52,19 @@ public class SecurityLogController {
   public SecurityIngestionService.IngestionResult receive(
       @AuthenticationPrincipal AgentPrincipal agent, @Valid @RequestBody LogBatch batch) {
     return ingestion.ingest(agent.equipmentId(), batch);
+  }
+
+  @Operation(
+      summary = "Télémétrie de sécurité du poste (EDR léger, ADR 0058)",
+      description =
+          "Envoyée par l'agent 2.3 toutes les 5 minutes : programmes, démarrages automatiques,"
+              + " comptes, empreinte des fichiers sensibles, connexions sortantes. Le premier"
+              + " rapport fixe la ligne de base.")
+  @ApiResponse(responseCode = "400", description = "Rapport invalide", content = @Content)
+  @PostMapping("/securite-poste")
+  @PreAuthorize("hasRole('AGENT')")
+  public ReportResult securityReport(
+      @AuthenticationPrincipal AgentPrincipal agent, @Valid @RequestBody EndpointReport report) {
+    return endpoint.ingest(agent.equipmentId(), report);
   }
 }
