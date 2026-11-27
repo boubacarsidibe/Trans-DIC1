@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import sn.ept.transdic1.security.domain.AppUser;
 import sn.ept.transdic1.security.domain.Role;
 import sn.ept.transdic1.security.repository.UserRepository;
+import sn.ept.transdic1.security.service.ApiTokenService;
 import sn.ept.transdic1.security.service.JwtService;
 
 /**
@@ -43,16 +44,17 @@ class ApiTokenTests {
   @Autowired private UserRepository users;
   @Autowired private PasswordEncoder encoder;
   @Autowired private JwtService jwt;
+  @Autowired private ApiTokenService tokens;
   @Autowired private JdbcTemplate jdbc;
   @Autowired private jakarta.persistence.EntityManager em;
 
-  private AppUser operator;
-  private String operatorJwt;
+  private AppUser owner;
+  private String ownerJwt;
 
   @BeforeEach
   void data() {
-    operator = account("jeton-noc", Role.NOC_OPERATOR);
-    operatorJwt = jwt.issue(operator);
+    owner = account("jeton-adm", Role.ADMIN);
+    ownerJwt = jwt.issue(owner);
   }
 
   private AppUser account(String prefix, Role role) {
@@ -79,7 +81,7 @@ class ApiTokenTests {
         mockMvc
             .perform(
                 post("/api/v1/jetons")
-                    .header("Authorization", "Bearer " + operatorJwt)
+                    .header("Authorization", "Bearer " + ownerJwt)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(body))
             .andExpect(status().isCreated())
@@ -97,7 +99,7 @@ class ApiTokenTests {
 
     // La liste ne rend jamais le secret.
     mockMvc
-        .perform(get("/api/v1/jetons").header("Authorization", "Bearer " + operatorJwt))
+        .perform(get("/api/v1/jetons").header("Authorization", "Bearer " + ownerJwt))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].name").value("Tableau Grafana"))
         .andExpect(jsonPath("$[0].secret").doesNotExist());
@@ -109,9 +111,48 @@ class ApiTokenTests {
   @Test
   void unJetonNAPasPlusDeDroitsQueSonProprietaire() throws Exception {
     String secret = createToken("Lecture seule", null).get("secret").asText();
+    assertThat(call(get("/api/v1/utilisateurs"), secret).getResponse().getStatus()).isEqualTo(200);
 
-    // Un opérateur NOC ne gère pas les comptes : son jeton non plus.
-    assertThat(call(get("/api/v1/utilisateurs"), secret).getResponse().getStatus()).isEqualTo(403);
+    // Le rôle est relu à chaque requête : un administrateur devenu lecteur perd son jeton.
+    em.flush();
+    jdbc.update("UPDATE app_user SET role = 'VIEWER' WHERE id = ?", owner.getId());
+    em.clear();
+    assertThat(call(get("/api/v1/alertes"), secret).getResponse().getStatus()).isEqualTo(403);
+  }
+
+  @Test
+  void lesJetonsDUnOperateurOuDUnLecteurSontRefusesALUsageEtTraces() throws Exception {
+    // Jetons créés avant l'ADR 0058 : ils ne sont pas révoqués, mais refusés.
+    for (Role role : new Role[] {Role.NOC_OPERATOR, Role.VIEWER}) {
+      AppUser user = account("jeton-ancien", role);
+      String secret = tokens.create(user.getUsername(), "Ancien script", null).secret();
+      em.flush();
+
+      MvcResult refused = call(get("/api/v1/alertes"), secret);
+      assertThat(refused.getResponse().getStatus()).isEqualTo(403);
+      assertThat(refused.getResponse().getContentAsString())
+          .contains("API_TOKEN_ADMIN_ONLY")
+          .contains("réservés aux administrateurs");
+      assertThat(
+              jdbc.queryForObject(
+                  "SELECT count(*) FROM audit_entry WHERE action = 'API_TOKEN_REFUSED'"
+                      + " AND username = ?",
+                  Integer.class,
+                  user.getUsername()))
+          .isEqualTo(1);
+      // Le jeton reste en base, non révoqué : la décision est réversible.
+      assertThat(
+              jdbc.queryForObject(
+                  "SELECT count(*) FROM api_token t JOIN app_user u ON u.id = t.user_id"
+                      + " WHERE u.username = ? AND t.revoked_at IS NULL",
+                  Integer.class,
+                  user.getUsername()))
+          .isEqualTo(1);
+      // Ni l'opérateur ni le lecteur ne gèrent plus de jetons.
+      mockMvc
+          .perform(get("/api/v1/jetons").header("Authorization", "Bearer " + jwt.issue(user)))
+          .andExpect(status().isForbidden());
+    }
   }
 
   @Test
@@ -123,7 +164,7 @@ class ApiTokenTests {
     assertThat(call(get("/api/v1/alertes"), secret).getResponse().getStatus()).isEqualTo(200);
 
     mockMvc
-        .perform(delete("/api/v1/jetons/" + id).header("Authorization", "Bearer " + operatorJwt))
+        .perform(delete("/api/v1/jetons/" + id).header("Authorization", "Bearer " + ownerJwt))
         .andExpect(status().isNoContent());
     em.flush();
     em.clear();
@@ -155,7 +196,7 @@ class ApiTokenTests {
     assertThat(call(get("/api/v1/alertes"), secret).getResponse().getStatus()).isEqualTo(200);
 
     em.flush();
-    jdbc.update("UPDATE app_user SET active = false WHERE id = ?", operator.getId());
+    jdbc.update("UPDATE app_user SET active = false WHERE id = ?", owner.getId());
     em.clear();
 
     assertThat(call(get("/api/v1/alertes"), secret).getResponse().getStatus()).isEqualTo(401);
@@ -164,7 +205,7 @@ class ApiTokenTests {
   @Test
   void onNeVoitNiNeRevoqueLesJetonsDUnAutreCompte() throws Exception {
     JsonNode mine = createToken("Le mien", null);
-    AppUser other = account("jeton-autre", Role.NOC_OPERATOR);
+    AppUser other = account("jeton-autre", Role.ADMIN);
     String otherJwt = jwt.issue(other);
 
     mockMvc
@@ -186,7 +227,7 @@ class ApiTokenTests {
     mockMvc
         .perform(
             post("/api/v1/jetons")
-                .header("Authorization", "Bearer " + operatorJwt)
+                .header("Authorization", "Bearer " + ownerJwt)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"Doublon\"}"))
         .andExpect(status().isConflict())

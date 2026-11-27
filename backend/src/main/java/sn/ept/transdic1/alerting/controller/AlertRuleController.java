@@ -33,6 +33,8 @@ import sn.ept.transdic1.alerting.service.AlertRuleService;
             + " écriture réservée aux administrateurs.")
 @RestController
 @RequestMapping("/api/v1/regles-alertes")
+// Lecture comprise : les règles sont l'affaire de l'administrateur (ADR 0058).
+@PreAuthorize("hasRole('ADMIN')")
 public class AlertRuleController {
   private final AlertRuleService service;
 

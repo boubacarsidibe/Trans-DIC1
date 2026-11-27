@@ -13,6 +13,7 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,6 +34,9 @@ import sn.ept.transdic1.security.service.ApiTokenService;
     description = "Jetons personnels pour appeler l'API depuis un autre outil.")
 @RestController
 @RequestMapping("/api/v1/jetons")
+// Jetons d'API réservés aux administrateurs (ADR 0058) ; les anciens jetons d'un autre rôle
+// sont refusés à l'usage (voir ApiTokenService.authenticate).
+@PreAuthorize("hasRole('ADMIN')")
 public class ApiTokenController {
   private final ApiTokenService service;
 

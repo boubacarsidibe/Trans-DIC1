@@ -44,8 +44,9 @@ public class RiskController {
       summary = "Fiche du modèle de risque",
       description =
           "Poids de chaque variable (appris et initial), facteur de risque, volume d'apprentissage"
-              + " et scores d'évaluation sur la dernière semaine.")
+              + " et scores d'évaluation sur la dernière semaine. Administrateurs (ADR 0058).")
   @GetMapping("/modele")
+  @PreAuthorize("hasRole('ADMIN')")
   public ModelCard model() {
     return service.model();
   }

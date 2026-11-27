@@ -42,16 +42,19 @@ public class JwtFilter extends OncePerRequestFilter {
     if (h != null && h.startsWith("Bearer " + ApiTokenService.PREFIX)) {
       // Jeton d'API : les droits et le périmètre du propriétaire sont relus à chaque requête,
       // comme pour un jeton de connexion.
-      apiTokens
-          .authenticate(h.substring(7))
-          .ifPresent(
-              owner ->
-                  SecurityContextHolder.getContext()
-                      .setAuthentication(
-                          new UsernamePasswordAuthenticationToken(
-                              owner.username(),
-                              null,
-                              List.of(new SimpleGrantedAuthority("ROLE_" + owner.role())))));
+      var owner = apiTokens.authenticate(h.substring(7)).orElse(null);
+      if (owner != null && !owner.allowed()) {
+        apiTokenAdminOnly(s);
+        return;
+      }
+      if (owner != null) {
+        SecurityContextHolder.getContext()
+            .setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                    owner.username(),
+                    null,
+                    List.of(new SimpleGrantedAuthority("ROLE_" + owner.role()))));
+      }
       c.doFilter(r, s);
       return;
     }
@@ -85,6 +88,18 @@ public class JwtFilter extends OncePerRequestFilter {
                                 List.of(new SimpleGrantedAuthority("ROLE_" + user.role())))));
       }
     c.doFilter(r, s);
+  }
+
+  /** Jeton d'un opérateur ou d'un lecteur, créé avant l'ADR 0058 : refus explicite. */
+  private static void apiTokenAdminOnly(HttpServletResponse s) throws IOException {
+    s.setStatus(HttpServletResponse.SC_FORBIDDEN);
+    s.setContentType(MediaType.APPLICATION_JSON_VALUE);
+    s.setCharacterEncoding("UTF-8");
+    s.getWriter()
+        .write(
+            "{\"status\":403,\"error\":\"Les jetons d'API sont réservés aux administrateurs :"
+                + " ce jeton est refusé. Demandez à un administrateur.\","
+                + "\"code\":\"API_TOKEN_ADMIN_ONLY\"}");
   }
 
   private static void passwordChangeRequired(HttpServletResponse s) throws IOException {

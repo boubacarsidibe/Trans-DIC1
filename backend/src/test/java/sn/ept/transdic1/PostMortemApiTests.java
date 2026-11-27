@@ -263,9 +263,27 @@ class PostMortemApiTests {
         .andExpect(jsonPath("$.overall.acknowledged").value(1))
         .andExpect(jsonPath("$.overall.mttaMinutes").value(6.0))
         .andExpect(jsonPath("$.overall.resolved").value(2))
-        .andExpect(jsonPath("$.byOperator[0].username").value(operator.getUsername()))
+        // ADR 0058 : un non-administrateur ne voit pas les chiffres des autres opérateurs.
+        .andExpect(jsonPath("$.byOperator.length()").value(0))
         .andExpect(jsonPath("$.bySeverity[0].key").value("CRITICAL"))
         .andExpect(jsonPath("$.equipments.length()").value(2));
+    mockMvc
+        .perform(
+            get("/api/v1/indicateurs/service")
+                .with(user("adm").roles("ADMIN"))
+                .param("from", opened.minus(Duration.ofHours(1)).toString())
+                .param("to", Instant.now().toString())
+                .param("siteId", siteA.getId().toString()))
+        .andExpect(jsonPath("$.byOperator[0].username").value(operator.getUsername()));
+    mockMvc
+        .perform(
+            get("/api/v1/indicateurs/service")
+                .with(user(operator.getUsername()).roles("NOC_OPERATOR"))
+                .param("from", opened.minus(Duration.ofHours(1)).toString())
+                .param("to", Instant.now().toString())
+                .param("siteId", siteA.getId().toString()))
+        .andExpect(jsonPath("$.byOperator.length()").value(1))
+        .andExpect(jsonPath("$.byOperator[0].username").value(operator.getUsername()));
     mockMvc
         .perform(
             get("/api/v1/indicateurs/service")

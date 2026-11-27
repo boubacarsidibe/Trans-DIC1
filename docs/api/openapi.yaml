@@ -5446,7 +5446,8 @@ paths:
       - Risque de panne
       summary: Fiche du modèle de risque
       description: "Poids de chaque variable (appris et initial), facteur de risque,\
-        \ volume d'apprentissage et scores d'évaluation sur la dernière semaine."
+        \ volume d'apprentissage et scores d'évaluation sur la dernière semaine. Administrateurs\
+        \ (ADR 0058)."
       operationId: model
       responses:
         "200":
@@ -5989,7 +5990,8 @@ paths:
         solution), part des alertes prises en charge dans l'objectif, par sévérité\
         , par site, par opérateur et par semaine, et MTBF des équipements les plus\
         \ touchés. Moyenne et médiane en minutes. Tous les rôles ; limité au périmè\
-        tre par site. Période d'un an au plus."
+        tre par site. La ligne par opérateur ne montre à un non-administrateur que\
+        \ ses propres chiffres (ADR 0058). Période d'un an au plus."
       operationId: serviceKpis
       parameters:
       - name: from

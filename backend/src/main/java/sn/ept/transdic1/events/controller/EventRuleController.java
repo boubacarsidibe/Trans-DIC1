@@ -33,6 +33,8 @@ import sn.ept.transdic1.events.service.EventRuleService;
             + " pour tous les rôles, écriture et essai réservés aux administrateurs.")
 @RestController
 @RequestMapping("/api/v1/regles-evenements")
+// Lecture comprise : les règles sont l'affaire de l'administrateur (ADR 0058).
+@PreAuthorize("hasRole('ADMIN')")
 public class EventRuleController {
   private final EventRuleService service;
 

@@ -76,7 +76,16 @@ public class ApiTokenService {
   public record CreatedToken(TokenView token, String secret) {}
 
   /** Propriétaire authentifié par un jeton d'API. */
-  public record TokenOwner(String username, Role role) {}
+  public record TokenOwner(String username, Role role, boolean allowed) {}
+
+  /**
+   * Refus tracés au plus une fois par jeton et par quart d'heure : un script oublié qui insiste ne
+   * noie pas le journal d'audit.
+   */
+  private static final java.time.Duration REFUSAL_AUDIT_INTERVAL = java.time.Duration.ofMinutes(15);
+
+  private final java.util.Map<UUID, Instant> lastRefusalAudit =
+      new java.util.concurrent.ConcurrentHashMap<>();
 
   @Transactional(readOnly = true)
   public List<TokenView> list(String username) {
@@ -151,6 +160,10 @@ public class ApiTokenService {
    * Authentifie une valeur d'en-tête : vide si ce n'est pas un jeton d'API, s'il est inconnu,
    * révoqué, expiré, ou si son propriétaire est désactivé. La date de dernière utilisation est mise
    * à jour, ce qui permet de repérer les jetons oubliés.
+   *
+   * <p>Les jetons d'API sont réservés aux administrateurs (ADR 0058). Un jeton créé avant par un
+   * opérateur ou un lecteur n'est pas révoqué (la décision reste réversible) : il est refusé à
+   * l'usage ({@code allowed = false}) et le refus est tracé dans l'audit.
    */
   @Transactional
   public Optional<TokenOwner> authenticate(String presented) {
@@ -164,10 +177,25 @@ public class ApiTokenService {
         .filter(token -> token.getUser().isActive())
         .map(
             token -> {
+              AppUser user = token.getUser();
+              if (user.getRole() != Role.ADMIN) {
+                auditRefusal(token, now);
+                return new TokenOwner(user.getUsername(), user.getRole(), false);
+              }
               token.setLastUsedAt(now);
               tokens.save(token);
-              return new TokenOwner(token.getUser().getUsername(), token.getUser().getRole());
+              return new TokenOwner(user.getUsername(), user.getRole(), true);
             });
+  }
+
+  private void auditRefusal(ApiToken token, Instant now) {
+    Instant last = lastRefusalAudit.get(token.getId());
+    if (last != null && last.plus(REFUSAL_AUDIT_INTERVAL).isAfter(now)) {
+      return;
+    }
+    lastRefusalAudit.put(token.getId(), now);
+    // Seul le préfixe affiché à l'écran sert d'identifiant, jamais le secret.
+    audit.record("API_TOKEN_REFUSED", token.getUser().getUsername(), token.getPrefix());
   }
 
   private AppUser owner(String username) {

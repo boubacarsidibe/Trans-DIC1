@@ -172,12 +172,15 @@ class AlertRuleApiTests {
   }
 
   @Test
-  void everyRoleReadsButOnlyAnAdministratorWrites() throws Exception {
+  void onlyAnAdministratorReadsAndWrites() throws Exception {
     String id = create(ruleOnEquipment("lecture-" + UUID.randomUUID()));
 
-    for (String jwt : new String[] {admin, noc, viewer}) {
-      send("GET", jwt, BASE + "/" + id, null).andExpect(status().isOk());
-      send("GET", jwt, BASE, null).andExpect(status().isOk());
+    send("GET", admin, BASE + "/" + id, null).andExpect(status().isOk());
+    send("GET", admin, BASE, null).andExpect(status().isOk());
+    // ADR 0058 : les règles ne sont plus lisibles par l'opérateur ni par le lecteur.
+    for (String jwt : new String[] {noc, viewer}) {
+      send("GET", jwt, BASE + "/" + id, null).andExpect(status().isForbidden());
+      send("GET", jwt, BASE, null).andExpect(status().isForbidden());
     }
     send("GET", null, BASE, null).andExpect(status().isUnauthorized());
     for (String jwt : new String[] {noc, viewer}) {

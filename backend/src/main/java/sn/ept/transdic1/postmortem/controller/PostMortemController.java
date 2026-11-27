@@ -13,6 +13,7 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -87,8 +88,9 @@ public class PostMortemController {
           "MTTA (délai moyen de prise en charge), MTTR (délai moyen de résolution), part des"
               + " alertes prises en charge dans l'objectif, par sévérité, par site, par opérateur"
               + " et par semaine, et MTBF des équipements les plus touchés. Moyenne et médiane"
-              + " en minutes. Tous les rôles ; limité au périmètre par site. Période d'un an au"
-              + " plus.")
+              + " en minutes. Tous les rôles ; limité au périmètre par site. La ligne par opérateur"
+              + " ne montre à un non-administrateur que ses propres chiffres (ADR 0058). Période"
+              + " d'un an au plus.")
   @ApiResponse(responseCode = "200", description = "Indicateurs calculés")
   @ApiResponse(responseCode = "400", description = "Période invalide", content = @Content)
   @ApiResponse(responseCode = "404", description = "Site introuvable", content = @Content)
@@ -96,7 +98,33 @@ public class PostMortemController {
   public ServiceKpiResponse serviceKpis(
       @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
       @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
-      @RequestParam(required = false) UUID siteId) {
-    return kpis.compute(from, to, siteId);
+      @RequestParam(required = false) UUID siteId,
+      Authentication authentication) {
+    return ownFiguresOnly(kpis.compute(from, to, siteId), authentication);
+  }
+
+  /**
+   * Comparer les opérateurs entre eux est l'affaire de l'administrateur (ADR 0058) : les autres
+   * rôles ne voient, dans la ligne par opérateur, que leurs propres chiffres.
+   */
+  static ServiceKpiResponse ownFiguresOnly(ServiceKpiResponse r, Authentication authentication) {
+    boolean admin =
+        authentication.getAuthorities().stream()
+            .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+    if (admin) {
+      return r;
+    }
+    return new ServiceKpiResponse(
+        r.from(),
+        r.to(),
+        r.acknowledgeTargetMinutes(),
+        r.overall(),
+        r.bySeverity(),
+        r.bySite(),
+        r.byOperator().stream().filter(o -> o.username().equals(authentication.getName())).toList(),
+        r.weeks(),
+        r.equipments(),
+        r.truncated(),
+        r.method());
   }
 }

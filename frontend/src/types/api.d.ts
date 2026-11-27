@@ -2157,7 +2157,7 @@ export interface paths {
         };
         /**
          * Fiche du modèle de risque
-         * @description Poids de chaque variable (appris et initial), facteur de risque, volume d'apprentissage et scores d'évaluation sur la dernière semaine.
+         * @description Poids de chaque variable (appris et initial), facteur de risque, volume d'apprentissage et scores d'évaluation sur la dernière semaine. Administrateurs (ADR 0058).
          */
         get: operations["model"];
         put?: never;
@@ -2432,7 +2432,7 @@ export interface paths {
         };
         /**
          * Indicateurs de service du NOC
-         * @description MTTA (délai moyen de prise en charge), MTTR (délai moyen de résolution), part des alertes prises en charge dans l'objectif, par sévérité, par site, par opérateur et par semaine, et MTBF des équipements les plus touchés. Moyenne et médiane en minutes. Tous les rôles ; limité au périmètre par site. Période d'un an au plus.
+         * @description MTTA (délai moyen de prise en charge), MTTR (délai moyen de résolution), part des alertes prises en charge dans l'objectif, par sévérité, par site, par opérateur et par semaine, et MTBF des équipements les plus touchés. Moyenne et médiane en minutes. Tous les rôles ; limité au périmètre par site. La ligne par opérateur ne montre à un non-administrateur que ses propres chiffres (ADR 0058). Période d'un an au plus.
          */
         get: operations["serviceKpis"];
         put?: never;

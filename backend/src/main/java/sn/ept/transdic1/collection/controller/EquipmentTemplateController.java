@@ -44,6 +44,7 @@ public class EquipmentTemplateController {
           "Filtres : catégorie, fabricant (sans casse), texte libre (q) et sysDescr d'un"
               + " équipement découvert (modèles suggérés).")
   @GetMapping("/api/v1/modeles")
+  @PreAuthorize("hasRole('ADMIN')")
   public List<TemplateSummaryResponse> list(
       @RequestParam(required = false) TemplateCategory category,
       @RequestParam(required = false) String vendor,
@@ -55,6 +56,7 @@ public class EquipmentTemplateController {
   @Operation(operationId = "getTemplate", summary = "Consulter un modèle (contenu complet)")
   @ApiResponse(responseCode = "404", description = "Modèle introuvable", content = @Content)
   @GetMapping("/api/v1/modeles/{id}")
+  @PreAuthorize("hasRole('ADMIN')")
   public EquipmentTemplate get(@PathVariable String id) {
     return service.get(id);
   }

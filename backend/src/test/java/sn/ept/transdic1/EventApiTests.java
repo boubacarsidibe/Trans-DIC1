@@ -213,7 +213,10 @@ class EventApiTests {
 
   @Test
   void lesRèglesParDéfautSontLivréesInactives() throws Exception {
-    call(get(RULES + "?size=100"), viewer)
+    // ADR 0058 : les règles d'événements sont réservées à l'administrateur.
+    call(get(RULES + "?size=100"), viewer).andExpect(status().isForbidden());
+    call(get(RULES + "?size=100"), noc).andExpect(status().isForbidden());
+    call(get(RULES + "?size=100"), admin)
         .andExpect(status().isOk())
         .andExpect(
             jsonPath(

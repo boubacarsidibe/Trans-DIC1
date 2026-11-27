@@ -155,30 +155,34 @@ class TemplateApiTests {
   // ------------------------------------------------------------------ catalogue
 
   @Test
-  void everyRoleReadsTheCatalogueWithFilters() throws Exception {
-    call(get("/api/v1/modeles"), reader)
+  void theAdministratorReadsTheCatalogueWithFilters() throws Exception {
+    // ADR 0058 : le catalogue des modèles est réservé à l'administrateur.
+    call(get("/api/v1/modeles"), reader).andExpect(status().isForbidden());
+    call(get("/api/v1/modeles"), noc).andExpect(status().isForbidden());
+    call(get("/api/v1/modeles/linux-net-snmp"), noc).andExpect(status().isForbidden());
+    call(get("/api/v1/modeles"), admin)
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(10))
         .andExpect(jsonPath("$[?(@.id=='cisco-ios')].verified").value(false))
         .andExpect(jsonPath("$[?(@.id=='generic-snmp-host')].verified").value(true))
         .andExpect(jsonPath("$[?(@.id=='linux-net-snmp')].metricCount").value(6))
         .andExpect(jsonPath("$[?(@.id=='https-web-service')].probeCount").value(2));
-    call(get("/api/v1/modeles").param("category", "UPS"), noc)
+    call(get("/api/v1/modeles").param("category", "UPS"), admin)
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(1))
         .andExpect(jsonPath("$[0].id").value("apc-ups"));
-    call(get("/api/v1/modeles").param("vendor", "cisco"), reader)
+    call(get("/api/v1/modeles").param("vendor", "cisco"), admin)
         .andExpect(jsonPath("$[0].id").value("cisco-ios"));
-    call(get("/api/v1/modeles").param("q", "routeros"), reader)
+    call(get("/api/v1/modeles").param("q", "routeros"), admin)
         .andExpect(jsonPath("$[0].id").value("mikrotik-routeros"));
-    call(get("/api/v1/modeles").param("sysDescr", "Linux web01 5.15.0-91-generic"), reader)
+    call(get("/api/v1/modeles").param("sysDescr", "Linux web01 5.15.0-91-generic"), admin)
         .andExpect(jsonPath("$[?(@.id=='linux-net-snmp')]").isNotEmpty());
     mockMvc.perform(get("/api/v1/modeles")).andExpect(status().isUnauthorized());
   }
 
   @Test
   void theDetailGivesTheFullContentAndAnUnknownTemplateIsNotFound() throws Exception {
-    call(get("/api/v1/modeles/linux-net-snmp"), reader)
+    call(get("/api/v1/modeles/linux-net-snmp"), admin)
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.version").value(1))
         .andExpect(jsonPath("$.metrics[?(@.technicalKey=='cpu.usage')].invertPercent").value(true))
@@ -186,7 +190,7 @@ class TemplateApiTests {
             jsonPath("$.metrics[?(@.technicalKey=='cpu.usage')].snmpOid")
                 .value("1.3.6.1.4.1.2021.11.11.0"))
         .andExpect(jsonPath("$.rules.length()").value(3));
-    call(get("/api/v1/modeles/inexistant"), reader).andExpect(status().isNotFound());
+    call(get("/api/v1/modeles/inexistant"), admin).andExpect(status().isNotFound());
   }
 
   // ------------------------------------------------------------------ droits et périmètre
