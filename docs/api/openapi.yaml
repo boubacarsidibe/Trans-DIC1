@@ -23,6 +23,10 @@ tags:
 - name: Collecte SNMP
   description: Configuration de la lecture SNMP d'un équipement. Secrets par référence
     (env:NOM) uniquement.
+- name: Sécurité des postes (EDR)
+  description: "Constats de l'EDR léger : programmes, démarrages automatiques, comptes,\
+    \ fichiers sensibles et connexions suspects sur les postes équipés de l'agent,\
+    \ rattachés à MITRE ATT&CK (ADR 0058)."
 - name: Statut public
   description: "Lecture sans connexion d'une page de statut publique et active (ADR\
     \ 0026). Limitée par adresse IP, mise en cache 30 s, sans aucune donnée technique\
@@ -2164,6 +2168,43 @@ paths:
           description: Aucun proxy actif
         "204":
           description: No Content
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/securite/postes/constats/{id}/decision:
+    post:
+      tags:
+      - Sécurité des postes (EDR)
+      summary: Juger un constat
+      description: "LEGITIMATE : changement voulu, il ne reviendra pas. MALICIOUS\
+        \ : attaque confirmée, il reste visible pour l'enquête. Opérateurs NOC et\
+        \ administrateurs."
+      operationId: decide
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecisionRequest"
+        required: true
+      responses:
+        "404":
+          description: Constat introuvable
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -4827,6 +4868,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/agent/securite-poste:
+    post:
+      tags:
+      - Sécurité
+      summary: "Télémétrie de sécurité du poste (EDR léger, ADR 0058)"
+      description: "Envoyée par l'agent 2.3 toutes les 5 minutes : programmes, dé\
+        marrages automatiques, comptes, empreinte des fichiers sensibles, connexions\
+        \ sortantes. Le premier rapport fixe la ligne de base."
+      operationId: securityReport
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EndpointReport"
+        required: true
+      responses:
+        "400":
+          description: Rapport invalide
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/agent/measures:
     post:
       tags:
@@ -5267,6 +5338,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/securite/postes:
+    get:
+      tags:
+      - Sécurité des postes (EDR)
+      summary: "Postes surveillés et constats récents, dans le périmètre du compte"
+      operationId: overview_3
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Overview"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/risques:
     get:
       tags:
@@ -5275,7 +5371,7 @@ paths:
       description: "Probabilité de panne (perte de collecte ou alerte critique) dans\
         \ les 24 heures, avec les trois faits qui la poussent le plus, et la fiche\
         \ du modèle. Tous les rôles ; limité au périmètre par site."
-      operationId: overview_3
+      operationId: overview_4
       parameters:
       - name: limit
         in: query
@@ -8741,6 +8837,18 @@ components:
           type: string
         token:
           type: string
+    DecisionRequest:
+      type: object
+      properties:
+        etat:
+          type: string
+          description: LEGITIMATE (changement voulu) ou MALICIOUS (attaque confirmée)
+          enum:
+          - OPEN
+          - LEGITIMATE
+          - MALICIOUS
+      required:
+      - etat
     FeatureWeight:
       type: object
       description: "Poids d'une variable : appris, et initial (avant apprentissage)"
@@ -10175,6 +10283,123 @@ components:
             $ref: "#/components/schemas/ProcessLine"
           maxItems: 10
           minItems: 0
+    Account:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 128
+          minLength: 0
+        privileged:
+          type: boolean
+        superuser:
+          type: boolean
+      required:
+      - name
+    Connection:
+      type: object
+      properties:
+        address:
+          type: string
+          maxLength: 45
+          minLength: 0
+          pattern: "[0-9A-Fa-f:.]+"
+        port:
+          type: integer
+          format: int32
+          maximum: 65535
+          minimum: 1
+      required:
+      - address
+    EndpointReport:
+      type: object
+      properties:
+        os:
+          type: string
+          maxLength: 16
+          minLength: 0
+        partial:
+          type: boolean
+        processes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Process"
+          maxItems: 400
+          minItems: 0
+        persistence:
+          type: array
+          items:
+            $ref: "#/components/schemas/Persistence"
+          maxItems: 600
+          minItems: 0
+        accounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Account"
+          maxItems: 200
+          minItems: 0
+        integrity:
+          type: array
+          items:
+            $ref: "#/components/schemas/Integrity"
+          maxItems: 50
+          minItems: 0
+        connections:
+          type: array
+          items:
+            $ref: "#/components/schemas/Connection"
+          maxItems: 200
+          minItems: 0
+      required:
+      - os
+    Integrity:
+      type: object
+      properties:
+        path:
+          type: string
+          maxLength: 300
+          minLength: 0
+        present:
+          type: boolean
+        sha256:
+          type: string
+          pattern: "[0-9a-f]{64}"
+      required:
+      - path
+    Persistence:
+      type: object
+      properties:
+        kind:
+          type: string
+          minLength: 1
+          pattern: cron|rc|shell-init|systemd|run-key|startup|service
+        name:
+          type: string
+          maxLength: 300
+          minLength: 0
+        fingerprint:
+          type: string
+          pattern: "[0-9a-f]{64}"
+        detail:
+          type: string
+          maxLength: 300
+          minLength: 0
+      required:
+      - kind
+      - name
+    Process:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 64
+          minLength: 0
+        path:
+          type: string
+          maxLength: 300
+          minLength: 0
+      required:
+      - name
     AgentMeasuresRequest:
       type: object
       properties:
@@ -10869,6 +11094,85 @@ components:
         lastSeen:
           type: string
           format: date-time
+    FindingResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        equipementId:
+          type: string
+          format: uuid
+        equipementNom:
+          type: string
+        regle:
+          type: string
+        techniqueId:
+          type: string
+        techniqueNom:
+          type: string
+        tactique:
+          type: string
+        techniqueUrl:
+          type: string
+        gravite:
+          type: string
+        sujet:
+          type: string
+        detail:
+          type: string
+        etat:
+          type: string
+          enum:
+          - OPEN
+          - LEGITIMATE
+          - MALICIOUS
+        detecteLe:
+          type: string
+          format: date-time
+        vuLe:
+          type: string
+          format: date-time
+        decidePar:
+          type: string
+        decideLe:
+          type: string
+          format: date-time
+    Overview:
+      type: object
+      properties:
+        postes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfileResponse"
+        constats:
+          type: array
+          items:
+            $ref: "#/components/schemas/FindingResponse"
+    ProfileResponse:
+      type: object
+      properties:
+        equipementId:
+          type: string
+          format: uuid
+        equipementNom:
+          type: string
+        systeme:
+          type: string
+        ligneDeBaseLe:
+          type: string
+          format: date-time
+        dernierRapport:
+          type: string
+          format: date-time
+        rapports:
+          type: integer
+          format: int32
+        partiel:
+          type: boolean
+        constatsOuverts:
+          type: integer
+          format: int32
     EquipmentRisk:
       type: object
       description: "Risque de panne d'un équipement dans les 24 heures. level : FAIBLE,\

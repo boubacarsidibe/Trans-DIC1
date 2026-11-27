@@ -24,6 +24,7 @@ import {
   PhoneCall,
   Radar,
   ScrollText,
+  ScanSearch,
   ShieldAlert,
   ShieldCheck,
   Send,
@@ -58,7 +59,8 @@ const SECTIONS = [
       { to: "/astreinte", label: "Astreinte", icon: PhoneCall },
       { to: "/pages-statut", label: "Pages de statut", icon: Gauge },
       { to: "/evenements", label: "Événements", icon: Activity },
-      { to: "/securite", label: "Sécurité", icon: ShieldAlert },
+      { to: "/securite", label: "Sécurité", icon: ShieldAlert, end: true },
+      { to: "/securite/postes", label: "Sécurité des postes", icon: ScanSearch },
       { to: "/trafic", label: "Trafic", icon: Waypoints },
       { to: "/rapports", label: "Rapports", icon: FileBarChart2 },
     ],
@@ -163,8 +165,8 @@ function AppLayout() {
         {SECTIONS.filter((section) => !section.admin || role === "ADMIN").map((section) => (
           <div key={section.title} className="rail-section">
             <p className="rail-group">{section.title}</p>
-            {section.links.filter((link) => !link.roles || link.roles.includes(role)).map(({ to, label, icon: Icon }) => (
-              <NavLink key={to} to={to} className="rail-link" onClick={() => setOpen(false)}>
+            {section.links.filter((link) => !link.roles || link.roles.includes(role)).map(({ to, label, icon: Icon, end }) => (
+              <NavLink key={to} to={to} end={end} className="rail-link" onClick={() => setOpen(false)}>
                 <Icon size={18} strokeWidth={1.9} aria-hidden="true" />
                 {label}
               </NavLink>

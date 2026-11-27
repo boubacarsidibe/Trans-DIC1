@@ -612,6 +612,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/securite/postes/constats/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Juger un constat
+         * @description LEGITIMATE : changement voulu, il ne reviendra pas. MALICIOUS : attaque confirmée, il reste visible pour l'enquête. Opérateurs NOC et administrateurs.
+         */
+        post: operations["decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/risques/entrainement": {
         parameters: {
             query?: never;
@@ -1796,6 +1816,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/agent/securite-poste": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Télémétrie de sécurité du poste (EDR léger, ADR 0058)
+         * @description Envoyée par l'agent 2.3 toutes les 5 minutes : programmes, démarrages automatiques, comptes, empreinte des fichiers sensibles, connexions sortantes. Le premier rapport fixe la ligne de base.
+         */
+        post: operations["securityReport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/agent/measures": {
         parameters: {
             query?: never;
@@ -2073,6 +2113,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/securite/postes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Postes surveillés et constats récents, dans le périmètre du compte */
+        get: operations["overview_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/risques": {
         parameters: {
             query?: never;
@@ -2084,7 +2141,7 @@ export interface paths {
          * Équipements les plus à risque
          * @description Probabilité de panne (perte de collecte ou alerte critique) dans les 24 heures, avec les trois faits qui la poussent le plus, et la fiche du modèle. Tous les rôles ; limité au périmètre par site.
          */
-        get: operations["overview_3"];
+        get: operations["overview_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3735,6 +3792,13 @@ export interface components {
             identifier?: string;
             token?: string;
         };
+        DecisionRequest: {
+            /**
+             * @description LEGITIMATE (changement voulu) ou MALICIOUS (attaque confirmée)
+             * @enum {string}
+             */
+            etat: "OPEN" | "LEGITIMATE" | "MALICIOUS";
+        };
         /** @description Poids d'une variable : appris, et initial (avant apprentissage) */
         FeatureWeight: {
             name?: string;
@@ -4413,6 +4477,40 @@ export interface components {
             byCpu?: components["schemas"]["ProcessLine"][];
             byMemory?: components["schemas"]["ProcessLine"][];
         };
+        Account: {
+            name: string;
+            privileged?: boolean;
+            superuser?: boolean;
+        };
+        Connection: {
+            address: string;
+            /** Format: int32 */
+            port?: number;
+        };
+        EndpointReport: {
+            os: string;
+            partial?: boolean;
+            processes?: components["schemas"]["Process"][];
+            persistence?: components["schemas"]["Persistence"][];
+            accounts?: components["schemas"]["Account"][];
+            integrity?: components["schemas"]["Integrity"][];
+            connections?: components["schemas"]["Connection"][];
+        };
+        Integrity: {
+            path: string;
+            present?: boolean;
+            sha256?: string;
+        };
+        Persistence: {
+            kind: string;
+            name: string;
+            fingerprint?: string;
+            detail?: string;
+        };
+        Process: {
+            name: string;
+            path?: string;
+        };
         AgentMeasuresRequest: {
             measures: components["schemas"]["MeasureInput"][];
         };
@@ -4767,6 +4865,49 @@ export interface components {
             events?: number;
             /** Format: date-time */
             lastSeen?: string;
+        };
+        FindingResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            equipementId?: string;
+            equipementNom?: string;
+            regle?: string;
+            techniqueId?: string;
+            techniqueNom?: string;
+            tactique?: string;
+            techniqueUrl?: string;
+            gravite?: string;
+            sujet?: string;
+            detail?: string;
+            /** @enum {string} */
+            etat?: "OPEN" | "LEGITIMATE" | "MALICIOUS";
+            /** Format: date-time */
+            detecteLe?: string;
+            /** Format: date-time */
+            vuLe?: string;
+            decidePar?: string;
+            /** Format: date-time */
+            decideLe?: string;
+        };
+        Overview: {
+            postes?: components["schemas"]["ProfileResponse"][];
+            constats?: components["schemas"]["FindingResponse"][];
+        };
+        ProfileResponse: {
+            /** Format: uuid */
+            equipementId?: string;
+            equipementNom?: string;
+            systeme?: string;
+            /** Format: date-time */
+            ligneDeBaseLe?: string;
+            /** Format: date-time */
+            dernierRapport?: string;
+            /** Format: int32 */
+            rapports?: number;
+            partiel?: boolean;
+            /** Format: int32 */
+            constatsOuverts?: number;
         };
         /** @description Risque de panne d'un équipement dans les 24 heures. level : FAIBLE, MOYEN, ELEVE */
         EquipmentRisk: {
@@ -8452,6 +8593,48 @@ export interface operations {
             };
         };
     };
+    decide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Constat introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     train: {
         parameters: {
             query?: never;
@@ -11904,6 +12087,46 @@ export interface operations {
             };
         };
     };
+    securityReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EndpointReport"];
+            };
+        };
+        responses: {
+            /** @description Rapport invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     receive_1: {
         parameters: {
             query?: never;
@@ -12473,6 +12696,44 @@ export interface operations {
         };
     };
     overview_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Overview"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    overview_4: {
         parameters: {
             query?: {
                 limit?: number;
