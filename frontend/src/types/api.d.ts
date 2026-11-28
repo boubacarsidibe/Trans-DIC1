@@ -469,6 +469,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/utilisateurs/{id}/niveau": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fixer le niveau de support d'un opérateur
+         * @description N1, N2 ou N3 (ADR 0059), ou vide pour le retirer. Réservé aux opérateurs NOC : un administrateur agit à tous les niveaux, un lecteur à aucun.
+         */
+        post: operations["setSupportLevel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/utilisateurs/{id}/mot-de-passe": {
         parameters: {
             query?: never;
@@ -1716,6 +1736,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/alertes/{id}/renvoi": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Renvoyer au niveau inférieur, avec une consigne */
+        post: operations["sendBack"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/alertes/{id}/prise-en-charge": {
         parameters: {
             query?: never;
@@ -1727,6 +1764,44 @@ export interface paths {
         put?: never;
         /** Prendre en charge une alerte ouverte */
         post: operations["take"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alertes/{id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ajouter une note au journal d'intervention */
+        post: operations["note"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alertes/{id}/escalade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Niveau visé par une escalade et destinataires possibles
+         * @description Niveau supérieur occupé suivant ; vide quand ce sont les administrateurs.
+         */
+        get: operations["target"];
+        put?: never;
+        /** Escalader au niveau supérieur */
+        post: operations["escalate"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3743,10 +3818,16 @@ export interface components {
             active?: boolean;
             /** Format: date-time */
             createdAt?: string;
+            /** Format: int32 */
+            supportLevel?: number;
         };
         RoleChangeRequest: {
             /** @enum {string} */
             role: "ADMIN" | "NOC_OPERATOR" | "VIEWER";
+        };
+        SupportLevelRequest: {
+            /** Format: int32 */
+            level?: number;
         };
         PasswordResetRequest: {
             password: string;
@@ -4412,6 +4493,60 @@ export interface components {
         };
         CommentRequest: {
             comment?: string;
+        };
+        SendBackRequest: {
+            instruction: string;
+            /** Format: int32 */
+            expectedLevel?: number;
+        };
+        NoteRequest: {
+            text: string;
+        };
+        AlertResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            equipmentId?: string;
+            equipmentName?: string;
+            ruleName?: string;
+            /** @enum {string} */
+            type?: "THRESHOLD" | "COLLECTION" | "ANOMALY" | "FORECAST" | "EVENT" | "PEER" | "NO_DATA" | "SECURITY";
+            /** @enum {string} */
+            state?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ARCHIVED" | "DELETED";
+            /** @enum {string} */
+            severity?: "INFO" | "WARNING" | "CRITICAL";
+            message?: string;
+            /** Format: date-time */
+            triggeredAt?: string;
+            /** Format: date-time */
+            takenAt?: string;
+            /** Format: date-time */
+            resolvedAt?: string;
+            assignee?: string;
+            assignees?: string[];
+            /** Format: uuid */
+            parentAlertId?: string;
+            correlationReason?: string;
+            metricInstance?: string;
+            context?: string;
+            /**
+             * Format: date-time
+             * @description Depuis quand l'alerte est tenue pour instable (ouvertures répétées) : elle reste visible mais ne notifie plus. Nulle si l'alerte est normale.
+             */
+            flappingSince?: string;
+            /**
+             * Format: int32
+             * @description Niveau de support courant (1 à 3, ADR 0059) ; nul si aucun.
+             */
+            currentLevel?: number;
+        };
+        EscalationRequest: {
+            checks?: string[];
+            reason: string;
+            /** Format: uuid */
+            recipientId?: string;
+            /** Format: int32 */
+            expectedLevel?: number;
         };
         /** @description Cause reconnue par l'opérateur, ou aucune */
         CauseConfirmationRequest: {
@@ -5080,6 +5215,13 @@ export interface components {
             /** Format: double */
             mtbfHours?: number;
         };
+        Escalations: {
+            /** Format: int64 */
+            escalated?: number;
+            /** Format: double */
+            ratePercent?: number;
+            byLevel?: components["schemas"]["LevelEscalation"][];
+        };
         /** @description Chiffres d'un groupe d'alertes ; une moyenne est nulle sans donnée */
         Figures: {
             /** Format: int64 */
@@ -5108,6 +5250,14 @@ export interface components {
             label?: string;
             figures?: components["schemas"]["Figures"];
         };
+        LevelEscalation: {
+            /** Format: int32 */
+            fromLevel?: number;
+            /** Format: int64 */
+            escalations?: number;
+            /** Format: double */
+            medianMinutes?: number;
+        };
         Operator: {
             username?: string;
             /** Format: int64 */
@@ -5133,6 +5283,8 @@ export interface components {
             equipments?: components["schemas"]["EquipmentReliability"][];
             truncated?: boolean;
             method?: string;
+            /** @description Escalades de niveau (ADR 0059) : taux et délai par niveau de départ */
+            escalations?: components["schemas"]["Escalations"];
         };
         Week: {
             /** Format: date */
@@ -5579,6 +5731,8 @@ export interface components {
         Me: {
             username?: string;
             role?: string;
+            /** Format: int32 */
+            supportLevel?: number;
         };
         Status: {
             enabled?: boolean;
@@ -5616,42 +5770,24 @@ export interface components {
             endsAt?: string;
             override?: boolean;
         };
-        AlertResponse: {
-            /** Format: uuid */
-            id?: string;
-            /** Format: uuid */
-            equipmentId?: string;
-            equipmentName?: string;
-            ruleName?: string;
-            /** @enum {string} */
-            type?: "THRESHOLD" | "COLLECTION" | "ANOMALY" | "FORECAST" | "EVENT" | "PEER" | "NO_DATA" | "SECURITY";
-            /** @enum {string} */
-            state?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "ARCHIVED" | "DELETED";
-            /** @enum {string} */
-            severity?: "INFO" | "WARNING" | "CRITICAL";
-            message?: string;
-            /** Format: date-time */
-            triggeredAt?: string;
-            /** Format: date-time */
-            takenAt?: string;
-            /** Format: date-time */
-            resolvedAt?: string;
-            assignee?: string;
-            assignees?: string[];
-            /** Format: uuid */
-            parentAlertId?: string;
-            correlationReason?: string;
-            metricInstance?: string;
-            context?: string;
-            /**
-             * Format: date-time
-             * @description Depuis quand l'alerte est tenue pour instable (ouvertures répétées) : elle reste visible mais ne notifie plus. Nulle si l'alerte est normale.
-             */
-            flappingSince?: string;
-        };
         PagedModelAlertResponse: {
             content?: components["schemas"]["AlertResponse"][];
             page?: components["schemas"]["PageMetadata"];
+        };
+        Candidate: {
+            /** Format: uuid */
+            id?: string;
+            username?: string;
+            role?: string;
+            /** Format: int32 */
+            supportLevel?: number;
+        };
+        EscalationTarget: {
+            /** Format: int32 */
+            fromLevel?: number;
+            /** Format: int32 */
+            toLevel?: number;
+            candidates?: components["schemas"]["Candidate"][];
         };
         AlerteVoisine: {
             /** Format: uuid */
@@ -8089,6 +8225,55 @@ export interface operations {
             };
             /** @description Garde-fou : soi-même ou dernier administrateur */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    setSupportLevel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupportLevelRequest"];
+            };
+        };
+        responses: {
+            /** @description Niveau invalide ou compte non opérateur */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Utilisateur introuvable */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11836,6 +12021,48 @@ export interface operations {
             };
         };
     };
+    sendBack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendBackRequest"];
+            };
+        };
+        responses: {
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Aucun niveau inférieur occupé */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     take: {
         parameters: {
             query?: never;
@@ -11870,6 +12097,139 @@ export interface operations {
                 };
             };
             /** @description Transition impossible depuis l'état actuel de l'alerte */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    note: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AlertResponse"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    target: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EscalationTarget"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    escalate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EscalationRequest"];
+            };
+        };
+        responses: {
+            /** @description Case ou destinataire invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Alerte fermée, déjà au plus haut ou changée de niveau entre-temps */
             409: {
                 headers: {
                     [name: string]: unknown;

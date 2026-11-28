@@ -110,6 +110,10 @@ tags:
   description: "Seuils, durée de confirmation, hystérésis et portée des règles."
 - name: Authentification
   description: "Connexion, renouvellement, mot de passe et double authentification."
+- name: Escalade
+  description: "Journal d'intervention, escalade au niveau supérieur et renvoi au\
+    \ niveau inférieur (ADR 0059). Opérateurs NOC et administrateurs ; un opérateur\
+    \ n'agit que sur les alertes de son niveau ou d'un niveau inférieur."
 - name: Temps réel
   description: Flux d'événements serveur (SSE) pour rafraîchir les écrans.
 - name: Demandes de maintenance
@@ -1823,6 +1827,45 @@ paths:
           description: Utilisateur introuvable
         "409":
           description: "Garde-fou : soi-même ou dernier administrateur"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/utilisateurs/{id}/niveau:
+    post:
+      tags:
+      - Utilisateurs
+      summary: Fixer le niveau de support d'un opérateur
+      description: "N1, N2 ou N3 (ADR 0059), ou vide pour le retirer. Réservé aux\
+        \ opérateurs NOC : un administrateur agit à tous les niveaux, un lecteur à\
+        \ aucun."
+      operationId: setSupportLevel
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupportLevelRequest"
+        required: true
+      responses:
+        "400":
+          description: Niveau invalide ou compte non opérateur
+        "404":
+          description: Utilisateur introuvable
         "401":
           description: Authentification requise ou jeton expiré
           content:
@@ -4678,6 +4721,40 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/alertes/{id}/renvoi:
+    post:
+      tags:
+      - Escalade
+      summary: "Renvoyer au niveau inférieur, avec une consigne"
+      operationId: sendBack
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendBackRequest"
+        required: true
+      responses:
+        "409":
+          description: Aucun niveau inférieur occupé
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/alertes/{id}/prise-en-charge:
     post:
       tags:
@@ -4707,6 +4784,112 @@ paths:
                 $ref: "#/components/schemas/ApiError"
         "403":
           description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/alertes/{id}/notes:
+    post:
+      tags:
+      - Escalade
+      summary: Ajouter une note au journal d'intervention
+      operationId: note
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NoteRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AlertResponse"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/alertes/{id}/escalade:
+    get:
+      tags:
+      - Escalade
+      summary: Niveau visé par une escalade et destinataires possibles
+      description: Niveau supérieur occupé suivant ; vide quand ce sont les administrateurs.
+      operationId: target
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EscalationTarget"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      tags:
+      - Escalade
+      summary: Escalader au niveau supérieur
+      operationId: escalate
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EscalationRequest"
+        required: true
+      responses:
+        "400":
+          description: Case ou destinataire invalide
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: "Alerte fermée, déjà au plus haut ou changée de niveau entre-temps"
+        "401":
+          description: Authentification requise ou jeton expiré
           content:
             application/json:
               schema:
@@ -8791,6 +8974,9 @@ components:
         createdAt:
           type: string
           format: date-time
+        supportLevel:
+          type: integer
+          format: int32
     RoleChangeRequest:
       type: object
       properties:
@@ -8802,6 +8988,14 @@ components:
           - VIEWER
       required:
       - role
+    SupportLevelRequest:
+      type: object
+      properties:
+        level:
+          type: integer
+          format: int32
+          maximum: 3
+          minimum: 1
     PasswordResetRequest:
       type: object
       properties:
@@ -10190,6 +10384,124 @@ components:
           type: string
           maxLength: 1000
           minLength: 0
+    SendBackRequest:
+      type: object
+      properties:
+        instruction:
+          type: string
+          maxLength: 200
+          minLength: 0
+        expectedLevel:
+          type: integer
+          format: int32
+      required:
+      - instruction
+    NoteRequest:
+      type: object
+      properties:
+        text:
+          type: string
+          maxLength: 500
+          minLength: 0
+      required:
+      - text
+    AlertResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        equipmentId:
+          type: string
+          format: uuid
+        equipmentName:
+          type: string
+        ruleName:
+          type: string
+        type:
+          type: string
+          enum:
+          - THRESHOLD
+          - COLLECTION
+          - ANOMALY
+          - FORECAST
+          - EVENT
+          - PEER
+          - NO_DATA
+          - SECURITY
+        state:
+          type: string
+          enum:
+          - OPEN
+          - IN_PROGRESS
+          - RESOLVED
+          - ARCHIVED
+          - DELETED
+        severity:
+          type: string
+          enum:
+          - INFO
+          - WARNING
+          - CRITICAL
+        message:
+          type: string
+        triggeredAt:
+          type: string
+          format: date-time
+        takenAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+        assignee:
+          type: string
+        assignees:
+          type: array
+          items:
+            type: string
+        parentAlertId:
+          type: string
+          format: uuid
+        correlationReason:
+          type: string
+        metricInstance:
+          type: string
+        context:
+          type: string
+        flappingSince:
+          type: string
+          format: date-time
+          description: "Depuis quand l'alerte est tenue pour instable (ouvertures\
+            \ répétées) : elle reste visible mais ne notifie plus. Nulle si l'alerte\
+            \ est normale."
+        currentLevel:
+          type: integer
+          format: int32
+          description: "Niveau de support courant (1 à 3, ADR 0059) ; nul si aucun."
+    EscalationRequest:
+      type: object
+      properties:
+        checks:
+          type: array
+          items:
+            type: string
+            maxLength: 40
+            minLength: 0
+          maxItems: 5
+          minItems: 0
+        reason:
+          type: string
+          maxLength: 200
+          minLength: 0
+        recipientId:
+          type: string
+          format: uuid
+        expectedLevel:
+          type: integer
+          format: int32
+      required:
+      - reason
     CauseConfirmationRequest:
       type: object
       description: "Cause reconnue par l'opérateur, ou aucune"
@@ -11500,6 +11812,19 @@ components:
         mtbfHours:
           type: number
           format: double
+    Escalations:
+      type: object
+      properties:
+        escalated:
+          type: integer
+          format: int64
+        ratePercent:
+          type: number
+          format: double
+        byLevel:
+          type: array
+          items:
+            $ref: "#/components/schemas/LevelEscalation"
     Figures:
       type: object
       description: Chiffres d'un groupe d'alertes ; une moyenne est nulle sans donnée
@@ -11543,6 +11868,18 @@ components:
           type: string
         figures:
           $ref: "#/components/schemas/Figures"
+    LevelEscalation:
+      type: object
+      properties:
+        fromLevel:
+          type: integer
+          format: int32
+        escalations:
+          type: integer
+          format: int64
+        medianMinutes:
+          type: number
+          format: double
     Operator:
       type: object
       properties:
@@ -11596,6 +11933,10 @@ components:
           type: boolean
         method:
           type: string
+        escalations:
+          $ref: "#/components/schemas/Escalations"
+          description: "Escalades de niveau (ADR 0059) : taux et délai par niveau\
+            \ de départ"
     Week:
       type: object
       properties:
@@ -12320,6 +12661,9 @@ components:
           type: string
         role:
           type: string
+        supportLevel:
+          type: integer
+          format: int32
     Status:
       type: object
       properties:
@@ -12382,76 +12726,6 @@ components:
           format: date-time
         override:
           type: boolean
-    AlertResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        equipmentId:
-          type: string
-          format: uuid
-        equipmentName:
-          type: string
-        ruleName:
-          type: string
-        type:
-          type: string
-          enum:
-          - THRESHOLD
-          - COLLECTION
-          - ANOMALY
-          - FORECAST
-          - EVENT
-          - PEER
-          - NO_DATA
-          - SECURITY
-        state:
-          type: string
-          enum:
-          - OPEN
-          - IN_PROGRESS
-          - RESOLVED
-          - ARCHIVED
-          - DELETED
-        severity:
-          type: string
-          enum:
-          - INFO
-          - WARNING
-          - CRITICAL
-        message:
-          type: string
-        triggeredAt:
-          type: string
-          format: date-time
-        takenAt:
-          type: string
-          format: date-time
-        resolvedAt:
-          type: string
-          format: date-time
-        assignee:
-          type: string
-        assignees:
-          type: array
-          items:
-            type: string
-        parentAlertId:
-          type: string
-          format: uuid
-        correlationReason:
-          type: string
-        metricInstance:
-          type: string
-        context:
-          type: string
-        flappingSince:
-          type: string
-          format: date-time
-          description: "Depuis quand l'alerte est tenue pour instable (ouvertures\
-            \ répétées) : elle reste visible mais ne notifie plus. Nulle si l'alerte\
-            \ est normale."
     PagedModelAlertResponse:
       type: object
       properties:
@@ -12461,6 +12735,32 @@ components:
             $ref: "#/components/schemas/AlertResponse"
         page:
           $ref: "#/components/schemas/PageMetadata"
+    Candidate:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        role:
+          type: string
+        supportLevel:
+          type: integer
+          format: int32
+    EscalationTarget:
+      type: object
+      properties:
+        fromLevel:
+          type: integer
+          format: int32
+        toLevel:
+          type: integer
+          format: int32
+        candidates:
+          type: array
+          items:
+            $ref: "#/components/schemas/Candidate"
     AlerteVoisine:
       type: object
       properties:

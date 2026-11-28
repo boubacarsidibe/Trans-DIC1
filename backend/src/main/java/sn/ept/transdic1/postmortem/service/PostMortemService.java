@@ -53,6 +53,18 @@ import sn.ept.transdic1.postmortem.repository.PostMortemRows.RemediationRow;
  */
 @Service
 public class PostMortemService {
+  /** Cases de l'escalade : leur libellé plutôt que leur code. */
+  static String checks(String text) {
+    if (text == null) {
+      return null;
+    }
+    return text.replace("SERVICE_RESTARTED", "service redémarré")
+        .replace("EQUIPMENT_OR_CABLE_CHECKED", "équipement ou câble vérifié")
+        .replace("CONFIGURATION_CHECKED", "configuration vérifiée")
+        .replace("OUT_OF_MY_RIGHTS", "hors de mes droits")
+        .replace("ON_SITE_ACCESS_NEEDED", "besoin d'un accès sur place");
+  }
+
   private static final int MAX_TIMELINE = 300;
 
   private final PostMortemRepository repository;
@@ -417,6 +429,29 @@ public class PostMortemService {
                     "Rattachée à la panne racine" + where,
                     e.comment(),
                     e.author());
+            // Journal d'intervention (ADR 0059).
+            case "NOTE" ->
+                new TimelineEntry(e.at(), "NOTE", "Note" + where, e.comment(), e.author());
+            case "LEVEL_ESCALATED" ->
+                new TimelineEntry(
+                    e.at(),
+                    "LEVEL_ESCALATED",
+                    "Escalade au niveau supérieur" + where,
+                    checks(e.comment()),
+                    e.author());
+            case "SENT_BACK" ->
+                new TimelineEntry(
+                    e.at(),
+                    "SENT_BACK",
+                    "Renvoi au niveau inférieur" + where,
+                    e.comment(),
+                    e.author());
+            case "DIAGNOSTIC_VIEWED" ->
+                new TimelineEntry(
+                    e.at(), "DIAGNOSTIC_VIEWED", "Diagnostic consulté" + where, null, e.author());
+            case "CAUSE_CONFIRMED" ->
+                new TimelineEntry(
+                    e.at(), "CAUSE_CONFIRMED", "Cause confirmée" + where, e.comment(), e.author());
             case "SEVERITY_CHANGED" ->
                 new TimelineEntry(
                     e.at(),

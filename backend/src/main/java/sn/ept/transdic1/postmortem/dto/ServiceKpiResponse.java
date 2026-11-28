@@ -23,7 +23,17 @@ public record ServiceKpiResponse(
     List<Week> weeks,
     List<EquipmentReliability> equipments,
     boolean truncated,
-    String method) {
+    String method,
+    @Schema(description = "Escalades de niveau (ADR 0059) : taux et délai par niveau de départ")
+        Escalations escalations) {
+
+  /**
+   * Part des alertes de la période escaladées au moins une fois, et, par niveau de départ (0 = sans
+   * niveau), le nombre d'escalades et le délai médian passé à ce niveau avant d'escalader.
+   */
+  public record Escalations(long escalated, Double ratePercent, List<LevelEscalation> byLevel) {}
+
+  public record LevelEscalation(int fromLevel, long escalations, Double medianMinutes) {}
 
   @Schema(description = "Chiffres d'un groupe d'alertes ; une moyenne est nulle sans donnée")
   public record Figures(

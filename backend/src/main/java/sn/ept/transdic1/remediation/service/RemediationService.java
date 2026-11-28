@@ -102,6 +102,7 @@ public class RemediationService {
   private final RemediationJobRepository jobs;
   private final RemediationAgentActionRepository agentActions;
   private final AlertRepository alerts;
+  private final sn.ept.transdic1.alerting.repository.AlertEventRepository alertEvents;
   private final AlertRuleRepository rules;
   private final CollectionAgentRepository agents;
   private final EquipmentRepository equipments;
@@ -119,6 +120,7 @@ public class RemediationService {
       RemediationJobRepository jobs,
       RemediationAgentActionRepository agentActions,
       AlertRepository alerts,
+      sn.ept.transdic1.alerting.repository.AlertEventRepository alertEvents,
       AlertRuleRepository rules,
       CollectionAgentRepository agents,
       EquipmentRepository equipments,
@@ -134,6 +136,7 @@ public class RemediationService {
     this.jobs = jobs;
     this.agentActions = agentActions;
     this.alerts = alerts;
+    this.alertEvents = alertEvents;
     this.rules = rules;
     this.agents = agents;
     this.equipments = equipments;
@@ -275,6 +278,7 @@ public class RemediationService {
                 now,
                 now.plus(queueTtl)));
     audit.record("REMEDIATION_REQUESTED", "ALERT", alertId, "action=" + actionName);
+    timeline(alertId, "Action corrective lancée : " + actionName + " (par " + username + ")");
     events.publishEvent(new AlertActivityEvent(alertId, AlertEventType.COMMENTED));
     return JobResponse.from(job);
   }
@@ -471,6 +475,11 @@ public class RemediationService {
         exitCode == 0 ? "REMEDIATION_SUCCEEDED" : "REMEDIATION_FAILED",
         jobId,
         "action=" + job.getActionName() + " code=" + exitCode + " agent=" + agentId);
+    timeline(
+        job.getAlertId(),
+        "Action corrective "
+            + job.getActionName()
+            + (exitCode == 0 ? " : réussie" : " : échouée (code " + exitCode + ")"));
     planVerification(job);
     refresh(job);
     return JobResponse.from(job);
@@ -522,6 +531,8 @@ public class RemediationService {
       } else {
         job.verified(RemediationVerification.EFFECTIVE, now);
         auditAsSystem("REMEDIATION_EFFECTIVE", job.getId(), "action=" + job.getActionName());
+        timeline(
+            job.getAlertId(), "Action corrective " + job.getActionName() + " : jugée efficace");
         refresh(job);
       }
       verified++;
@@ -576,6 +587,26 @@ public class RemediationService {
     } finally {
       SecurityContextHolder.setContext(saved);
     }
+  }
+
+  /**
+   * Journal d'intervention (ADR 0059) : l'action corrective et son résultat s'inscrivent dans la
+   * chronologie de l'alerte, sans auteur (le nom de qui l'a lancée est dans le texte).
+   */
+  private void timeline(UUID alertId, String text) {
+    if (alertId == null) {
+      return;
+    }
+    alerts
+        .findById(alertId)
+        .ifPresent(
+            alert -> {
+              var line =
+                  new sn.ept.transdic1.alerting.domain.AlertEvent(
+                      alert, AlertEventType.REMEDIATION, clock.instant());
+              line.setComment(text.length() > 2000 ? text.substring(0, 2000) : text);
+              alertEvents.save(line);
+            });
   }
 
   private void refresh(RemediationJob job) {

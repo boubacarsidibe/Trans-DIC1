@@ -99,7 +99,15 @@ public class PostMortemRepository {
 
   public List<EventRow> events(UUID incidentId) {
     return jdbc.query(
-        "SELECT ev.alert_id, ev.type, ev.new_state, ev.comment, ev.occurred_at, u.username"
+        "SELECT ev.alert_id, ev.type, ev.new_state,"
+            // Escalade et renvoi (ADR 0059) : la phrase, les niveaux, les cases et les prévenus.
+            + " CASE WHEN ev.type IN ('LEVEL_ESCALATED', 'SENT_BACK') THEN concat_ws(' — ',"
+            + " ev.comment, 'de ' || coalesce('N' || ev.from_level, 'sans niveau') || ' vers '"
+            + " || CASE WHEN ev.to_level IS NULL OR ev.to_level > 3 THEN 'administrateurs'"
+            + " ELSE 'N' || ev.to_level END,"
+            + " CASE WHEN ev.checklist IS NOT NULL THEN 'cases : ' || ev.checklist END,"
+            + " CASE WHEN ev.recipients IS NOT NULL THEN 'prévenus : ' || ev.recipients END)"
+            + " ELSE ev.comment END, ev.occurred_at, u.username"
             + " FROM alert_event ev LEFT JOIN app_user u ON u.id = ev.author_id"
             + " WHERE ev.alert_id IN ("
             + INCIDENT_ALERTS
@@ -265,6 +273,39 @@ public class PostMortemRepository {
    * Alertes racines (non rattachées à une autre) ouvertes dans la période, hors alertes supprimées.
    * Plafonnée : au-delà, l'écran le signale plutôt que de saturer la mémoire.
    */
+  /** Changement de niveau d'une alerte (ADR 0059) : ligne de chronologie, dans l'ordre. */
+  public record LevelMoveRow(UUID alertId, String type, Integer fromLevel, Instant at) {}
+
+  /** Escalades et renvois des alertes données, dans l'ordre de la chronologie. */
+  public List<LevelMoveRow> levelMoves(java.util.Collection<UUID> alertIds) {
+    if (alertIds.isEmpty()) {
+      return List.of();
+    }
+    return jdbc.execute(
+        (ConnectionCallback<List<LevelMoveRow>>)
+            con -> {
+              var ps =
+                  con.prepareStatement(
+                      "SELECT alert_id, type, from_level, occurred_at FROM alert_event"
+                          + " WHERE alert_id = ANY(?) AND type IN ('LEVEL_ESCALATED', 'SENT_BACK')"
+                          + " ORDER BY alert_id, occurred_at, id");
+              ps.setArray(1, con.createArrayOf("uuid", alertIds.toArray()));
+              try (ResultSet rs = ps.executeQuery()) {
+                var rows = new java.util.ArrayList<LevelMoveRow>();
+                while (rs.next()) {
+                  int level = rs.getInt(3);
+                  rows.add(
+                      new LevelMoveRow(
+                          rs.getObject(1, UUID.class),
+                          rs.getString(2),
+                          rs.wasNull() ? null : level,
+                          instant(rs, 4)));
+                }
+                return rows;
+              }
+            });
+  }
+
   public List<KpiAlertRow> kpiAlerts(Instant from, Instant to, Set<UUID> sites, int limit) {
     String siteFilter = sites == null ? "" : " AND e.site_id = ANY(?)";
     return jdbc.execute(

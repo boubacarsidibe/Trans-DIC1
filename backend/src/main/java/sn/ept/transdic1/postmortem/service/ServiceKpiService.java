@@ -39,6 +39,45 @@ public class ServiceKpiService {
   }
 
   @Transactional(readOnly = true)
+  /**
+   * Escalades de niveau (ADR 0059) : part des alertes escaladées au moins une fois, et, par niveau
+   * de départ, le nombre d'escalades et le délai médian passé à ce niveau avant d'escalader.
+   */
+  ServiceKpiResponse.Escalations escalations(List<KpiAlertRow> rows) {
+    java.util.Map<UUID, Instant> opened = new java.util.HashMap<>();
+    for (KpiAlertRow row : rows) {
+      opened.put(row.id(), row.triggeredAt());
+    }
+    var moves = repository.levelMoves(opened.keySet());
+    java.util.Map<Integer, List<Double>> minutes = new java.util.TreeMap<>();
+    java.util.Set<UUID> escalated = new java.util.HashSet<>();
+    java.util.Map<UUID, Instant> since = new java.util.HashMap<>(opened);
+    for (var move : moves) {
+      Instant start = since.get(move.alertId());
+      if ("LEVEL_ESCALATED".equals(move.type())) {
+        escalated.add(move.alertId());
+        int level = move.fromLevel() == null ? 0 : move.fromLevel();
+        double waited =
+            start == null ? 0 : Math.max(0, Duration.between(start, move.at()).toSeconds() / 60.0);
+        minutes.computeIfAbsent(level, k -> new java.util.ArrayList<>()).add(waited);
+      }
+      since.put(move.alertId(), move.at());
+    }
+    List<ServiceKpiResponse.LevelEscalation> byLevel = new java.util.ArrayList<>();
+    minutes.forEach(
+        (level, values) -> {
+          java.util.Collections.sort(values);
+          int n = values.size();
+          double median =
+              n % 2 == 1 ? values.get(n / 2) : (values.get(n / 2 - 1) + values.get(n / 2)) / 2;
+          byLevel.add(
+              new ServiceKpiResponse.LevelEscalation(level, n, Math.round(median * 10) / 10.0));
+        });
+    Double rate =
+        rows.isEmpty() ? null : Math.round(1000.0 * escalated.size() / rows.size()) / 10.0;
+    return new ServiceKpiResponse.Escalations(escalated.size(), rate, byLevel);
+  }
+
   public ServiceKpiResponse compute(Instant from, Instant to, UUID siteId) {
     if (from == null || to == null || !to.isAfter(from)) {
       throw new ResponseStatusException(
@@ -77,6 +116,8 @@ public class ServiceKpiService {
             + " automatique). MTBF : temps en service divisé par le nombre de pertes de collecte."
             + " Objectif de prise en charge : "
             + target
-            + " min.");
+            + " min. Escalades : délai passé au niveau de départ, depuis l'ouverture ou le"
+            + " changement de niveau précédent.",
+        escalations(rows));
   }
 }

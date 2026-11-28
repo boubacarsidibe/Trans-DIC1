@@ -125,6 +125,7 @@ public class PostMortemController {
         r.weeks(),
         r.equipments(),
         r.truncated(),
-        r.method());
+        r.method(),
+        r.escalations());
   }
 }

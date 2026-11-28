@@ -26,10 +26,16 @@ import sn.ept.transdic1.diagnostic.service.DiagnosticService;
 public class DiagnosticController {
   private final DiagnosticService service;
   private final CauseConfirmationService confirmations;
+  private final sn.ept.transdic1.alerting.service.AlertLevelService journal;
 
-  public DiagnosticController(DiagnosticService service, CauseConfirmationService confirmations) {
+  public DiagnosticController(
+      DiagnosticService service,
+      CauseConfirmationService confirmations,
+      sn.ept.transdic1.alerting.service.AlertLevelService journal) {
     this.service = service;
     this.confirmations = confirmations;
+    // Journal d'intervention (ADR 0059) : diagnostic consulté et cause confirmée.
+    this.journal = journal;
   }
 
   @Operation(
@@ -42,8 +48,23 @@ public class DiagnosticController {
   @ApiResponse(responseCode = "200", description = "Diagnostic calculé")
   @ApiResponse(responseCode = "404", description = "Alerte introuvable", content = @Content)
   @GetMapping("/{id}/diagnostic")
-  public DiagnosticResponse diagnostic(@PathVariable UUID id) {
-    return service.diagnose(id);
+  public DiagnosticResponse diagnostic(@PathVariable UUID id, Authentication authentication) {
+    DiagnosticResponse response = service.diagnose(id);
+    // Un opérateur ou un administrateur qui consulte le diagnostic : une ligne, une seule fois.
+    if (authentication != null
+        && authentication.getAuthorities().stream()
+            .anyMatch(
+                a ->
+                    "ROLE_ADMIN".equals(a.getAuthority())
+                        || "ROLE_NOC_OPERATOR".equals(a.getAuthority()))) {
+      journal.logAutomatic(
+          id,
+          sn.ept.transdic1.alerting.domain.AlertEventType.DIAGNOSTIC_VIEWED,
+          authentication.getName(),
+          "Diagnostic consulté",
+          true);
+    }
+    return response;
   }
 
   @Operation(
@@ -71,6 +92,16 @@ public class DiagnosticController {
     var outcome =
         confirmations.confirm(
             id, request == null ? null : request.source(), authentication.getName());
+    if (outcome.recorded() > 0) {
+      journal.logAutomatic(
+          id,
+          sn.ept.transdic1.alerting.domain.AlertEventType.CAUSE_CONFIRMED,
+          authentication.getName(),
+          outcome.chosen() == null
+              ? "Cause confirmée : aucune des causes proposées"
+              : "Cause confirmée : " + outcome.chosen(),
+          false);
+    }
     return new CauseConfirmationResponse(
         outcome.recorded(), outcome.chosen(), outcome.confirmations());
   }
