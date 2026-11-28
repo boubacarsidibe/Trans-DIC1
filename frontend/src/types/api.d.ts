@@ -4215,6 +4215,13 @@ export interface components {
             suivi?: boolean;
             /** Format: uuid */
             serviceId?: string;
+            etat?: string;
+            demarrage?: string;
+            statut?: string;
+            arretAnormal?: boolean;
+            suiviAutomatique?: boolean;
+            /** Format: date-time */
+            releveLe?: string;
         };
         Options: {
             /** @enum {string} */
@@ -4492,6 +4499,7 @@ export interface components {
             processes?: components["schemas"]["Processes"];
             services?: string[];
             listeningPorts?: components["schemas"]["ListeningPort"][];
+            serviceStates?: components["schemas"]["ServiceState"][];
         };
         ListeningPort: {
             protocol: string;
@@ -4511,6 +4519,11 @@ export interface components {
         Processes: {
             byCpu?: components["schemas"]["ProcessLine"][];
             byMemory?: components["schemas"]["ProcessLine"][];
+        };
+        ServiceState: {
+            name: string;
+            active?: boolean;
+            startMode?: string;
         };
         AgentMeasuresRequest: {
             measures: components["schemas"]["MeasureInput"][];

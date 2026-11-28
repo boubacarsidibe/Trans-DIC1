@@ -28,6 +28,7 @@ import sn.ept.transdic1.collection.service.AgentAuthService;
 import sn.ept.transdic1.collection.service.AgentRegistrationService;
 import sn.ept.transdic1.collection.service.AgentSnapshotService;
 import sn.ept.transdic1.collection.service.MeasureIngestionService;
+import sn.ept.transdic1.collection.service.ServiceDiscoveryService;
 
 @Tag(
     name = "Agents de collecte",
@@ -41,13 +42,16 @@ public class AgentController {
   private final AgentAuthService agentAuth;
 
   private final AgentSnapshotService snapshots;
+  private final ServiceDiscoveryService discovery;
 
   public AgentController(
       AgentRegistrationService registration,
       MeasureIngestionService ingestion,
       AgentAuthService agentAuth,
-      AgentSnapshotService snapshots) {
+      AgentSnapshotService snapshots,
+      ServiceDiscoveryService discovery) {
     this.snapshots = snapshots;
+    this.discovery = discovery;
     this.registration = registration;
     this.ingestion = ingestion;
     this.agentAuth = agentAuth;
@@ -127,6 +131,8 @@ public class AgentController {
   void snapshot(
       @AuthenticationPrincipal AgentPrincipal agent, @Valid @RequestBody AgentSnapshotDto body) {
     snapshots.store(agent.equipmentId(), body);
+    // Services à démarrage automatique : suivis d'office (ADR 0060).
+    discovery.followAutomatic(agent.equipmentId(), body);
   }
 
   @Operation(

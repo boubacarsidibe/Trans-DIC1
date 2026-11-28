@@ -58,6 +58,9 @@ class ServiceDiscoveryApiTests {
   @Autowired private MonitoredServiceRepository services;
   @Autowired private SiteAccessRepository access;
   @Autowired private JdbcTemplate jdbc;
+  @Autowired private sn.ept.transdic1.collection.service.AgentSnapshotService snapshotService;
+  @Autowired private sn.ept.transdic1.audit.service.AuditService auditService;
+  @Autowired private sn.ept.transdic1.common.scope.SiteScope siteScope;
   @Autowired private jakarta.persistence.EntityManager em;
 
   private Equipment vm;
@@ -119,6 +122,29 @@ class ServiceDiscoveryApiTests {
             .getResponse()
             .getContentAsString();
     return JsonPath.read(body, "$.accessToken");
+  }
+
+  /** Instantané d'un agent 2.3 : tous les services, avec état et mode de démarrage. */
+  private void sendStates(String states) throws Exception {
+    mockMvc
+        .perform(
+            post("/api/v1/agent/snapshot")
+                .header("Authorization", "Bearer " + agentToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"hostname\":\"vm-web-01\",\"os\":\"Linux\",\"cpuCount\":2,"
+                        + "\"memoryTotal\":1,\"partial\":false,"
+                        + "\"processes\":{\"byCpu\":[],\"byMemory\":[]},"
+                        + "\"serviceStates\":"
+                        + states
+                        + "}"))
+        .andExpect(status().isNoContent());
+    em.flush();
+    em.clear();
+  }
+
+  private static String state(String name, boolean active, String mode) {
+    return "{\"name\":\"" + name + "\",\"active\":" + active + ",\"startMode\":\"" + mode + "\"}";
   }
 
   private void sendSnapshot(String services) throws Exception {
@@ -244,6 +270,149 @@ class ServiceDiscoveryApiTests {
     mockMvc
         .perform(get("/api/v1/agent/services-suivis").header("Authorization", "Bearer " + adminJwt))
         .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  @DisplayName(
+      "Agent 2.3 : les services à démarrage automatique vus démarrés sont suivis d'office, pas les"
+          + " autres")
+  void automaticServicesAreFollowed() throws Exception {
+    sendStates(
+        "["
+            + state("nginx", true, "AUTO")
+            + ","
+            + state("bits", true, "AUTO_DELAYED")
+            + ","
+            + state("cups", true, "MANUAL")
+            + ","
+            + state("bluetooth", false, "DISABLED")
+            + ","
+            + state("postgresql", false, "AUTO")
+            + ","
+            + state("systemd-journald", true, "AUTO")
+            + "]");
+
+    // Démarrés et automatiques : suivis. Manuel, désactivé : montrés, pas suivis. Automatique mais
+    // arrêté à la découverte : pas suivi (aucune avalanche), signalé arrêté anormalement. Exclu :
+    // ni suivi ni montré.
+    assertThat(followedByAgent()).containsExactlyInAnyOrder("nginx", "bits");
+    discovered(viewerJwt)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.exclus").value(1))
+        .andExpect(
+            jsonPath("$.services[?(@.nom == 'nginx')].statut")
+                .value(org.hamcrest.Matchers.contains("SUIVI")))
+        .andExpect(
+            jsonPath("$.services[?(@.nom == 'nginx')].suiviAutomatique")
+                .value(org.hamcrest.Matchers.contains(true)))
+        .andExpect(jsonPath("$.services[?(@.nom == 'nginx')].releveLe").isNotEmpty())
+        .andExpect(
+            jsonPath("$.services[?(@.nom == 'cups')].statut")
+                .value(org.hamcrest.Matchers.contains("NON_SUIVI")))
+        .andExpect(
+            jsonPath("$.services[?(@.nom == 'cups')].demarrage")
+                .value(org.hamcrest.Matchers.contains("MANUAL")))
+        .andExpect(
+            jsonPath("$.services[?(@.nom == 'bluetooth')].etat")
+                .value(org.hamcrest.Matchers.contains("ARRETE")))
+        .andExpect(
+            jsonPath("$.services[?(@.nom == 'postgresql')].statut")
+                .value(org.hamcrest.Matchers.contains("NON_SUIVI")))
+        .andExpect(
+            jsonPath("$.services[?(@.nom == 'postgresql')].arretAnormal")
+                .value(org.hamcrest.Matchers.contains(true)));
+    // Aucune alerte à la découverte.
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM alert WHERE equipment_id = ?", Integer.class, vm.getId()))
+        .isZero();
+    // Une seule entrée d'audit pour le lot.
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT details_sanitized FROM audit_entry WHERE action = 'AGENT_SERVICES_AUTO_FOLLOWED'"
+                    + " AND target_id = ?",
+                String.class,
+                vm.getId()))
+        .contains("nombre=2");
+
+    // postgresql démarre plus tard : il est suivi au relevé suivant.
+    sendStates("[" + state("nginx", true, "AUTO") + "," + state("postgresql", true, "AUTO") + "]");
+    assertThat(followedByAgent()).contains("postgresql");
+  }
+
+  @Test
+  @DisplayName("Ne plus suivre un service le marque ignoré : jamais resuivi d'office, réactivable")
+  void unfollowedServicesAreIgnoredUntilReactivated() throws Exception {
+    sendStates("[" + state("nginx", true, "AUTO") + "]");
+    String serviceId =
+        jdbc.queryForObject(
+                "SELECT id FROM monitored_service WHERE equipment_id = ? AND name = 'nginx'",
+                UUID.class,
+                vm.getId())
+            .toString();
+    mockMvc
+        .perform(
+            delete("/api/v1/equipements/" + vm.getId() + "/services-suivis/" + serviceId)
+                .header("Authorization", "Bearer " + adminJwt))
+        .andExpect(status().isNoContent());
+
+    sendStates("[" + state("nginx", true, "AUTO") + "]");
+    assertThat(followedByAgent()).isEmpty();
+    discovered(adminJwt)
+        .andExpect(
+            jsonPath("$.services[?(@.nom == 'nginx')].statut")
+                .value(org.hamcrest.Matchers.contains("IGNORE")));
+
+    // L'administrateur le réactive en le suivant à nouveau.
+    follow("nginx", adminJwt)
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.demarrage").value("AUTO"));
+    em.flush();
+    assertThat(followedByAgent()).containsExactly("nginx");
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM ignored_agent_service WHERE equipment_id = ?",
+                Integer.class,
+                vm.getId()))
+        .isZero();
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM audit_entry WHERE action = 'AGENT_SERVICE_REACTIVATED'",
+                Integer.class))
+        .isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("Option coupée : rien n'est suivi d'office, le mode de démarrage reste tenu à jour")
+  void automaticFollowingCanBeTurnedOff() throws Exception {
+    var off =
+        new sn.ept.transdic1.collection.service.ServiceDiscoveryService(
+            equipments,
+            services,
+            snapshotService,
+            auditService,
+            siteScope,
+            jdbc,
+            java.time.Clock.systemUTC(),
+            "",
+            false);
+    var dto =
+        new sn.ept.transdic1.collection.dto.AgentSnapshotDto(
+            "vm-web-01",
+            "Linux",
+            null,
+            null,
+            2,
+            1,
+            false,
+            null,
+            null,
+            null,
+            List.of(
+                new sn.ept.transdic1.collection.dto.AgentSnapshotDto.ServiceState(
+                    "nginx", true, "AUTO")));
+    assertThat(off.followAutomatic(vm.getId(), dto)).isEmpty();
+    assertThat(followedByAgent()).isEmpty();
   }
 
   @Test

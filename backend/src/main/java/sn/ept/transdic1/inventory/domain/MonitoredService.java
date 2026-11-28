@@ -80,6 +80,14 @@ public class MonitoredService {
   @Column(name = "consecutive_failures", nullable = false)
   private int consecutiveFailures;
 
+  /** Service suivi par l'agent : mode de démarrage vu au dernier instantané (ADR 0060). */
+  @Column(name = "start_mode", length = 16)
+  private String startMode;
+
+  /** Suivi d'office parce qu'il démarre automatiquement, et non par un administrateur. */
+  @Column(name = "auto_followed", nullable = false)
+  private boolean autoFollowed;
+
   protected MonitoredService() {}
 
   public MonitoredService(Equipment equipment, String name, ServiceType type) {
@@ -232,5 +240,26 @@ public class MonitoredService {
 
   public void setConsecutiveFailures(int consecutiveFailures) {
     this.consecutiveFailures = consecutiveFailures;
+  }
+
+  public String getStartMode() {
+    return startMode;
+  }
+
+  public void setStartMode(String startMode) {
+    this.startMode = startMode;
+  }
+
+  public boolean isAutoFollowed() {
+    return autoFollowed;
+  }
+
+  public void setAutoFollowed(boolean autoFollowed) {
+    this.autoFollowed = autoFollowed;
+  }
+
+  /** Démarrage automatique (différé compris) : arrêté, il « devrait tourner ». */
+  public boolean startsAutomatically() {
+    return "AUTO".equals(startMode) || "AUTO_DELAYED".equals(startMode);
   }
 }

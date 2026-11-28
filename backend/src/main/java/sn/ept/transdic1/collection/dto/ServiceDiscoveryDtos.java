@@ -10,8 +10,21 @@ import java.util.UUID;
 public final class ServiceDiscoveryDtos {
   private ServiceDiscoveryDtos() {}
 
-  /** Un service système actif sur la machine, suivi ou non. */
-  public record DiscoveredService(String nom, boolean suivi, UUID serviceId) {}
+  /**
+   * Un service de la machine (ADR 0060) : état (ACTIF, ARRETE, ou nul si l'agent ne le dit pas),
+   * mode de démarrage, statut de suivi (SUIVI, IGNORE, NON_SUIVI), arrêt anormal (démarrage
+   * automatique mais arrêté) et date du relevé.
+   */
+  public record DiscoveredService(
+      String nom,
+      boolean suivi,
+      UUID serviceId,
+      String etat,
+      String demarrage,
+      String statut,
+      boolean arretAnormal,
+      boolean suiviAutomatique,
+      Instant releveLe) {}
 
   /** Un port TCP en écoute. */
   public record ListeningPort(String protocole, String adresse, int port) {}

@@ -9773,6 +9773,19 @@ components:
         serviceId:
           type: string
           format: uuid
+        etat:
+          type: string
+        demarrage:
+          type: string
+        statut:
+          type: string
+        arretAnormal:
+          type: boolean
+        suiviAutomatique:
+          type: boolean
+        releveLe:
+          type: string
+          format: date-time
     Options:
       type: object
       properties:
@@ -10342,6 +10355,12 @@ components:
             $ref: "#/components/schemas/ListeningPort"
           maxItems: 200
           minItems: 0
+        serviceStates:
+          type: array
+          items:
+            $ref: "#/components/schemas/ServiceState"
+          maxItems: 300
+          minItems: 0
       required:
       - hostname
       - os
@@ -10396,6 +10415,20 @@ components:
             $ref: "#/components/schemas/ProcessLine"
           maxItems: 10
           minItems: 0
+    ServiceState:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 128
+          minLength: 0
+        active:
+          type: boolean
+        startMode:
+          type: string
+          pattern: AUTO|AUTO_DELAYED|MANUAL|DISABLED|UNKNOWN
+      required:
+      - name
     AgentMeasuresRequest:
       type: object
       properties:
