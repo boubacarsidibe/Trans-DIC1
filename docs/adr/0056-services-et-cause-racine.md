@@ -3,6 +3,7 @@
 - Statut : accepté
 - Date : 2026-11-26
 - Évolution demandée par le CRI (lot 4 : quand un site tombe, dire pourquoi, jusqu'au bout de la chaîne)
+- Complétée par l'[ADR 0060](0060-suivi-automatique-des-services.md) : tous les services avec leur mode de démarrage, suivi d'office des services à démarrage automatique, services ignorés
 - Complète l'[ADR 0024](0024-diagnostic-incident.md), l'[ADR 0045](0045-poids-du-diagnostic-appris.md), l'[ADR 0039](0039-regroupement-en-incidents.md) et l'[ADR 0055](0055-connecteur-hyperviseur.md) ; respecte l'[ADR 0018](0018-perimetre-par-site.md)
 
 ## Contexte
