@@ -116,6 +116,40 @@ describe("services découverts", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
+  it("montre état, mode de démarrage, suivi et filtre les arrêts anormaux (ADR 0060)", async () => {
+    apiClient.get.mockResolvedValue({
+      data: {
+        recuLe: "2026-11-26T10:00:00Z",
+        exclus: 0,
+        services: [
+          { nom: "nginx", suivi: true, serviceId: "m1", etat: "ACTIF", demarrage: "AUTO", statut: "SUIVI", suiviAutomatique: true, arretAnormal: false, releveLe: "2026-11-26T10:00:00Z" },
+          { nom: "postgresql", suivi: false, serviceId: null, etat: "ARRETE", demarrage: "AUTO", statut: "NON_SUIVI", arretAnormal: true, releveLe: "2026-11-26T10:00:00Z" },
+          { nom: "cups", suivi: false, serviceId: null, etat: "ACTIF", demarrage: "MANUAL", statut: "NON_SUIVI", arretAnormal: false, releveLe: "2026-11-26T10:00:00Z" },
+          { nom: "bluetooth", suivi: false, serviceId: null, etat: "ARRETE", demarrage: "AUTO_DELAYED", statut: "IGNORE", arretAnormal: true, releveLe: "2026-11-26T10:00:00Z" },
+        ],
+        ports: [],
+      },
+    });
+    apiClient.post.mockResolvedValue({ data: {} });
+    const user = userEvent.setup();
+    render(<DiscoveredServices equipmentId="e1" canManage />);
+
+    expect(await screen.findByText("Suivi d'office")).toBeInTheDocument();
+    expect(screen.getByText("2 arrêté(s) anormalement")).toBeInTheDocument();
+    expect(screen.getByText("Manuel")).toBeInTheDocument();
+    expect(screen.getByText("Ignoré")).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText("Afficher"), "abnormal");
+    expect(screen.queryByText("cups")).not.toBeInTheDocument();
+    expect(screen.getByText("postgresql")).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText("Afficher"), "followed");
+    expect(screen.getByText("nginx")).toBeInTheDocument();
+    expect(screen.queryByText("postgresql")).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText("Afficher"), "all");
+    // Un service ignoré se réactive en le suivant à nouveau.
+    await user.click(screen.getByRole("button", { name: "Réactiver bluetooth" }));
+    expect(apiClient.post).toHaveBeenCalledWith("/equipements/e1/services-suivis", { nom: "bluetooth" });
+  });
+
   it("reste silencieux sans inventaire", async () => {
     apiClient.get.mockRejectedValue({ response: { status: 404 } });
     const { container } = render(<DiscoveredServices equipmentId="e1" canManage />);
