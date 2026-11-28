@@ -30,7 +30,10 @@ public record AlertResponse(
             description =
                 "Depuis quand l'alerte est tenue pour instable (ouvertures répétées) : elle reste"
                     + " visible mais ne notifie plus. Nulle si l'alerte est normale.")
-        Instant flappingSince) {
+        Instant flappingSince,
+    @io.swagger.v3.oas.annotations.media.Schema(
+            description = "Niveau de support courant (1 à 3, ADR 0059) ; nul si aucun.")
+        Integer currentLevel) {
 
   /** {@code assignee} reste le premier assigné, pour les clients qui n'en affichent qu'un. */
   public static AlertResponse from(Alert alert, java.util.List<String> assignees) {
@@ -52,6 +55,7 @@ public record AlertResponse(
         alert.getCorrelationReason(),
         alert.getMetricInstance(),
         alert.getContext(),
-        alert.getFlappingSince());
+        alert.getFlappingSince(),
+        alert.getCurrentLevel());
   }
 }

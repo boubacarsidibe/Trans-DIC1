@@ -12,7 +12,11 @@ public record AlertEventResponse(
     AlertState newState,
     String author,
     String comment,
-    Instant occurredAt) {
+    Instant occurredAt,
+    Integer fromLevel,
+    Integer toLevel,
+    java.util.List<String> checklist,
+    String recipients) {
 
   public static AlertEventResponse from(AlertEvent event) {
     return new AlertEventResponse(
@@ -21,6 +25,12 @@ public record AlertEventResponse(
         event.getNewState(),
         event.getAuthor() == null ? null : event.getAuthor().getUsername(),
         event.getComment(),
-        event.getOccurredAt());
+        event.getOccurredAt(),
+        event.getFromLevel(),
+        event.getToLevel(),
+        event.getChecklist() == null || event.getChecklist().isBlank()
+            ? java.util.List.of()
+            : java.util.List.of(event.getChecklist().split(",")),
+        event.getRecipients());
   }
 }

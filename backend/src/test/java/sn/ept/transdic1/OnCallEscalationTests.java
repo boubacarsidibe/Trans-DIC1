@@ -207,21 +207,27 @@ class OnCallEscalationTests {
   }
 
   @Test
-  void unPrincipalSansCanalEstSignaleEtLeSecondaireEstPrevenuSansAttendre() {
+  void unPrincipalSansPreferenceEstPrevenuParEMail() {
+    // ADR 0059 : la personne d'astreinte est prévenue même sans avoir réglé « Mes notifications ».
     preferences.delete(preferences.findByUserId(primary.getId()).orElseThrow());
     preferences.flush();
     Alert alert = alert(Severity.WARNING, AlertState.OPEN, 0);
 
     chain.startChain(alert.getId(), now);
 
-    assertThat(onCallNotifications(alert, primary)).isZero();
-    assertThat(comments(alert))
-        .anyMatch(c -> c.startsWith("Astreinte sans canal : oc-prim-" + suffix));
+    assertThat(onCallNotifications(alert, primary)).isEqualTo(1);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT channel FROM notification WHERE alert_id = ? AND user_id = ?",
+                String.class,
+                alert.getId(),
+                primary.getId()))
+        .isEqualTo("EMAIL");
     assertThat(steps.findByAlertIdOrderByOccurredAtAsc(alert.getId()))
         .extracting(s -> s.getOutcome())
-        .containsExactly(OnCallOutcome.NO_CHANNEL, OnCallOutcome.NOTIFIED);
-    // Le secondaire n'a pas attendu le délai.
-    assertThat(onCallNotifications(alert, secondary)).isEqualTo(1);
+        .containsExactly(OnCallOutcome.NOTIFIED);
+    // Le secondaire attend le délai, comme pour un principal joignable.
+    assertThat(onCallNotifications(alert, secondary)).isZero();
   }
 
   @Test
@@ -283,7 +289,7 @@ class OnCallEscalationTests {
   }
 
   @Test
-  void leRappelVaAuSecondaireSiLePrincipalNaAucunCanal() {
+  void leRappelVaAuPrincipalSansPreferenceParEMail() {
     preferences.delete(preferences.findByUserId(primary.getId()).orElseThrow());
     Alert alert = alert(Severity.WARNING, AlertState.OPEN, 0);
 
@@ -293,7 +299,8 @@ class OnCallEscalationTests {
                 now))
         .isTrue();
 
-    assertThat(onCallNotifications(alert, secondary)).isEqualTo(1);
+    assertThat(onCallNotifications(alert, primary)).isEqualTo(1);
+    assertThat(onCallNotifications(alert, secondary)).isZero();
   }
 
   @Test

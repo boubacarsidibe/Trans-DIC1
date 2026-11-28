@@ -31,6 +31,11 @@ public class AccountService {
   }
 
   @Transactional(readOnly = true)
+  /** Niveau de support du compte (ADR 0059), pour le badge en haut de l'écran. */
+  public Integer supportLevel(String username) {
+    return users.findByUsername(username).map(u -> u.getSupportLevel()).orElse(null);
+  }
+
   public Optional<AccountStatus> status(String username) {
     return users
         .findByUsername(username)

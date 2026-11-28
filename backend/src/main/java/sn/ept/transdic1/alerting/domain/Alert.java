@@ -84,6 +84,10 @@ public class Alert {
   @Column(name = "flapping_since")
   private Instant flappingSince;
 
+  /** Niveau de support courant (1 à 3, ADR 0059) ; nul tant que personne ne l'a fixé. */
+  @Column(name = "current_level")
+  private Integer currentLevel;
+
   /** Disque ou carte concernés, pour une mesure à instance ; null sinon. */
   @Column(name = "metric_instance", length = 64)
   private String metricInstance;
@@ -134,6 +138,14 @@ public class Alert {
 
   public Instant getFlappingSince() {
     return flappingSince;
+  }
+
+  public Integer getCurrentLevel() {
+    return currentLevel;
+  }
+
+  public void setCurrentLevel(Integer currentLevel) {
+    this.currentLevel = currentLevel;
   }
 
   public void setFlappingSince(Instant flappingSince) {

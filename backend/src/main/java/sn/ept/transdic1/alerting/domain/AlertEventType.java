@@ -12,5 +12,15 @@ public enum AlertEventType {
   ARCHIVED,
   DELETED,
   ESCALATED,
-  CORRELATED
+  CORRELATED,
+  /** Note datée et signée du journal d'intervention (ADR 0059). */
+  NOTE,
+  /** Escalade manuelle au niveau supérieur, avec cases cochées, phrase et destinataires. */
+  LEVEL_ESCALATED,
+  /** Renvoi au niveau inférieur, avec une consigne. */
+  SENT_BACK,
+  /** Entrées automatiques du journal : diagnostic consulté, cause confirmée, action corrective. */
+  DIAGNOSTIC_VIEWED,
+  CAUSE_CONFIRMED,
+  REMEDIATION
 }

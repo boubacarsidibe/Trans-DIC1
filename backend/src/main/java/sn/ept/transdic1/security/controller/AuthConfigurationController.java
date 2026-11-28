@@ -19,16 +19,19 @@ public class AuthConfigurationController {
   public record Oidc(boolean enabled, String issuer, String clientId, String scopes) {}
 
   /** L'utilisateur connecté, tel que l'application le voit (rôle déjà converti). */
-  public record Me(String username, String role) {}
+  public record Me(String username, String role, Integer supportLevel) {}
 
   private final Configuration configuration;
+  private final sn.ept.transdic1.security.service.AccountService accounts;
 
   public AuthConfigurationController(
+      sn.ept.transdic1.security.service.AccountService accounts,
       @Value("${auth.local.enabled:true}") boolean localLogin,
       @Value("${auth.oidc.enabled:false}") boolean oidcEnabled,
       @Value("${auth.oidc.issuer-uri:}") String issuer,
       @Value("${auth.oidc.client-id:trans-dic1-web}") String clientId,
       @Value("${auth.oidc.scopes:openid profile email}") String scopes) {
+    this.accounts = accounts;
     this.configuration =
         new Configuration(
             localLogin,
@@ -55,6 +58,6 @@ public class AuthConfigurationController {
             .map(a -> a.getAuthority().replaceFirst("^ROLE_", ""))
             .findFirst()
             .orElse("VIEWER");
-    return new Me(authentication.getName(), role);
+    return new Me(authentication.getName(), role, accounts.supportLevel(authentication.getName()));
   }
 }

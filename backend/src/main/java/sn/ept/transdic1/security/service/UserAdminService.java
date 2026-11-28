@@ -86,6 +86,9 @@ public class UserAdminService {
     }
     Role previous = user.getRole();
     user.changeRole(role);
+    if (role != Role.NOC_OPERATOR) {
+      user.setSupportLevel(null);
+    }
     users.save(user);
     revokeSessions(user);
     audit.recordAdminAction(
@@ -93,6 +96,31 @@ public class UserAdminService {
         actor,
         id,
         "compte=" + user.getUsername() + " " + previous + " -> " + role);
+    return UserResponse.from(user);
+  }
+
+  /** Niveau de support d'un opérateur NOC (ADR 0059) ; tracé dans l'audit. */
+  @Transactional
+  public UserResponse setSupportLevel(UUID id, Integer level, String actor) {
+    var user = find(id);
+    if (level != null && user.getRole() != Role.NOC_OPERATOR) {
+      throw new org.springframework.web.server.ResponseStatusException(
+          org.springframework.http.HttpStatus.BAD_REQUEST,
+          "Seul un opérateur NOC a un niveau de support.");
+    }
+    Integer previous = user.getSupportLevel();
+    user.setSupportLevel(level);
+    users.save(user);
+    audit.recordAdminAction(
+        "USER_SUPPORT_LEVEL_CHANGED",
+        actor,
+        id,
+        "compte="
+            + user.getUsername()
+            + " "
+            + (previous == null ? "aucun" : "N" + previous)
+            + " -> "
+            + (level == null ? "aucun" : "N" + level));
     return UserResponse.from(user);
   }
 

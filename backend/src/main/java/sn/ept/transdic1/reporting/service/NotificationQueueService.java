@@ -148,6 +148,61 @@ public class NotificationQueueService {
         "oncall:" + alertId + ":REMINDER:" + factKey + ":" + userId);
   }
 
+  /**
+   * Changement de niveau d'une alerte (ADR 0059) : chaque destinataire est prévenu sur son canal
+   * (sa préférence active, sinon son e-mail), avec le modèle d'astreinte et un préfixe qui dit ce
+   * qui arrive (« [Escalade vers N2] »). Clé d'idempotence par ligne de la chronologie, personne et
+   * canal. Retourne les noms des personnes prévenues.
+   */
+  @Transactional
+  public List<String> queueLevelNotice(
+      UUID eventId, UUID alertId, java.util.Collection<UUID> userIds, String subjectPrefix) {
+    Alert alert = alerts.findById(alertId).orElse(null);
+    if (alert == null) {
+      return List.of();
+    }
+    String subject = subjectPrefix + renderer.render(ONCALL_KIND, alert).subject();
+    if (subject.length() > 255) {
+      subject = subject.substring(0, 255);
+    }
+    List<String> notified = new java.util.ArrayList<>();
+    for (UUID userId : userIds) {
+      AppUser user = users.findById(userId).orElse(null);
+      if (user == null || !user.isActive() || !scope.allowsUser(user.getId(), siteOf(alert))) {
+        continue;
+      }
+      var channel = channelOf(user);
+      if (channel == null) {
+        continue;
+      }
+      add(eventId, ONCALL_KIND, alert, subject, user, channel.getKey(), channel.getValue());
+      notified.add(user.getUsername());
+    }
+    return notified;
+  }
+
+  /**
+   * Canal d'une personne : sa préférence active, sinon son e-mail. Être d'astreinte ou destinataire
+   * d'une escalade, c'est devoir être prévenu, même sans avoir réglé « Mes notifications ».
+   */
+  private java.util.Map.Entry<NotificationChannel, String> channelOf(AppUser user) {
+    var preference =
+        preferences.findByUserId(user.getId()).filter(NotificationPreference::isActive);
+    if (preference.isPresent()) {
+      NotificationChannel channel = preference.get().getChannel();
+      String destination =
+          channel == NotificationChannel.EMAIL
+              ? user.getEmail()
+              : preference.get().getDestination();
+      if (destination != null && !destination.isBlank()) {
+        return java.util.Map.entry(channel, destination);
+      }
+    }
+    return user.getEmail() == null || user.getEmail().isBlank()
+        ? null
+        : java.util.Map.entry(NotificationChannel.EMAIL, user.getEmail());
+  }
+
   private OnCallDelivery queueToOnCall(
       UUID alertId, UUID userId, String subjectPrefix, String dedupKey) {
     Alert alert = alerts.findById(alertId).orElseThrow();
@@ -155,13 +210,13 @@ public class NotificationQueueService {
     if (!scope.allowsUser(user.getId(), siteOf(alert))) {
       return OnCallDelivery.OUT_OF_SCOPE;
     }
-    var preference = preferences.findByUserId(userId).filter(NotificationPreference::isActive);
-    if (preference.isEmpty()) {
+    // La personne d'astreinte est prévenue même sans préférence (ADR 0059) : par e-mail.
+    var found = channelOf(user);
+    if (found == null) {
       return OnCallDelivery.NO_CHANNEL;
     }
-    NotificationChannel channel = preference.get().getChannel();
-    String destination =
-        channel == NotificationChannel.EMAIL ? user.getEmail() : preference.get().getDestination();
+    NotificationChannel channel = found.getKey();
+    String destination = found.getValue();
     if (destination == null || destination.isBlank()) {
       return OnCallDelivery.NO_CHANNEL;
     }

@@ -50,6 +50,18 @@ public class AppUser {
   @Column(name = "password_change_required", nullable = false)
   private boolean passwordChangeRequired;
 
+  /** Niveau de support d'un opérateur NOC (1 à 3, ADR 0059), facultatif. */
+  @Column(name = "support_level")
+  private Integer supportLevel;
+
+  public Integer getSupportLevel() {
+    return supportLevel;
+  }
+
+  public void setSupportLevel(Integer supportLevel) {
+    this.supportLevel = supportLevel;
+  }
+
   protected AppUser() {}
 
   /** Secret partagé de la double authentification ; nul tant qu'elle n'a jamais été préparée. */

@@ -39,6 +39,21 @@ public class AlertEvent {
   @Column(name = "occurred_at", nullable = false)
   private Instant occurredAt;
 
+  /** Escalade ou renvoi (ADR 0059) : niveau de départ et d'arrivée. */
+  @Column(name = "from_level")
+  private Integer fromLevel;
+
+  @Column(name = "to_level")
+  private Integer toLevel;
+
+  /** Cases cochées de l'escalade, par leur code, séparées par des virgules. */
+  @Column(name = "checklist", length = 300)
+  private String checklist;
+
+  /** Destinataires prévenus, par leur nom de compte. */
+  @Column(name = "recipients", length = 1000)
+  private String recipients;
+
   protected AlertEvent() {}
 
   public AlertEvent(Alert alert, AlertEventType type, Instant occurredAt) {
@@ -94,6 +109,38 @@ public class AlertEvent {
 
   public void setComment(String comment) {
     this.comment = comment;
+  }
+
+  public Integer getFromLevel() {
+    return fromLevel;
+  }
+
+  public void setFromLevel(Integer fromLevel) {
+    this.fromLevel = fromLevel;
+  }
+
+  public Integer getToLevel() {
+    return toLevel;
+  }
+
+  public void setToLevel(Integer toLevel) {
+    this.toLevel = toLevel;
+  }
+
+  public String getChecklist() {
+    return checklist;
+  }
+
+  public void setChecklist(String checklist) {
+    this.checklist = checklist;
+  }
+
+  public String getRecipients() {
+    return recipients;
+  }
+
+  public void setRecipients(String recipients) {
+    this.recipients = recipients;
   }
 
   public Instant getOccurredAt() {

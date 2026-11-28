@@ -7,7 +7,13 @@ import sn.ept.transdic1.security.domain.Role;
 
 /** Un compte utilisateur, sans jamais son mot de passe ni son empreinte. */
 public record UserResponse(
-    UUID id, String username, String email, Role role, boolean active, Instant createdAt) {
+    UUID id,
+    String username,
+    String email,
+    Role role,
+    boolean active,
+    Instant createdAt,
+    Integer supportLevel) {
 
   public static UserResponse from(AppUser user) {
     return new UserResponse(
@@ -16,6 +22,7 @@ public record UserResponse(
         user.getEmail(),
         user.getRole(),
         user.isActive(),
-        user.getCreatedAt());
+        user.getCreatedAt(),
+        user.getSupportLevel());
   }
 }

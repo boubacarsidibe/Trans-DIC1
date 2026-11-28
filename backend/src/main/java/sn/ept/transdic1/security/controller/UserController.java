@@ -73,6 +73,24 @@ public class UserController {
   }
 
   @Operation(
+      summary = "Fixer le niveau de support d'un opérateur",
+      description =
+          "N1, N2 ou N3 (ADR 0059), ou vide pour le retirer. Réservé aux opérateurs NOC : un"
+              + " administrateur agit à tous les niveaux, un lecteur à aucun.")
+  @ApiResponse(
+      responseCode = "400",
+      description = "Niveau invalide ou compte non opérateur",
+      content = @Content)
+  @ApiResponse(responseCode = "404", description = "Utilisateur introuvable", content = @Content)
+  @PostMapping("/{id}/niveau")
+  public UserResponse setSupportLevel(
+      @PathVariable UUID id,
+      @Valid @RequestBody sn.ept.transdic1.security.dto.SupportLevelRequest request,
+      Authentication authentication) {
+    return service.setSupportLevel(id, request.level(), authentication.getName());
+  }
+
+  @Operation(
       summary = "Activer ou désactiver un compte",
       description =
           "Désactiver révoque les connexions. Refusé sur soi-même ou sur le dernier administrateur.")

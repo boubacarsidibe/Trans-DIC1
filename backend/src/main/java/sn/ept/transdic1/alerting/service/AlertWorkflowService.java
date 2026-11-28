@@ -122,6 +122,12 @@ public class AlertWorkflowService {
     Alert alert = find(id);
     requireState(alert, "prendre en charge", AlertState.OPEN);
     AppUser user = user(username);
+    // Niveaux de support (ADR 0059) : son niveau ou un niveau inférieur. Sans niveau fixé (pas
+    // d'astreinte prévenue), l'alerte prend celui de l'opérateur qui la prend.
+    AlertLevelService.requireCanTake(user, alert);
+    if (alert.getCurrentLevel() == null && user.getSupportLevel() != null) {
+      alert.setCurrentLevel(user.getSupportLevel());
+    }
     startAssignment(alert, user);
     transition(alert, AlertState.IN_PROGRESS, AlertEventType.TAKEN, user, comment);
     audit.record("ALERT_TAKEN", "ALERT", id, "par=" + username);
