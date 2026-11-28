@@ -206,10 +206,26 @@ class LinuxFamiliesTests(unittest.TestCase):
         self.assertEqual(by_key(self.families.network(AT))["net.up[eth0]"]["value"], 0)
 
     def test_service_verifie_sans_shell(self):
-        run = mock.Mock(return_value=mock.Mock(returncode=3))
+        run = mock.Mock(return_value=mock.Mock(returncode=3, stdout=""))
         families = linux.LinuxFamilies(self.root, self.sys_root, services=("nginx",), run=run)
         self.assertEqual(by_key(families.service_states(AT))["service.up[nginx]"]["value"], 0)
         self.assertEqual(run.call_args[0][0], ["systemctl", "is-active", "--quiet", "nginx"])
+
+    def test_services_lus_par_paquets_en_une_seule_commande(self):
+        names = ["svc%d" % i for i in range(60)]
+        outputs = [
+            mock.Mock(returncode=3, stdout="\n".join("active" if i % 2 == 0 else "inactive" for i in range(50))),
+            mock.Mock(returncode=0, stdout="\n".join(["active"] * 10)),
+        ]
+        run = mock.Mock(side_effect=outputs)
+        families = linux.LinuxFamilies(self.root, self.sys_root, services=tuple(names), run=run)
+        result = by_key(families.service_states(AT))
+        self.assertEqual(run.call_count, 2)
+        self.assertEqual(run.call_args_list[0][0][0][:2], ["systemctl", "is-active"])
+        self.assertEqual(len(run.call_args_list[0][0][0]), 52)
+        self.assertEqual(result["service.up[svc0]"]["value"], 1)
+        self.assertEqual(result["service.up[svc1]"]["value"], 0)
+        self.assertEqual(result["service.up[svc59]"]["value"], 1)
 
 
 class FakeWindows:

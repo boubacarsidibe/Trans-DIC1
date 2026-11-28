@@ -16,6 +16,9 @@ LOG = logging.getLogger("trans-dic1-agent")
 MAX_KEY = 64
 MAX_INSTANCES = 32
 SERVICE_NAME = re.compile(r"^[A-Za-z0-9_.@-]{1,64}$")
+# Services suivis depuis la plateforme (ADR 0056) : les services à démarrage automatique sont suivis
+# d'office (ADR 0060), une centaine sur un Windows ordinaire.
+MAX_FOLLOWED = 200
 
 
 def value(key, number, unit, at, quality="GOOD"):

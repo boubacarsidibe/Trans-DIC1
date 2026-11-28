@@ -79,6 +79,69 @@ class LinuxDiscoveryTests(unittest.TestCase):
         self.assertEqual(discovery.linux_listening_ports(os.path.join(root, "absent")), [])
 
 
+UNIT_FILES = """nginx.service                 enabled         enabled
+postgresql.service            enabled         enabled
+cups.service                  disabled        enabled
+apt-daily.service             static          -
+bluetooth.service             masked          enabled
+getty@.service                enabled         enabled
+dbus-org.freedesktop.service  alias           -
+"""
+
+UNITS = """nginx.service loaded active running A high performance web server
+postgresql.service loaded inactive dead PostgreSQL RDBMS
+cups.service loaded active running CUPS Scheduler
+getty@tty1.service loaded active running Getty on tty1
+bizarre nom.service loaded active running nom invalide
+"""
+
+
+def scripted_run(outputs, code=0):
+    def run(command, **kwargs):
+        run.commands.append(command)
+        run.kwargs = kwargs
+        return SimpleNamespace(returncode=code, stdout=outputs[command[1]])
+
+    run.commands = []
+    return run
+
+
+class LinuxServiceStatesTests(unittest.TestCase):
+    def test_tous_les_services_avec_etat_et_mode_de_demarrage(self):
+        run = scripted_run({"list-unit-files": UNIT_FILES, "list-units": UNITS})
+        states = discovery.linux_service_states(run)
+        self.assertEqual(
+            states,
+            [
+                {"name": "apt-daily", "active": False, "startMode": "MANUAL"},
+                {"name": "bluetooth", "active": False, "startMode": "DISABLED"},
+                {"name": "cups", "active": True, "startMode": "MANUAL"},
+                {"name": "getty@tty1", "active": True, "startMode": "UNKNOWN"},
+                {"name": "nginx", "active": True, "startMode": "AUTO"},
+                {"name": "postgresql", "active": False, "startMode": "AUTO"},
+            ],
+        )
+        # Lecture seule, sans shell : deux appels à systemctl, arguments en liste.
+        self.assertEqual([c[:2] for c in run.commands], [["systemctl", "list-unit-files"], ["systemctl", "list-units"]])
+        self.assertIn("--all", run.commands[1])
+        self.assertNotIn("shell", run.kwargs)
+
+    def test_echec_de_systemctl(self):
+        with self.assertRaises(OSError):
+            discovery.linux_service_states(scripted_run({"list-unit-files": "", "list-units": ""}, code=1))
+
+    def test_la_limite_garde_d_abord_l_automatique_puis_ce_qui_tourne(self):
+        states = [{"name": "m%03d" % i, "active": False, "startMode": "MANUAL"} for i in range(400)]
+        states.append({"name": "zz-auto", "active": False, "startMode": "AUTO"})
+        states.append({"name": "zz-actif", "active": True, "startMode": "MANUAL"})
+        kept = discovery._keep_states(states)
+        self.assertEqual(len(kept), discovery.MAX_SERVICES)
+        names = [s["name"] for s in kept]
+        self.assertIn("zz-auto", names)
+        self.assertIn("zz-actif", names)
+        self.assertEqual(names, sorted(names))
+
+
 def v4_row(state, address, port):
     return struct.pack("<IIIIII", state, struct.unpack("<I", socket.inet_aton(address))[0], socket.htons(port), 0, 0, 4)
 
@@ -108,6 +171,28 @@ class WindowsDiscoveryTests(unittest.TestCase):
         self.assertEqual(discovery.windows_services(api), ["Spooler", "W32Time"])
         self.assertEqual(discovery.windows_listening_ports(api), [{"protocol": "tcp", "address": "0.0.0.0", "port": 3389}])
 
+    def test_tous_les_services_windows_avec_leur_mode_de_demarrage(self):
+        api = SimpleNamespace(
+            all_services=lambda: [
+                ("Spooler", True, 2, False),
+                ("BITS", True, 2, True),
+                ("W32Time", False, 3, False),
+                ("RemoteRegistry", False, 4, False),
+                ("Illisible", False, None, False),
+                ("Nom avec espace", True, 2, False),
+            ]
+        )
+        self.assertEqual(
+            discovery.windows_service_states(api),
+            [
+                {"name": "BITS", "active": True, "startMode": "AUTO_DELAYED"},
+                {"name": "Illisible", "active": False, "startMode": "UNKNOWN"},
+                {"name": "RemoteRegistry", "active": False, "startMode": "DISABLED"},
+                {"name": "Spooler", "active": True, "startMode": "AUTO"},
+                {"name": "W32Time", "active": False, "startMode": "MANUAL"},
+            ],
+        )
+
     @unittest.skipUnless(sys.platform == "win32", "API Win32 réelle : Windows seulement")
     def test_vraie_decouverte_windows(self):  # pragma: no cover - dépend de la machine
         from trans_dic1_agent.collectors.windows import Win32Extended
@@ -115,6 +200,8 @@ class WindowsDiscoveryTests(unittest.TestCase):
         api = Win32Extended()
         self.assertTrue(discovery.windows_services(api))
         self.assertIsInstance(discovery.windows_listening_ports(api), list)
+        states = discovery.windows_service_states(api)
+        self.assertTrue(any(s["startMode"] in ("AUTO", "AUTO_DELAYED") for s in states))
 
 
 class DescribeAndFollowTests(unittest.TestCase):
@@ -127,6 +214,26 @@ class DescribeAndFollowTests(unittest.TestCase):
 
         self.assertEqual(discovery.describe(timeout, lambda: [1]), {"listeningPorts": [1]})
         self.assertEqual(discovery.describe(lambda: ["a"], broken), {"services": ["a"]})
+
+    def test_les_etats_donnent_aussi_la_liste_des_services_demarres(self):
+        states = [
+            {"name": "nginx", "active": True, "startMode": "AUTO"},
+            {"name": "cups", "active": False, "startMode": "MANUAL"},
+        ]
+
+        def never():
+            raise AssertionError("seconde lecture du système")
+
+        self.assertEqual(
+            discovery.describe(never, lambda: [], lambda: states),
+            {"serviceStates": states, "services": ["nginx"], "listeningPorts": []},
+        )
+
+    def test_etats_illisibles_la_liste_simple_reste_envoyee(self):
+        def broken():
+            raise OSError("refusé")
+
+        self.assertEqual(discovery.describe(lambda: ["a"], lambda: [], broken), {"services": ["a"], "listeningPorts": []})
 
     def test_tri_et_doublons(self):
         ports = [
@@ -145,8 +252,8 @@ class DescribeAndFollowTests(unittest.TestCase):
         self.assertEqual(families.services, ("ssh", "nginx", "postgresql"))
         families.follow([])
         self.assertEqual(families.services, ("ssh",))
-        families.follow(["svc%d" % i for i in range(80)])
-        self.assertEqual(len(families.services), 51)
+        families.follow(["svc%d" % i for i in range(300)])
+        self.assertEqual(len(families.services), 201)
 
     def test_suivi_sous_windows(self):
         from trans_dic1_agent.collectors.windows import WindowsFamilies

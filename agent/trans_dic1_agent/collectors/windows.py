@@ -17,6 +17,7 @@ from ..metrics_windows import WindowsCollector
 from .common import (
     MAX_INSTANCES,
     ActiveLinks,
+    MAX_FOLLOWED,
     SERVICE_NAME,
     FullCollector,
     Rates,
@@ -197,6 +198,53 @@ class Win32Extended:  # pragma: no cover - appels système, exercés par les tes
 
     def running_services(self):
         """Noms des services Win32 démarrés (EnumServicesStatusExW)."""
+        return [name for name, _ in self._enumerate_services(0x1)]
+
+    def all_services(self):
+        """Tous les services Win32 : (nom, démarré, dwStartType, automatique différé).
+
+        EnumServicesStatusExW (SERVICE_STATE_ALL) donne l'état ; QueryServiceConfigW le mode de
+        démarrage et QueryServiceConfig2W (SERVICE_CONFIG_DELAYED_AUTO_START_INFO) le différé. Un
+        service dont la configuration est illisible garde un mode inconnu (None)."""
+        wintypes = self._wintypes
+        query = self.advapi32.QueryServiceConfigW
+        query.restype = wintypes.BOOL
+        query.argtypes = [ctypes.c_void_p, ctypes.c_void_p, wintypes.DWORD, ctypes.POINTER(wintypes.DWORD)]
+        query2 = self.advapi32.QueryServiceConfig2W
+        query2.restype = wintypes.BOOL
+        query2.argtypes = [
+            ctypes.c_void_p, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD, ctypes.POINTER(wintypes.DWORD),
+        ]
+        services = self._enumerate_services(0x3)
+        manager = self.advapi32.OpenSCManagerW(None, None, 0x0001)
+        if not manager:
+            raise OSError("gestionnaire de services inaccessible")
+        found = []
+        try:
+            for name, state in services:
+                start_type, delayed = None, False
+                handle = self.advapi32.OpenServiceW(manager, name, 0x0001)  # SERVICE_QUERY_CONFIG
+                if handle:
+                    try:
+                        needed = wintypes.DWORD(0)
+                        query(handle, None, 0, ctypes.byref(needed))
+                        if needed.value:
+                            buffer = ctypes.create_string_buffer(needed.value)
+                            if query(handle, buffer, needed.value, ctypes.byref(needed)):
+                                # QUERY_SERVICE_CONFIGW : dwServiceType puis dwStartType.
+                                start_type = ctypes.cast(buffer, ctypes.POINTER(wintypes.DWORD))[1]
+                        flag = wintypes.BOOL(0)
+                        if query2(handle, 3, ctypes.byref(flag), ctypes.sizeof(flag), ctypes.byref(needed)):
+                            delayed = bool(flag.value)
+                    finally:
+                        self.advapi32.CloseServiceHandle(handle)
+                found.append((name, state == SERVICE_RUNNING, start_type, delayed))
+        finally:
+            self.advapi32.CloseServiceHandle(manager)
+        return found
+
+    def _enumerate_services(self, state_filter):
+        """(nom, état courant) des services Win32 ; state_filter 0x1 démarrés, 0x3 tous."""
         wintypes = self._wintypes
 
         class Status(ctypes.Structure):
@@ -223,17 +271,20 @@ class Win32Extended:  # pragma: no cover - appels système, exercés par les tes
             raise OSError("gestionnaire de services inaccessible")
         try:
             needed, returned, resume = wintypes.DWORD(0), wintypes.DWORD(0), wintypes.DWORD(0)
-            enum(manager, 0, 0x30, 0x1, None, 0, ctypes.byref(needed), ctypes.byref(returned), ctypes.byref(resume), None)
+            enum(
+                manager, 0, 0x30, state_filter, None, 0,
+                ctypes.byref(needed), ctypes.byref(returned), ctypes.byref(resume), None,
+            )
             size = needed.value + 4096
             buffer = ctypes.create_string_buffer(size)
             names = []
             for _ in range(32):
                 done = enum(
-                    manager, 0, 0x30, 0x1, buffer, size,
+                    manager, 0, 0x30, state_filter, buffer, size,
                     ctypes.byref(needed), ctypes.byref(returned), ctypes.byref(resume), None,
                 )
                 entries = ctypes.cast(buffer, ctypes.POINTER(Entry))
-                names.extend(entries[i].name for i in range(returned.value))
+                names.extend((entries[i].name, entries[i].status.current_state) for i in range(returned.value))
                 if done:
                     break
                 if ctypes.get_last_error() != 234:  # ERROR_MORE_DATA
@@ -383,7 +434,7 @@ class WindowsFamilies:
 
     def follow(self, names):
         """Services suivis depuis la plateforme (ADR 0056), en plus de ceux de la configuration."""
-        extra = [n for n in names if SERVICE_NAME.match(n)][:50]
+        extra = [n for n in names if SERVICE_NAME.match(n)][:MAX_FOLLOWED]
         self.services = tuple(dict.fromkeys(list(self.configured) + extra))
 
     def service_states(self, at):
@@ -421,6 +472,7 @@ class WindowsFamilies:
             discovery.describe(
                 lambda: discovery.windows_services(self.api),
                 lambda: discovery.windows_listening_ports(self.api),
+                lambda: discovery.windows_service_states(self.api),
             )
         )
         return snapshot

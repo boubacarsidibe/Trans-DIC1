@@ -229,6 +229,20 @@ Quand un administrateur clique sur « Suivre » dans la fiche de l'équipement, 
 
 Le compte de l'agent n'a besoin d'aucun droit supplémentaire : la liste des services et la table des ports sont lisibles par tout compte. Les ports sont listés sans le processus qui écoute.
 
+### Tous les services, avec leur mode de démarrage (agent 2.3, ADR 0060)
+
+Depuis l'agent 2.3, l'instantané contient aussi `serviceStates` : **tous** les services de la machine, démarrés ou non, avec leur **mode de démarrage**. La liste `services` (services démarrés) reste envoyée pour une plateforme plus ancienne.
+
+| Système | Lecture | Modes |
+| --- | --- | --- |
+| Linux | `systemctl list-unit-files --type=service` croisé avec `systemctl list-units --type=service --all` | `enabled` → automatique ; `disabled`, `static`, `indirect`, `generated` → manuel ; `masked` → désactivé ; instance d'un modèle (`getty@tty1`) → inconnu |
+| Windows | `EnumServicesStatusExW` (tous les états), `QueryServiceConfigW` et `QueryServiceConfig2W` (ctypes) | automatique, automatique différé, manuel, désactivé ; configuration illisible → inconnu |
+
+Les limites ne changent pas : 300 services au plus (si la limite coupe, l'agent garde d'abord ceux qui démarrent automatiquement, puis ceux qui tournent), noms au même motif que `services`. Une lecture qui échoue est simplement absente de l'instantané. Rien n'est exécuté d'autre que ces lectures, sans shell, et aucune commande ne vient de la plateforme.
+
+La plateforme suit d'office les services à démarrage automatique (ADR 0060) : l'agent accepte désormais jusqu'à **200** services suivis (50 avant), et sous Linux il lit leur état en une seule commande `systemctl is-active` par paquet de 50 noms, au lieu d'un processus par service.
+
+
 ## Configuration
 
 Le fichier `/etc/trans-dic1-agent/agent.conf` est commenté (modèle : `agent/packaging/agent.conf.example`). Chaque valeur peut être remplacée par une variable `TRANS_DIC1_AGENT_<NOM>`.

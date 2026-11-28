@@ -10,6 +10,7 @@ from ..metrics import Collector
 from .common import (
     MAX_INSTANCES,
     ActiveLinks,
+    MAX_FOLLOWED,
     SERVICE_NAME,
     FullCollector,
     Rates,
@@ -163,16 +164,27 @@ class LinuxFamilies:
 
     def follow(self, names):
         """Services suivis depuis la plateforme (ADR 0056), en plus de ceux de la configuration."""
-        extra = [n for n in names if SERVICE_NAME.match(n)][:50]
+        extra = [n for n in names if SERVICE_NAME.match(n)][:MAX_FOLLOWED]
         self.services = tuple(dict.fromkeys(list(self.configured) + extra))
 
     def service_states(self, at):
+        """État de chaque service suivi : un seul « systemctl is-active » par paquet de 50 noms (une
+        ligne par service, dans l'ordre), plutôt qu'un processus par service. Si la réponse n'a pas
+        une ligne par nom, on revient à une question par service."""
+        names = [n for n in self.services if SERVICE_NAME.match(n)]
         measures = []
-        for name in self.services:
-            if not SERVICE_NAME.match(name):
-                continue
-            result = self.run(["systemctl", "is-active", "--quiet", name], timeout=5, capture_output=True)
-            measures.append(value(instance_key("service.up", name), 1 if result.returncode == 0 else 0, "state", at))
+        for start in range(0, len(names), 50):
+            chunk = names[start : start + 50]
+            result = self.run(["systemctl", "is-active"] + chunk, timeout=10, capture_output=True, text=True)
+            lines = (result.stdout or "").split() if isinstance(result.stdout, str) else []
+            if len(lines) == len(chunk):
+                up = [line == "active" for line in lines]
+            else:
+                up = [
+                    self.run(["systemctl", "is-active", "--quiet", n], timeout=5, capture_output=True).returncode == 0
+                    for n in chunk
+                ]
+            measures.extend(value(instance_key("service.up", n), 1 if ok else 0, "state", at) for n, ok in zip(chunk, up))
         return measures
 
     def snapshot(self):
@@ -206,6 +218,7 @@ class LinuxFamilies:
             discovery.describe(
                 lambda: discovery.linux_services(self.run),
                 lambda: discovery.linux_listening_ports(self.proc),
+                lambda: discovery.linux_service_states(self.run),
             )
         )
         return snapshot
