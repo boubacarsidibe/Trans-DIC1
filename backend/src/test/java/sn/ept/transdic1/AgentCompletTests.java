@@ -61,6 +61,7 @@ class AgentCompletTests {
   @Autowired private AgentSnapshotService snapshots;
   @Autowired private JdbcTemplate jdbc;
   @Autowired private MetricRepository metrics;
+  @Autowired private sn.ept.transdic1.inventory.repository.MonitoredServiceRepository monitored;
 
   private Equipment equipment;
 
@@ -157,6 +158,39 @@ class AgentCompletTests {
     rule("cpu.usage", "90");
     measure("cpu.usage", "95");
     assertThat(active()).hasSize(1);
+  }
+
+  @Test
+  void anAutomaticServiceStoppedSaysItShouldBeRunning() {
+    // ADR 0060 : la règle générique « Service arrêté », message clair pour un service automatique.
+    var stopped =
+        rules.save(
+            new AlertRule(
+                "Service arrêté " + UUID.randomUUID(),
+                "service.up[*]",
+                ComparisonOperator.LESS_THAN,
+                BigDecimal.ONE,
+                Duration.ZERO,
+                Severity.CRITICAL));
+    stopped.setAllEquipment(true);
+    var automatic =
+        new sn.ept.transdic1.inventory.domain.MonitoredService(
+            equipment, "nginx", sn.ept.transdic1.inventory.domain.ServiceType.AGENT_SERVICE);
+    automatic.setStartMode("AUTO");
+    var manual =
+        new sn.ept.transdic1.inventory.domain.MonitoredService(
+            equipment, "cups", sn.ept.transdic1.inventory.domain.ServiceType.AGENT_SERVICE);
+    manual.setStartMode("MANUAL");
+    monitored.saveAll(List.of(automatic, manual));
+    monitored.flush();
+
+    measure("service.up[nginx]", "0");
+    measure("service.up[cups]", "0");
+
+    assertThat(active())
+        .extracting(Alert::getMessage)
+        .contains("Le service nginx devrait tourner (démarrage automatique) mais il est arrêté")
+        .anyMatch(m -> m.startsWith(stopped.getName() + " : service.up[cups]"));
   }
 
   @Test

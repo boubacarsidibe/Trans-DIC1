@@ -61,6 +61,7 @@ public class AlertEvaluationService {
   private final MetricHistory history;
   private final ApplicationEventPublisher publisher;
   private final AdaptiveThresholdService adaptive;
+  private final sn.ept.transdic1.inventory.repository.MonitoredServiceRepository monitoredServices;
 
   public AlertEvaluationService(
       AlertRuleRepository rules,
@@ -71,6 +72,7 @@ public class AlertEvaluationService {
       ApplicationEventPublisher publisher,
       AgentSnapshotRepository snapshots,
       AdaptiveThresholdService adaptive,
+      sn.ept.transdic1.inventory.repository.MonitoredServiceRepository monitoredServices,
       @Value("${alerting.flapping.threshold:4}") int flappingThreshold,
       @Value("${alerting.flapping.window-minutes:60}") long flappingWindowMinutes) {
     this.rules = rules;
@@ -81,6 +83,7 @@ public class AlertEvaluationService {
     this.publisher = publisher;
     this.snapshots = snapshots;
     this.adaptive = adaptive;
+    this.monitoredServices = monitoredServices;
     // Au moins deux ouvertures : en dessous, toute réouverture serait « instable ».
     this.flappingThreshold = Math.max(2, flappingThreshold);
     this.flappingWindow = Duration.ofMinutes(Math.max(5, flappingWindowMinutes));
@@ -214,6 +217,10 @@ public class AlertEvaluationService {
     if (service != null) {
       message = message + " [" + service.getName() + "]";
     }
+    String shouldRun = shouldRunMessage(equipment, service, metricKey, value);
+    if (shouldRun != null) {
+      message = shouldRun;
+    }
     UUID serviceId = service == null ? null : service.getId();
     String instance = MetricKey.instance(metricKey);
     var resolved =
@@ -317,6 +324,33 @@ public class AlertEvaluationService {
     return !maintenances
         .findCovering(equipment.getId(), equipment.getSite().getId(), at, MAINTENANCE_STATES)
         .isEmpty();
+  }
+
+  /**
+   * Service suivi par l'agent, à démarrage automatique, vu arrêté (ADR 0060) : le message dit ce
+   * qui ne va pas en clair. Un service en démarrage manuel garde le message générique de la règle.
+   */
+  private String shouldRunMessage(
+      Equipment equipment, MonitoredService service, String metricKey, BigDecimal value) {
+    if (service != null
+        || !"service.up".equals(MetricKey.family(metricKey))
+        || value.compareTo(BigDecimal.ONE) >= 0) {
+      return null;
+    }
+    String name = MetricKey.instance(metricKey);
+    if (name == null) {
+      return null;
+    }
+    return monitoredServices
+        .findFirstByEquipmentIdAndNameAndType(
+            equipment.getId(), name, sn.ept.transdic1.inventory.domain.ServiceType.AGENT_SERVICE)
+        .filter(MonitoredService::startsAutomatically)
+        .map(
+            s ->
+                "Le service "
+                    + name
+                    + " devrait tourner (démarrage automatique) mais il est arrêté")
+        .orElse(null);
   }
 
   /**
