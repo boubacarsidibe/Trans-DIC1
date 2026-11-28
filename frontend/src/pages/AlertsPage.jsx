@@ -22,6 +22,8 @@ import PageHeader from "../ui/PageHeader.jsx";
 import AssigneesEditor from "./AssigneesEditor.jsx";
 import DiagnosticPanel from "./DiagnosticPanel.jsx";
 import RemediationPanel from "./RemediationPanel.jsx";
+import InterventionLog from "./InterventionLog.jsx";
+import { levelLabel } from "../api/escalation.js";
 import Pagination from "../ui/Pagination.jsx";
 
 const formatDate = (value) =>
@@ -276,6 +278,9 @@ function AlertsPage() {
                   </td>
                   <td>
                     <AlertStateBadge state={alert.state} />
+                    {alert.currentLevel != null && (
+                      <span className="cell-sub"> {levelLabel(alert.currentLevel)}</span>
+                    )}
                   </td>
                   <td>{alert.assignees?.length ? alert.assignees.join(", ") : (alert.assignee ?? "—")}</td>
                   <td className="whitespace-nowrap">{formatDate(alert.triggeredAt)}</td>
@@ -351,6 +356,16 @@ function AlertsPage() {
               canAct={canHandle}
               canDecide={canAdminister}
               alertOpen={detail.alert.state === "OPEN" || detail.alert.state === "IN_PROGRESS"}
+            />
+            <InterventionLog
+              key={`journal-${detail.alert.id}`}
+              alert={detail.alert}
+              events={detail.events}
+              canAct={canHandle}
+              onChanged={async () => {
+                setDetail(await getAlert(detail.alert.id));
+                await load(page, state);
+              }}
             />
             {canAdminister && (
               <AssigneesEditor

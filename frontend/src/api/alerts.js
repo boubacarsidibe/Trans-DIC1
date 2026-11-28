@@ -34,6 +34,14 @@ export const EVENT_LABELS = {
   RESOLVED: "Résolue",
   ARCHIVED: "Archivée",
   DELETED: "Supprimée",
+  ESCALATED: "Escaladée aux administrateurs",
+  CORRELATED: "Rattachée à la panne racine",
+  NOTE: "Note",
+  LEVEL_ESCALATED: "Escalade",
+  SENT_BACK: "Renvoi au niveau inférieur",
+  DIAGNOSTIC_VIEWED: "Diagnostic consulté",
+  CAUSE_CONFIRMED: "Cause confirmée",
+  REMEDIATION: "Action corrective",
 };
 
 export const ALERT_PAGE_SIZE = 10;

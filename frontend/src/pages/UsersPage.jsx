@@ -4,6 +4,7 @@ import SiteScopeEditor from "./SiteScopeEditor.jsx";
 import {
   ROLE_CHOICES,
   changeRole,
+  setSupportLevel,
   createUser,
   listUsers,
   passwordProblem,
@@ -384,6 +385,26 @@ function UsersPage() {
                         </option>
                       ))}
                     </select>
+                    {user.role === "NOC_OPERATOR" && (
+                      <select
+                        aria-label={`Niveau de ${user.username}`}
+                        value={user.supportLevel ?? ""}
+                        onChange={(e) =>
+                          act(
+                            () =>
+                              setSupportLevel(user.id, e.target.value ? Number(e.target.value) : null),
+                            `Niveau de ${user.username} : ${e.target.value ? "N" + e.target.value : "aucun"}.`,
+                            "Le changement de niveau a échoué.",
+                          )
+                        }
+                        className="field field-inline ml-2"
+                      >
+                        <option value="">Sans niveau</option>
+                        <option value="1">N1</option>
+                        <option value="2">N2</option>
+                        <option value="3">N3</option>
+                      </select>
+                    )}
                   </td>
                   <td className="p-3">
                     {scopeSummary(user, scopes.get(user.id), sitesById)}

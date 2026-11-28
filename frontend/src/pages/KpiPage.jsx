@@ -254,6 +254,45 @@ function KpiPage() {
               </table>
             </section>
 
+            {data.escalations && (
+              <section aria-label="Escalades" className="panel mt-5">
+                <div className="panel-head">
+                  <h2>Escalades de niveau</h2>
+                  <span className="cell-sub">
+                    {data.escalations.ratePercent == null
+                      ? "Aucune alerte sur la période"
+                      : `${data.escalations.ratePercent.toLocaleString("fr-FR")} % des alertes escaladées (${data.escalations.escalated})`}
+                  </span>
+                </div>
+                <table className="data-table">
+                  <caption className="sr-only">Escalades par niveau de départ</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Niveau de départ</th>
+                      <th scope="col">Escalades</th>
+                      <th scope="col">Délai médian avant d'escalader</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.escalations.byLevel.length === 0 && (
+                      <tr>
+                        <td colSpan={3}>Aucune escalade sur la période.</td>
+                      </tr>
+                    )}
+                    {data.escalations.byLevel.map((row) => (
+                      <tr key={row.fromLevel}>
+                        <td className="cell-strong">
+                          {row.fromLevel === 0 ? "Sans niveau" : `N${row.fromLevel}`}
+                        </td>
+                        <td className="cell-num">{row.escalations}</td>
+                        <td className="cell-num">{minutesLabel(row.medianMinutes)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+            )}
+
             <section aria-label="Fiabilité des équipements" className="panel mt-5">
               <div className="panel-head">
                 <h2>Équipements les plus touchés (MTBF)</h2>

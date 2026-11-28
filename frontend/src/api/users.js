@@ -28,6 +28,12 @@ export async function changeRole(id, role) {
   return data;
 }
 
+/** Niveau de support d'un opérateur NOC (ADR 0059) : 1, 2, 3 ou vide. */
+export async function setSupportLevel(id, level) {
+  const { data } = await apiClient.post(`/utilisateurs/${id}/niveau`, { level });
+  return data;
+}
+
 export async function setActive(id, active) {
   const { data } = await apiClient.post(`/utilisateurs/${id}/activation`, { active });
   return data;
