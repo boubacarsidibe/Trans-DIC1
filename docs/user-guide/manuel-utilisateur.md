@@ -313,6 +313,12 @@ Le rapport **SLA par site** compare la disponibilité mesurée de chaque site à
 
 ## 3. Parcours de l'opérateur NOC
 
+### Mon poste, rôle et niveau
+
+À la connexion, l'opérateur arrive sur **Mon poste** : les alertes **escaladées vers lui**, **ses alertes en cours**, celles qui **attendent à son niveau**, et **sa garde d'astreinte**. En haut de l'écran, un badge rappelle le rôle et le niveau (« Opérateur N1 », « Administrateur », « Lecteur »), d'une couleur par rôle. Le menu de l'opérateur est plus léger : règles, modèles, sécurité, jetons, import et rapports n'y figurent pas (ADR 0058).
+
+Un administrateur peut donner à chaque opérateur un **niveau de support** (N1, N2 ou N3). Un opérateur prend les alertes de son niveau ou d'un niveau inférieur ; un opérateur sans niveau prend tout.
+
 ### Traiter une alerte
 
 ![Alertes vues par un opérateur](images/05-alertes-operateur.png)
@@ -322,6 +328,12 @@ Le rapport **SLA par site** compare la disponibilité mesurée de chaque site à
 3. Régler le problème sur l'équipement.
 4. **Résoudre** : l'alerte passe à « Résolue ».
 5. **Historique** affiche la chronologie : qui a fait quoi, et quand.
+
+**Journal d'intervention.** Dans l'historique de l'alerte, le journal réunit vos notes (**Ajouter la note** : une phrase datée et signée) et ce que la plateforme y inscrit d'elle-même : prise en charge, diagnostic consulté, cause confirmée, action corrective et son résultat.
+
+**Escalader au niveau supérieur** (moins de dix secondes) : cochez ce qui a été fait (service redémarré, équipement ou câble vérifié, configuration vérifiée, hors de mes droits, besoin d'un accès sur place), écrivez **une phrase** — pourquoi vous escaladez — et choisissez au besoin un destinataire. L'alerte s'ouvre pour le niveau supérieur occupé (un niveau sans personne est sauté, puis viennent les administrateurs) ; la personne d'astreinte de ce niveau est prévenue, sinon tous ses opérateurs. **Renvoyer au niveau inférieur** fait l'inverse, avec une consigne. Tout est tracé : chronologie, journal d'audit, post-mortem.
+
+**Qui est prévenu ?** Une alerte est visible de tous dans leur périmètre ; un message ne part qu'à ceux qui l'ont demandé dans **Mes notifications** (au-dessus de leur sévérité minimale) et à la personne d'astreinte, même sans préférence (par e-mail). Le jour, sans astreinte, rien n'est diffusé : le premier opérateur qui prend l'alerte la traite.
 
 Une alerte critique ouverte depuis 10 minutes (30 minutes pour les autres) sans prise en charge est **escaladée** : les administrateurs sont prévenus.
 
@@ -333,11 +345,15 @@ Une alerte regroupée sous une alerte racine se résout en général avec elle :
 
 ### Services d'une machine et dépendances
 
-Sur la fiche d'un équipement équipé d'un agent (onglet de vue d'ensemble), **Services et ports** liste les services actifs et les ports TCP en écoute, mis à jour toutes les 5 minutes. Les services système sans intérêt sont masqués (le nombre masqué est indiqué). **Suivre nginx** fait remonter l'état de ce service (mesure `service.up[nginx]`) au prochain passage de l'agent, sans rien changer sur la machine ; un service suivi qui s'arrête reste affiché. Une règle d'alerte sur cette mesure (inférieure à 1) vous préviendra de son arrêt.
+Sur la fiche d'un équipement équipé d'un agent (onglet de vue d'ensemble), **Services et ports** liste **tous** les services (agent 2.3) avec leur **état**, leur **mode de démarrage**, leur **suivi** et la date du relevé, et les ports TCP en écoute, mis à jour toutes les 5 minutes. Les services système sans intérêt sont masqués (le nombre masqué est indiqué). Le filtre **Afficher** propose « Tous », « Suivis » et « Arrêtés anormalement ».
 
-**Parc → Dépendances** dit quel service dépend de quel autre (l'ENT dépend de PostgreSQL, PostgreSQL du service postgresql de sa VM). Ajoutez-les une à une, ou importez un fichier CSV d'une ligne par dépendance (`code_equipement;service;code_equipement;service`) : le bilan dit ce qui a été créé et pourquoi chaque ligne écartée l'a été. Une dépendance qui ferait une boucle est refusée. Les lecteurs voient la liste ; opérateurs et administrateurs la modifient.
+Les services à **démarrage automatique** vus démarrés sont **suivis d'office** : s'ils s'arrêtent, l'alerte dit « Le service X devrait tourner (démarrage automatique) mais il est arrêté ». Rien n'alerte à la première découverte. L'administrateur suit un service manuel en un clic (**Suivre**), cesse d'en suivre un (**Ne plus suivre** : il devient « ignoré » et n'est plus jamais suivi d'office) ou le **réactive** (ADR 0060).
+
+**Parc → Dépendances** dit quel service dépend de quel autre (l'ENT dépend de PostgreSQL, PostgreSQL du service postgresql de sa VM). Ajoutez-les une à une, ou importez un fichier CSV d'une ligne par dépendance (`code_equipement;service;code_equipement;service`) : le bilan dit ce qui a été créé et pourquoi chaque ligne écartée l'a été. Une dépendance qui ferait une boucle est refusée. Tout le monde voit la liste ; seul l'administrateur la modifie.
 
 ### Gérer l'inventaire
+
+Depuis l'ADR 0058, l'inventaire (équipements, sites, import CSV, dépendances, suivi des services) est modifié par l'**administrateur** ; l'opérateur le consulte.
 
 - **Ajouter un équipement** (page Équipements) : code d'inventaire unique, nom, adresse de gestion, site, type, statut.
 - Les boutons crayon et corbeille modifient ou suppriment un équipement. Toute modification est tracée dans le journal d'audit.
@@ -354,9 +370,11 @@ Sur la fiche d'un équipement équipé d'un agent (onglet de vue d'ensemble), **
 
 Une ligne dont le code d'inventaire ou l'adresse existe déjà est refusée comme doublon. Le format complet est décrit dans [discovery-and-import.md](../devops/discovery-and-import.md).
 
-### Planifier une maintenance
+### Planifier ou demander une maintenance
 
-**Parc > Maintenances** : déclarer une période de maintenance pour un équipement ou un site. Pendant cette période, aucune alerte ne s'ouvre et aucune notification ne part pour ces équipements.
+**Parc > Maintenances** : l'administrateur déclare une période de maintenance pour un équipement ou un site. Pendant cette période, aucune alerte ne s'ouvre et aucune notification ne part pour ces équipements.
+
+L'opérateur, lui, **demande** une maintenance (même formulaire, bouton **Demander une maintenance**, ou depuis l'analyse d'impact) : rien n'est coupé tant que l'administrateur ne l'a pas **validée**. La demande apparaît chez l'administrateur dans **Demandes en attente** ; il la valide (la maintenance est planifiée à son nom) ou la **refuse avec un motif**. L'opérateur suit ses demandes et leur décision ; tout est dans le journal d'audit et dans la chronologie de l'alerte d'origine.
 
 ### Mes notifications
 
@@ -383,11 +401,11 @@ Mes notifications** comme les autres, avec sa sévérité minimale.
 
 ### Jetons d'API
 
-**Réglages > Jetons d'API** : créer un jeton pour qu'un autre outil (tableau Grafana, script, ordonnanceur) appelle l'API en votre nom, sans partager votre mot de passe. Le jeton s'utilise dans l'en-tête `Authorization: Bearer <jeton>`, exactement comme un jeton de connexion.
+**Réglages > Jetons d'API** (administrateur, ADR 0058) : créer un jeton pour qu'un autre outil (tableau Grafana, script, ordonnanceur) appelle l'API en votre nom, sans partager votre mot de passe. Le jeton s'utilise dans l'en-tête `Authorization: Bearer <jeton>`, exactement comme un jeton de connexion.
 
 Le secret n'est **affiché qu'une seule fois**, à la création : copiez-le aussitôt, il n'est plus récupérable. La base n'en garde qu'une empreinte.
 
-Un jeton donne **exactement vos droits et votre périmètre de sites**, relus à chaque appel : si votre rôle change ou si votre compte est désactivé, ses jetons suivent sans qu'il faille les révoquer un par un. La liste montre le début du jeton, son état, sa date de création, son expiration et son dernier usage — de quoi repérer un jeton oublié. **Révoquer** le coupe tout de suite ; la ligne reste pour l'audit. Vingt jetons actifs au plus par compte, et deux jetons ne peuvent pas porter le même nom.
+Un jeton donne **exactement vos droits et votre périmètre de sites**, relus à chaque appel : si votre rôle change ou si votre compte est désactivé, ses jetons suivent sans qu'il faille les révoquer un par un. La liste montre le début du jeton, son état, sa date de création, son expiration et son dernier usage — de quoi repérer un jeton oublié. **Révoquer** le coupe tout de suite ; la ligne reste pour l'audit. Vingt jetons actifs au plus par compte, et deux jetons ne peuvent pas porter le même nom. Un jeton créé autrefois par un opérateur ou un lecteur n'est pas révoqué mais refusé à l'usage, avec un message explicite (403) ; le refus est tracé dans le journal d'audit.
 
 **Réglages > Mes notifications** : choisir de recevoir ou non un message à l'ouverture et à la résolution des alertes, et à partir de quelle sévérité. Le canal par défaut est l'e-mail ; d'autres canaux (Teams, Slack, Telegram, webhook) sont configurés par un administrateur. Pour Telegram, le secret contient l'URL complète de l'API du bot, jeton et destinataire compris (`https://api.telegram.org/bot<jeton>/sendMessage?chat_id=<identifiant>`) : le jeton n'entre jamais en base ni à l'écran.
 
@@ -405,7 +423,7 @@ Quand une alerte (avertissement ou critique) s'ouvre sur un site couvert, hors m
 2. si personne n'a pris l'alerte en charge après **10 minutes** (5 si critique), la personne secondaire est prévenue ;
 3. après 30 minutes (10 si critique), les administrateurs sont prévenus, comme avant.
 
-**Prendre en charge** ou **résoudre** l'alerte arrête la chaîne. Chaque étape apparaît dans l'**Historique** de l'alerte (« Astreinte : awa prévenu(e) (niveau principal) »). **Important** : la personne d'astreinte n'est prévenue que si elle a une préférence active dans **Mes notifications**. Sinon l'historique indique « Astreinte sans canal » et la secondaire est prévenue sans attendre. Il n'y a ni SMS ni appel : choisissez un canal qui sonne sur votre téléphone (application Teams ou Slack, e-mail avec notifications).
+**Prendre en charge** ou **résoudre** l'alerte arrête la chaîne. Chaque étape apparaît dans l'**Historique** de l'alerte (« Astreinte : awa prévenu(e) (niveau principal) »). La personne d'astreinte est prévenue sur le canal de sa préférence active dans **Mes notifications**, et **par e-mail** si elle n'en a pas réglé (ADR 0059). Il n'y a ni SMS ni appel : choisissez un canal qui sonne sur votre téléphone (application Teams ou Slack, e-mail avec notifications).
 
 **Passer sa garde** : un opérateur empêché clique sur **Passer ma garde** dans **Mes gardes**, choisit le collègue qui reprend et confirme. Un remplacement est créé de maintenant à la fin de la garde ; la garde d'origine reste dans l'historique et l'action est tracée dans le journal d'audit. On ne peut passer que ses propres gardes (un administrateur peut passer celles de tous) et pas une garde terminée.
 
@@ -418,6 +436,7 @@ Quand une alerte (avertissement ou critique) s'ouvre sur un site couvert, hors m
 **Administration > Utilisateurs** :
 - **Ajouter un compte** : nom, e-mail, mot de passe d'au moins 12 caractères, rôle ;
 - changer le rôle, **Désactiver** un compte, réinitialiser son **Mot de passe**.
+- **Niveau** d'un opérateur NOC : N1, N2, N3 ou sans niveau (ADR 0059). Il décide quelles alertes il prend et à qui va une escalade ; le changement est tracé dans le journal d'audit.
 
 Changer le rôle, désactiver un compte ou réinitialiser son mot de passe ferme ses sessions ouvertes, immédiatement : la personne est renvoyée à l'écran de connexion dès sa requête suivante. Le mot de passe saisi à la création ou à la réinitialisation est **temporaire** : la personne doit le changer à sa première connexion. Le transmettre par un canal sûr.
 
