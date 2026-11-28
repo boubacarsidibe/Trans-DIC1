@@ -39,6 +39,16 @@ public final class AlertLevelDtos {
   /** Un destinataire possible d'une escalade. */
   public record Candidate(UUID id, String username, String role, Integer supportLevel) {}
 
+  /**
+   * Page « Mon poste » d'un opérateur (ADR 0059) : ses alertes en cours, celles qui attendent à son
+   * niveau, et celles qu'on lui a escaladées ou renvoyées.
+   */
+  public record MyDesk(
+      Integer level,
+      List<AlertResponse> mine,
+      List<AlertResponse> waiting,
+      List<AlertResponse> escalatedToMe) {}
+
   /** Où irait l'escalade, et qui peut la recevoir. */
   public record EscalationTarget(Integer fromLevel, Integer toLevel, List<Candidate> candidates) {}
 }

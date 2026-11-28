@@ -3219,6 +3219,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/alertes/mon-poste": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mon poste
+         * @description Mes alertes en cours, celles qui attendent à mon niveau et celles qu'on m'a escaladées ou renvoyées (ADR 0059).
+         */
+        get: operations["myDesk"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/agent/services-suivis": {
         parameters: {
             query?: never;
@@ -5978,6 +5998,13 @@ export interface components {
             le?: string;
             /** Format: double */
             valeur?: number;
+        };
+        MyDesk: {
+            /** Format: int32 */
+            level?: number;
+            mine?: components["schemas"]["AlertResponse"][];
+            waiting?: components["schemas"]["AlertResponse"][];
+            escalatedToMe?: components["schemas"]["AlertResponse"][];
         };
         FollowedNames: {
             services?: string[];
@@ -15325,6 +15352,44 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    myDesk: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MyDesk"];
+                };
+            };
+            /** @description Authentification requise ou jeton expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Rôle insuffisant pour cette action */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
             };
         };
     };

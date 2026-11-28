@@ -38,6 +38,17 @@ public class AlertLevelController {
     this.service = service;
   }
 
+  @Operation(
+      summary = "Mon poste",
+      description =
+          "Mes alertes en cours, celles qui attendent à mon niveau et celles qu'on m'a escaladées"
+              + " ou renvoyées (ADR 0059).")
+  @GetMapping("/mon-poste")
+  @PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")
+  public sn.ept.transdic1.alerting.dto.AlertLevelDtos.MyDesk myDesk(Authentication auth) {
+    return service.myDesk(auth.getName());
+  }
+
   @Operation(summary = "Ajouter une note au journal d'intervention")
   @PostMapping("/{id}/notes")
   @PreAuthorize("hasAnyRole('ADMIN','NOC_OPERATOR')")

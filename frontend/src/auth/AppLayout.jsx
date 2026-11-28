@@ -27,6 +27,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Send,
+  Inbox,
   Server,
   SlidersHorizontal,
   Timer,
@@ -37,6 +38,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "./AuthContext.jsx";
+import RoleBadge, { useSupportLevel } from "./RoleBadge.jsx";
 import CommandPalette from "../ui/CommandPalette.jsx";
 
 const ROLE_LABELS = {
@@ -49,18 +51,21 @@ const SECTIONS = [
   {
     title: "Supervision",
     links: [
+      { to: "/mon-poste", label: "Mon poste", icon: Inbox, roles: ["NOC_OPERATOR"] },
       { to: "/tableau-de-bord", label: "Tableau de bord", icon: LayoutDashboard },
-      { to: "/vues", label: "Mes vues", icon: LayoutTemplate },
+      // Menu plus léger pour l'opérateur : vues, pages de statut, trafic et rapports restent
+      // accessibles par leur adresse, mais ne chargent pas son menu.
+      { to: "/vues", label: "Mes vues", icon: LayoutTemplate, roles: ["ADMIN", "VIEWER"] },
       { to: "/alertes", label: "Alertes", icon: BellRing },
       { to: "/incidents", label: "Incidents", icon: Layers },
       { to: "/indicateurs", label: "Indicateurs", icon: Timer },
       { to: "/risques", label: "Risque de panne", icon: BrainCircuit },
       { to: "/astreinte", label: "Astreinte", icon: PhoneCall },
-      { to: "/pages-statut", label: "Pages de statut", icon: Gauge },
+      { to: "/pages-statut", label: "Pages de statut", icon: Gauge, roles: ["ADMIN", "VIEWER"] },
       { to: "/evenements", label: "Événements", icon: Activity },
       { to: "/securite", label: "Sécurité", icon: ShieldAlert, roles: ["ADMIN"] },
-      { to: "/trafic", label: "Trafic", icon: Waypoints },
-      { to: "/rapports", label: "Rapports", icon: FileBarChart2 },
+      { to: "/trafic", label: "Trafic", icon: Waypoints, roles: ["ADMIN", "VIEWER"] },
+      { to: "/rapports", label: "Rapports", icon: FileBarChart2, roles: ["ADMIN", "VIEWER"] },
     ],
   },
   {
@@ -68,9 +73,9 @@ const SECTIONS = [
     links: [
       { to: "/equipements", label: "Équipements", icon: Server },
       { to: "/modeles", label: "Modèles", icon: LibraryBig, roles: ["ADMIN"] },
-      { to: "/sites", label: "Sites", icon: Building2 },
+      { to: "/sites", label: "Sites", icon: Building2, roles: ["ADMIN", "VIEWER"] },
       { to: "/topologie", label: "Topologie", icon: Network },
-      { to: "/dependances", label: "Dépendances", icon: GitBranch },
+      { to: "/dependances", label: "Dépendances", icon: GitBranch, roles: ["ADMIN", "VIEWER"] },
       { to: "/maintenances", label: "Maintenances", icon: Wrench },
       { to: "/import", label: "Import CSV", icon: Upload, roles: ["ADMIN"] },
       { to: "/decouverte", label: "Découverte", icon: Radar, roles: ["ADMIN"] },
@@ -120,6 +125,7 @@ function Brand() {
 function AppLayout() {
   const { role, username, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const level = useSupportLevel(role);
 
   // Sur téléphone, le menu se referme après un choix (clic sur un lien) ou avec Échap.
   useEffect(() => {
@@ -138,6 +144,7 @@ function AppLayout() {
     <div className="shell">
       <div className="topbar">
         <Brand />
+        <RoleBadge role={role} level={level} />
         <button
           type="button"
           className="topbar-toggle"
@@ -157,6 +164,7 @@ function AppLayout() {
       >
         <div className="rail-head">
           <Brand />
+          <RoleBadge role={role} level={level} />
         </div>
         <CommandPalette pages={pages} />
 

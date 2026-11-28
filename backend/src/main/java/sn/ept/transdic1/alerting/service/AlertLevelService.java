@@ -133,6 +133,77 @@ public class AlertLevelService {
     return alerts.findById(alertId).map(a -> occupiedLevels(a).pollLast()).orElse(null);
   }
 
+  // ------------------------------------------------------------------ mon poste
+
+  /** Alertes actives lues au plus pour « Mon poste » : la page reste rapide. */
+  private static final int DESK_LIMIT = 500;
+
+  /**
+   * « Mon poste » : mes alertes en cours (prises par moi), celles qui attendent à mon niveau (sans
+   * niveau pour un opérateur sans niveau), et celles qu'on m'a escaladées ou renvoyées (vers mon
+   * niveau, ou en me nommant).
+   */
+  @Transactional(readOnly = true)
+  public AlertLevelDtos.MyDesk myDesk(String username) {
+    AppUser me = user(username);
+    Integer level = me.getSupportLevel();
+    List<AlertResponse> mine = new ArrayList<>();
+    List<AlertResponse> waiting = new ArrayList<>();
+    List<AlertResponse> escalated = new ArrayList<>();
+    var active =
+        alerts.findAll(
+            (root, query, cb) ->
+                root.get("state").in(List.of(AlertState.OPEN, AlertState.IN_PROGRESS)),
+            org.springframework.data.domain.PageRequest.of(
+                0,
+                DESK_LIMIT,
+                org.springframework.data.domain.Sort.by("triggeredAt").descending()));
+    for (Alert alert : active) {
+      if (!scope.allows(siteOf(alert)) || alert.getParentAlertId() != null) {
+        continue;
+      }
+      List<String> assignees =
+          assignments.findAllByAlertIdAndEndedAtIsNullOrderByAssignedAtAsc(alert.getId()).stream()
+              .map(a -> a.getUser().getUsername())
+              .toList();
+      var response = AlertResponse.from(alert, assignees);
+      if (alert.getState() == AlertState.IN_PROGRESS) {
+        if (assignees.contains(username)) {
+          mine.add(response);
+        }
+        continue;
+      }
+      if (!Objects.equals(alert.getCurrentLevel(), level)) {
+        continue;
+      }
+      if (addressedTo(alert, me)) {
+        escalated.add(response);
+      } else {
+        waiting.add(response);
+      }
+    }
+    return new AlertLevelDtos.MyDesk(level, mine, waiting, escalated);
+  }
+
+  /** La dernière escalade ou le dernier renvoi de l'alerte vise mon niveau, ou me nomme. */
+  private boolean addressedTo(Alert alert, AppUser me) {
+    AlertEvent last = null;
+    for (AlertEvent event : events.findByAlertIdOrderByOccurredAtAsc(alert.getId())) {
+      if (event.getType() == AlertEventType.LEVEL_ESCALATED
+          || event.getType() == AlertEventType.SENT_BACK) {
+        last = event;
+      }
+    }
+    if (last == null) {
+      return false;
+    }
+    boolean named =
+        last.getRecipients() != null
+            && List.of(last.getRecipients().split(",\\s*")).contains(me.getUsername());
+    return named
+        || (me.getSupportLevel() != null && me.getSupportLevel().equals(last.getToLevel()));
+  }
+
   // ------------------------------------------------------------------ journal
 
   /** Note courte, datée et signée, dans le journal d'intervention. */

@@ -373,6 +373,37 @@ class AlertLevelApiTests {
   }
 
   @Test
+  void monPosteRangeMesAlertesCellesDeMonNiveauEtCellesQuOnMEscalade() throws Exception {
+    Alert taken = alert(1, Severity.WARNING);
+    call(taken.getId() + "/prise-en-charge", n1Jwt, "{}").andExpect(status().isOk());
+    Alert waiting = alert(1, Severity.WARNING);
+    Alert escalated = alert(1, Severity.CRITICAL);
+    call(escalated.getId() + "/escalade", n1Jwt, "{\"reason\":\"Besoin du N2\"}")
+        .andExpect(status().isOk());
+    em.flush();
+
+    mockMvc
+        .perform(get("/api/v1/alertes/mon-poste").header("Authorization", "Bearer " + n1Jwt))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.level").value(1))
+        .andExpect(
+            jsonPath("$.mine[*].id")
+                .value(org.hamcrest.Matchers.contains(taken.getId().toString())))
+        .andExpect(
+            jsonPath("$.waiting[*].id")
+                .value(org.hamcrest.Matchers.contains(waiting.getId().toString())));
+    mockMvc
+        .perform(get("/api/v1/alertes/mon-poste").header("Authorization", "Bearer " + n2Jwt))
+        .andExpect(
+            jsonPath("$.escalatedToMe[*].id")
+                .value(org.hamcrest.Matchers.contains(escalated.getId().toString())))
+        .andExpect(jsonPath("$.waiting").isEmpty());
+    mockMvc
+        .perform(get("/api/v1/alertes/mon-poste").header("Authorization", "Bearer " + viewerJwt))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
   void lesIndicateursDonnentLeTauxEtLeDelaiDEscaladeParNiveau() throws Exception {
     Alert escalated = alert(1, Severity.WARNING);
     alert(1, Severity.WARNING);

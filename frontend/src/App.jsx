@@ -7,6 +7,8 @@ import EventsPage from "./pages/EventsPage.jsx";
 import EventRulesPage from "./pages/EventRulesPage.jsx";
 import AppLayout from "./auth/AppLayout.jsx";
 import ProtectedRoute from "./auth/ProtectedRoute.jsx";
+import HomeRedirect from "./auth/HomeRedirect.jsx";
+import MyDeskPage from "./pages/MyDeskPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import MaintenancesPage from "./pages/MaintenancesPage.jsx";
@@ -72,6 +74,9 @@ function App() {
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/double-authentification" element={<TwoFactorPage />} />
           {/* Moindre privilège (ADR 0058) : réservé à l'administrateur, comme côté serveur. */}
+          <Route element={<ProtectedRoute roles={["ADMIN", "NOC_OPERATOR"]} />}>
+            <Route path="/mon-poste" element={<MyDeskPage />} />
+          </Route>
           <Route element={<ProtectedRoute roles={["ADMIN"]} />}>
             <Route path="/import" element={<ImportPage />} />
             <Route path="/regles" element={<RulesPage />} />
@@ -93,7 +98,7 @@ function App() {
           </Route>
         </Route>
       </Route>
-      <Route path="/" element={<Navigate to="/tableau-de-bord" replace />} />
+      <Route path="/" element={<HomeRedirect />} />
       <Route path="*" element={<Navigate to="/tableau-de-bord" replace />} />
     </Routes>
   );

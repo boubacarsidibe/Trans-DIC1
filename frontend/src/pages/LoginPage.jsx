@@ -25,7 +25,8 @@ function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, login } = useAuth();
-  const destination = location.state?.from?.pathname ?? "/tableau-de-bord";
+  // Page d'accueil selon le rôle : « Mon poste » pour l'opérateur (voir HomeRedirect).
+  const destination = location.state?.from?.pathname ?? "/";
 
   // Modes de connexion proposés par le serveur ; en cas d'échec, la connexion locale reste affichée.
   useEffect(() => {

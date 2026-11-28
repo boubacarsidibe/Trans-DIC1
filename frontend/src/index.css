@@ -281,6 +281,32 @@ code {
   color: #8ea2bd;
 }
 
+/* Badge du rôle et du niveau (ADR 0058, 0059) : une couleur par rôle. */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.role-admin {
+  background: #f2b705;
+  color: #1d1600;
+}
+
+.role-operator {
+  background: #0b6e78;
+  color: #ffffff;
+}
+
+.role-viewer {
+  background: #55636c;
+  color: #ffffff;
+}
+
 .rail-logout {
   display: flex;
   min-height: 2.5rem;

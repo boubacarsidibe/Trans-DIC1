@@ -7577,6 +7577,33 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/alertes/mon-poste:
+    get:
+      tags:
+      - Escalade
+      summary: Mon poste
+      description: "Mes alertes en cours, celles qui attendent à mon niveau et celles\
+        \ qu'on m'a escaladées ou renvoyées (ADR 0059)."
+      operationId: myDesk
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/MyDesk"
+        "401":
+          description: Authentification requise ou jeton expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Rôle insuffisant pour cette action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /api/v1/agent/services-suivis:
     get:
       tags:
@@ -13125,6 +13152,24 @@ components:
         valeur:
           type: number
           format: double
+    MyDesk:
+      type: object
+      properties:
+        level:
+          type: integer
+          format: int32
+        mine:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlertResponse"
+        waiting:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlertResponse"
+        escalatedToMe:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlertResponse"
     FollowedNames:
       type: object
       properties:
